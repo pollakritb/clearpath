@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--cp-appbg);
+  --color-foreground: var(--cp-ink);
+  --font-sans: var(--font-noto-thai), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* ============================================================
+   ClearPath design tokens (civic-tech teal + warm sand)
+   theme-swappable via CSS vars so high-contrast just remaps them
+   ============================================================ */
+:root {
+  --cp-ink: #1a2826;
+  --cp-subink: #5a6664;
+  --cp-line: #e3e7e4;
+  --cp-appbg: #f4f2ec;
+  --cp-panel: #ffffff;
+  --cp-chip: #f4f2ec;
+  --cp-input: #fafaf7;
+  --cp-mapbg: #eef0e8;
+
+  --cp-teal: #0e7c79;
+  --cp-teal-bright: #0aa3a0;
+  --cp-green: #2bbf73; /* "recommended" */
+  --cp-red: #e0554b; /* destination */
+
+  /* AQI — 5 levels, semantic, never reordered */
+  --cp-aqi-good: #27ae60;
+  --cp-aqi-moderate: #d4ac0d;
+  --cp-aqi-sensitive: #e67e22;
+  --cp-aqi-unhealthy: #e74c3c;
+  --cp-aqi-hazard: #8e44ad;
+
+  --cp-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --cp-shadow-brand: 0 4px 14px rgba(14, 124, 121, 0.34);
+  --cp-shadow-overlay: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+
+/* high-contrast: deepen ink + lines, flatten tints */
+[data-contrast="true"] {
+  --cp-ink: #06110f;
+  --cp-subink: #33433f;
+  --cp-line: #7d8a87;
+  --cp-appbg: #ffffff;
+  --cp-chip: #eef1ef;
+  --cp-input: #ffffff;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--cp-appbg);
+  color: var(--cp-ink);
+  font-family: var(--font-sans);
+}
+
+/* ============================================================
+   motion — all respect prefers-reduced-motion
+   ============================================================ */
+@keyframes cp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes cp-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+@keyframes cp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes cp-sound {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes cp-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.cp-anim-spin {
+  animation: cp-spin 0.7s linear infinite;
+}
+.cp-anim-pulse {
+  animation: cp-pulse 2.4s ease-in-out infinite;
+}
+.cp-anim-rise {
+  animation: cp-rise 0.32s ease;
+}
+.cp-anim-sound {
+  animation: cp-sound 0.6s ease-in-out infinite;
+}
+/* recommended route ribbon — marching-ants dash (applied to the leaflet <path>) */
+.cp-route-rec {
+  animation: cp-dash 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-anim-spin,
+  .cp-anim-pulse,
+  .cp-anim-rise,
+  .cp-anim-sound,
+  .cp-route-rec {
+    animation: none !important;
+  }
+}
+
+/* ============================================================
+   a11y + utilities
+   ============================================================ */
+.cp-focus:focus-visible {
+  outline: 3px solid var(--cp-teal);
+  outline-offset: 2px;
+  border-radius: 9px;
+}
+
+.cp-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.cp-scroll::-webkit-scrollbar-thumb {
+  background: rgba(20, 60, 58, 0.18);
+  border-radius: 8px;
+}
+.cp-noscroll::-webkit-scrollbar {
+  display: none;
+}
+.cp-noscroll {
+  scrollbar-width: none;
+}
+
+/* ============================================================
+   responsive shell — desktop 2-column · mobile bottom sheet
+   ============================================================ */
+.cp-app {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--cp-appbg);
+  color: var(--cp-ink);
+}
+.cp-aside {
+  width: var(--cp-aside-w, 380px);
+  flex: none;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--cp-panel);
+  border-right: 1px solid var(--cp-line);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+}
+.cp-map {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--cp-mapbg);
+}
+.cp-grabber {
+  display: none;
+}
+.cp-brandpill {
+  display: none;
+}
+.cp-mapctrls {
+  position: absolute;
+  right: 1em;
+  bottom: 1.2em;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .cp-app {
+    display: block;
+    position: relative;
+  }
+  .cp-map {
+    position: absolute;
+    inset: 0;
+  }
+  .cp-aside {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: 88dvh;
+    max-height: 88dvh;
+    border-right: none;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18);
+    transform: translateY(var(--cp-sheet-y, 78%));
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1300;
+  }
+  .cp-header {
+    display: none;
+  }
+  .cp-grabber {
+    display: flex;
+  }
+  .cp-brandpill {
+    display: flex;
+  }
+  .cp-legend-wrap {
+    display: none;
+  }
+  .cp-viewtoggle {
+    display: none !important; /* override inline display:flex */
+  }
+  .cp-mapctrls {
+    top: 4.8em;
+    bottom: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cp-aside {
+    transition: none;
+  }
+}
+
+/* Leaflet: fill parent + neutral basemap-ish background */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: var(--cp-mapbg);
+  font-family: inherit;
+}
+/* let our teardrop / glass markers escape the default white popup chrome */
+.cp-marker {
+  background: transparent;
+  border: none;
+}

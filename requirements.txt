@@ -1,0 +1,10 @@
+# ClearPath backend — production / deploy (Vercel)
+# เก็บให้เบาเพื่อไม่ชน function size limit (250MB)
+fastapi>=0.115,<1.0
+httpx>=0.27
+numpy>=2.0
+supabase>=2.7
+pydantic>=2.8
+pydantic-settings>=2.4
+python-dotenv>=1.0
+truststore>=0.9  # ใช้ trust store ของ OS (air4thai HTTPS ที่ certifi ไม่มี CA)
