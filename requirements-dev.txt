@@ -2,8 +2,10 @@
 -r requirements.txt
 uvicorn[standard]>=0.30
 pytest>=8.0
+ruff>=0.9,<1.0
 # Kriging upgrade (หนัก — รัน local/รายงาน ไม่ deploy เพื่อกัน function size เกิน)
 scipy>=1.13
 pykrige>=1.7
 # ประเมินความแม่นยำ + รูปประกอบเล่ม (scripts/evaluate_interpolation.py)
 matplotlib>=3.8
+xgboost>=3.0,<4.0

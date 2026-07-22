@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-import { api, ApiError } from "@/frontend/lib/api-client";
+import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { FirePoint } from "@/frontend/types";
 
 export function useFirms() {
@@ -18,8 +18,8 @@ export function useFirms() {
       const res = await api.firms(days);
       setFires(res.fires);
       setLoaded(true);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "โหลดจุดไฟไหม้ไม่สำเร็จ");
+    } catch (error) {
+      setError(apiErrorMessage(error, "โหลดจุดความร้อนไม่สำเร็จ"));
     } finally {
       setLoading(false);
     }

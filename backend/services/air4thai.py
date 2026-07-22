@@ -2,6 +2,7 @@
 
 ฟรี ไม่ต้อง API key · อัปเดตทุก 1 ชั่วโมง · endpoint เป็น HTTP (เรียกฝั่ง server เท่านั้น)
 """
+
 from __future__ import annotations
 
 import httpx
@@ -9,6 +10,7 @@ import httpx
 from ..core.aqi import classify_pm25
 from ..core.cache import TTLCache
 from ..core.config import settings
+from ..core.errors import UpstreamError
 
 # air4thai อัปเดตทุก ~1 ชม. → cache 5 นาทีก็ลดการยิงซ้ำได้มากโดยข้อมูลยังสด
 _cache = TTLCache(ttl_seconds=300)
@@ -45,13 +47,16 @@ async def fetch_stations() -> list[dict]:
     if cached is not None:
         return cached
 
-    async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
-        resp = await client.get(
-            settings.air4thai_url,
-            headers={"User-Agent": "ClearPath/1.0 (final-year-project)"},
-        )
-        resp.raise_for_status()
-        data = resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
+            resp = await client.get(
+                settings.air4thai_url,
+                headers={"User-Agent": "ClearPath/1.0 (final-year-project)"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+    except (httpx.HTTPError, ValueError, TypeError) as exc:
+        raise UpstreamError("Air4Thai ตอบกลับไม่สำเร็จหรือข้อมูลไม่ถูกต้อง") from exc
 
     out: list[dict] = []
     for s in data.get("stations", []):

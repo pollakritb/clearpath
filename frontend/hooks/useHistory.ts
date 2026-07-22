@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-import { api, ApiError } from "@/frontend/lib/api-client";
+import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { HistoryPoint } from "@/frontend/types";
 
 export function useHistory() {
@@ -18,8 +18,8 @@ export function useHistory() {
     try {
       const res = await api.history(id, hours);
       setPoints(res.points);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "โหลดประวัติไม่สำเร็จ");
+    } catch (error) {
+      setError(apiErrorMessage(error, "โหลดประวัติไม่สำเร็จ"));
       setPoints([]);
     } finally {
       setLoading(false);

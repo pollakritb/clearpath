@@ -1,4 +1,5 @@
 """GET /api/weather?lat=&lon= — สภาพอากาศปัจจุบัน (OpenWeatherMap)"""
+
 from fastapi import APIRouter, Query
 
 from ..models.schemas import Weather

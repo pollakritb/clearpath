@@ -57,7 +57,9 @@ export default function Legend() {
             {lg.glyph}
           </span>
           <span style={{ flex: 1, fontWeight: 600 }}>{lg.level}</span>
-          <span style={{ fontFamily: T.mono, color: "#5a6664" }}>{lg.range}</span>
+          <span style={{ fontFamily: T.mono, color: "#5a6664" }}>
+            {lg.range}
+          </span>
         </div>
       ))}
     </div>

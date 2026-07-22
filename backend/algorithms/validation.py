@@ -11,17 +11,18 @@ Metrics:
 
 pure (ไม่มี I/O) — รับ predict_fn เข้ามา จึงใช้ได้ทั้ง IDW และ Kriging และทดสอบง่าย
 """
+
 from __future__ import annotations
 
 import math
-from typing import Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
 
 from .distance import haversine_km
 from .idw import idw_value
 
 Station = dict
 # predict_fn(lat, lon, training_stations) -> ค่าทำนาย (หรือ None ถ้าทำนายไม่ได้)
-PredictFn = Callable[[float, float, Sequence[Station]], Optional[float]]
+PredictFn = Callable[[float, float, Sequence[Station]], float | None]
 
 
 def _metrics(actuals: list[float], preds: list[float]) -> dict:
@@ -29,13 +30,13 @@ def _metrics(actuals: list[float], preds: list[float]) -> dict:
     if m < 3:
         return {"n": m, "mae": None, "rmse": None, "me": None, "r2": None}
 
-    errs = [p - a for p, a in zip(preds, actuals)]
+    errs = [p - a for p, a in zip(preds, actuals, strict=True)]
     mae = sum(abs(e) for e in errs) / m
     rmse = math.sqrt(sum(e * e for e in errs) / m)
     me = sum(errs) / m
 
     mean_a = sum(actuals) / m
-    ss_res = sum((a - p) ** 2 for a, p in zip(actuals, preds))
+    ss_res = sum((a - p) ** 2 for a, p in zip(actuals, preds, strict=True))
     ss_tot = sum((a - mean_a) ** 2 for a in actuals)
     r2 = (1.0 - ss_res / ss_tot) if ss_tot > 0 else None
 
@@ -81,12 +82,12 @@ def loocv_idw(stations: Sequence[Station], power: float = 2.0, k: int = 5) -> di
 
 
 # ── baselines (เกณฑ์เปรียบเทียบว่า interpolation "คุ้มความซับซ้อน" ไหม) ──
-def _mean_predict(lat: float, lon: float, others: Sequence[Station]) -> Optional[float]:
+def _mean_predict(lat: float, lon: float, others: Sequence[Station]) -> float | None:
     vals = [float(s["pm25"]) for s in others if s.get("pm25") is not None]
     return sum(vals) / len(vals) if vals else None
 
 
-def _nearest_predict(lat: float, lon: float, others: Sequence[Station]) -> Optional[float]:
+def _nearest_predict(lat: float, lon: float, others: Sequence[Station]) -> float | None:
     usable = [s for s in others if s.get("pm25") is not None]
     if not usable:
         return None
@@ -104,7 +105,7 @@ def loocv_nearest(stations: Sequence[Station]) -> dict:
     return loocv(stations, _nearest_predict)
 
 
-def skill_score(method_rmse: Optional[float], baseline_rmse: Optional[float]) -> Optional[float]:
+def skill_score(method_rmse: float | None, baseline_rmse: float | None) -> float | None:
     """Skill = 1 - RMSE_method / RMSE_baseline
     > 0 = ดีกว่า baseline · = 0 เท่ากัน · < 0 แย่กว่า
     """

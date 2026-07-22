@@ -3,6 +3,7 @@
 Vercel routes /api/* มาที่ไฟล์นี้ (ดู vercel.json) แล้ว FastAPI จัดการ routing ต่อ
 ตัว ASGI app ชื่อ `app` คือสิ่งที่ Vercel เสิร์ฟ
 """
+
 import os
 import sys
 

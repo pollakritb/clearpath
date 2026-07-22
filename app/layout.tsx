@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/frontend/components/auth/AuthProvider";
 
 // UI font — variable font, all weights 400–800 available
 const notoThai = Noto_Sans_Thai({
@@ -18,9 +19,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ClearPath — วางแผนเส้นทางเลี่ยงฝุ่น PM2.5",
+  title: "ClearPath — พยากรณ์ฝุ่นและเครือข่ายชุมชน",
   description:
-    "เปรียบเทียบเส้นทางและเลือกทางที่รับฝุ่น PM2.5 น้อยที่สุด ด้วยข้อมูล real-time และ IDW spatial interpolation",
+    "ติดตามและพยากรณ์ PM2.5 จาก Air4Thai พร้อมรายงานจากชุมชนที่ผ่าน OCR, Trust Score และการตรวจสอบ",
 };
 
 export default function RootLayout({
@@ -29,8 +30,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className={`${notoThai.variable} ${plexMono.variable} h-full`}>
-      <body className="h-full min-h-full font-sans antialiased">{children}</body>
+    <html
+      lang="th"
+      className={`${notoThai.variable} ${plexMono.variable} h-full`}
+    >
+      <body className="h-full min-h-full font-sans antialiased">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

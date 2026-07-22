@@ -3,6 +3,7 @@
 เปรียบเทียบบนข้อมูลสถานีจริงปัจจุบัน → คืน RMSE/MAE/ME/R² ของแต่ละวิธี
 ผลถูก cache 5 นาที (คำนวณหนัก โดยเฉพาะ Kriging ที่ fit ใหม่ทุก fold)
 """
+
 from fastapi import APIRouter, Query
 from starlette.concurrency import run_in_threadpool
 
@@ -63,7 +64,8 @@ async def validate(method: str = Query("both", pattern="^(idw|kriging|both)$")):
     # เทียบ IDW vs Kriging ได้ต่อเมื่อทดสอบบนชุด fold เดียวกัน (n เท่ากัน)
     better = None
     if (
-        idw_m and krig_m
+        idw_m
+        and krig_m
         and idw_m.get("rmse") is not None
         and krig_m.get("rmse") is not None
         and idw_m.get("n") == krig_m.get("n")

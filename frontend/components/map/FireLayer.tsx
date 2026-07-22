@@ -5,7 +5,7 @@ import { Marker, Popup } from "react-leaflet";
 
 import type { FirePoint } from "@/frontend/types";
 
-// ไอคอนจุดไฟไหม้ = 🔥 มีแสงเรืองส้ม · ขนาดตามความแรง (FRP)
+// ไอคอนจุดความร้อนจากดาวเทียม = 🔥 มีแสงเรืองส้ม · ขนาดตาม FRP
 function fireIcon(size: number) {
   return L.divIcon({
     className: "cp-marker",
@@ -30,11 +30,31 @@ export default function FireLayer({ fires }: { fires: FirePoint[] }) {
           >
             <Popup>
               <div style={{ fontFamily: "inherit" }}>
-                <div style={{ fontWeight: 700 }}>🔥 จุดความร้อน (NASA FIRMS)</div>
+                <div style={{ fontWeight: 700 }}>
+                  🔥 จุดความร้อน (NASA FIRMS)
+                </div>
                 {f.frp != null && <div>FRP: {f.frp} MW</div>}
                 {f.acq_date && (
-                  <div style={{ color: "#5a6664", fontSize: ".85em" }}>{f.acq_date}</div>
+                  <div style={{ color: "#5a6664", fontSize: ".85em" }}>
+                    {f.acquired_at
+                      ? new Date(f.acquired_at).toLocaleString("th-TH")
+                      : f.acq_date}
+                  </div>
                 )}
+                {f.confidence && (
+                  <div style={{ color: "#5a6664", fontSize: ".8em" }}>
+                    Confidence: {f.confidence}
+                  </div>
+                )}
+                <div
+                  style={{
+                    color: "#8a4b16",
+                    fontSize: ".78em",
+                    marginTop: ".25em",
+                  }}
+                >
+                  สัญญาณดาวเทียม ไม่ใช่การยืนยันไฟไหม้
+                </div>
               </div>
             </Popup>
           </Marker>

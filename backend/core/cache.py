@@ -1,12 +1,14 @@
-"""In-memory TTL cache เล็กๆ — ลดการยิงซ้ำไป air4thai / ORS
+"""In-memory TTL cache เล็กๆ — ลดการยิงซ้ำไปบริการภายนอก
 
 หมายเหตุ: บน serverless (Vercel Fluid Compute) cache อยู่ใน instance ที่ warm เท่านั้น
 ช่วยลด rate-limit/latency ภายใน instance เดียวกัน (ไม่ใช่ shared cache ข้าม instance)
 """
+
 from __future__ import annotations
 
 import time
-from typing import Any, Hashable, Optional
+from collections.abc import Hashable
+from typing import Any
 
 
 class TTLCache:
@@ -14,7 +16,7 @@ class TTLCache:
         self.ttl = ttl_seconds
         self._store: dict[Hashable, tuple[float, Any]] = {}
 
-    def get(self, key: Hashable) -> Optional[Any]:
+    def get(self, key: Hashable) -> Any | None:
         item = self._store.get(key)
         if item is None:
             return None

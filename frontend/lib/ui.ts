@@ -22,7 +22,3 @@ export const T = {
   shadowBrand: "var(--cp-shadow-brand)",
   shadowOverlay: "var(--cp-shadow-overlay)",
 } as const;
-
-// สีเส้นทางบนแผนที่ (recommended เน้น teal · เส้นอื่นจาง)
-export const ROUTE_RECOMMENDED = "#0e7c79";
-export const ROUTE_ALT = "#9aa0a6";

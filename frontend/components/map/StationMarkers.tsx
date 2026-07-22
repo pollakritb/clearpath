@@ -37,7 +37,11 @@ export default function StationMarkers({
           <Marker
             key={s.id}
             position={[s.lat, s.lon]}
-            icon={stationIcon(cls.color, cls.glyph, size)}
+            icon={stationIcon(
+              s.data_status === "expired" ? "#7b8583" : cls.color,
+              s.data_status === "expired" ? "×" : cls.glyph,
+              size,
+            )}
             eventHandlers={{ click: () => onSelect?.(s) }}
           >
             <Popup>
@@ -69,7 +73,13 @@ export default function StationMarkers({
                   </span>
                   <span style={{ fontWeight: 700 }}>{s.name_th ?? s.id}</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: ".3em" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: ".3em",
+                  }}
+                >
                   <span
                     style={{
                       fontFamily: T.mono,
@@ -81,7 +91,9 @@ export default function StationMarkers({
                   >
                     {s.pm25 ?? "—"}
                   </span>
-                  <span style={{ fontSize: ".75em", color: "#5a6664" }}>µg/m³</span>
+                  <span style={{ fontSize: ".75em", color: "#5a6664" }}>
+                    µg/m³
+                  </span>
                   <span
                     style={{
                       marginLeft: "auto",
@@ -94,10 +106,37 @@ export default function StationMarkers({
                   </span>
                 </div>
                 {s.province && (
-                  <div style={{ fontSize: ".75em", color: "#5a6664", marginTop: ".2em" }}>
+                  <div
+                    style={{
+                      fontSize: ".75em",
+                      color: "#5a6664",
+                      marginTop: ".2em",
+                    }}
+                  >
                     จ.{s.province}
                   </div>
                 )}
+                <div
+                  style={{
+                    fontSize: ".72em",
+                    color:
+                      s.data_status === "fresh"
+                        ? T.teal
+                        : s.data_status === "delayed"
+                          ? "#b36b00"
+                          : "#b53d35",
+                    marginTop: ".2em",
+                  }}
+                >
+                  {s.data_status === "fresh"
+                    ? "ข้อมูลสด"
+                    : s.data_status === "delayed"
+                      ? "ข้อมูลล่าช้า"
+                      : "ข้อมูลหมดอายุ ไม่ใช้คำนวณพื้นผิว"}
+                  {s.age_minutes != null
+                    ? ` · ${Math.round(s.age_minutes)} นาที`
+                    : ""}
+                </div>
               </div>
             </Popup>
           </Marker>

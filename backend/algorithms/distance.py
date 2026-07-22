@@ -3,6 +3,7 @@
 ใช้แทน Euclidean บน lat/lon ดิบ เพราะ 1° latitude ≠ 1° longitude
 (ที่ไทย ~15°N: 1° lon ≈ 107 km, 1° lat ≈ 111 km) → ผลลัพธ์แม่นกว่า
 """
+
 import math
 
 EARTH_RADIUS_KM = 6371.0088  # mean Earth radius (IUGG)

@@ -1,0 +1,8 @@
+.next/
+.venv/
+node_modules/
+next-env.d.ts
+docs/assets/ui-archive/
+docs/eval/
+supabase/schema.sql
+package-lock.json

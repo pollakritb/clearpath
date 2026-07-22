@@ -64,7 +64,7 @@ export default function IdwSurface({
         const ts = this.getTileSize();
         tile.width = ts.x;
         tile.height = ts.y;
-        tile.style.pointerEvents = "none"; // อย่าบังการคลิกแผนที่ (ปักหมุด/เลือกเส้นทาง)
+        tile.style.pointerEvents = "none"; // อย่าบังการคลิกแผนที่เพื่อเลือกจุดรายงาน
         const ctx = tile.getContext("2d");
         if (!ctx) return tile;
 
@@ -96,7 +96,7 @@ export default function IdwSurface({
             img.data[o] = r;
             img.data[o + 1] = g;
             img.data[o + 2] = b;
-            // โปร่งพอให้เห็นแผนที่/หมุด/เส้นทาง · ตรงที่สูงกว่าทึบขึ้นเล็กน้อย
+            // โปร่งพอให้เห็นแผนที่และหมุด · ตรงที่สูงกว่าทึบขึ้นเล็กน้อย
             img.data[o + 3] = Math.round((0.4 + t * 0.25) * 255);
           }
         }

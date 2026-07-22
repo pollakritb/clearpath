@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-import { api, ApiError } from "@/frontend/lib/api-client";
+import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { ValidationResponse } from "@/frontend/types";
 
 // โหลดผลตรวจความแม่นยำ (LOOCV) แบบ on-demand (คำนวณหนัก จึงไม่โหลดอัตโนมัติ)
@@ -17,8 +17,8 @@ export function useValidation() {
     try {
       const res = await api.validate("both");
       setData(res);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "ตรวจความแม่นยำไม่สำเร็จ");
+    } catch (error) {
+      setError(apiErrorMessage(error, "ตรวจความแม่นยำไม่สำเร็จ"));
     } finally {
       setLoading(false);
     }

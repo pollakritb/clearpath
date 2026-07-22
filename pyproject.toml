@@ -1,0 +1,12 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+extend-exclude = [".venv", ".next", "node_modules", "docs/eval"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/routers/*.py" = ["B008"]
+"backend/core/admin.py" = ["B008"]

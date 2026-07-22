@@ -6,9 +6,9 @@
 
 ## 1. Why validate?
 
-ClearPath estimates PM2.5 at every point along a route by interpolating from a sparse set of
-ground sensors, then scores routes by the estimated exposure. The whole recommendation therefore
-rests on **how accurate that interpolation is**. This chapter quantifies it instead of asserting it.
+ClearPath renders a continuous PM2.5 surface from a sparse set of ground sensors. The map and
+official-data comparison used by Community Trust Score therefore depend on **how accurate that
+interpolation is**. This chapter quantifies it instead of asserting it.
 
 ## 2. Dataset
 
@@ -21,21 +21,21 @@ rests on **how accurate that interpolation is**. This chapter quantifies it inst
 
 ## 3. Method — Leave-One-Out Cross-Validation (LOOCV)
 
-For each station *i* with a known value:
+For each station _i_ with a known value:
 
-1. **Remove** station *i* from the dataset.
-2. **Predict** the value at *i*'s location using the remaining 174 stations.
+1. **Remove** station _i_ from the dataset.
+2. **Predict** the value at _i_'s location using the remaining 174 stations.
 3. Record the (observed, predicted) pair.
 
 LOOCV is the standard validation for spatial interpolation: it never lets a method "see" the point
 it is predicting, so it measures genuine out-of-sample accuracy. We run it for four predictors:
 
-| Predictor | Description |
-|---|---|
-| **IDW** | Inverse Distance Weighting, haversine distance, `power=2`, `k=5` nearest |
-| **Ordinary Kriging** | PyKrige, `exponential` variogram (chosen in Section 5) |
-| **Nearest (Thiessen)** | Baseline: copy the single nearest station's value |
-| **Global mean** | Baseline: ignore location, predict the mean of the others |
+| Predictor              | Description                                                              |
+| ---------------------- | ------------------------------------------------------------------------ |
+| **IDW**                | Inverse Distance Weighting, haversine distance, `power=2`, `k=5` nearest |
+| **Ordinary Kriging**   | PyKrige, `exponential` variogram (chosen in Section 5)                   |
+| **Nearest (Thiessen)** | Baseline: copy the single nearest station's value                        |
+| **Global mean**        | Baseline: ignore location, predict the mean of the others                |
 
 ### Metrics
 
@@ -51,12 +51,12 @@ it is predicting, so it measures genuine out-of-sample accuracy. We run it for f
 See [`eval/results.md`](eval/results.md) for the live table and the predicted-vs-observed scatter
 (`eval/figures/predicted_vs_observed.png`). On the snapshot above:
 
-| Method | RMSE | MAE | R² | Skill vs mean |
-|---|---|---|---|---|
-| **Ordinary Kriging (exponential)** | **3.23** | **2.65** | **+0.094** | **+5.3 %** |
-| Global mean (baseline) | 3.42 | 2.81 | −0.01 | 0 % |
-| IDW (p=2, k=5) | 3.66 | 2.73 | −0.16 | −7.1 % |
-| Nearest / Thiessen (baseline) | 4.26 | 3.14 | −0.57 | −24.7 % |
+| Method                             | RMSE     | MAE      | R²         | Skill vs mean |
+| ---------------------------------- | -------- | -------- | ---------- | ------------- |
+| **Ordinary Kriging (exponential)** | **3.23** | **2.65** | **+0.094** | **+5.3 %**    |
+| Global mean (baseline)             | 3.42     | 2.81     | −0.01      | 0 %           |
+| IDW (p=2, k=5)                     | 3.66     | 2.73     | −0.16      | −7.1 %        |
+| Nearest / Thiessen (baseline)      | 4.26     | 3.14     | −0.57      | −24.7 %       |
 
 **Reading:** Ordinary Kriging is the only method that beats the global-mean baseline (positive skill
 and R²). The naive nearest-neighbour baseline is by far the worst, confirming that simply copying the

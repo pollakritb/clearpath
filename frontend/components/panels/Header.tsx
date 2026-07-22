@@ -1,11 +1,16 @@
 "use client";
 
-import { T } from "@/frontend/lib/ui";
+import AuthControl from "@/frontend/components/auth/AuthControl";
+import AppIcon from "@/frontend/components/ui/AppIcon";
 
 interface HeaderProps {
+  title: string;
+  description: string;
   stationCount: number;
   updatedAt: string | null;
   loading: boolean;
+  delayedCount: number;
+  expiredCount: number;
   error: string | null;
   bigText: boolean;
   contrast: boolean;
@@ -15,175 +20,89 @@ interface HeaderProps {
 
 function fmtTime(iso: string | null): string {
   if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function Header({
+  title,
+  description,
   stationCount,
   updatedAt,
   loading,
+  delayedCount,
+  expiredCount,
   error,
   bigText,
   contrast,
   onToggleBigText,
   onToggleContrast,
 }: HeaderProps) {
-  const chip: React.CSSProperties = {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    gap: ".4em",
-    fontSize: ".78em",
-    background: T.chip,
-    border: `1px solid ${T.line}`,
-    borderRadius: "8px",
-    padding: ".4em .6em",
-  };
-  const sqBtn: React.CSSProperties = {
-    width: "2.3em",
-    height: "2.3em",
-    flex: "none",
-    border: `1px solid ${T.line}`,
-    borderRadius: "9px",
-    cursor: "pointer",
-    fontFamily: "inherit",
-  };
+  const hasStaleData = delayedCount > 0 || expiredCount > 0;
+  const state = error ? "error" : hasStaleData ? "warning" : "healthy";
 
   return (
-    <header
-      style={{
-        padding: "1.15em 1.25em 1em",
-        borderBottom: `1px solid ${T.line}`,
-        background: T.panel,
-        position: "sticky",
-        top: 0,
-        zIndex: 5,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: ".6em" }}>
-        <div
-          aria-hidden
-          style={{
-            width: "2.3em",
-            height: "2.3em",
-            flex: "none",
-            borderRadius: "10px",
-            background: T.brandGrad,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 2px 8px rgba(14,124,121,.35)",
-          }}
-        >
-          <div
-            style={{
-              width: ".95em",
-              height: ".95em",
-              border: "2.5px solid #fff",
-              borderRadius: "50%",
-              borderTopColor: "transparent",
-              transform: "rotate(-45deg)",
-            }}
-          />
+    <header className="cp-context-header">
+      <div className="cp-context-header__topline">
+        <span className="cp-eyebrow">ศูนย์ข้อมูลคุณภาพอากาศ</span>
+        <div className="cp-a11y-actions" aria-label="การช่วยการเข้าถึง">
+          <button
+            type="button"
+            onClick={onToggleBigText}
+            aria-label="สลับขนาดตัวอักษรใหญ่"
+            aria-pressed={bigText}
+            className="cp-icon-button cp-focus"
+            data-active={bigText}
+          >
+            ก+
+          </button>
+          <button
+            type="button"
+            onClick={onToggleContrast}
+            aria-label="สลับโหมดคอนทราสต์สูง"
+            aria-pressed={contrast}
+            className="cp-icon-button cp-focus"
+            data-active={contrast}
+          >
+            <span className="cp-contrast-icon" aria-hidden />
+          </button>
         </div>
+      </div>
+      <h1>{title}</h1>
+      <p>{description}</p>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: ".45em" }}>
-            <span style={{ fontWeight: 800, fontSize: "1.3em", letterSpacing: "-.01em" }}>
-              ClearPath
-            </span>
-            <span
-              style={{
-                fontSize: ".72em",
-                fontWeight: 600,
-                color: T.teal,
-                background: "rgba(14,124,121,.1)",
-                padding: ".1em .5em",
-                borderRadius: "5px",
-              }}
-            >
-              เบต้า
-            </span>
-          </div>
-          <div style={{ fontSize: ".78em", color: T.subInk, marginTop: ".05em" }}>
-            วางแผนเส้นทางเลี่ยงฝุ่น PM2.5
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={onToggleBigText}
-          aria-label="สลับขนาดตัวอักษรใหญ่"
-          aria-pressed={bigText}
-          className="cp-focus"
-          style={{
-            ...sqBtn,
-            background: bigText ? T.teal : T.panel,
-            color: bigText ? "#fff" : T.ink,
-            fontWeight: 700,
-            fontSize: ".95em",
-          }}
-        >
-          ก
-        </button>
-        <button
-          type="button"
-          onClick={onToggleContrast}
-          aria-label="สลับโหมดคอนทราสต์สูง"
-          aria-pressed={contrast}
-          className="cp-focus"
-          style={{
-            ...sqBtn,
-            background: contrast ? T.ink : T.panel,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <span
-            aria-hidden
-            style={{
-              width: "1.05em",
-              height: "1.05em",
-              borderRadius: "50%",
-              background: `linear-gradient(90deg, ${contrast ? "#fff" : T.ink} 50%, transparent 50%)`,
-              border: `1.5px solid ${contrast ? "#fff" : T.ink}`,
-              display: "block",
-            }}
+      <div className="cp-data-status" data-state={state}>
+        <span className="cp-data-status__icon">
+          <AppIcon
+            name={error ? "alert" : hasStaleData ? "activity" : "check"}
+            size={18}
           />
-        </button>
+        </span>
+        <span className="cp-data-status__copy">
+          <strong>
+            {error
+              ? "เชื่อมต่อข้อมูลไม่ได้"
+              : loading
+                ? "กำลังอัปเดตข้อมูล"
+                : `${stationCount} สถานีพร้อมใช้งาน`}
+          </strong>
+          <small>
+            {error
+              ? "ระบบจะแสดงข้อมูลล่าสุดที่มีอยู่"
+              : hasStaleData
+                ? `ล่าช้า ${delayedCount} · หมดอายุ ${expiredCount}`
+                : `อัปเดตล่าสุด ${fmtTime(updatedAt)} น.`}
+          </small>
+        </span>
+        <span className="cp-data-status__source">Air4Thai</span>
       </div>
 
-      <div style={{ display: "flex", gap: ".5em", marginTop: ".85em" }}>
-        <div style={chip}>
-          <span
-            className="cp-anim-pulse"
-            aria-hidden
-            style={{
-              width: ".5em",
-              height: ".5em",
-              borderRadius: "50%",
-              background: T.green,
-              boxShadow: "0 0 0 3px rgba(43,191,115,.18)",
-            }}
-          />
-          {error ? (
-            <span style={{ color: "#c2433a" }}>เชื่อมต่อสถานีไม่ได้</span>
-          ) : (
-            <>
-              <span style={{ fontFamily: T.mono, fontWeight: 600 }}>
-                {loading ? "…" : stationCount}
-              </span>
-              <span style={{ color: T.subInk }}>สถานี</span>
-            </>
-          )}
-        </div>
-        <div style={chip}>
-          <span style={{ color: T.subInk }}>อัปเดต</span>
-          <span style={{ fontFamily: T.mono, fontWeight: 600 }}>{fmtTime(updatedAt)}</span>
-        </div>
+      <div className="cp-context-header__auth">
+        <AuthControl compact />
       </div>
     </header>
   );

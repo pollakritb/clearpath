@@ -5,12 +5,7 @@
 // AQI สื่อความหมายด้วย สี + ไอคอนรูปทรง + ข้อความ เสมอ (รองรับ color-blind + screen reader)
 
 export type AqiLevelKey =
-  | "good"
-  | "moderate"
-  | "sensitive"
-  | "unhealthy"
-  | "hazard"
-  | "unknown";
+  "very_good" | "good" | "moderate" | "sensitive" | "unhealthy" | "unknown";
 
 export interface AqiClass {
   levelKey: AqiLevelKey;
@@ -24,49 +19,49 @@ export interface AqiClass {
 // [upper_inclusive, levelKey, label, color, glyph, tint, advice]
 const BANDS: [number, AqiLevelKey, string, string, string, string, string][] = [
   [
+    15,
+    "very_good",
+    "ดีมาก",
+    "#3b82f6",
+    "●",
+    "rgba(59,130,246,.12)",
+    "อากาศดีมาก เหมาะกับกิจกรรมกลางแจ้ง",
+  ],
+  [
     25,
     "good",
     "ดี",
-    "#27ae60",
-    "●",
-    "rgba(39,174,96,.12)",
-    "อากาศดี เหมาะกับกิจกรรมกลางแจ้งทุกประเภท",
+    "#22c55e",
+    "◆",
+    "rgba(34,197,94,.12)",
+    "อากาศดี ทำกิจกรรมได้ตามปกติ",
   ],
   [
-    37,
+    37.5,
     "moderate",
     "ปานกลาง",
-    "#d4ac0d",
-    "◆",
-    "rgba(212,172,13,.14)",
-    "คุณภาพอากาศปานกลาง คนทั่วไปทำกิจกรรมได้ตามปกติ",
-  ],
-  [
-    50,
-    "sensitive",
-    "เริ่มมีผล",
-    "#e67e22",
+    "#eab308",
     "▲",
-    "rgba(230,126,34,.14)",
-    "ผู้สูงอายุและผู้มีโรคทางเดินหายใจควรลดกิจกรรมกลางแจ้ง",
+    "rgba(234,179,8,.14)",
+    "กลุ่มเสี่ยงควรสังเกตอาการ",
   ],
   [
-    90,
-    "unhealthy",
-    "มีผลต่อสุขภาพ",
-    "#e74c3c",
+    75,
+    "sensitive",
+    "เริ่มมีผลกระทบต่อสุขภาพ",
+    "#f97316",
     "■",
-    "rgba(231,76,60,.14)",
-    "กลุ่มเสี่ยงและผู้สูงอายุควรเลี่ยงกิจกรรมกลางแจ้ง สวมหน้ากาก",
+    "rgba(249,115,22,.14)",
+    "กลุ่มเสี่ยงควรลดกิจกรรมกลางแจ้ง",
   ],
   [
     Infinity,
-    "hazard",
-    "อันตราย",
-    "#8e44ad",
+    "unhealthy",
+    "มีผลกระทบต่อสุขภาพ",
+    "#ef4444",
     "✦",
-    "rgba(142,68,173,.14)",
-    "ทุกคนควรงดกิจกรรมกลางแจ้งและสวมหน้ากาก N95",
+    "rgba(239,68,68,.14)",
+    "ทุกคนควรลดกิจกรรมนอกบ้านและสวมหน้ากาก",
   ],
 ];
 
@@ -89,9 +84,9 @@ export function classifyPm25(pm25: number | null | undefined): AqiClass {
 
 // legend บนแผนที่ (5 ระดับ + ไอคอน)
 export const AQI_LEGEND = [
-  { range: "0–25", level: "ดี", color: "#27ae60", glyph: "●" },
-  { range: "26–37", level: "ปานกลาง", color: "#d4ac0d", glyph: "◆" },
-  { range: "38–50", level: "เริ่มมีผล", color: "#e67e22", glyph: "▲" },
-  { range: "51–90", level: "มีผลต่อสุขภาพ", color: "#e74c3c", glyph: "■" },
-  { range: ">90", level: "อันตราย", color: "#8e44ad", glyph: "✦" },
+  { range: "0–15", level: "ดีมาก", color: "#3b82f6", glyph: "●" },
+  { range: "15.1–25", level: "ดี", color: "#22c55e", glyph: "◆" },
+  { range: "25.1–37.5", level: "ปานกลาง", color: "#eab308", glyph: "▲" },
+  { range: "37.6–75", level: "เริ่มมีผล", color: "#f97316", glyph: "■" },
+  { range: "≥75.1", level: "มีผลต่อสุขภาพ", color: "#ef4444", glyph: "✦" },
 ];

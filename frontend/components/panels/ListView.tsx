@@ -4,18 +4,16 @@ import { useState } from "react";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { T } from "@/frontend/lib/ui";
-import type { RouteCompareResponse, Station } from "@/frontend/types";
+import type { Station } from "@/frontend/types";
 
 type Sort = "low" | "high";
 
 // มุมมองรายการ (ไม่ใช้แผนที่) สำหรับผู้ใช้ screen reader / ผู้พิการทางสายตา
 export default function ListView({
   stations,
-  routeData,
   onSelectStation,
 }: {
   stations: Station[];
-  routeData: RouteCompareResponse | null;
   onSelectStation: (s: Station) => void;
 }) {
   const [sort, setSort] = useState<Sort>("low");
@@ -27,8 +25,6 @@ export default function ListView({
         ? (a.pm25 as number) - (b.pm25 as number)
         : (b.pm25 as number) - (a.pm25 as number),
     );
-
-  const best = routeData?.routes.find((r) => r.id === routeData.recommended_id);
 
   const sortBtn = (key: Sort, label: string) => (
     <button
@@ -55,7 +51,7 @@ export default function ListView({
 
   return (
     <div
-      className="cp-scroll"
+      className="cp-list-view cp-scroll"
       style={{
         position: "absolute",
         inset: 0,
@@ -66,15 +62,32 @@ export default function ListView({
       }}
     >
       <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-        <h2 style={{ margin: "0 0 .15em", fontSize: "1.5em", fontWeight: 800, color: T.ink }}>
+        <h2
+          style={{
+            margin: "0 0 .15em",
+            fontSize: "1.5em",
+            fontWeight: 800,
+            color: T.ink,
+          }}
+        >
           รายการสถานีวัดฝุ่น
         </h2>
         <p style={{ margin: "0 0 1.1em", fontSize: ".92em", color: T.subInk }}>
-          มุมมองสำหรับผู้ใช้ screen reader และผู้พิการทางสายตา — ไล่อ่านเป็นลำดับด้วยปุ่ม Tab
+          มุมมองสำหรับผู้ใช้ screen reader และผู้พิการทางสายตา —
+          ไล่อ่านเป็นลำดับด้วยปุ่ม Tab
         </p>
 
-        <div style={{ display: "flex", alignItems: "center", gap: ".6em", marginBottom: "1.1em" }}>
-          <span style={{ fontSize: ".85em", fontWeight: 600, color: T.subInk }}>เรียงตาม</span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: ".6em",
+            marginBottom: "1.1em",
+          }}
+        >
+          <span style={{ fontSize: ".85em", fontWeight: 600, color: T.subInk }}>
+            เรียงตาม
+          </span>
           <div
             style={{
               display: "flex",
@@ -89,52 +102,16 @@ export default function ListView({
           </div>
         </div>
 
-        {best && (
-          <div
-            role="region"
-            aria-label="สรุปเส้นทางแนะนำ"
-            style={{
-              background: "rgba(43,191,115,.1)",
-              border: "1px solid rgba(43,191,115,.4)",
-              borderRadius: "13px",
-              padding: "1em 1.1em",
-              marginBottom: "1.2em",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: ".5em",
-                fontWeight: 800,
-                marginBottom: ".3em",
-                color: T.ink,
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  width: "1.7em",
-                  height: "1.7em",
-                  borderRadius: "8px",
-                  background: T.green,
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                ✓
-              </span>
-              เส้นทางแนะนำ: {best.label}
-            </div>
-            <div style={{ fontSize: ".92em", color: T.ink }}>{routeData?.reason}</div>
-          </div>
-        )}
-
         <ul
           role="list"
-          style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: ".6em" }}
+          style={{
+            listStyle: "none",
+            margin: 0,
+            padding: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: ".6em",
+          }}
         >
           {sorted.map((s) => {
             const cls = classifyPm25(s.pm25);
@@ -180,10 +157,29 @@ export default function ListView({
                     {cls.glyph}
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontWeight: 700, fontSize: "1.02em" }}>{name}</span>
-                    <span style={{ display: "block", fontSize: ".82em", color: T.subInk }}>
+                    <span
+                      style={{
+                        display: "block",
+                        fontWeight: 700,
+                        fontSize: "1.02em",
+                      }}
+                    >
+                      {name}
+                    </span>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: ".82em",
+                        color: T.subInk,
+                      }}
+                    >
                       {s.province ? `จ.${s.province} · ` : ""}
-                      {cls.level}
+                      {cls.level} ·{" "}
+                      {s.data_status === "fresh"
+                        ? "สด"
+                        : s.data_status === "delayed"
+                          ? "ล่าช้า"
+                          : "หมดอายุ"}
                     </span>
                   </span>
                   <span style={{ textAlign: "right" }}>
@@ -199,7 +195,15 @@ export default function ListView({
                     >
                       {s.pm25}
                     </span>
-                    <span style={{ display: "block", fontSize: ".68em", color: T.subInk }}>µg/m³</span>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: ".68em",
+                        color: T.subInk,
+                      }}
+                    >
+                      µg/m³
+                    </span>
                   </span>
                 </button>
               </li>

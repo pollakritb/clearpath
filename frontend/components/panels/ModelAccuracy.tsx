@@ -14,7 +14,9 @@ const DASH = "—";
 const fmt = (v: number | null, digits = 2) =>
   v === null || v === undefined ? DASH : v.toFixed(digits);
 const fmtSkill = (v: number | null) =>
-  v === null || v === undefined ? DASH : `${v >= 0 ? "+" : ""}${(v * 100).toFixed(0)}%`;
+  v === null || v === undefined
+    ? DASH
+    : `${v >= 0 ? "+" : ""}${(v * 100).toFixed(0)}%`;
 
 interface Row {
   label: string;
@@ -23,7 +25,13 @@ interface Row {
   best?: boolean;
 }
 
-function Cell({ children, color }: { children: React.ReactNode; color?: string }) {
+function Cell({
+  children,
+  color,
+}: {
+  children: React.ReactNode;
+  color?: string;
+}) {
   return (
     <td
       style={{
@@ -40,17 +48,33 @@ function Cell({ children, color }: { children: React.ReactNode; color?: string }
   );
 }
 
-export default function ModelAccuracy({ data, loading, error, onLoad }: ModelAccuracyProps) {
+export default function ModelAccuracy({
+  data,
+  loading,
+  error,
+  onLoad,
+}: ModelAccuracyProps) {
   return (
     <section
       aria-label="ความแม่นยำของแบบจำลอง"
       style={{ borderTop: `1px solid ${T.line}`, paddingTop: "1em" }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: ".5em" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: ".5em",
+        }}
+      >
         <h2 style={{ margin: 0, fontSize: ".92em", fontWeight: 700 }}>
           ความแม่นยำของแบบจำลอง
         </h2>
-        <span style={{ fontSize: ".68em", color: T.subInk, fontFamily: T.mono }}>LOOCV</span>
+        <span
+          style={{ fontSize: ".68em", color: T.subInk, fontFamily: T.mono }}
+        >
+          LOOCV
+        </span>
       </div>
 
       {!data && (
@@ -102,7 +126,11 @@ export default function ModelAccuracy({ data, loading, error, onLoad }: ModelAcc
             )}
           </button>
           {error && (
-            <p style={{ fontSize: ".76em", color: "#c2433a", marginTop: ".5em" }}>{error}</p>
+            <p
+              style={{ fontSize: ".76em", color: "#c2433a", marginTop: ".5em" }}
+            >
+              {error}
+            </p>
           )}
         </>
       )}
@@ -123,14 +151,24 @@ function Results({ data }: { data: ValidationResponse }) {
   return (
     <div className="cp-anim-rise">
       <p style={{ fontSize: ".74em", color: T.subInk, margin: "0 0 .55em" }}>
-        Leave-One-Out CV บน <b style={{ fontFamily: T.mono, color: T.ink }}>{data.station_count}</b>{" "}
-        สถานีจริง — ถอดทีละสถานี ทำนายจากที่เหลือ แล้วเทียบค่าจริง (ค่าน้อย = แม่นกว่า)
+        Leave-One-Out CV บน{" "}
+        <b style={{ fontFamily: T.mono, color: T.ink }}>{data.station_count}</b>{" "}
+        สถานีจริง — ถอดทีละสถานี ทำนายจากที่เหลือ แล้วเทียบค่าจริง (ค่าน้อย =
+        แม่นกว่า)
       </p>
 
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ color: T.subInk, fontSize: ".7em", textAlign: "right" }}>
-            <th style={{ textAlign: "left", fontWeight: 600, padding: ".2em .25em" }}>วิธี</th>
+            <th
+              style={{
+                textAlign: "left",
+                fontWeight: 600,
+                padding: ".2em .25em",
+              }}
+            >
+              วิธี
+            </th>
             <th style={{ fontWeight: 600, padding: ".2em .25em" }}>RMSE</th>
             <th style={{ fontWeight: 600, padding: ".2em .25em" }}>MAE</th>
             <th style={{ fontWeight: 600, padding: ".2em .25em" }}>R²</th>
@@ -157,20 +195,45 @@ function Results({ data }: { data: ValidationResponse }) {
                 {r.best && <span style={{ color: T.green }}>★ </span>}
                 {r.label}
                 {r.baseline && (
-                  <span style={{ fontSize: ".82em", color: T.subInk }}> · baseline</span>
+                  <span style={{ fontSize: ".82em", color: T.subInk }}>
+                    {" "}
+                    · baseline
+                  </span>
                 )}
               </td>
               {r.m ? (
                 <>
-                  <Cell color={r.best ? T.green : undefined}>{fmt(r.m.rmse)}</Cell>
+                  <Cell color={r.best ? T.green : undefined}>
+                    {fmt(r.m.rmse)}
+                  </Cell>
                   <Cell>{fmt(r.m.mae)}</Cell>
-                  <Cell color={(r.m.r2 ?? 0) < 0 ? "#c2433a" : undefined}>{fmt(r.m.r2, 2)}</Cell>
-                  <Cell color={(r.m.skill ?? 0) > 0 ? T.green : (r.m.skill ?? 0) < 0 ? "#c2433a" : T.subInk}>
-                    {r.baseline && r.label === "ค่าเฉลี่ยรวม" ? DASH : fmtSkill(r.m.skill)}
+                  <Cell color={(r.m.r2 ?? 0) < 0 ? "#c2433a" : undefined}>
+                    {fmt(r.m.r2, 2)}
+                  </Cell>
+                  <Cell
+                    color={
+                      (r.m.skill ?? 0) > 0
+                        ? T.green
+                        : (r.m.skill ?? 0) < 0
+                          ? "#c2433a"
+                          : T.subInk
+                    }
+                  >
+                    {r.baseline && r.label === "ค่าเฉลี่ยรวม"
+                      ? DASH
+                      : fmtSkill(r.m.skill)}
                   </Cell>
                 </>
               ) : (
-                <td colSpan={4} style={{ textAlign: "right", fontSize: ".76em", color: T.subInk, padding: ".3em .25em" }}>
+                <td
+                  colSpan={4}
+                  style={{
+                    textAlign: "right",
+                    fontSize: ".76em",
+                    color: T.subInk,
+                    padding: ".3em .25em",
+                  }}
+                >
                   ไม่พร้อม
                 </td>
               )}
@@ -179,14 +242,23 @@ function Results({ data }: { data: ValidationResponse }) {
         </tbody>
       </table>
 
-      <p style={{ fontSize: ".68em", color: T.subInk, lineHeight: 1.5, margin: ".6em 0 0" }}>
-        RMSE/MAE หน่วย µg/m³ · R² 1=สมบูรณ์แบบ 0=เท่าค่าเฉลี่ย · Skill เทียบ baseline ค่าเฉลี่ยรวม
+      <p
+        style={{
+          fontSize: ".68em",
+          color: T.subInk,
+          lineHeight: 1.5,
+          margin: ".6em 0 0",
+        }}
+      >
+        RMSE/MAE หน่วย µg/m³ · R² 1=สมบูรณ์แบบ 0=เท่าค่าเฉลี่ย · Skill เทียบ
+        baseline ค่าเฉลี่ยรวม
         {data.idw && (data.idw.r2 ?? 0) < 0 && (
           <>
             {" "}
             <span style={{ color: T.ink }}>
-              — ค่า R² ต่ำ/ติดลบในขณะนี้สะท้อนว่าฝุ่นกระจายค่อนข้างสม่ำเสมอ (ความต่างเชิงพื้นที่น้อย)
-              การ interpolate จึงได้ใกล้ค่าเฉลี่ย ในวันที่ฝุ่นมีโครงสร้างเชิงพื้นที่ชัด ค่าจะดีขึ้น
+              — ค่า R² ต่ำ/ติดลบในขณะนี้สะท้อนว่าฝุ่นกระจายค่อนข้างสม่ำเสมอ
+              (ความต่างเชิงพื้นที่น้อย) การ interpolate จึงได้ใกล้ค่าเฉลี่ย
+              ในวันที่ฝุ่นมีโครงสร้างเชิงพื้นที่ชัด ค่าจะดีขึ้น
             </span>
           </>
         )}

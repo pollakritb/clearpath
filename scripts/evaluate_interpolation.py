@@ -9,13 +9,14 @@
 
 ใช้ Leave-One-Out Cross-Validation บนสถานีจริง: ถอดทีละสถานี ทำนายจากที่เหลือ เทียบค่าจริง
 """
+
 from __future__ import annotations
 
 import asyncio
 import csv
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -55,7 +56,7 @@ def _row(name: str, m: dict, base_rmse: float | None) -> str:
 
 def main() -> None:
     os.makedirs(FIG_DIR, exist_ok=True)
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
     print("ดึงข้อมูลสถานี…")
     rows, source = asyncio.run(get_current_stations())
@@ -120,6 +121,7 @@ def main() -> None:
     for ax, (a, pr, title, mm) in zip(
         axes,
         [(ai, pi, "IDW (p=2, k=5)", idw_m), (ak, pk, "Ordinary Kriging", krig_m)],
+        strict=True,
     ):
         ax.scatter(a, pr, s=14, alpha=0.55, edgecolors="none", color="#0e7c79")
         ax.plot([0, lim], [0, lim], "--", color="#c2433a", lw=1, label="1:1")
@@ -127,7 +129,9 @@ def main() -> None:
         ax.set_ylim(0, lim)
         ax.set_xlabel("Observed PM2.5 (µg/m³)")
         ax.set_ylabel("Predicted PM2.5 (µg/m³)")
-        ax.set_title(f"{title}\nRMSE={mm['rmse']}  MAE={mm['mae']}  R²={mm['r2']}", fontsize=10)
+        ax.set_title(
+            f"{title}\nRMSE={mm['rmse']}  MAE={mm['mae']}  R²={mm['r2']}", fontsize=10
+        )
         ax.set_aspect("equal", "box")
         ax.legend(loc="upper left", fontsize=8)
         ax.grid(True, alpha=0.25)
@@ -142,10 +146,18 @@ def main() -> None:
     lines: list[str] = []
     lines.append("# ClearPath — Interpolation Accuracy (LOOCV)")
     lines.append("")
-    lines.append(f"- Generated: `{ts}` · stations used: **{n}** · data source: `{source}`")
-    lines.append(f"- Snapshot: `{os.path.basename(snap)}` (rerun on this file for deterministic results)")
-    lines.append("- Method: Leave-One-Out Cross-Validation — each station is held out and predicted from the rest.")
-    lines.append("- Metrics: RMSE/MAE in µg/m³; ME = bias; R² (1=perfect, 0=equals mean, <0=worse than mean); Skill = 1 − RMSE/RMSE_meanbaseline.")
+    lines.append(
+        f"- Generated: `{ts}` · stations used: **{n}** · data source: `{source}`"
+    )
+    lines.append(
+        f"- Snapshot: `{os.path.basename(snap)}` (rerun on this file for deterministic results)"
+    )
+    lines.append(
+        "- Method: Leave-One-Out Cross-Validation — each station is held out and predicted from the rest."
+    )
+    lines.append(
+        "- Metrics: RMSE/MAE in µg/m³; ME = bias; R² (1=perfect, 0=equals mean, <0=worse than mean); Skill = 1 − RMSE/RMSE_meanbaseline."
+    )
     lines.append("")
     lines.append("## 1. Method comparison")
     lines.append("")

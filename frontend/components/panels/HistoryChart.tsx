@@ -28,18 +28,37 @@ export default function HistoryChart({
   let body: React.ReactNode;
   if (loading) {
     body = (
-      <div style={{ display: "flex", flexDirection: "column", gap: ".5em", padding: ".4em 0" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: ".5em",
+          padding: ".4em 0",
+        }}
+      >
         {[70, 90, 55].map((w, i) => (
           <div
             key={i}
-            style={{ height: "14px", width: `${w}%`, borderRadius: "6px", background: T.chip }}
+            style={{
+              height: "14px",
+              width: `${w}%`,
+              borderRadius: "6px",
+              background: T.chip,
+            }}
           />
         ))}
       </div>
     );
   } else if (values.length < 2) {
     body = (
-      <p style={{ padding: "1.2em 0", textAlign: "center", fontSize: ".8em", color: T.subInk }}>
+      <p
+        style={{
+          padding: "1.2em 0",
+          textAlign: "center",
+          fontSize: ".8em",
+          color: T.subInk,
+        }}
+      >
         ยังไม่มีข้อมูลย้อนหลังพอจะวาดกราฟ
         <br />
         (จะสะสมเมื่อ cron sync ทำงานต่อเนื่อง)
@@ -48,12 +67,24 @@ export default function HistoryChart({
   } else {
     const pts = values.map(
       (v, i) =>
-        [(i / (values.length - 1)) * W, H - (clamp(v) / MAX) * H] as [number, number],
+        [(i / (values.length - 1)) * W, H - (clamp(v) / MAX) * H] as [
+          number,
+          number,
+        ],
     );
-    const line = "M " + pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" L ");
+    const line =
+      "M " +
+      pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" L ");
     const area = `${line} L ${W} ${H} L 0 ${H} Z`;
     body = (
-      <div style={{ position: "relative", background: T.chip, borderRadius: "10px", padding: ".6em .5em" }}>
+      <div
+        style={{
+          position: "relative",
+          background: T.chip,
+          borderRadius: "10px",
+          padding: ".6em .5em",
+        }}
+      >
         <svg
           viewBox={`0 0 ${W} ${H}`}
           style={{ width: "100%", height: "auto", display: "block" }}
@@ -100,7 +131,14 @@ export default function HistoryChart({
 
   return (
     <div style={{ marginTop: ".8em" }} className="cp-anim-rise">
-      <div style={{ fontSize: ".78em", fontWeight: 600, marginBottom: ".4em", color: T.subInk }}>
+      <div
+        style={{
+          fontSize: ".78em",
+          fontWeight: 600,
+          marginBottom: ".4em",
+          color: T.subInk,
+        }}
+      >
         PM2.5 ย้อนหลัง 24 ชม.
       </div>
       {body}

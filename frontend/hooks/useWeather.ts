@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-import { api, ApiError } from "@/frontend/lib/api-client";
+import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { Weather } from "@/frontend/types";
 
 export function useWeather() {
@@ -16,8 +16,8 @@ export function useWeather() {
     try {
       const res = await api.weather(lat, lon);
       setData(res);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "โหลดสภาพอากาศไม่สำเร็จ");
+    } catch (error) {
+      setError(apiErrorMessage(error, "โหลดสภาพอากาศไม่สำเร็จ"));
       setData(null);
     } finally {
       setLoading(false);

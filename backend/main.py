@@ -3,6 +3,7 @@
 routing บน Vercel: /api/* → api/index.py → app นี้ (ดู vercel.json)
 local dev: uvicorn backend.main:app --port 8000 (Next proxy /api/* มาที่นี่)
 """
+
 # ให้ Python ใช้ trust store ของ OS (เหมือน curl/เบราว์เซอร์) แทน bundle ของ certifi
 # บาง endpoint ราชการไทย (เช่น air4thai) ใช้ CA/intermediate ที่ certifi ไม่มี → verify fail
 # ต้อง inject ก่อนสร้าง SSL context ใดๆ (จึงอยู่บนสุด); ถ้า prod ไม่มี truststore ก็ข้ามไป
@@ -19,7 +20,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .core.errors import ConfigurationError, UpstreamError
-from .routers import cron, firms, history, pm25, route, validate, weather
+from .routers import (
+    admin,
+    community,
+    cron,
+    firms,
+    forecast,
+    history,
+    locations,
+    notifications,
+    pm25,
+    validate,
+    weather,
+)
 
 
 def create_app() -> FastAPI:
@@ -35,10 +48,14 @@ def create_app() -> FastAPI:
 
     api = APIRouter(prefix="/api")
     api.include_router(pm25.router, tags=["pm25"])
-    api.include_router(route.router, tags=["route"])
     api.include_router(weather.router, tags=["weather"])
     api.include_router(firms.router, tags=["firms"])
     api.include_router(history.router, tags=["history"])
+    api.include_router(locations.router, tags=["locations"])
+    api.include_router(forecast.router, tags=["forecast"])
+    api.include_router(community.router, tags=["community"])
+    api.include_router(notifications.router, tags=["notifications"])
+    api.include_router(admin.router, tags=["admin"])
     api.include_router(validate.router, tags=["validate"])
     api.include_router(cron.router, tags=["cron"])
 
@@ -58,9 +75,9 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=502, content={"detail": str(exc)})
 
     @app.exception_handler(httpx.HTTPError)
-    async def _httpx_error(_request: Request, exc: httpx.HTTPError):
+    async def _httpx_error(_request: Request, _exc: httpx.HTTPError):
         return JSONResponse(
-            status_code=502, content={"detail": f"บริการภายนอกขัดข้อง: {exc}"}
+            status_code=502, content={"detail": "บริการภายนอกขัดข้องชั่วคราว"}
         )
 
     return app

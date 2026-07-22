@@ -48,7 +48,9 @@ export default function LayerToggles({ items }: { items: LayerItem[] }) {
       aria-label="เลเยอร์แผนที่"
       style={{ borderTop: `1px solid ${T.line}`, paddingTop: "1em" }}
     >
-      <h2 style={{ margin: "0 0 .55em", fontSize: ".92em", fontWeight: 700 }}>เลเยอร์</h2>
+      <h2 style={{ margin: "0 0 .55em", fontSize: ".92em", fontWeight: 700 }}>
+        เลเยอร์
+      </h2>
       <div style={{ display: "flex", flexDirection: "column", gap: ".15em" }}>
         {items.map((ly) => (
           <div key={ly.key}>
@@ -84,7 +86,9 @@ export default function LayerToggles({ items }: { items: LayerItem[] }) {
                   background: ly.dot,
                 }}
               />
-              <span style={{ flex: 1, fontSize: ".86em", fontWeight: 500 }}>{ly.label}</span>
+              <span style={{ flex: 1, fontSize: ".86em", fontWeight: 500 }}>
+                {ly.label}
+              </span>
               <Switch on={ly.on} />
             </button>
             {ly.note && (
