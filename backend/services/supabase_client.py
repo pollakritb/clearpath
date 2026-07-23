@@ -1124,6 +1124,11 @@ def get_announcements(limit: int = 20) -> list[dict]:
     now = datetime.now(UTC)
     active = []
     for row in rows:
+        # Enforce the public publication policy after retrieval as well.  This
+        # keeps local demo behavior identical to Supabase and prevents a
+        # malformed/upstream row from leaking drafts or archived content.
+        if row.get("published") is not True or row.get("status") != "published":
+            continue
         expires_at = row.get("expires_at")
         if expires_at:
             try:
