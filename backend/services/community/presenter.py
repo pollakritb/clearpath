@@ -14,6 +14,7 @@ from ...algorithms.trust import (
 from ...core.config import settings
 from .. import supabase_client
 from .constants import (
+    AUTOMATIC_REVIEW_POLICY,
     OFFICIAL_PRIORITY_KM,
     PEER_REVIEW_RADIUS_KM,
     PUBLIC_REPORT_MAX_AGE_MINUTES,
@@ -52,14 +53,25 @@ def present_report(
     captured_at = str(row["captured_at"])
     fresh = is_report_fresh(captured_at, max_age_minutes=PUBLIC_REPORT_MAX_AGE_MINUTES)
     age = capture_age_minutes(captured_at)
-    admin_verified = row["status"] == "approved"
+    evidence_verified = row["status"] == "approved"
+    moderation_note = str(row.get("moderation_note") or "")
+    verification_method = (
+        "pending"
+        if not row.get("moderated_at")
+        else "automatic"
+        if moderation_note.startswith(AUTOMATIC_REVIEW_POLICY)
+        else "admin"
+    )
+    admin_verified = evidence_verified and verification_method == "admin"
     trust_score = float(row.get("trust_score") or 0)
-    corroborated = corroboration_count(row, approved_reports) if admin_verified else 0
+    corroborated = (
+        corroboration_count(row, approved_reports) if evidence_verified else 0
+    )
     gps_accuracy = (
         float(row["gps_accuracy_m"]) if row.get("gps_accuracy_m") is not None else None
     )
     eligibility = evaluate_gap_fill(
-        admin_verified=admin_verified,
+        evidence_verified=evidence_verified,
         report_fresh=fresh,
         data_role=role,
         trust_score=trust_score,
@@ -91,7 +103,8 @@ def present_report(
         "display_name": row.get("display_name"),
         "lat": lat,
         "lon": lon,
-        "pm25": float(row["pm25"]) if admin_verified else None,
+        "pm25": float(row["pm25"]) if evidence_verified else None,
+        "verified_pm25": float(row["pm25"]) if evidence_verified else None,
         "ocr_pm25": row.get("ocr_pm25")
         if include_exact_location or include_private_metadata
         else None,
@@ -119,6 +132,7 @@ def present_report(
             else None
         ),
         "admin_verified": admin_verified,
+        "verification_method": verification_method,
         "data_role": role,
         "nearest_official_distance_km": (
             round(distance, 2) if distance is not None else None

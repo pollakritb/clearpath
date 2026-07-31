@@ -87,7 +87,7 @@ def calculate_trust_score(
     display_clear: bool,
     official_stations: Sequence[dict],
     reporter_reputation: int = 0,
-    admin_verified: bool = False,
+    verification_method: str = "pending",
     capture_verified: bool = False,
     measurement_environment: str = "outdoor",
     measurement_stable: bool = True,
@@ -97,17 +97,21 @@ def calculate_trust_score(
 ) -> dict:
     """Return score 0..100 and human-readable reasons.
 
-    Admin verification is the decisive evidence in MVP. OCR is advisory and is
-    deliberately not allowed to publish or approve a report by itself.
+    Verified evidence may come from an administrator or the fail-closed
+    automatic-review path. Low-confidence OCR remains advisory and cannot
+    publish a report by itself.
     """
     score = 0.0
     reasons: list[str] = []
 
-    if admin_verified:
+    if verification_method == "admin":
         score += 25.0
         reasons.append("ผู้ดูแลอ่านค่าและยืนยันจากภาพแล้ว")
+    elif verification_method == "automatic":
+        score += 20.0 + (5.0 * max(0.0, min(1.0, ocr_confidence)))
+        reasons.append("ระบบตรวจภาพและค่า OCR ผ่านเกณฑ์อนุมัติอัตโนมัติ")
     else:
-        reasons.append("รอผู้ดูแลอ่านค่า PM2.5 จากภาพ")
+        reasons.append("รอการตรวจเคสที่ระบบยังไม่มั่นใจ")
 
     if capture_source == "camera" and capture_verified:
         score += 15.0
@@ -146,7 +150,9 @@ def calculate_trust_score(
         score += 5.0
         reasons.append("ระบบช่วยตรวจพบหน้าจอเครื่องวัดชัดเจน")
     elif ocr_confidence > 0:
-        reasons.append(f"OCR มั่นใจ {round(ocr_confidence * 100)}% แต่ยังต้องตรวจด้วยคน")
+        reasons.append(
+            f"OCR มั่นใจ {round(ocr_confidence * 100)}% แต่หลักฐานยังไม่ผ่านเกณฑ์อนุมัติ"
+        )
     else:
         reasons.append("OCR ไม่พร้อม ใช้การตรวจด้วยผู้ดูแล")
 
@@ -160,7 +166,7 @@ def calculate_trust_score(
         score += 7.5
         reasons.append(f"ไม่มีสถานี Air4Thai ภายใน 5 กม. (ใกล้สุด {distance:.1f} กม.)")
     elif pm25 is None:
-        reasons.append(f"มี Air4Thai ใกล้ {distance:.1f} กม. รอค่า Admin เพื่อเปรียบเทียบ")
+        reasons.append(f"มี Air4Thai ใกล้ {distance:.1f} กม. รอค่าที่ผ่านการตรวจเพื่อเปรียบเทียบ")
     else:
         official_pm25 = float(nearest["pm25"])
         diff = abs(pm25 - official_pm25)
@@ -178,7 +184,7 @@ def calculate_trust_score(
 
     if ocr_pm25 is not None and pm25 is not None:
         diff = abs(float(ocr_pm25) - pm25)
-        reasons.append(f"OCR เป็นข้อมูลช่วยตรวจ ต่างจากค่า Admin {diff:.1f} µg/m³")
+        reasons.append(f"OCR ต่างจากค่าที่ผ่านการตรวจ {diff:.1f} µg/m³")
 
     if duplicate_detected:
         score = max(0.0, score - 15.0)

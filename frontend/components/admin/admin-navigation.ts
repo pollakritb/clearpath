@@ -16,8 +16,8 @@ export const ADMIN_NAV_ITEMS: Array<{
   },
   {
     id: "moderation",
-    label: "คิวตรวจรายงาน",
-    description: "ตรวจภาพและค่า PM2.5",
+    label: "คิวตรวจข้อยกเว้น",
+    description: "เคสที่ระบบยังไม่มั่นใจ",
     icon: "shield",
   },
   {
@@ -39,7 +39,10 @@ export const ADMIN_PAGE_COPY: Record<
   { eyebrow: string; title: string }
 > = {
   overview: { eyebrow: "Admin overview", title: "ศูนย์ควบคุม ClearPath" },
-  moderation: { eyebrow: "Data moderation", title: "คิวตรวจสอบข้อมูลชุมชน" },
+  moderation: {
+    eyebrow: "Review exceptions",
+    title: "คิวตรวจเคสที่ระบบยังไม่มั่นใจ",
+  },
   publishing: {
     eyebrow: "Community management",
     title: "จัดการเนื้อหาชุมชน",

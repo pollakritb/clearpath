@@ -117,7 +117,11 @@ export default function ReportMarkers({
                     marginTop: ".2em",
                   }}
                 >
-                  ค่าจากภาพที่ Admin ตรวจแล้ว · {report.rating_count} คะแนน
+                  ค่าจากภาพที่ผ่านการตรวจ
+                  {report.verification_method === "automatic"
+                    ? "อัตโนมัติ"
+                    : "โดย Admin"}{" "}
+                  · {report.rating_count} คะแนน
                   {report.rating_average != null
                     ? ` · เฉลี่ย ${report.rating_average.toFixed(1)} ดาว`
                     : ""}

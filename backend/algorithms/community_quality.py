@@ -90,7 +90,7 @@ def corroboration_count(
 
 def evaluate_gap_fill(
     *,
-    admin_verified: bool,
+    evidence_verified: bool,
     report_fresh: bool,
     data_role: str,
     trust_score: float,
@@ -101,8 +101,12 @@ def evaluate_gap_fill(
     duplicate_detected: bool = False,
 ) -> dict:
     """Separate point publication from permission to influence the IDW surface."""
-    if not admin_verified:
-        return {"eligible": False, "basis": "none", "reason": "รอ Admin อนุมัติ"}
+    if not evidence_verified:
+        return {
+            "eligible": False,
+            "basis": "none",
+            "reason": "รอระบบหรือ Admin ตรวจหลักฐาน",
+        }
     if not report_fresh:
         return {"eligible": False, "basis": "none", "reason": "ข้อมูลหมดอายุ"}
     if duplicate_detected:

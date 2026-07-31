@@ -1,4 +1,5 @@
 export type ReportStatus = "pending" | "approved" | "rejected";
+export type VerificationMethod = "pending" | "automatic" | "admin";
 export type CommunityDataRole = "supplementary" | "gap_fill";
 export type GapFillBasis = "none" | "corroborated" | "calibrated_high_trust";
 export type RatingDirection = "negative" | "neutral" | "positive";
@@ -25,6 +26,7 @@ export interface CommunityReport {
   lat: number;
   lon: number;
   pm25: number | null;
+  verified_pm25: number | null;
   ocr_pm25: number | null;
   user_claimed_pm25: number | null;
   admin_verified_pm25: number | null;
@@ -38,6 +40,7 @@ export interface CommunityReport {
   peer_down: number;
   image_url: string | null;
   admin_verified: boolean;
+  verification_method: VerificationMethod;
   data_role: CommunityDataRole;
   nearest_official_distance_km: number | null;
   nearest_official_pm25: number | null;
@@ -102,6 +105,8 @@ export interface CommunityMapPointsResponse {
 export interface ReportCreateResponse {
   report: CommunityReport;
   ocr_available: boolean;
+  review_outcome: "automatic_approved" | "pending_manual_review";
+  review_reasons: string[];
   message: string;
 }
 

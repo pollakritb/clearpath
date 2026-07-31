@@ -1,7 +1,8 @@
 """OCR/vision adapter สำหรับอ่านข้อความจากหน้าจอเครื่องวัด PM2.5.
 
 ใช้ OpenAI Responses API แบบ image input + Structured Outputs เมื่อมี key.
-ภาพทุกภาพยังต้องผ่าน Trust Score และผู้ดูแลอนุมัติก่อนเผยแพร่.
+ผล OCR เป็นสัญญาณหนึ่งของระบบตรวจหลักฐาน: เคสที่มั่นใจสูงอนุมัติอัตโนมัติ
+ส่วนเคสที่ไม่ชัดเจนจะ fail closed เข้าคิวข้อยกเว้นให้ผู้ดูแลตรวจ.
 """
 
 from __future__ import annotations

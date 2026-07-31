@@ -31,7 +31,7 @@ export default function AdminOverview({
           <span className="cp-eyebrow">Daily control center</span>
           <h2>สิ่งที่ต้องดูแลวันนี้</h2>
           <p>
-            ตรวจข้อมูลชุมชนก่อนเผยแพร่ ติดตาม Air4Thai
+            ตรวจเฉพาะรายงานที่ระบบยังไม่มั่นใจ ติดตาม Air4Thai
             และดูว่าโมเดลใดผ่านเกณฑ์ใช้งาน
           </p>
         </div>
@@ -40,7 +40,7 @@ export default function AdminOverview({
           onClick={() => onNavigate("moderation")}
           className="cp-admin-button cp-focus"
         >
-          เปิดคิวตรวจรายงาน
+          เปิดคิวตรวจข้อยกเว้น
         </button>
       </div>
 
@@ -61,7 +61,7 @@ export default function AdminOverview({
             <AppIcon name="shield" size={22} />
           </span>
           <span>
-            <small>รอตรวจสอบ</small>
+            <small>รอตรวจข้อยกเว้น</small>
             <strong>{loading ? "…" : queueCount}</strong>
             <em>รายงานจากชุมชน</em>
           </span>
@@ -108,8 +108,8 @@ export default function AdminOverview({
         <article className="cp-admin-overview-card">
           <div className="cp-admin-card-heading">
             <div>
-              <h3>ขั้นตอนตรวจข้อมูลชุมชน</h3>
-              <p>เกณฑ์เดียวกันสำหรับผู้ดูแลทุกคน</p>
+              <h3>ขั้นตอนตรวจเคสที่ระบบส่งต่อ</h3>
+              <p>ใช้เฉพาะเมื่อหลักฐานไม่ผ่านเกณฑ์อัตโนมัติ</p>
             </div>
           </div>
           <ol className="cp-admin-workflow">

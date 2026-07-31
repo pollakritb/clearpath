@@ -4,8 +4,8 @@
 
 ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถานีทางการ, NASA FIRMS สำหรับจุดความร้อน
 และเปิดให้ประชาชนถ่ายภาพเครื่องวัด PM2.5 ผ่านกล้องภายในแพลตฟอร์ม เมื่อส่งภาพแล้ว
-ผู้ดูแลต้องเปิดภาพ อ่านค่า และกรอก PM2.5 ก่อนอนุมัติให้เผยแพร่บนแผนที่
-OCR เป็นตัวช่วยอ่านในอนาคต/เมื่อมี key แต่ไม่ใช่ค่าหลักของ MVP
+ระบบจะตรวจ OCR, ภาพต่อเนื่อง, GPS, เวลา และภาพซ้ำร่วมกัน เคสที่มั่นใจสูงจะอนุมัติและ
+เผยแพร่อัตโนมัติ ส่วนเคสที่ไม่ชัดเจนจะคงสถานะ pending และเข้าคิวข้อยกเว้นให้ผู้ดูแลตรวจ
 
 ## ฟีเจอร์หลัก
 
@@ -15,9 +15,9 @@ OCR เป็นตัวช่วยอ่านในอนาคต/เมื
 - กล้องในแอปด้วย `getUserMedia` ไม่มีตัวเลือกอัปโหลดจากแกลเลอรี
 - Camera session และ timestamp ที่ Server ลงนาม อายุไม่เกิน 5 นาที
 - ตรวจชนิด/ความสมบูรณ์ของไฟล์ภาพ, exact hash และ perceptual hash เพื่อกันภาพซ้ำ
-- OCR อ่านค่าหลังอัปโหลดเป็น draft ผู้ใช้ตรวจแก้ก่อนยืนยัน และ Admin อ่านภาพ/กรอกค่าที่ตรวจแล้วก่อนเผยแพร่
+- OCR อ่านค่าหลังอัปโหลดเป็น draft ผู้ใช้ตรวจแก้ก่อนยืนยัน และระบบอนุมัติอัตโนมัติเมื่อหลักฐานทั้งชุดผ่านเกณฑ์
 - Air4Thai ภายใน 5 กม. เป็นค่าหลัก; Community Report เป็นข้อมูลเสริม
-- นอกระยะ 5 กม. รายงานต้องผ่าน Admin, Trust ≥60, อายุไม่เกิน 3 ชั่วโมง และผ่านกติกาหลายแหล่งก่อนเติม IDW
+- นอกระยะ 5 กม. รายงานต้องผ่านการตรวจอัตโนมัติหรือ Admin, Trust ≥60, อายุไม่เกิน 3 ชั่วโมง และผ่านกติกาหลายแหล่งก่อนเติม IDW
 - Community Rating แบบ 1–5 ดาว จำกัดผู้ใช้อยู่ภายใน 3 กม./GPS ≤200 ม. ปรับ Trust เมื่อมีอย่างน้อย 3 คน และให้รางวัลเฉพาะคะแนนที่ตรง consensus
 - จุดชุมชนที่เข้า IDW ถูกรวมด้วย clustering 2 กม./60 นาทีและ weighted median ก่อนใช้งาน
 - เก็บพิกัดจริงสำหรับ Admin แต่เลื่อนตำแหน่งสาธารณะ 120–250 เมตรเพื่อลดความเสี่ยงต่อความเป็นส่วนตัว
@@ -37,7 +37,7 @@ OCR เป็นตัวช่วยอ่านในอนาคต/เมื
 | Backend API           | Python 3.12, FastAPI, Pydantic v2 และ HTTPX                                                          |
 | Database/Auth/Storage | Supabase PostgreSQL, Supabase Auth, private Storage bucket และ Realtime invalidation events          |
 | External data         | Air4Thai, NASA FIRMS และ OpenWeather                                                                 |
-| OCR/AI                | OpenAI Responses API แบบ optional; Admin verification เป็นแหล่งตัดสินสุดท้าย                         |
+| OCR/AI                | OpenAI Responses API แบบ optional; fail-closed automatic review + Admin exception queue              |
 | Forecast              | XGBoost offline artifacts พร้อม quality activation gate และ statistical fallback                     |
 | Notification          | In-App inbox, Service Worker, Web Push/VAPID และ retryable outbox                                    |
 | Testing/quality       | Pytest, Ruff, ESLint, TypeScript strict checks, Prettier และ Next production build                   |
@@ -97,20 +97,20 @@ Vercel Cron รายชั่วโมง → Air4Thai → Supabase stations + 
 ### Community report
 
 ```text
-server camera session → getUserMedia + GPS → private draft + advisory OCR
+server camera session → getUserMedia + GPS → private draft + OCR
                                                 │
                                                 ▼
-                            user checks/edits value → pending moderation
-                                                │
-                                                ▼
-                           Admin checklist + verified value → approved map
-                                                │
-                                                ▼
-                              nearby users rate proximity with 1–5 stars
+                               user confirms value → automatic review
+                                                ├─ high confidence → approved map
+                                                └─ uncertain → pending Admin exception queue
+                                                                     │
+                                                                     ▼
+                                                nearby users rate proximity with 1–5 stars
 ```
 
-OCR เป็นตัวช่วย Admin ไม่ใช่ผู้อนุมัติ หากไม่มี `OPENAI_API_KEY` ระบบยังทำงานครบ
-เพราะ Admin อ่านค่าโดยตรงจากภาพ รายงาน pending จะไม่เปิดเผยค่า PM2.5 ใด ๆ
+ระบบอนุมัติอัตโนมัติเฉพาะเมื่อ OCR confidence ≥92%, ตรวจพบเครื่องวัดและหน้าจอชัด, ค่าที่ผู้ใช้ยืนยันสอดคล้อง,
+GPS ≤100 ม., ไม่มี clock warning/ภาพซ้ำ และมีภาพต่อเนื่องเสริม 2 เฟรม หากไม่มี `OPENAI_API_KEY` หรือเกณฑ์ใดไม่ผ่าน
+ระบบจะ fail closed เข้าคิวข้อยกเว้น และรายงาน pending จะไม่เปิดเผยค่า PM2.5
 
 ก่อนส่ง ผู้ใช้ต้องระบุรุ่นเครื่อง, สถานะการสอบเทียบ, ความแม่นยำ GPS และยืนยันว่า
 วัดกลางแจ้งหลังรอค่าคงที่แล้ว จุดที่อยู่ติดแหล่งกำเนิดโดยตรง เช่น ควันบุหรี่หรือท่อไอเสีย
@@ -120,7 +120,7 @@ OCR เป็นตัวช่วย Admin ไม่ใช่ผู้อนุ
 
 - ถ้ามี Air4Thai ภายใน 5 กม. ค่า Air4Thai เป็นข้อมูลหลัก ส่วนค่าประชาชนแสดงแยกเป็น `Community Report`
 - สถานีรัฐถือว่าใช้เป็นข้อมูลหลักได้เมื่ออายุไม่เกิน 90 นาที; ถ้า API ต้นทางล่มใช้ snapshot ล่าสุดพร้อมสถานะ delayed/expired
-- ถ้าไม่มี Air4Thai ที่สดใหม่ภายใน 5 กม. รายงานที่ Admin อนุมัติ, Trust ≥60 และอายุไม่เกิน 3 ชั่วโมงจะเป็นผู้สมัคร `gap_fill`
+- ถ้าไม่มี Air4Thai ที่สดใหม่ภายใน 5 กม. รายงานที่ระบบหรือ Admin อนุมัติ, Trust ≥60 และอายุไม่เกิน 3 ชั่วโมงจะเป็นผู้สมัคร `gap_fill`
 - ผู้สมัครจะเข้า IDW ได้เมื่อมีผู้รายงานคนละคนอย่างน้อย 2 คน วัดใกล้กันภายใน 2 กม./60 นาทีและค่าเข้ากันได้ หรือผู้ส่งมี Trust ≥80 พร้อมเครื่องที่ระบุว่าสอบเทียบแล้ว
 - รายงานต้องมี GPS accuracy ไม่เกิน 200 เมตร, ไม่เป็นภาพซ้ำ และไม่วัดติดแหล่งกำเนิดโดยตรง จึงจะเข้า IDW ได้
 - ค่าที่ต่างจาก Air4Thai มากจะไม่ถูกซ่อน แต่แสดงเป็นความผิดปกติเฉพาะจุดและรอ community verification
@@ -177,7 +177,7 @@ $env:CAPTURE_SESSION_SECRET="local-only-secret-at-least-32-characters"
 | `GET /api/firms?days=`                           | จุดความร้อน NASA FIRMS ใน polygon นครปฐม         |
 | `POST /api/community/capture-session`            | ออก camera session ที่ลงนามและหมดอายุใน 5 นาที   |
 | `POST /api/community/report-drafts`              | อัปโหลดภาพสด + GPS และรับผล OCR ชั่วคราว         |
-| `POST /api/community/report-drafts/{id}/submit`  | ยืนยันค่าที่ผู้ใช้เห็นและส่งเข้าคิว Admin        |
+| `POST /api/community/report-drafts/{id}/submit`  | ยืนยันค่าและให้ระบบตรวจ/ส่งคิวข้อยกเว้น          |
 | `GET /api/community/reports`                     | รายงานที่อนุมัติแล้ว                             |
 | `GET /api/community/map-points`                  | จุดรวม weighted median สำหรับ IDW                |
 | `GET /api/community/review-queue?lat=&lon=`      | รายงาน approved ภายใน 3 กม. สำหรับ peer review   |
@@ -186,8 +186,8 @@ $env:CAPTURE_SESSION_SECRET="local-only-secret-at-least-32-characters"
 | `GET /api/community/activities`                  | กิจกรรมและรางวัล                                 |
 | `GET /api/community/leaderboard`                 | อันดับ reputation                                |
 | `GET /api/community/me`                          | โปรไฟล์ คะแนน badge และประวัติของบัญชี           |
-| `GET /api/admin/reports`                         | คิว moderation (Supabase role)                   |
-| `POST /api/admin/reports/{id}/moderate`          | Admin กรอกค่าจากภาพแล้วอนุมัติ/ปฏิเสธ            |
+| `GET /api/admin/reports`                         | คิวข้อยกเว้นที่ระบบยังไม่มั่นใจ                  |
+| `POST /api/admin/reports/{id}/moderate`          | Admin ตัดสินเคสข้อยกเว้นและบันทึกค่าที่ตรวจแล้ว  |
 | `GET/PATCH/DELETE /api/admin/announcements/{id}` | จัดการ lifecycle ประกาศและ soft archive          |
 | `GET /api/admin/sync-runs`                       | ประวัติ sync และ error ของแหล่งข้อมูล            |
 | `GET /api/admin/forecast-models`                 | สถานะ artifact/quality gate ของแต่ละ horizon     |

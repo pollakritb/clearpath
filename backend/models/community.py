@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 ReportStatus = Literal["pending", "approved", "rejected"]
+VerificationMethod = Literal["pending", "automatic", "admin"]
 CommunityDataRole = Literal["supplementary", "gap_fill"]
 GapFillBasis = Literal["none", "corroborated", "calibrated_high_trust"]
 RatingDirection = Literal["negative", "neutral", "positive"]
@@ -33,8 +34,9 @@ class CommunityReport(BaseModel):
     display_name: str | None = None
     lat: float
     lon: float
-    # Public PM2.5 is present only after an administrator approves the evidence.
+    # Public PM2.5 is present only after automatic or administrator verification.
     pm25: float | None = None
+    verified_pm25: float | None = None
     ocr_pm25: float | None = None
     user_claimed_pm25: float | None = None
     admin_verified_pm25: float | None = None
@@ -48,6 +50,7 @@ class CommunityReport(BaseModel):
     peer_down: int = 0
     image_url: str | None = None
     admin_verified: bool = False
+    verification_method: VerificationMethod = "pending"
     data_role: CommunityDataRole = "supplementary"
     nearest_official_distance_km: float | None = None
     nearest_official_pm25: float | None = None
@@ -112,6 +115,8 @@ class CommunityMapPointsResponse(BaseModel):
 class ReportCreateResponse(BaseModel):
     report: CommunityReport
     ocr_available: bool
+    review_outcome: Literal["automatic_approved", "pending_manual_review"]
+    review_reasons: list[str] = Field(default_factory=list)
     message: str
 
 

@@ -9,7 +9,7 @@
 - Fire layer: NASA FIRMS พร้อม acquisition time/confidence และแจ้งเตือนเฉพาะ hotspot ≤12 ชั่วโมง
 - Community evidence: `getUserMedia` camera, server-signed 5-minute session, GPS, private image
 - Explainable Trust Score + reputation-weighted peer review
-- Admin approval before publication
+- Fail-closed automatic approval for high-confidence evidence, with Admin exception review
 - Community announcements, activities, rewards and leaderboard
 
 ระบบนำทาง, ORS, Nominatim, route comparison และ route speech อยู่นอก scope และถูกถอดออก
@@ -17,12 +17,12 @@
 ## Publication state machine
 
 ```text
-camera + GPS → pending (no public PM2.5)
-                    ├─ Admin reads image + enters PM2.5 → approved → map → nearby peer review
-                    └─ Admin reject                         → rejected
+camera + GPS → pending (no public PM2.5) → automatic evidence review
+                    ├─ all high-confidence checks pass → approved → map → nearby peer review
+                    └─ uncertain/failure → Admin exception queue → approved or rejected
 ```
 
-Peer review ไม่สามารถเผยแพร่รายงานเองได้ เปิดหลัง Admin อนุมัติ และผู้ตรวจต้องส่ง GPS
+Peer review ไม่สามารถเผยแพร่รายงานเองได้ เปิดหลังรายงานผ่านการอนุมัติอัตโนมัติหรือ Admin แล้ว และผู้ตรวจต้องส่ง GPS
 ที่อยู่ภายใน 3 กม. ขณะที่รายงานมีอายุไม่เกิน 3 ชั่วโมง ทุกผลตรวจต้องมี reason code
 และห้ามตรวจรายงานของตนเอง
 
@@ -42,7 +42,7 @@ Peer review ไม่สามารถเผยแพร่รายงาน�
 
 | Signal                                  | คะแนนสูงสุด |
 | --------------------------------------- | ----------: |
-| Admin reads image and verifies value    |          25 |
+| evidence verification (automatic/Admin) |       20–25 |
 | signed in-app camera session            |          15 |
 | capture freshness                       |          10 |
 | GPS within Nakhon Pathom service area   |          10 |
@@ -51,7 +51,9 @@ Peer review ไม่สามารถเผยแพร่รายงาน�
 | agreement with nearby official station  |          15 |
 | reporter reputation                     |          10 |
 
-OCR เป็นข้อมูลช่วยอ่านและไม่ให้คะแนนหลักใน MVP; Admin เป็นผู้กรอกค่าที่เผยแพร่
+Automatic review อนุมัติเฉพาะเมื่อ OCR confidence ≥92%, device/display ชัดเจน, ค่าที่ผู้ใช้ยืนยันอยู่ใน tolerance,
+GPS ≤100 ม., เวลาปกติ, ไม่เป็นภาพซ้ำ และมี burst เสริม 2 เฟรม การไม่ผ่านเกณฑ์ใดๆ ไม่ใช่การปฏิเสธ
+แต่จะ fail closed และส่งเข้า Admin exception queue โดยเก็บเหตุผลของทุกผลตัดสินเพื่อ audit
 Peer review ปรับเพิ่ม/ลดได้ไม่เกิน 8 คะแนน คะแนนทุกส่วนเก็บเหตุผลเพื่อให้ตรวจสอบได้
 GPS accuracy >200 เมตรและภาพ perceptually similar ถูกหักคะแนน ส่วน exact duplicate ถูกปฏิเสธ
 

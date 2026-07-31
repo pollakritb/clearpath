@@ -73,11 +73,11 @@ export default function AdminPanel({
     <section className="cp-admin-panel">
       <div className="cp-admin-section-heading">
         <div>
-          <span className="cp-eyebrow">Moderation queue</span>
-          <h2>ตรวจหลักฐานรายงาน PM2.5</h2>
+          <span className="cp-eyebrow">Exception review queue</span>
+          <h2>ตรวจเฉพาะหลักฐานที่ไม่ผ่านเกณฑ์อัตโนมัติ</h2>
           <p>
-            อ่านค่าจากภาพจริง เปรียบเทียบ OCR และ Air4Thai
-            แล้วจึงอนุมัติหรือปฏิเสธ
+            ระบบอนุมัติเคสมั่นใจสูงไปแล้ว คิวนี้ใช้สำหรับภาพไม่ชัด ค่าไม่ตรง
+            หรือสัญญาณคุณภาพไม่ครบ
           </p>
         </div>
         <button
@@ -106,8 +106,8 @@ export default function AdminPanel({
       </div>
       {!loading && reports.length === 0 && (
         <div className="cp-admin-empty">
-          <strong>คิวตรวจว่างแล้ว</strong>
-          <span>ยังไม่มีรายงานใหม่ที่รอการตรวจสอบ</span>
+          <strong>ไม่มีเคสผิดปกติรอตรวจ</strong>
+          <span>รายงานที่ผ่านเกณฑ์สูงจะได้รับการอนุมัติอัตโนมัติ</span>
         </div>
       )}
     </section>

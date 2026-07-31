@@ -13,6 +13,7 @@ from ...core.config import settings
 from ...core.errors import UpstreamError
 from .. import capture, image_fingerprint, ocr, supabase_client
 from ..stations import get_current_stations
+from .automatic_review import try_automatic_approval
 from .constants import DAILY_REPORT_LIMIT
 from .evidence import IMAGE_EXTENSIONS, find_duplicate
 from .presenter import present_report
@@ -279,9 +280,25 @@ async def submit_draft(*, draft_id: str, user_id: str, values: dict) -> dict:
     except Exception:
         await run_in_threadpool(supabase_client.delete_community_report, report_id)
         raise
-    return present_report(
+    presented = present_report(
         saved, official_stations=official, include_exact_location=True
     )
+    automatic_report, decision = await run_in_threadpool(
+        try_automatic_approval,
+        report=saved,
+        draft=draft,
+        claimed_pm25=claimed_pm25,
+        official_stations=official,
+    )
+    if automatic_report is not None:
+        presented = automatic_report
+    presented["_review_outcome"] = (
+        "automatic_approved"
+        if automatic_report is not None
+        else "pending_manual_review"
+    )
+    presented["_review_reasons"] = list(decision["reasons"])
+    return presented
 
 
 def discard_draft(draft_id: str, user_id: str) -> bool:

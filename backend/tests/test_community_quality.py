@@ -34,7 +34,7 @@ def test_corroboration_requires_independent_compatible_reporters():
 
 def test_gap_fill_requires_corroboration_or_calibrated_high_trust():
     common = dict(
-        admin_verified=True,
+        evidence_verified=True,
         report_fresh=True,
         data_role="gap_fill",
         near_emission_source=False,
@@ -61,7 +61,7 @@ def test_gap_fill_requires_corroboration_or_calibrated_high_trust():
 
 def test_direct_emission_or_bad_gps_never_changes_surface():
     blocked = evaluate_gap_fill(
-        admin_verified=True,
+        evidence_verified=True,
         report_fresh=True,
         data_role="gap_fill",
         trust_score=95,
@@ -75,7 +75,7 @@ def test_direct_emission_or_bad_gps_never_changes_surface():
 
 def test_perceptual_duplicate_never_changes_surface():
     blocked = evaluate_gap_fill(
-        admin_verified=True,
+        evidence_verified=True,
         report_fresh=True,
         data_role="gap_fill",
         trust_score=100,

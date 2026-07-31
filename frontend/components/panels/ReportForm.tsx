@@ -110,9 +110,11 @@ export default function ReportForm({
       });
       setMessage(
         `${result.message} · คะแนนเบื้องต้น ${result.report.trust_score}/100` +
-          (result.ocr_available
-            ? " · OCR ส่งค่าช่วย Admin แล้ว"
-            : " · Admin จะอ่านค่าจากภาพโดยตรง"),
+          (result.review_outcome === "automatic_approved"
+            ? ` · เผยแพร่ ${result.report.verified_pm25 ?? "—"} µg/m³ แล้ว`
+            : result.ocr_available
+              ? " · Admin จะตรวจเฉพาะเคสที่ระบบยังไม่มั่นใจ"
+              : " · ระบบอ่านภาพไม่ได้ จึงส่งให้ Admin ตรวจแทน"),
       );
       setEvidence(null);
       setDraft(null);
@@ -130,8 +132,8 @@ export default function ReportForm({
     <section aria-label="ส่งรายงาน PM2.5 จากชุมชน">
       <h2 style={{ margin: "0 0 .25em", fontSize: "1em" }}>รายงานค่าฝุ่น</h2>
       <p style={{ margin: "0 0 .8em", fontSize: ".75em", color: T.subInk }}>
-        ถ่ายหน้าจอเครื่องวัดด้วยกล้องในแอปเท่านั้น ผู้ดูแลจะอ่านและกรอกค่า PM2.5
-        ก่อนเผยแพร่
+        ถ่ายหน้าจอเครื่องวัดด้วยกล้องในแอป ระบบจะตรวจ OCR, GPS, เวลา
+        และภาพซ้ำก่อนอนุมัติอัตโนมัติ เคสที่ไม่แน่ใจเท่านั้นจึงส่งให้ผู้ดูแล
       </p>
       {!auth.user && !auth.localDemo && <AuthControl />}
       <form
@@ -177,7 +179,7 @@ export default function ReportForm({
               }}
             />
             <small style={{ color: T.subInk }}>
-              OCR เป็นเพียงคำแนะนำ ค่าเผยแพร่จริงต้องผ่านการอ่านภาพโดย Admin
+              ระบบจะเทียบค่านี้กับ OCR ก่อนอนุมัติอัตโนมัติ
             </small>
           </label>
         )}
@@ -204,7 +206,7 @@ export default function ReportForm({
               ? "กำลังส่งเข้าคิว…"
               : "กำลังอ่านค่าจากภาพ…"
             : draft
-              ? "ยืนยันค่าและส่งให้ผู้ดูแลตรวจสอบ"
+              ? "ยืนยันค่าและส่งให้ระบบตรวจ"
               : "อ่านค่าจากภาพด้วย OCR"}
         </button>
       </form>
@@ -220,8 +222,8 @@ export default function ReportForm({
         </p>
       )}
       <p style={{ fontSize: ".66em", color: T.subInk }}>
-        ระบบเก็บ GPS จริงให้ Admin ตรวจ แต่ตำแหน่งบนแผนที่สาธารณะจะเลื่อนประมาณ
-        120–250 เมตรเพื่อปกป้องความเป็นส่วนตัว
+        ระบบเก็บ GPS จริงสำหรับตรวจคุณภาพและให้ Admin ดูเฉพาะเคสผิดปกติ
+        ตำแหน่งสาธารณะจะเลื่อนประมาณ 120–250 เมตรเพื่อปกป้องความเป็นส่วนตัว
       </p>
     </section>
   );

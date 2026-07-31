@@ -31,6 +31,7 @@ from .community import (
     ReportRatingRequest,
     ReportStatus,
     UserReputation,
+    VerificationMethod,
 )
 from .environment import FirePoint, FirmsResponse, Weather
 from .forecast import ForecastPoint, ForecastResponse
@@ -92,6 +93,7 @@ __all__ = [
     "Station",
     "StationsResponse",
     "UserReputation",
+    "VerificationMethod",
     "ValidationResponse",
     "Weather",
 ]

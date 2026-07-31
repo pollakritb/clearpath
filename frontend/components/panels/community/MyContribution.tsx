@@ -80,8 +80,13 @@ export default function MyContribution() {
             <span>{new Date(report.created_at).toLocaleString("th-TH")}</span>
           </div>
           <div style={{ color: T.subInk }}>
-            ผู้ใช้ยืนยัน {report.user_claimed_pm25 ?? "—"} · Admin{" "}
-            {report.admin_verified_pm25 ?? "—"} µg/m³
+            ผู้ใช้ยืนยัน {report.user_claimed_pm25 ?? "—"} · ค่าที่ผ่านการตรวจ{" "}
+            {report.verified_pm25 ?? "—"} µg/m³ ·{" "}
+            {report.verification_method === "automatic"
+              ? "ระบบอัตโนมัติ"
+              : report.verification_method === "admin"
+                ? "Admin"
+                : "รอตรวจ"}
             {report.rejection_reason_code
               ? ` · เหตุผล: ${report.rejection_reason_code}`
               : ""}

@@ -221,7 +221,7 @@ def moderate_report(
             display_clear=bool(report.get("display_clear")),
             official_stations=official,
             reporter_reputation=int(profile.get("reputation_score") or 0),
-            admin_verified=True,
+            verification_method="admin",
             measurement_environment=(
                 report.get("measurement_environment") or "outdoor"
             ),

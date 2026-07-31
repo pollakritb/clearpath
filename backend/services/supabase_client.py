@@ -927,7 +927,7 @@ def apply_reputation_event(
 
 def moderate_report_transaction(
     report_id: str,
-    admin_id: str,
+    admin_id: str | None,
     decision: str,
     verified_pm25: float | None,
     note: str | None,

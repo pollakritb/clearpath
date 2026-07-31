@@ -11,6 +11,7 @@ from backend.core.auth import AuthenticatedUser, require_user
 from backend.core.config import settings
 from backend.main import create_app
 from backend.services import firms as firms_service
+from backend.services import ocr as ocr_service
 from backend.services import openweather
 
 
@@ -133,6 +134,71 @@ def _create_pending_report(client: TestClient, seed: int = 1) -> dict:
     return submit_response.json()["report"]
 
 
+def test_high_confidence_report_is_automatically_approved(feature_client, monkeypatch):
+    client, become = feature_client
+    become("user")
+
+    async def confident_ocr(_image: bytes, _content_type: str) -> dict:
+        return {
+            "available": True,
+            "pm25": 42.0,
+            "confidence": 0.98,
+            "device_detected": True,
+            "display_clear": True,
+            "raw_text": "PM2.5 42",
+        }
+
+    monkeypatch.setattr(ocr_service, "read_pm25", confident_ocr)
+    session = client.post("/api/community/capture-session").json()
+    draft_response = client.post(
+        "/api/community/report-drafts",
+        data={
+            "lat": "13.8199",
+            "lon": "100.0622",
+            "gps_accuracy_m": "20",
+            "camera_session_token": session["token"],
+            "client_captured_at": session["issued_at"],
+        },
+        files=[
+            ("image", ("meter.png", _meter_image(71), "image/png")),
+            ("burst_images", ("burst-1.png", _meter_image(72), "image/png")),
+            ("burst_images", ("burst-2.png", _meter_image(73), "image/png")),
+        ],
+    )
+    assert draft_response.status_code == 201, draft_response.text
+    draft = draft_response.json()
+
+    submitted = client.post(
+        f"/api/community/report-drafts/{draft['id']}/submit",
+        json={
+            "user_claimed_pm25": 42.5,
+            "device_model": "Automatic Review Meter",
+            "measurement_environment": "outdoor",
+            "measurement_stable": True,
+            "near_emission_source": False,
+            "averaging_period": "1_minute",
+            "measurement_duration_seconds": 60,
+        },
+    )
+    assert submitted.status_code == 201, submitted.text
+    result = submitted.json()
+    report = result["report"]
+    assert result["review_outcome"] == "automatic_approved"
+    assert result["review_reasons"]
+    assert report["status"] == "approved"
+    assert report["pm25"] == 42.0
+    assert report["verified_pm25"] == 42.0
+    assert report["verification_method"] == "automatic"
+    assert report["admin_verified"] is False
+
+    public = client.get("/api/community/reports").json()["reports"]
+    assert any(item["id"] == report["id"] for item in public)
+
+    become("admin")
+    queue = client.get("/api/admin/reports").json()["reports"]
+    assert all(item["id"] != report["id"] for item in queue)
+
+
 def test_complete_report_moderation_rating_reward_and_privacy_flow(feature_client):
     client, become = feature_client
     reporter = become("user")
@@ -178,7 +244,9 @@ def test_complete_report_moderation_rating_reward_and_privacy_flow(feature_clien
     public_reports = client.get("/api/community/reports").json()["reports"]
     public = next(item for item in public_reports if item["id"] == report_id)
     assert public["admin_verified"] is True
+    assert public["verification_method"] == "admin"
     assert public["pm25"] == 44
+    assert public["verified_pm25"] == 44
     assert public["image_url"] is None
     assert public["gps_accuracy_m"] is None
     assert public["ocr_pm25"] is None

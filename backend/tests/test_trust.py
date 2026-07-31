@@ -23,7 +23,7 @@ def test_high_quality_report_scores_high():
         display_clear=True,
         official_stations=[{"lat": 13.76, "lon": 100.50, "pm25": 42}],
         reporter_reputation=100,
-        admin_verified=True,
+        verification_method="admin",
         capture_verified=True,
     )
     assert result["score"] >= 90

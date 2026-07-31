@@ -141,7 +141,7 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
               <Image
                 unoptimized
                 src={report.image_url}
-                alt="ภาพเครื่องวัดที่ Admin ตรวจแล้ว"
+                alt="ภาพเครื่องวัดที่ผ่านการตรวจแล้ว"
                 width={640}
                 height={360}
                 style={{
@@ -172,7 +172,11 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
               </span>
             </div>
             <div style={{ fontSize: ".66em", color: T.subInk }}>
-              ค่าขณะวัดที่ Admin อ่านจากภาพ · {report.rating_count} คะแนน
+              ค่าขณะวัดที่ผ่านการตรวจ
+              {report.verification_method === "automatic"
+                ? "อัตโนมัติ"
+                : "โดย Admin"}{" "}
+              · {report.rating_count} คะแนน
               {report.rating_average != null
                 ? ` · เฉลี่ย ${report.rating_average.toFixed(1)} ดาว`
                 : ""}
