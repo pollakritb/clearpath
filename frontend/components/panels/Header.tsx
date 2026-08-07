@@ -48,7 +48,7 @@ export default function Header({
   return (
     <header className="cp-context-header">
       <div className="cp-context-header__topline">
-        <span className="cp-eyebrow">ศูนย์ข้อมูลคุณภาพอากาศ</span>
+        <span className="cp-eyebrow">ClearPath · ประเทศไทย</span>
         <div className="cp-a11y-actions" aria-label="การช่วยการเข้าถึง">
           <button
             type="button"

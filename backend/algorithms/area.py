@@ -152,3 +152,8 @@ def point_in_polygon(
 
 def is_nakhon_pathom(lat: float, lon: float) -> bool:
     return point_in_polygon(lat, lon, NAKHON_PATHOM_POLYGON)
+
+
+def is_thailand(lat: float, lon: float) -> bool:
+    """Conservative WGS84 national intake guard; province is resolved server-side."""
+    return 5.5 <= lat <= 20.6 and 97.2 <= lon <= 105.8

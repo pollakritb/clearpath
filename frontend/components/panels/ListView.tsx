@@ -73,8 +73,7 @@ export default function ListView({
           รายการสถานีวัดฝุ่น
         </h2>
         <p style={{ margin: "0 0 1.1em", fontSize: ".92em", color: T.subInk }}>
-          มุมมองสำหรับผู้ใช้ screen reader และผู้พิการทางสายตา —
-          ไล่อ่านเป็นลำดับด้วยปุ่ม Tab
+          ดูสถานีในพื้นที่เป็นรายการ แล้วเลือกเพื่อเปิดรายละเอียดบนแผนที่
         </p>
 
         <div

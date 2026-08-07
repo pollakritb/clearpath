@@ -1,6 +1,7 @@
 "use client";
 
 import HistoryChart from "@/frontend/components/panels/HistoryChart";
+import AppIcon from "@/frontend/components/ui/AppIcon";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { T } from "@/frontend/lib/ui";
 import type { HistoryPoint, Station, Weather } from "@/frontend/types";
@@ -13,6 +14,7 @@ export interface AQICardProps {
   onToggleHistory: () => void;
   historyPoints: HistoryPoint[];
   historyLoading: boolean;
+  onOpenMap: () => void;
 }
 
 function WxStat({ label, value }: { label: string; value: string }) {
@@ -41,6 +43,7 @@ export default function AQICard({
   onToggleHistory,
   historyPoints,
   historyLoading,
+  onOpenMap,
 }: AQICardProps) {
   // empty state
   if (!station) {
@@ -54,8 +57,11 @@ export default function AQICard({
           color: T.subInk,
         }}
       >
-        <div style={{ fontSize: "1.6em", marginBottom: ".2em", opacity: 0.5 }}>
-          📍
+        <div
+          aria-hidden
+          style={{ display: "flex", justifyContent: "center", opacity: 0.5 }}
+        >
+          <AppIcon name="location" size={28} />
         </div>
         <div
           style={{
@@ -68,8 +74,15 @@ export default function AQICard({
           ยังไม่ได้เลือกสถานี
         </div>
         <div style={{ fontSize: ".78em" }}>
-          คลิกจุดสถานีบนแผนที่ เพื่อดูค่า PM2.5 และสภาพอากาศ
+          เลือกสถานีใกล้คุณเพื่อดูค่า PM2.5 และสภาพอากาศแบบละเอียด
         </div>
+        <button
+          type="button"
+          onClick={onOpenMap}
+          className="cp-aqi-empty-action cp-focus"
+        >
+          เลือกสถานีบนแผนที่
+        </button>
       </div>
     );
   }
@@ -173,9 +186,12 @@ export default function AQICard({
             marginBottom: ".7em",
           }}
         >
-          <span aria-hidden style={{ flex: "none", fontSize: "1em" }}>
-            ⚠
-          </span>
+          <AppIcon
+            aria-hidden
+            name="alert"
+            size={17}
+            style={{ flex: "none" }}
+          />
           <span>{cls.advice}</span>
         </div>
 
@@ -206,7 +222,7 @@ export default function AQICard({
             gap: ".45em",
           }}
         >
-          <span aria-hidden>📈</span>
+          <AppIcon aria-hidden name="activity" size={18} />
           <span>{showHistory ? "ซ่อนกราฟ" : "ดูกราฟย้อนหลัง 24 ชม."}</span>
         </button>
 

@@ -1,0 +1,91 @@
+name: Production hourly scheduler
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Avoid the start of the hour, when GitHub-hosted schedules are more delayed.
+    - cron: "7 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clearpath-production-hourly
+  cancel-in-progress: false
+
+jobs:
+  invoke-production-jobs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLEARPATH_PRODUCTION_URL: ${{ vars.CLEARPATH_PRODUCTION_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Validate scheduler configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLEARPATH_PRODUCTION_URL:-}" || {
+            echo "::error::Missing repository variable CLEARPATH_PRODUCTION_URL"
+            exit 1
+          }
+          test -n "${CRON_SECRET:-}" || {
+            echo "::error::Missing repository secret CRON_SECRET"
+            exit 1
+          }
+          case "$CLEARPATH_PRODUCTION_URL" in
+            https://*) ;;
+            *)
+              echo "::error::CLEARPATH_PRODUCTION_URL must use https://"
+              exit 1
+              ;;
+          esac
+
+      - name: Invoke protected production jobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_url="${CLEARPATH_PRODUCTION_URL%/}"
+
+          invoke() {
+            local path="$1"
+            local status
+            if ! status="$(curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 70 \
+              --retry 2 \
+              --retry-all-errors \
+              --retry-delay 5 \
+              --output /dev/null \
+              --write-out "%{http_code}" \
+              --header "Authorization: Bearer ${CRON_SECRET}" \
+              "${base_url}${path}")"; then
+              echo "::error::Request failed for ${path}"
+              return 1
+            fi
+            case "$status" in
+              2??) ;;
+              *)
+                echo "::error::Unexpected HTTP ${status} for ${path}"
+                return 1
+                ;;
+            esac
+            echo "Completed ${path}"
+          }
+
+          failures=0
+          invoke "/api/cron/sync" || failures=1
+          invoke "/api/cron/alerts" || failures=1
+          invoke "/api/cron/forecast-evaluation" || failures=1
+
+          utc_hour="$(date -u +%H)"
+          if (( 10#$utc_hour % 8 == 0 )); then
+            invoke "/api/cron/forecast-providers/openweather" || failures=1
+          fi
+          if (( 10#$utc_hour % 12 == 0 )); then
+            invoke "/api/cron/forecast-providers/openmeteo" || failures=1
+          fi
+
+          exit "$failures"

@@ -30,7 +30,7 @@ export default function AdminAnnouncementList({
           <div>
             <strong>{item.title}</strong>
             <div className="cp-admin-announcement-meta">
-              {item.status} · {item.area ?? "นครปฐม"}
+              {item.status} · {item.area ?? "ทั่วประเทศ"}
             </div>
           </div>
           <div className="cp-admin-announcement-actions">

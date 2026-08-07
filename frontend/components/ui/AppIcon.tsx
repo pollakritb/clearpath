@@ -5,6 +5,7 @@ export type AppIconName =
   | "admin"
   | "alert"
   | "back"
+  | "camera"
   | "check"
   | "chevron"
   | "community"
@@ -18,6 +19,7 @@ export type AppIconName =
   | "settings"
   | "shield"
   | "sparkles"
+  | "location"
   | "user";
 
 interface AppIconProps extends SVGProps<SVGSVGElement> {
@@ -59,6 +61,19 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
         <>
           <rect x="4" y="3" width="16" height="18" rx="3" />
           <path d="M9 3.5h6M12 8v8M8 12h8" />
+        </>
+      )}
+      {name === "camera" && (
+        <>
+          <rect x="3" y="6" width="18" height="14" rx="3" />
+          <path d="m8 6 1.5-2h5L16 6" />
+          <circle cx="12" cy="13" r="3.5" />
+        </>
+      )}
+      {name === "location" && (
+        <>
+          <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
+          <circle cx="12" cy="10" r="2.5" />
         </>
       )}
       {name === "community" && (

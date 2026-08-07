@@ -5,13 +5,17 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from .area import is_nakhon_pathom
+from .area import is_nakhon_pathom, is_thailand
 from .distance import haversine_km
 
 
 def is_nakhon_pathom_area(lat: float, lon: float) -> bool:
     """Backward-compatible public name for province eligibility checks."""
     return is_nakhon_pathom(lat, lon)
+
+
+def is_thailand_area(lat: float, lon: float) -> bool:
+    return is_thailand(lat, lon)
 
 
 def capture_age_minutes(captured_at: str, now: datetime | None = None) -> float | None:
@@ -125,11 +129,11 @@ def calculate_trust_score(
         "ส่งภาพภายในช่วงเวลาที่กำหนด" if fresh >= 8 else "เวลาถ่ายภาพห่างจากเวลาส่ง"
     )
 
-    if is_nakhon_pathom_area(lat, lon):
+    if is_thailand_area(lat, lon):
         score += 10.0
-        reasons.append("GPS อยู่ในพื้นที่นครปฐม")
+        reasons.append("GPS อยู่ในพื้นที่ประเทศไทย")
     else:
-        reasons.append("GPS อยู่นอกพื้นที่ให้บริการนครปฐม")
+        reasons.append("GPS อยู่นอกพื้นที่ให้บริการประเทศไทย")
 
     if (
         measurement_environment == "outdoor"
@@ -194,7 +198,7 @@ def calculate_trust_score(
 
 
 def peer_adjustment(confirm_weight: float, dispute_weight: float) -> float:
-    """Peer review adjusts at most ±8 and cannot override Admin moderation."""
+    """Nearby gratitude/star feedback adjusts Trust by at most ±8."""
     total = confirm_weight + dispute_weight
     if total <= 0:
         return 0.0

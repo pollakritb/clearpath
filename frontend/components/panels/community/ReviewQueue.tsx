@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 
+import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { T } from "@/frontend/lib/ui";
@@ -65,7 +66,7 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
     );
   }
 
-  async function rate(reportId: string, rating: 1 | 2 | 3 | 4 | 5) {
+  async function sendThanks(reportId: string, rating: 1 | 2 | 3 | 4 | 5) {
     if (!location) return;
     setSavingId(reportId);
     setError(null);
@@ -82,12 +83,12 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
       );
       setMessage(
         result.reward_points > 0
-          ? `บันทึก ${rating} ดาวแล้ว คุณได้รับ ${result.reward_points} คะแนนจาก consensus`
-          : `บันทึก ${rating} ดาวแล้ว ระบบจะให้รางวัลเมื่อมีอย่างน้อย 3 คนและเกิด consensus`,
+          ? `ส่งคำขอบคุณพร้อม ${rating} ดาวแล้ว คุณได้รับ ${result.reward_points} คะแนนเพราะความเห็นสอดคล้องกับชุมชน`
+          : `ส่งคำขอบคุณพร้อม ${rating} ดาวแล้ว ระบบจะพิจารณารางวัลเมื่อมีความเห็นจากชุมชนเพียงพอ`,
       );
       onRefresh();
     } catch (cause) {
-      setError(apiErrorMessage(cause, "ให้คะแนนรายงานไม่สำเร็จ"));
+      setError(apiErrorMessage(cause, "ส่งคำขอบคุณไม่สำเร็จ"));
     } finally {
       setSavingId(null);
     }
@@ -96,11 +97,12 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
   return (
     <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: ".9em" }}>
       <h2 style={{ margin: "0 0 .35em", fontSize: ".95em" }}>
-        ช่วยประเมินความใกล้เคียง
+        ขอบคุณผู้แบ่งปันข้อมูล
       </h2>
       <p style={{ margin: "0 0 .6em", fontSize: ".7em", color: T.subInk }}>
-        1 ดาว = ต่างมาก, 3 ดาว = ไม่แน่ใจ, 5 ดาว = ใกล้เคียงมาก
-        เฉพาะรายงานที่อนุมัติแล้ว อายุไม่เกิน 3 ชั่วโมง และอยู่ภายใน 3 กม.
+        หากข้อมูลช่วยให้คุณเข้าใจอากาศใกล้ตัว ส่งคำขอบคุณพร้อมให้ดาวได้: 1 ดาว =
+        ต่างจากสภาพพื้นที่มาก, 3 ดาว = ไม่แน่ใจ, 5 ดาว = ใกล้เคียงมาก
+        เฉพาะข้อมูลที่ผ่านการตรวจ อายุไม่เกิน 3 ชั่วโมง และอยู่ภายใน 3 กม.
       </p>
       <button
         type="button"
@@ -117,11 +119,16 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
           fontFamily: "inherit",
           fontWeight: 700,
           cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: ".35em",
         }}
       >
+        {!loading && <AppIcon name="location" size={17} />}
         {loading
           ? "กำลังค้นหารายงานใกล้เคียง…"
-          : "◎ ใช้ GPS เพื่อดูรายงานใกล้เคียง"}
+          : "ใช้ GPS เพื่อดูรายงานใกล้เคียง"}
       </button>
 
       {nearby.map((report) => {
@@ -176,19 +183,28 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
               {report.verification_method === "automatic"
                 ? "อัตโนมัติ"
                 : "โดย Admin"}{" "}
-              · {report.rating_count} คะแนน
+              · {report.rating_count} คำขอบคุณ
               {report.rating_average != null
                 ? ` · เฉลี่ย ${report.rating_average.toFixed(1)} ดาว`
                 : ""}
             </div>
-            <div aria-label="ให้คะแนนความใกล้เคียง" className="cp-rating-grid">
+            <p
+              style={{
+                margin: ".55em 0 .35em",
+                fontSize: ".68em",
+                color: T.ink,
+              }}
+            >
+              ส่งคำขอบคุณพร้อมดาว
+            </p>
+            <div aria-label="ส่งคำขอบคุณพร้อมดาว" className="cp-rating-grid">
               {([1, 2, 3, 4, 5] as const).map((rating) => (
                 <button
                   key={rating}
                   type="button"
                   disabled={savingId === report.id}
-                  onClick={() => void rate(report.id, rating)}
-                  aria-label={`ให้ ${rating} ดาว`}
+                  onClick={() => void sendThanks(report.id, rating)}
+                  aria-label={`ส่งคำขอบคุณพร้อม ${rating} ดาว`}
                   className="cp-focus"
                   style={{
                     minHeight: "42px",
@@ -215,7 +231,7 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
 
       {location && !loading && nearby.length === 0 && (
         <p style={{ fontSize: ".74em", color: T.subInk }}>
-          ไม่มีรายงานที่รอการประเมินภายใน 3 กม.
+          ไม่มีข้อมูลใกล้เคียงให้ส่งคำขอบคุณภายใน 3 กม.
         </p>
       )}
       {message && (

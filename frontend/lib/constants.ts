@@ -1,6 +1,6 @@
 // ค่าคงที่ของแผนที่/แอป
 
-export const THAILAND_CENTER: [number, number] = [13.7563, 100.5018]; // กรุงเทพฯ
+export const THAILAND_CENTER: [number, number] = [13.2, 101.0];
 export const DEFAULT_ZOOM = 6;
 
 export const OSM_TILE_URL =

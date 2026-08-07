@@ -5,11 +5,12 @@ import { MapContainer, Marker, TileLayer } from "react-leaflet";
 
 import {
   DEFAULT_ZOOM,
+  THAILAND_CENTER,
   OSM_ATTRIBUTION,
   OSM_TILE_URL,
-  THAILAND_CENTER,
 } from "@/frontend/lib/constants";
 import type { CommunityReport, FirePoint, Station } from "@/frontend/types";
+import type { ViewportBounds } from "@/frontend/types/ui";
 
 import AutoResize from "./AutoResize";
 import ClickHandler from "./ClickHandler";
@@ -20,6 +21,7 @@ import { REPORT_PIN_ICON } from "./map-icons";
 import ReportMarkers from "./ReportMarkers";
 import StationMarkers from "./StationMarkers";
 import ViewportController from "./ViewportController";
+import ViewportReporter from "./ViewportReporter";
 
 export interface MapViewProps {
   stations: Station[];
@@ -34,6 +36,7 @@ export interface MapViewProps {
   onMapClick: (lat: number, lon: number) => void;
   onSelectStation: (s: Station) => void;
   onLocate?: (lat: number, lon: number, accuracy?: number) => void;
+  onViewportChange?: (bounds: ViewportBounds) => void;
 }
 
 export default function MapView({
@@ -49,6 +52,7 @@ export default function MapView({
   onMapClick,
   onSelectStation,
   onLocate,
+  onViewportChange,
 }: MapViewProps) {
   const pmVals = surfaceStations
     .filter((s) => s.pm25 != null)
@@ -84,6 +88,7 @@ export default function MapView({
 
       <AutoResize />
       <ViewportController target={focusPoint} />
+      {onViewportChange && <ViewportReporter onChange={onViewportChange} />}
       <MapControls onLocate={onLocate} />
       <ClickHandler onClick={onMapClick} />
     </MapContainer>

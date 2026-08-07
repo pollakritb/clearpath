@@ -129,65 +129,100 @@ export default function ReportForm({
   }
 
   return (
-    <section aria-label="ส่งรายงาน PM2.5 จากชุมชน">
-      <h2 style={{ margin: "0 0 .25em", fontSize: "1em" }}>รายงานค่าฝุ่น</h2>
-      <p style={{ margin: "0 0 .8em", fontSize: ".75em", color: T.subInk }}>
-        ถ่ายหน้าจอเครื่องวัดด้วยกล้องในแอป ระบบจะตรวจ OCR, GPS, เวลา
-        และภาพซ้ำก่อนอนุมัติอัตโนมัติ เคสที่ไม่แน่ใจเท่านั้นจึงส่งให้ผู้ดูแล
-      </p>
+    <section aria-label="ส่งรายงาน PM2.5 จากชุมชน" className="cp-report-flow">
+      <div className="cp-report-intro">
+        <span>ใช้เวลาประมาณ 2 นาที</span>
+        <h2>เริ่มจากถ่ายภาพหน้าจอเครื่องวัด</h2>
+        <p>เตรียมเครื่องวัดให้นิ่ง แล้วทำตาม 3 ขั้นตอนด้านล่าง</p>
+      </div>
+      <ol className="cp-report-progress" aria-label="ขั้นตอนส่งข้อมูล">
+        <li data-complete={Boolean(evidence)}>
+          <b>1</b>
+          <span>ถ่ายภาพ</span>
+        </li>
+        <li data-complete={hasGps}>
+          <b>2</b>
+          <span>ยืนยัน GPS</span>
+        </li>
+        <li data-complete={Boolean(draft)}>
+          <b>3</b>
+          <span>ตรวจและส่ง</span>
+        </li>
+      </ol>
       {!auth.user && !auth.localDemo && <AuthControl />}
-      <form
-        onSubmit={submit}
-        style={{ display: "flex", flexDirection: "column", gap: ".7em" }}
-      >
-        <CameraCapture
-          onCaptured={(nextEvidence) => {
-            if (draft) void api.deleteReportDraft(draft.id);
-            setDraft(null);
-            setClaimedPm25("");
-            setEvidence(nextEvidence);
-            setMessage(null);
-            onRequestLocation();
-          }}
-          onCleared={() => {
-            if (draft) void api.deleteReportDraft(draft.id);
-            setDraft(null);
-            setClaimedPm25("");
-            setEvidence(null);
-          }}
-        />
-        <LocationCard
-          location={location}
-          onRequestLocation={onRequestLocation}
-        />
+      <form onSubmit={submit} className="cp-report-form">
+        <div className="cp-report-step-card" data-complete={Boolean(evidence)}>
+          <div className="cp-report-step-card__heading">
+            <b>1</b>
+            <span>
+              <strong>ถ่ายหน้าจอเครื่องวัด</strong>
+              <small>ใช้กล้องสดให้เห็นตัวเลขชัดเจน</small>
+            </span>
+          </div>
+          <CameraCapture
+            onCaptured={(nextEvidence) => {
+              if (draft) void api.deleteReportDraft(draft.id);
+              setDraft(null);
+              setClaimedPm25("");
+              setEvidence(nextEvidence);
+              setMessage(null);
+              onRequestLocation();
+            }}
+            onCleared={() => {
+              if (draft) void api.deleteReportDraft(draft.id);
+              setDraft(null);
+              setClaimedPm25("");
+              setEvidence(null);
+            }}
+          />
+        </div>
+
+        <div className="cp-report-step-card" data-complete={hasGps}>
+          <div className="cp-report-step-card__heading">
+            <b>2</b>
+            <span>
+              <strong>ยืนยันตำแหน่ง</strong>
+              <small>ใช้ GPS เพื่อยืนยันว่าข้อมูลมาจากพื้นที่จริง</small>
+            </span>
+          </div>
+          <LocationCard
+            location={location}
+            onRequestLocation={onRequestLocation}
+          />
+        </div>
+
         {draft && (
-          <label style={{ display: "grid", gap: ".35em", fontSize: ".78em" }}>
-            ค่า PM2.5 ที่เห็นบนเครื่อง (µg/m³)
-            <input
-              required
-              inputMode="decimal"
-              type="number"
-              min="0"
-              max="1000"
-              step="0.1"
-              value={claimedPm25}
-              onChange={(event) => setClaimedPm25(event.target.value)}
-              style={{
-                minHeight: "44px",
-                borderRadius: "9px",
-                padding: ".6em",
-              }}
-            />
-            <small style={{ color: T.subInk }}>
-              ระบบจะเทียบค่านี้กับ OCR ก่อนอนุมัติอัตโนมัติ
-            </small>
-          </label>
+          <div className="cp-report-step-card">
+            <div className="cp-report-step-card__heading">
+              <b>3</b>
+              <span>
+                <strong>ตรวจรายละเอียดก่อนส่ง</strong>
+                <small>บอกข้อมูลเครื่องวัดเพื่อให้ระบบตรวจได้แม่นยำ</small>
+              </span>
+            </div>
+            <div className="cp-report-fields">
+              <label>
+                ค่า PM2.5 ที่เห็นบนเครื่อง (µg/m³)
+                <input
+                  required
+                  inputMode="decimal"
+                  type="number"
+                  min="0"
+                  max="1000"
+                  step="0.1"
+                  value={claimedPm25}
+                  onChange={(event) => setClaimedPm25(event.target.value)}
+                />
+                <small>ตรวจให้ตรงกับตัวเลขในภาพก่อนส่ง</small>
+              </label>
+              <DeviceFields details={details} onChange={updateDetails} />
+            </div>
+          </div>
         )}
-        <DeviceFields details={details} onChange={updateDetails} />
         <button
           type="submit"
           disabled={draft ? !canSubmit : !canAnalyze}
-          className="cp-focus"
+          className="cp-report-submit cp-focus"
           style={{
             minHeight: "48px",
             border: "none",
@@ -206,8 +241,8 @@ export default function ReportForm({
               ? "กำลังส่งเข้าคิว…"
               : "กำลังอ่านค่าจากภาพ…"
             : draft
-              ? "ยืนยันค่าและส่งให้ระบบตรวจ"
-              : "อ่านค่าจากภาพด้วย OCR"}
+              ? "ส่งข้อมูลให้ระบบตรวจ"
+              : "ตรวจภาพและไปต่อ"}
         </button>
       </form>
 
@@ -221,10 +256,13 @@ export default function ReportForm({
           {error}
         </p>
       )}
-      <p style={{ fontSize: ".66em", color: T.subInk }}>
-        ระบบเก็บ GPS จริงสำหรับตรวจคุณภาพและให้ Admin ดูเฉพาะเคสผิดปกติ
-        ตำแหน่งสาธารณะจะเลื่อนประมาณ 120–250 เมตรเพื่อปกป้องความเป็นส่วนตัว
-      </p>
+      <details className="cp-privacy-note">
+        <summary>ข้อมูลของฉันถูกเก็บอย่างไร</summary>
+        <p>
+          ระบบเก็บ GPS จริงสำหรับตรวจคุณภาพและให้ผู้ดูแลดูเฉพาะเคสผิดปกติ
+          ตำแหน่งสาธารณะจะเลื่อนประมาณ 120–250 เมตรเพื่อปกป้องความเป็นส่วนตัว
+        </p>
+      </details>
     </section>
   );
 }

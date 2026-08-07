@@ -13,8 +13,10 @@ import type {
   CommunityProfileResponse,
   CommunityMapPointsResponse,
   CommunityReportsResponse,
+  DataIssueCreate,
   FirmsResponse,
   ForecastResponse,
+  ForecastSurfaceResponse,
   HistoryResponse,
   NotificationPreferences,
   NotificationsResponse,
@@ -34,8 +36,16 @@ import type {
 } from "@/frontend/types";
 import type {
   AdminSyncRunsResponse,
+  DataIssuesResponse,
+  ForecastDataQualityResponse,
+  ForecastEvaluationResponse,
+  ForecastFalseSafeCasesResponse,
+  ForecastFalseSafeReviewRequest,
+  ForecastReleaseDecisionsResponse,
   ForecastModelStatusesResponse,
+  ForecastProviderHealthResponse,
   NotificationOutboxSummary,
+  ViewportBounds,
 } from "@/frontend/types/ui";
 import { getAccessToken } from "@/frontend/lib/supabase";
 
@@ -102,11 +112,31 @@ export const api = {
       `/api/forecast?station_id=${encodeURIComponent(stationId)}&hours=${hours}`,
     ),
 
+  forecastSurface: (horizon = 12, gridSize = 12, bounds?: ViewportBounds) => {
+    const params = new URLSearchParams({
+      horizon: String(horizon),
+      grid_size: String(gridSize),
+    });
+    if (bounds) {
+      for (const [key, value] of Object.entries(bounds)) {
+        params.set(key, String(value));
+      }
+    }
+    return http<ForecastSurfaceResponse>(`/api/forecast/surface?${params}`);
+  },
+
   communityReports: () =>
     http<CommunityReportsResponse>("/api/community/reports"),
 
   communityMapPoints: () =>
     http<CommunityMapPointsResponse>("/api/community/map-points"),
+
+  reportDataIssue: (body: DataIssueCreate) =>
+    http<OperationResponse>("/api/community/data-issues", {
+      method: "POST",
+      body: JSON.stringify(body),
+      auth: true,
+    }),
 
   captureSession: () =>
     http<CaptureSessionResponse>("/api/community/capture-session", {
@@ -279,8 +309,56 @@ export const api = {
       auth: true,
     }),
 
+  adminForecastDataQuality: (days = 7) =>
+    http<ForecastDataQualityResponse>(
+      `/api/admin/forecast-data-quality?days=${days}`,
+      { auth: true },
+    ),
+
+  adminForecastProviderHealth: () =>
+    http<ForecastProviderHealthResponse>(
+      "/api/admin/forecast-provider-health",
+      {
+        auth: true,
+      },
+    ),
+
+  adminForecastEvaluation: (days = 14) =>
+    http<ForecastEvaluationResponse>(
+      `/api/admin/forecast-evaluation?days=${days}`,
+      { auth: true },
+    ),
+
+  adminForecastFalseSafeCases: (days = 30, limit = 100) =>
+    http<ForecastFalseSafeCasesResponse>(
+      `/api/admin/forecast-false-safe-cases?days=${days}&limit=${limit}`,
+      { auth: true },
+    ),
+
+  reviewForecastFalseSafeCase: (
+    runId: string,
+    horizonHours: number,
+    variant: string,
+    body: ForecastFalseSafeReviewRequest,
+  ) =>
+    http(
+      `/api/admin/forecast-false-safe-cases/${encodeURIComponent(runId)}/${horizonHours}/${encodeURIComponent(variant)}/review`,
+      { method: "PUT", body: JSON.stringify(body), auth: true },
+    ),
+
+  adminForecastReleaseDecisions: (limit = 100) =>
+    http<ForecastReleaseDecisionsResponse>(
+      `/api/admin/forecast-release-decisions?limit=${limit}`,
+      { auth: true },
+    ),
+
   adminNotificationOutbox: () =>
     http<NotificationOutboxSummary>("/api/admin/notification-outbox", {
+      auth: true,
+    }),
+
+  adminDataIssues: (limit = 100) =>
+    http<DataIssuesResponse>(`/api/admin/data-issues?limit=${limit}`, {
       auth: true,
     }),
 };

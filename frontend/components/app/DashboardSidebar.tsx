@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
 
@@ -9,26 +9,37 @@ import type { DashboardTab, SheetSnap } from "./dashboard-types";
 
 const TABS: Array<{
   id: DashboardTab;
+  href: string;
   label: string;
   description: string;
   icon: AppIconName;
 }> = [
   {
+    id: "map",
+    href: "/",
+    label: "แผนที่",
+    description: "ดูค่าฝุ่นใกล้คุณ",
+    icon: "map",
+  },
+  {
     id: "overview",
-    label: "สถานการณ์",
+    href: "/air",
+    label: "วันนี้",
     description: "ค่าฝุ่นและพยากรณ์",
     icon: "home",
   },
   {
     id: "report",
+    href: "/report",
     label: "ส่งรายงาน",
     description: "ถ่ายภาพเครื่องวัด",
     icon: "report",
   },
   {
     id: "community",
+    href: "/community",
     label: "ชุมชน",
-    description: "ข่าวสารและช่วยยืนยัน",
+    description: "ข่าวสารและคำขอบคุณ",
     icon: "community",
   },
 ];
@@ -38,7 +49,6 @@ interface DashboardSidebarProps {
   snap: SheetSnap;
   header: ReactNode;
   children: ReactNode;
-  onTabChange: (tab: DashboardTab) => void;
   onSnapChange: (snap: SheetSnap) => void;
   showAdmin: boolean;
 }
@@ -54,37 +64,40 @@ export default function DashboardSidebar({
   snap,
   header,
   children,
-  onTabChange,
   onSnapChange,
   showAdmin,
 }: DashboardSidebarProps) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [tab]);
+
   return (
     <>
       <nav className="cp-primary-nav" aria-label="เมนูหลักของผู้ใช้งาน">
-        <button
-          type="button"
+        <Link
+          href="/"
           className="cp-brand cp-focus"
-          onClick={() => onTabChange("overview")}
-          aria-label="ClearPath หน้าสถานการณ์"
+          aria-label="ClearPath หน้าแผนที่"
         >
           <span className="cp-brand__mark" aria-hidden>
             C
           </span>
           <span className="cp-brand__copy">
             <strong>ClearPath</strong>
-            <small>นครปฐม</small>
+            <small>ประเทศไทย</small>
           </span>
-        </button>
+        </Link>
 
         <div className="cp-primary-nav__label">พื้นที่ผู้ใช้งาน</div>
         <div className="cp-primary-nav__items">
           {TABS.map((item) => {
             const selected = tab === item.id;
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
-                onClick={() => onTabChange(item.id)}
+                href={item.href}
                 aria-current={selected ? "page" : undefined}
                 className="cp-nav-item cp-focus"
                 data-active={selected}
@@ -96,7 +109,7 @@ export default function DashboardSidebar({
                   <strong>{item.label}</strong>
                   <small>{item.description}</small>
                 </span>
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -131,7 +144,9 @@ export default function DashboardSidebar({
           <span />
         </button>
         <div className="cp-header">{header}</div>
-        <div className="cp-aside__body cp-scroll">{children}</div>
+        <div ref={bodyRef} className="cp-aside__body cp-scroll">
+          {children}
+        </div>
       </aside>
 
       <nav
@@ -142,28 +157,18 @@ export default function DashboardSidebar({
         {TABS.map((item) => {
           const selected = tab === item.id;
           return (
-            <button
+            <Link
               key={item.id}
-              type="button"
-              onClick={() => {
-                onTabChange(item.id);
-                onSnapChange(item.id === "overview" ? "half" : "full");
-              }}
+              href={item.href}
               aria-current={selected ? "page" : undefined}
               data-active={selected}
               className="cp-focus"
             >
               <AppIcon name={item.icon} size={21} />
               <span>{item.label}</span>
-            </button>
+            </Link>
           );
         })}
-        {showAdmin && (
-          <Link href="/admin" className="cp-focus">
-            <AppIcon name="admin" size={21} />
-            <span>ผู้ดูแล</span>
-          </Link>
-        )}
       </nav>
     </>
   );

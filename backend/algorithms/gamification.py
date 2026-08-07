@@ -12,7 +12,7 @@ def derive_badges(
     if approved_reports >= 20 and reputation_score >= 200:
         badges.append("ผู้พิทักษ์อากาศชุมชน")
     if helpful_reviews >= 5:
-        badges.append("ผู้ช่วยตรวจข้อมูล")
+        badges.append("ผู้ส่งคำขอบคุณให้ชุมชน")
     if reputation_score >= 500:
         badges.append("ความน่าเชื่อถือสูง")
     return badges

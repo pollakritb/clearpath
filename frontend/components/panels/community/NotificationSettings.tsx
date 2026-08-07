@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import AuthControl from "@/frontend/components/auth/AuthControl";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { T } from "@/frontend/lib/ui";
 import type { NotificationPreferences } from "@/frontend/types";
@@ -49,9 +50,7 @@ export default function NotificationSettings() {
       .then(setPreferences)
       .catch(() => undefined);
     if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker
-        .register("/sw.js")
-        .then(() => navigator.serviceWorker.ready)
+      void navigator.serviceWorker.ready
         .then((registration) => registration.pushManager.getSubscription())
         .then(setSubscription)
         .catch(() => undefined);
@@ -183,8 +182,8 @@ export default function NotificationSettings() {
         {(
           [
             ["report_status_alerts", "สถานะอนุมัติ/ปฏิเสธรายงาน"],
-            ["rating_alerts", "เมื่อมีคนให้คะแนนข้อมูลของฉัน"],
-            ["reward_alerts", "คะแนนและ Badge ที่ได้รับ"],
+            ["rating_alerts", "เมื่อมีคนขอบคุณข้อมูลของฉัน"],
+            ["reward_alerts", "คะแนนและเหรียญรางวัลที่ได้รับ"],
             ["leaderboard_alerts", "การเปลี่ยนอันดับประจำสัปดาห์"],
             ["announcement_alerts", "ประกาศสำคัญในชุมชน"],
           ] as const
@@ -204,7 +203,8 @@ export default function NotificationSettings() {
           </label>
         ))}
         <button type="button" onClick={useCurrentArea} className="cp-focus">
-          ◎ ใช้ GPS ปัจจุบันเป็นศูนย์กลาง
+          <AppIcon name="location" size={17} />
+          ใช้ GPS ปัจจุบันเป็นศูนย์กลาง
         </button>
         <button
           type="button"

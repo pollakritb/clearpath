@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from ..core.auth import AuthenticatedUser, require_admin, require_moderator
+from ..models.admin import FalseSafeReviewRequest
 from ..models.schemas import (
     Activity,
     ActivityCreate,
@@ -23,6 +24,15 @@ from ..services import notifications, supabase_client
 from ..services.forecast_models import artifact_statuses
 
 router = APIRouter()
+
+
+@router.get("/admin/data-issues")
+async def data_issues(
+    limit: int = Query(100, ge=1, le=200),
+    _user: AuthenticatedUser = Depends(require_moderator),
+):
+    rows = await run_in_threadpool(supabase_client.list_data_issues, limit)
+    return {"issues": rows, "count": len(rows)}
 
 
 @router.get("/admin/reports", response_model=CommunityReportsResponse)
@@ -237,6 +247,98 @@ async def forecast_models(
 ):
     models = await run_in_threadpool(artifact_statuses)
     return {"models": models, "count": len(models)}
+
+
+@router.get("/admin/forecast-data-quality")
+async def forecast_data_quality(
+    days: int = Query(7, ge=1, le=31),
+    _user: AuthenticatedUser = Depends(require_admin),
+):
+    rows = await run_in_threadpool(
+        supabase_client.get_forecast_data_quality_summary, days
+    )
+    return {"rows": rows, "count": len(rows), "days": days}
+
+
+@router.get("/admin/forecast-provider-health")
+async def forecast_provider_health(
+    _user: AuthenticatedUser = Depends(require_admin),
+):
+    return await run_in_threadpool(supabase_client.forecast_provider_health)
+
+
+@router.get("/admin/forecast-evaluation")
+async def forecast_evaluation(
+    days: int = Query(14, ge=1, le=90),
+    _user: AuthenticatedUser = Depends(require_admin),
+):
+    rows = await run_in_threadpool(
+        supabase_client.get_forecast_evaluation_summary, days
+    )
+    return {"rows": rows, "count": len(rows), "days": days}
+
+
+@router.get("/admin/forecast-false-safe-cases")
+async def forecast_false_safe_cases(
+    days: int = Query(30, ge=1, le=90),
+    limit: int = Query(100, ge=1, le=200),
+    _user: AuthenticatedUser = Depends(require_admin),
+):
+    rows = await run_in_threadpool(
+        supabase_client.list_forecast_false_safe_cases, days, limit
+    )
+    return {"cases": rows, "count": len(rows), "days": days}
+
+
+@router.put(
+    "/admin/forecast-false-safe-cases/{run_id}/{horizon_hours}/{variant}/review"
+)
+async def review_forecast_false_safe_case(
+    run_id: str,
+    horizon_hours: int,
+    variant: str,
+    body: FalseSafeReviewRequest,
+    user: AuthenticatedUser = Depends(require_admin),
+):
+    if horizon_hours not in {1, 3, 6, 12, 24}:
+        raise HTTPException(400, detail="ช่วงเวลาพยากรณ์ไม่ถูกต้อง")
+    if variant not in {"served", "shadow"}:
+        raise HTTPException(400, detail="ชนิดผลพยากรณ์ไม่ถูกต้อง")
+    now = datetime.now(UTC).isoformat()
+    row = await run_in_threadpool(
+        supabase_client.upsert_forecast_false_safe_review,
+        {
+            "run_id": run_id,
+            "horizon_hours": horizon_hours,
+            "variant": variant,
+            **body.model_dump(),
+            "reviewed_by": user.id,
+            "reviewed_at": now,
+            "updated_at": now,
+        },
+    )
+    await run_in_threadpool(
+        supabase_client.create_audit_log,
+        {
+            "actor_id": user.id,
+            "action": "forecast_false_safe_reviewed",
+            "entity_type": "forecast_prediction",
+            "entity_id": f"{run_id}:{horizon_hours}:{variant}",
+            "details": {"disposition": body.disposition},
+        },
+    )
+    return row
+
+
+@router.get("/admin/forecast-release-decisions")
+async def forecast_release_decisions(
+    limit: int = Query(100, ge=1, le=200),
+    _user: AuthenticatedUser = Depends(require_admin),
+):
+    rows = await run_in_threadpool(
+        supabase_client.list_forecast_release_decisions, limit
+    )
+    return {"decisions": rows, "count": len(rows)}
 
 
 @router.get("/admin/notification-outbox")

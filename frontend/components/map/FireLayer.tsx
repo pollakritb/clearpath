@@ -7,12 +7,13 @@ import type { FirePoint } from "@/frontend/types";
 
 // ไอคอนจุดความร้อนจากดาวเทียม = 🔥 มีแสงเรืองส้ม · ขนาดตาม FRP
 function fireIcon(size: number) {
+  const touchSize = 44;
   return L.divIcon({
     className: "cp-marker",
-    html: `<div style="font-size:${size}px;line-height:1;filter:drop-shadow(0 0 5px rgba(255,87,34,.95))">🔥</div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -size / 2],
+    html: `<div style="width:${touchSize}px;height:${touchSize}px;display:flex;align-items:center;justify-content:center"><span style="font-size:${size}px;line-height:1;filter:drop-shadow(0 0 5px rgba(255,87,34,.95))">🔥</span></div>`,
+    iconSize: [touchSize, touchSize],
+    iconAnchor: [touchSize / 2, touchSize / 2],
+    popupAnchor: [0, -touchSize / 2],
   });
 }
 
@@ -27,6 +28,8 @@ export default function FireLayer({ fires }: { fires: FirePoint[] }) {
             key={`${f.lat}-${f.lon}-${i}`}
             position={[f.lat, f.lon]}
             icon={fireIcon(size)}
+            title={`จุดความร้อนจากดาวเทียม ${f.frp ?? "ไม่ระบุ"} MW`}
+            alt={`จุดความร้อนจากดาวเทียม ${f.frp ?? "ไม่ระบุ"} MW`}
           >
             <Popup>
               <div style={{ fontFamily: "inherit" }}>

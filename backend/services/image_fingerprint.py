@@ -17,7 +17,7 @@ def fingerprint_image(content: bytes) -> dict:
             image.verify()
         with Image.open(io.BytesIO(content)) as image:
             gray = image.convert("L").resize((8, 8))
-            pixels = list(gray.getdata())
+            pixels = list(gray.get_flattened_data())
     except (
         UnidentifiedImageError,
         OSError,

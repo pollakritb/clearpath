@@ -3,13 +3,10 @@
   "functions": {
     "api/index.py": {
       "includeFiles": "backend/**",
+      "excludeFiles": "{backend/tests/**,backend/**/test_*.py,docs/**,e2e/**,scripts/**,coverage/**,playwright-report/**,test-results/**}",
       "memory": 1024,
       "maxDuration": 60
     }
   },
-  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }],
-  "crons": [
-    { "path": "/api/cron/sync", "schedule": "0 * * * *" },
-    { "path": "/api/cron/alerts", "schedule": "*/30 * * * *" }
-  ]
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }]
 }

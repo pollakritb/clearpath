@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
@@ -16,18 +17,21 @@ import ReportForm from "@/frontend/components/panels/ReportForm";
 import { useCommunity } from "@/frontend/hooks/useCommunity";
 import { useFirms } from "@/frontend/hooks/useFirms";
 import { useForecast } from "@/frontend/hooks/useForecast";
+import { useForecastSurface } from "@/frontend/hooks/useForecastSurface";
 import { useHistory } from "@/frontend/hooks/useHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { useValidation } from "@/frontend/hooks/useValidation";
 import { useWeather } from "@/frontend/hooks/useWeather";
 import { T } from "@/frontend/lib/ui";
 import type { LocationSuggestion, Station } from "@/frontend/types";
-import type { ReportLocation } from "@/frontend/types/ui";
+import type { ReportLocation, ViewportBounds } from "@/frontend/types/ui";
 
 import DashboardSidebar from "./DashboardSidebar";
 import type { DashboardTab, SheetSnap, ViewMode } from "./dashboard-types";
 import { SHEET_Y } from "./dashboard-types";
 import MapChrome from "./MapChrome";
+import MapStatusCard from "./MapStatusCard";
+import MobileAirSummary from "./MobileAirSummary";
 import NationalSummary from "./NationalSummary";
 
 const MapView = dynamic(() => import("@/frontend/components/map/MapView"), {
@@ -39,7 +43,14 @@ const MapView = dynamic(() => import("@/frontend/components/map/MapView"), {
   ),
 });
 
-export default function ClearPathApp() {
+export default function ClearPathApp({
+  page,
+  stationId,
+}: {
+  page: DashboardTab;
+  stationId?: string;
+}) {
+  const router = useRouter();
   const auth = useAuth();
   const pm25 = usePm25();
   const weather = useWeather();
@@ -47,12 +58,13 @@ export default function ClearPathApp() {
   const validation = useValidation();
   const firms = useFirms();
   const forecast = useForecast();
+  const forecastSurface = useForecastSurface();
   const community = useCommunity();
 
-  const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const [manuallySelectedStation, setSelectedStation] =
+    useState<Station | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [reportPin, setReportPin] = useState<ReportLocation | null>(null);
-  const [tab, setTab] = useState<DashboardTab>("overview");
   const [bigText, setBigText] = useState(false);
   const [contrast, setContrast] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -60,11 +72,13 @@ export default function ClearPathApp() {
   const [showCommunity, setShowCommunity] = useState(true);
   const [showFires, setShowFires] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
+  const [mapHorizon, setMapHorizon] = useState<0 | 1 | 3 | 6 | 12 | 24>(0);
   const [snap, setSnap] = useState<SheetSnap>("half");
   const [focusPoint, setFocusPoint] = useState<{
     lat: number;
     lon: number;
   } | null>(null);
+  const [mapBounds, setMapBounds] = useState<ViewportBounds | null>(null);
 
   const loadFires = firms.load;
   useEffect(() => {
@@ -72,22 +86,37 @@ export default function ClearPathApp() {
   }, [loadFires]);
 
   const canModerate = ["moderator", "admin"].includes(auth.role);
-  const activeTab = tab;
+  const activeTab = page;
+  const routeStation = useMemo(
+    () =>
+      activeTab === "overview" && stationId
+        ? (pm25.stations.find((station) => station.id === stationId) ?? null)
+        : null,
+    [activeTab, pm25.stations, stationId],
+  );
+  const selectedStation = manuallySelectedStation ?? routeStation;
+  const serviceAreaStations = useMemo(
+    () => pm25.stations.filter((station) => station.in_service_area),
+    [pm25.stations],
+  );
 
   const sectionCopy = {
+    map: {
+      title: "แผนที่คุณภาพอากาศ",
+      description: "ค้นหาสถานีและดูค่าฝุ่นในพื้นที่ใกล้คุณ",
+    },
     overview: {
-      title: "สถานการณ์ฝุ่นวันนี้",
-      description:
-        "เลือกจุดบนแผนที่เพื่อดูค่าปัจจุบัน แนวโน้ม และที่มาของข้อมูล",
+      title: "อากาศวันนี้",
+      description: "ค่าปัจจุบัน คำแนะนำ พยากรณ์ และประวัติรายสถานี",
     },
     report: {
       title: "ส่งข้อมูลจากเครื่องวัด",
-      description: "ถ่ายภาพสดผ่านระบบ พร้อม GPS เพื่อส่งให้ผู้ดูแลตรวจสอบ",
+      description: "ถ่ายภาพสดพร้อม GPS แล้วให้ระบบตรวจหลักฐานอัตโนมัติ",
     },
     community: {
       title: "ชุมชนอากาศสะอาด",
       description:
-        "ติดตามประกาศ ช่วยยืนยันข้อมูลใกล้ตัว และร่วมกิจกรรมสะสมคะแนน",
+        "ติดตามประกาศ ขอบคุณผู้แบ่งปันข้อมูล และร่วมกิจกรรมสะสมคะแนน",
     },
   }[activeTab];
 
@@ -95,10 +124,8 @@ export default function ClearPathApp() {
     (station: Station) => {
       setSelectedStation(station);
       setShowHistory(false);
-      setTab("overview");
-      setSnap("full");
       void weather.load(station.lat, station.lon);
-      void forecast.load(station.id, 12);
+      void forecast.load(station.id, 24);
     },
     [weather, forecast],
   );
@@ -111,45 +138,97 @@ export default function ClearPathApp() {
     });
   }, [selectedStation, history]);
 
-  const openReport = useCallback((location: ReportLocation) => {
-    setReportPin(location);
-    setTab("report");
-    setSnap("full");
-  }, []);
-
   const locateForReport = useCallback(() => {
     navigator.geolocation?.getCurrentPosition((position) => {
-      openReport({
+      setReportPin({
         lat: position.coords.latitude,
         lon: position.coords.longitude,
         source: "gps",
         accuracy: position.coords.accuracy,
       });
     });
-  }, [openReport]);
+  }, []);
 
-  const surfaceStations = useMemo<Station[]>(() => {
-    const gapReports = community.mapPoints.map((point) => ({
-      id: point.id,
-      name_th: "รายงานชุมชนที่ผ่านเกณฑ์",
-      name_en: "Verified community gap-fill",
-      lat: point.lat,
-      lon: point.lon,
-      province: "นครปฐม",
-      pm25: point.pm25,
-      aqi: null,
-      color: null,
-      level: null,
-      recorded_at: null,
-      data_status: "fresh" as const,
-      age_minutes: null,
-      eligible_for_surface: true,
-    }));
+  const weatherLoad = weather.load;
+  const forecastLoad = forecast.load;
+  useEffect(() => {
+    if (!routeStation) return;
+    void weatherLoad(routeStation.lat, routeStation.lon);
+    void forecastLoad(routeStation.id, 24);
+  }, [forecastLoad, routeStation, weatherLoad]);
+
+  const currentSurfaceStations = useMemo<Station[]>(() => {
+    const gapReports = community.mapPoints.map(
+      (point) =>
+        ({
+          id: point.id,
+          name_th: "รายงานชุมชนที่ผ่านเกณฑ์",
+          name_en: "Verified community gap-fill",
+          lat: point.lat,
+          lon: point.lon,
+          province: null,
+          pm25: point.pm25,
+          aqi: null,
+          color: null,
+          level: null,
+          recorded_at: null,
+          data_status: "fresh" as const,
+          age_minutes: null,
+          eligible_for_surface: true,
+          in_service_area: true,
+        }) satisfies Station,
+    );
     return [
       ...pm25.stations.filter((station) => station.eligible_for_surface),
       ...gapReports,
     ];
   }, [pm25.stations, community.mapPoints]);
+
+  const forecastSurfaceLoad = forecastSurface.load;
+  const forecastSurfaceClear = forecastSurface.clear;
+  useEffect(() => {
+    if (activeTab !== "map" || mapHorizon === 0) {
+      forecastSurfaceClear();
+      return;
+    }
+    if (mapBounds) void forecastSurfaceLoad(mapHorizon, mapBounds);
+  }, [
+    activeTab,
+    forecastSurfaceClear,
+    forecastSurfaceLoad,
+    mapBounds,
+    mapHorizon,
+  ]);
+
+  const forecastSurfaceStations = useMemo<Station[]>(() => {
+    const surface = forecastSurface.data;
+    if (!surface) return [];
+    return surface.cells.flatMap((cell, index) =>
+      cell.pm25 == null
+        ? []
+        : [
+            {
+              id: `forecast-${mapHorizon}-${index}`,
+              name_th: `พื้นผิวพยากรณ์ ${mapHorizon} ชั่วโมง`,
+              name_en: "Forecast surface",
+              lat: cell.lat,
+              lon: cell.lon,
+              province: null,
+              pm25: cell.pm25,
+              aqi: null,
+              color: null,
+              level: null,
+              recorded_at: surface.generated_at,
+              data_status: cell.coverage === "covered" ? "fresh" : "delayed",
+              age_minutes: null,
+              eligible_for_surface: true,
+              in_service_area: true,
+            } satisfies Station,
+          ],
+    );
+  }, [forecastSurface.data, mapHorizon]);
+  const surfaceStations =
+    mapHorizon === 0 ? currentSurfaceStations : forecastSurfaceStations;
 
   const layerItems = [
     {
@@ -192,18 +271,23 @@ export default function ClearPathApp() {
   } as React.CSSProperties;
 
   return (
-    <div className="cp-app" data-contrast={contrast} style={rootStyle}>
+    <div
+      className="cp-app"
+      data-contrast={contrast}
+      data-tab={activeTab}
+      data-sheet-snap={snap}
+      style={rootStyle}
+    >
       <DashboardSidebar
         tab={activeTab}
         snap={snap}
-        onTabChange={setTab}
         onSnapChange={setSnap}
         showAdmin={canModerate}
         header={
           <Header
             title={sectionCopy.title}
             description={sectionCopy.description}
-            stationCount={pm25.stations.length}
+            stationCount={serviceAreaStations.length}
             updatedAt={pm25.updatedAt}
             loading={pm25.loading}
             delayedCount={pm25.counts.delayed}
@@ -217,8 +301,17 @@ export default function ClearPathApp() {
         }
       >
         {activeTab === "overview" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1em" }}>
-            <NationalSummary stations={pm25.stations} />
+          <div className="cp-overview-stack">
+            <MobileAirSummary
+              stations={serviceAreaStations}
+              updatedAt={pm25.updatedAt}
+              loading={pm25.loading}
+              onOpenMap={() => router.push("/")}
+              onOpenReport={() => router.push("/report")}
+            />
+            <div className="cp-desktop-summary">
+              <NationalSummary stations={serviceAreaStations} />
+            </div>
             <AQICard
               station={selectedStation}
               weather={weather.data}
@@ -227,6 +320,7 @@ export default function ClearPathApp() {
               onToggleHistory={toggleHistory}
               historyPoints={history.points}
               historyLoading={history.loading}
+              onOpenMap={() => router.push("/")}
             />
             <FireAlertPanel
               fires={firms.fires}
@@ -240,13 +334,27 @@ export default function ClearPathApp() {
               loading={forecast.loading}
               error={forecast.error}
             />
-            <LayerToggles items={layerItems} />
-            <ModelAccuracy
-              data={validation.data}
-              loading={validation.loading}
-              error={validation.error}
-              onLoad={validation.load}
-            />
+            <div className="cp-overview-tools cp-overview-tools--desktop">
+              <LayerToggles items={layerItems} />
+              <ModelAccuracy
+                data={validation.data}
+                loading={validation.loading}
+                error={validation.error}
+                onLoad={validation.load}
+              />
+            </div>
+            <details className="cp-overview-tools cp-overview-tools--mobile">
+              <summary>เครื่องมือแผนที่และข้อมูลเพิ่มเติม</summary>
+              <div>
+                <LayerToggles items={layerItems} />
+                <ModelAccuracy
+                  data={validation.data}
+                  loading={validation.loading}
+                  error={validation.error}
+                  onLoad={validation.load}
+                />
+              </div>
+            </details>
           </div>
         )}
 
@@ -263,6 +371,7 @@ export default function ClearPathApp() {
             activities={community.activities}
             leaders={community.leaders}
             onRefresh={community.refresh}
+            showAdmin={canModerate}
           />
         )}
         {community.error && (
@@ -277,7 +386,7 @@ export default function ClearPathApp() {
 
       <main className="cp-map">
         <MapView
-          stations={pm25.stations}
+          stations={serviceAreaStations}
           surfaceStations={surfaceStations}
           fires={showFires ? firms.fires : []}
           reports={community.reports}
@@ -286,15 +395,15 @@ export default function ClearPathApp() {
           showHeatmap={showHeatmap}
           showStations={showStations}
           showCommunity={showCommunity}
-          onMapClick={(lat, lon) => openReport({ lat, lon, source: "map" })}
+          onMapClick={(lat, lon) => setFocusPoint({ lat, lon })}
           onSelectStation={selectStation}
-          onLocate={(lat, lon, accuracy) =>
-            openReport({ lat, lon, source: "gps", accuracy })
-          }
+          onLocate={(lat, lon) => setFocusPoint({ lat, lon })}
+          onViewportChange={setMapBounds}
         />
         <MapChrome
           viewMode={viewMode}
-          stationCount={pm25.stations.length}
+          stationCount={serviceAreaStations.length}
+          stations={serviceAreaStations}
           bigText={bigText}
           onViewModeChange={setViewMode}
           onToggleBigText={() => setBigText((value) => !value)}
@@ -302,9 +411,33 @@ export default function ClearPathApp() {
             setFocusPoint({ lat: location.lat, lon: location.lon });
             setViewMode("map");
           }}
+          onStationSelect={(station) => {
+            selectStation(station);
+            setFocusPoint({ lat: station.lat, lon: station.lon });
+            setViewMode("map");
+          }}
         />
         {viewMode === "list" && (
-          <ListView stations={pm25.stations} onSelectStation={selectStation} />
+          <ListView
+            stations={serviceAreaStations}
+            onSelectStation={(station) => {
+              selectStation(station);
+              setViewMode("map");
+            }}
+          />
+        )}
+        {activeTab === "map" && (
+          <MapStatusCard
+            stations={serviceAreaStations}
+            forecastStations={forecastSurfaceStations}
+            station={selectedStation}
+            updatedAt={pm25.updatedAt}
+            horizon={mapHorizon}
+            forecastLoading={forecastSurface.loading}
+            forecastError={forecastSurface.error}
+            forecastWarnings={forecastSurface.data?.warnings ?? []}
+            onHorizonChange={setMapHorizon}
+          />
         )}
       </main>
     </div>

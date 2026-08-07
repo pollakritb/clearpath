@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import RLock
 
+from ..algorithms.district import resolve_station_district
 from ..core.config import settings
 
 _LOCK = RLock()
@@ -39,6 +40,106 @@ _PUBLIC_MAP_EVENTS: list[dict] = []
 _WEATHER_OBSERVATIONS: list[dict] = []
 _WEATHER_FORECASTS: list[dict] = []
 _FIRE_FEATURES: list[dict] = []
+_FORECAST_RUNS: list[dict] = []
+_FORECAST_PREDICTIONS: list[dict] = []
+_FORECAST_FALSE_SAFE_REVIEWS: dict[tuple[str, int, str], dict] = {}
+_DATA_ISSUES: list[dict] = []
+_FORECAST_PROVIDER_SYNC_RUNS: dict[str, dict] = {}
+_FORECAST_PROVIDER_SNAPSHOTS: list[dict] = []
+_FORECAST_CONSENSUS: dict[tuple[str, int], dict] = {}
+_FORECAST_PREDICTION_SOURCES: list[dict] = []
+_COMMUNITY_FORECAST_FEATURES: list[dict] = []
+
+
+def create_provider_sync_run(row: dict) -> dict:
+    with _LOCK:
+        _FORECAST_PROVIDER_SYNC_RUNS[str(row["id"])] = dict(row)
+        return dict(row)
+
+
+def update_provider_sync_run(run_id: str, values: dict) -> dict:
+    with _LOCK:
+        row = _FORECAST_PROVIDER_SYNC_RUNS[str(run_id)]
+        row.update(values)
+        return dict(row)
+
+
+def upsert_provider_snapshots(rows: list[dict]) -> int:
+    with _LOCK:
+        keys = {
+            (
+                str(row["station_id"]),
+                str(row["provider"]),
+                str(row["issued_at"]),
+                str(row["forecast_at"]),
+            )
+            for row in rows
+        }
+        _FORECAST_PROVIDER_SNAPSHOTS[:] = [
+            row
+            for row in _FORECAST_PROVIDER_SNAPSHOTS
+            if (
+                str(row["station_id"]),
+                str(row["provider"]),
+                str(row["issued_at"]),
+                str(row["forecast_at"]),
+            )
+            not in keys
+        ]
+        _FORECAST_PROVIDER_SNAPSHOTS.extend(dict(row) for row in rows)
+        return len(rows)
+
+
+def get_provider_snapshots(station_id: str) -> list[dict]:
+    with _LOCK:
+        return [
+            dict(row)
+            for row in _FORECAST_PROVIDER_SNAPSHOTS
+            if str(row["station_id"]) == station_id
+        ]
+
+
+def upsert_forecast_consensus(
+    row: dict, sources: list[dict], feature: dict | None
+) -> None:
+    with _LOCK:
+        _FORECAST_CONSENSUS[(str(row["station_id"]), int(row["horizon_hours"]))] = dict(
+            row
+        )
+        _FORECAST_PREDICTION_SOURCES.extend(dict(item) for item in sources)
+        if feature:
+            _COMMUNITY_FORECAST_FEATURES.append(dict(feature))
+
+
+def get_forecast_consensus(
+    station_id: str, horizon_hours: int | None = None
+) -> list[dict]:
+    with _LOCK:
+        return [
+            dict(row)
+            for (sid, horizon), row in _FORECAST_CONSENSUS.items()
+            if sid == station_id and (horizon_hours is None or horizon == horizon_hours)
+        ]
+
+
+def list_forecast_consensus(horizon_hours: int) -> list[dict]:
+    with _LOCK:
+        return [
+            dict(row)
+            for (_station_id, horizon), row in _FORECAST_CONSENSUS.items()
+            if horizon == horizon_hours
+        ]
+
+
+def list_provider_sync_runs(limit: int = 20) -> list[dict]:
+    with _LOCK:
+        rows = sorted(
+            _FORECAST_PROVIDER_SYNC_RUNS.values(),
+            key=lambda row: str(row.get("started_at") or ""),
+            reverse=True,
+        )
+        return [dict(row) for row in rows[:limit]]
+
 
 _ANNOUNCEMENTS = [
     {
@@ -87,6 +188,7 @@ def _seed_stations() -> None:
                 "lat": float(raw["lat"]),
                 "lon": float(raw["lon"]),
                 "province": None,
+                "district": resolve_station_district(station_id, None),
                 "pm25": pm25,
                 "aqi": None,
                 "color": None,
@@ -112,8 +214,15 @@ def upsert_stations(rows: list[dict]) -> int:
 
 def insert_readings(rows: list[dict]) -> int:
     with _LOCK:
+        existing = {
+            (str(item.get("station_id")), str(item.get("recorded_at")))
+            for item in _HISTORY
+        }
         for row in rows:
             if row.get("id") and row.get("recorded_at") and row.get("pm25") is not None:
+                key = (str(row["id"]), str(row["recorded_at"]))
+                if key in existing:
+                    continue
                 _HISTORY.append(
                     {
                         "station_id": str(row["id"]),
@@ -122,6 +231,7 @@ def insert_readings(rows: list[dict]) -> int:
                         "recorded_at": row["recorded_at"],
                     }
                 )
+                existing.add(key)
         return len(rows)
 
 
@@ -144,6 +254,62 @@ def get_history(station_id: str, hours: int) -> list[dict]:
             }
             for offset in reversed(range(min(hours, 72)))
         ]
+
+
+def insert_forecast_ledger(run: dict, predictions: list[dict]) -> None:
+    """Keep local demo observability without requiring a production database."""
+
+    with _LOCK:
+        _FORECAST_RUNS.append(dict(run))
+        _FORECAST_PREDICTIONS.extend(dict(row) for row in predictions)
+
+
+def delete_forecast_runs_before(cutoff_at: str, limit: int = 1000) -> int:
+    """Apply production-equivalent telemetry retention in local demo memory."""
+
+    with _LOCK:
+        expired_ids = {
+            str(row["id"])
+            for row in _FORECAST_RUNS
+            if str(row.get("generated_at") or "") < cutoff_at
+        }
+        selected = set(sorted(expired_ids)[:limit])
+        if not selected:
+            return 0
+        _FORECAST_RUNS[:] = [
+            row for row in _FORECAST_RUNS if str(row.get("id")) not in selected
+        ]
+        _FORECAST_PREDICTIONS[:] = [
+            row
+            for row in _FORECAST_PREDICTIONS
+            if str(row.get("run_id")) not in selected
+        ]
+        return len(selected)
+
+
+def list_forecast_monitoring_rows(since_at: str, until_at: str) -> list[dict]:
+    with _LOCK:
+        runs = {
+            str(row["id"]): row
+            for row in _FORECAST_RUNS
+            if since_at <= str(row.get("generated_at") or "") < until_at
+        }
+        return [
+            {**prediction, "forecast_runs": dict(runs[str(prediction["run_id"])])}
+            for prediction in _FORECAST_PREDICTIONS
+            if str(prediction.get("run_id")) in runs
+        ]
+
+
+def upsert_forecast_false_safe_review(row: dict) -> dict:
+    key = (
+        str(row["run_id"]),
+        int(row["horizon_hours"]),
+        str(row["variant"]),
+    )
+    with _LOCK:
+        _FORECAST_FALSE_SAFE_REVIEWS[key] = dict(row)
+        return dict(_FORECAST_FALSE_SAFE_REVIEWS[key])
 
 
 def ensure_profile(
@@ -283,6 +449,17 @@ def create_audit_log(row: dict) -> dict:
     with _LOCK:
         _AUDIT_LOGS.append(dict(row))
         return dict(row)
+
+
+def create_data_issue(row: dict) -> dict:
+    with _LOCK:
+        _DATA_ISSUES.insert(0, dict(row))
+        return dict(row)
+
+
+def list_data_issues(limit: int) -> list[dict]:
+    with _LOCK:
+        return [dict(row) for row in _DATA_ISSUES[:limit]]
 
 
 def create_public_map_event(row: dict) -> dict:
@@ -490,7 +667,24 @@ def get_latest_forecast_features(station_id: str) -> dict:
             max(weather, key=lambda row: row["recorded_at"]) if weather else {}
         )
         latest_fire = max(fire, key=lambda row: row["recorded_at"]) if fire else {}
-        return {**latest_weather, **latest_fire}
+        result = {**latest_weather, **latest_fire, "station_id": station_id}
+        if latest_weather:
+            result["weather_source_at"] = latest_weather.get(
+                "source_at"
+            ) or latest_weather.get("recorded_at")
+            result["weather_status"] = latest_weather.get("source_status", "observed")
+        else:
+            result["weather_status"] = "unavailable"
+        if latest_fire:
+            result["fire_source_at"] = latest_fire.get("source_at") or latest_fire.get(
+                "recorded_at"
+            )
+            result["fire_status"] = latest_fire.get("source_status", "observed")
+        else:
+            result["fire_status"] = "unavailable"
+        for horizon in (1, 3, 6, 12, 24):
+            result[f"forecast_weather_status_h{horizon}"] = "unavailable"
+        return result
 
 
 def image_token(path: str) -> str:

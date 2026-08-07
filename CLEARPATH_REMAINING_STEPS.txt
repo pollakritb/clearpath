@@ -1,0 +1,227 @@
+CLEARPATH — ขั้นตอนที่เจ้าของระบบต้องทำก่อน Deploy Vercel
+อัปเดต: 7 สิงหาคม 2026 (Asia/Bangkok)
+Workspace: C:\Users\smfga\Documents\ClearPath
+
+======================================================================
+สถานะปัจจุบัน
+======================================================================
+
+[เสร็จ] Frontend localhost: http://localhost:3000
+[เสร็จ] Backend localhost: http://localhost:8011
+[หมายเหตุ] localhost ใช้ LOCAL_DEMO_MODE=true เฉพาะ process ที่กำลังรัน เพราะ
+           เครื่องนี้ resolve Supabase ไม่ได้ ห้ามนำค่านี้ไปใช้บน Vercel
+[เสร็จ] แผนที่/อากาศ/ส่งรายงาน/ชุมชนผ่าน browser QA ที่ 390x844 px
+[เสร็จ] แผนที่แสดงสถานี Air4Thai ทั่วประเทศไทยและ cluster marker ตาม zoom
+[เสร็จ] พื้นผิวพยากรณ์คำนวณเฉพาะ viewport ไม่เกิน 500 กม. และ mask พื้นที่ห่างสถานี
+[เสร็จ] Forecast แสดง ClearPath/OpenWeather/Open-Meteo แยกกัน ไม่เฉลี่ยรวมเพื่อหลอกความแม่น
+[เสร็จ] Community forecast correction เป็น shadow-only และค่าเริ่มต้นปิด
+[เสร็จ] ถอด Google Air, bulk /api/forecast/stations และ cron consensus 5 นาที
+[เสร็จ] Air4Thai ingestion เก็บจำนวน/สาเหตุแถวที่ reject แทนการทิ้งเงียบ
+[เสร็จ] Python 3.12 ถูก pin สำหรับ Vercel และ exclude test/docs ออกจาก Python bundle
+[เสร็จ] Vercel Hobby config ไม่มี cron ที่ถี่และใช้ GitHub Actions scheduler รายชั่วโมง
+[เสร็จ] Production build ผ่าน
+[เสร็จ] Frontend unit tests 17/17
+[เสร็จ] Backend tests 169/169
+[เสร็จ] Prettier, ESLint, TypeScript, Ruff และ git diff --check ผ่าน
+
+ยังไม่ได้ทำ: apply migration, ตั้ง production secrets, deploy Preview/Production,
+commit/push รอบนี้ หรือทดสอบกับบัญชี/อุปกรณ์จริง
+
+======================================================================
+ขั้นที่ 1 — เตรียม Vercel Hobby และ GitHub Actions
+======================================================================
+
+ClearPath ใช้ Vercel Hobby ได้แล้ว โดย vercel.json ไม่มี Vercel cron และ workflow
+.github/workflows/production-scheduler.yml จะเรียกงานที่ป้องกันด้วย CRON_SECRET
+ทุกชั่วโมงแทน เพื่อลดจำนวน GitHub Actions runs และคง Air4Thai freshness รายชั่วโมง
+
+[ ] ใช้ Vercel Hobby ได้ ไม่ต้องอัปเกรด Pro
+[ ] หลังได้ Production URL ให้เพิ่ม GitHub Actions repository variable
+    CLEARPATH_PRODUCTION_URL=https://<PRODUCTION_HOST> (ไม่มี slash ท้าย)
+[ ] เพิ่ม GitHub Actions repository secret CRON_SECRET ให้ตรงกับ Vercel Production
+[ ] ถ้า repository เป็น private ให้ตรวจ Actions Usage รายเดือน เพราะใช้โควตาฟรีร่วมกับ CI
+[ ] ยอมรับว่า GitHub scheduled workflow อาจเริ่มช้ากว่าเวลาที่กำหนดเมื่อระบบโหลดสูง
+[ ] เปิด MFA ให้ GitHub, Vercel, Supabase, OpenAI และบัญชีผู้ดูแล
+[ ] แยก Supabase staging และ production คนละ project
+[ ] ระบุ Product/Data/Incident/Privacy/Health owner ใน
+    docs/runbooks/forecast-ownership-decisions.md
+
+======================================================================
+ขั้นที่ 2 — Apply Supabase migrations ใน STAGING ก่อน
+======================================================================
+
+1. Backup และซ้อม restore ตาม docs/runbooks/backup-restore.md
+2. ตรวจว่า CLI link ไป staging จริง:
+
+    npx supabase login
+    npx supabase link --project-ref <STAGING_PROJECT_REF>
+    npx supabase migration list
+
+3. ตรวจ migration แบบ read-only:
+
+    .venv\Scripts\python -m scripts.migration_guard `
+      supabase\migrations\20260717_production_foundation.sql `
+      supabase\migrations\20260722_tor_alignment.sql `
+      supabase\migrations\20260803_forecast_production_hardening.sql `
+      supabase\migrations\20260804_nationwide_forecast_consensus.sql
+
+หมายเหตุ: foundation migration อาจเป็น destructive สำหรับฐานเดิม ต้องอ่านผล guard,
+backup และใช้กับฐานว่าง/ตาม runbook เท่านั้น ห้ามยืนยันโดยไม่ตรวจ target database
+
+4. Preview แล้ว apply:
+
+    npx supabase db push --dry-run
+    npx supabase db push
+
+5. ตรวจว่ามี 28 ตารางที่ production_preflight ระบุ รวมตารางใหม่:
+
+[ ] forecast_provider_sync_runs
+[ ] forecast_provider_snapshots
+[ ] forecast_consensus_latest (เก็บ shadow/evaluation ไม่ใช่ค่าหลักหน้าเว็บ)
+[ ] forecast_prediction_sources
+[ ] community_forecast_feature_snapshots
+[ ] sync_runs มี rejected_count และ rejection_summary
+[ ] RLS เปิดบนตาราง server-only ทั้งหมด
+[ ] bucket report-images เป็น Private จำกัด JPEG/PNG/WebP และไม่เกิน 8 MB
+
+======================================================================
+ขั้นที่ 3 — ตั้ง Environment Variables ใน Vercel
+======================================================================
+
+ตั้ง Preview และ Production แยกกันผ่าน Vercel dashboard หรือ `vercel env add`
+อย่าวาง secret ใน source code, terminal history, issue หรือ chat
+
+ค่าที่ต้องมี:
+
+[ ] APP_ENVIRONMENT=staging สำหรับ Preview / production สำหรับ Production
+[ ] LOCAL_DEMO_MODE=false หรือไม่สร้างตัวแปรนี้เลย
+[ ] RELEASE_SHA=<git commit sha>
+[ ] SUPABASE_URL
+[ ] SUPABASE_SERVICE_ROLE_KEY (server only ห้ามใช้ NEXT_PUBLIC_*)
+[ ] NEXT_PUBLIC_SUPABASE_URL
+[ ] NEXT_PUBLIC_SUPABASE_ANON_KEY
+[ ] REPORT_IMAGE_BUCKET=report-images
+[ ] CRON_SECRET สุ่มอย่างน้อย 32 ตัวอักษร
+[ ] CAPTURE_SESSION_SECRET สุ่มอย่างน้อย 32 ตัวอักษรและห้ามซ้ำ CRON/Supabase key
+[ ] CORS_ALLOWED_ORIGINS=https://<PREVIEW_OR_PRODUCTION_HOST> ไม่มี wildcard
+[ ] OPENWEATHER_API_KEY เมื่อ OPENWEATHER_AIR_ENABLED=true
+[ ] FIRMS_MAP_KEY หากต้องการ satellite hotspot จริง
+[ ] OPENAI_API_KEY เมื่อ AUTOMATIC_REVIEW_ENABLED=true
+[ ] COMMUNITY_FORECAST_SHADOW_ENABLED=false ตอน launch
+[ ] ML_FORECAST_ENABLED=false
+[ ] ML_FORECAST_SHADOW_ENABLED=false
+[ ] ML_FORECAST_CANARY_PERCENTAGE=0
+[ ] PUSH_ENABLED=false จนกว่าจะตั้ง VAPID และทดสอบ delivery จริง
+
+หากยังไม่มี OPENAI_API_KEY ให้ตั้ง AUTOMATIC_REVIEW_ENABLED=false ระบบจะ fail
+closed และเก็บเคสไม่ชัดเป็น pending ให้ Admin ตรวจ ห้ามเปิด auto-review โดยไม่มี OCR
+
+Preflight ล่าสุดบนเครื่องนี้ยังไม่พร้อมเพราะ:
+
+- APP_ENVIRONMENT ยังไม่ใช่ production
+- NEXT_PUBLIC_SUPABASE_URL/ANON_KEY ยังไม่ครบ
+- CAPTURE_SESSION_SECRET ยังไม่แยก
+- AUTOMATIC_REVIEW_ENABLED=true แต่ OPENAI_API_KEY ไม่พร้อม
+- เชื่อม Supabase ไม่ได้จาก DNS เครื่องนี้ ทำให้ตรวจ 28 tables ไม่สำเร็จ
+
+หลังใส่ staging env ให้รันจน `ready: true`:
+
+    .venv\Scripts\python -m scripts.production_preflight `
+      --env-file .env.local --json --strict-features
+
+======================================================================
+ขั้นที่ 4 — Deploy Preview และตรวจรับ
+======================================================================
+
+1. Link project และ deploy Preview:
+
+    vercel link
+    vercel deploy
+
+2. ตรวจ Preview:
+
+    .venv\Scripts\python -m scripts.verify_deployment https://<PREVIEW_HOST>
+    .venv\Scripts\python scripts\measure_forecast_runtime.py `
+      https://<PREVIEW_HOST> --requests 30
+    vercel logs --deployment https://<PREVIEW_HOST> --level error
+
+3. ตรวจ browser/device จริง:
+
+[ ] iPhone Safari และ Android Chrome
+[ ] หน้า /, /air, /report, /community ไม่มี horizontal overflow
+[ ] ค้นหา/เลือกสถานีทั่วประเทศและดู forecast ได้
+[ ] provider แต่ละแหล่งแสดงแยก ไม่อ้างว่า consensus แม่นกว่า
+[ ] OTP login สำเร็จและ normal user เข้า Admin ไม่ได้
+[ ] Camera/GPS ทั้งกรณีอนุญาตและปฏิเสธ
+[ ] รายงานไม่ชัด/ภาพซ้ำ/GPS แย่ยัง pending
+[ ] public API/map ไม่เผยภาพ พิกัดจริง หรือ PM2.5 ของ pending report
+[ ] public coordinates ถูก stable obfuscation 120–250 ม.
+[ ] ข้อความดาวเป็นคำขอบคุณข้อมูล ไม่ใช่จัดอันดับคุณค่าบุคคล
+[ ] report-images อ่านตรงจาก browser ไม่ได้ และ signed URL หมดอายุจริง
+[ ] /api/ready ตอบ 200 และ Admin provider health แสดงสถานะจริง
+
+======================================================================
+ขั้นที่ 5 — Deploy Production และตรวจ GitHub Scheduler
+======================================================================
+
+ทำเมื่อ Preview, backup, privacy/security และ device acceptance ผ่านแล้วเท่านั้น:
+
+    vercel deploy --prod
+    .venv\Scripts\python -m scripts.verify_deployment `
+      https://<PRODUCTION_HOST>
+    vercel logs --environment production --level error --since 5m
+
+ตรวจ GitHub > repository > Settings > Secrets and variables > Actions:
+
+[ ] Variable CLEARPATH_PRODUCTION_URL เป็น HTTPS Production URL
+[ ] Secret CRON_SECRET ตรงกับค่าใน Vercel Production
+[ ] Actions > Production hourly scheduler > Run workflow สำเร็จ
+[ ] Scheduled run ทำงานที่นาที 7 ของทุกชั่วโมงบน branch main
+[ ] sync, alerts และ forecast-evaluation ได้ 2xx ทุกชั่วโมง
+[ ] OpenWeather ได้ 2xx ทุก 8 ชั่วโมงและ Open-Meteo ได้ 2xx ทุก 12 ชั่วโมง
+[ ] Vercel Settings > Cron Jobs ว่าง ซึ่งเป็นสถานะที่ถูกต้องสำหรับ Hobby
+[ ] ไม่มี /api/cron/forecast-consensus
+[ ] Air4Thai sync มี station/readings และ rejected diagnostics
+[ ] Provider sync เก็บ snapshots โดยไม่ทำให้ค่าหลักหน้าเว็บถูกเฉลี่ยทับ
+[ ] /api/ready = 200 และมี official station สดอย่างน้อยหนึ่งสถานี
+
+ห้ามเปิด cron URL พร้อม bearer secret ใน browser เพราะอาจติด history/log
+
+======================================================================
+ขั้นที่ 6 — สิ่งที่ต้องใช้คน/เวลาและ AI ทำแทนไม่ได้
+======================================================================
+
+[ ] Privacy notice, DPA/vendor inventory และ legal sign-off
+[ ] Health wording ได้รับอนุมัติจากผู้เชี่ยวชาญ
+[ ] Incident owner/on-call/backup และช่องทาง alert จริง
+[ ] Backup/restore rehearsal บน staging
+[ ] Field validation ด้วยเครื่อง calibrated และ reference monitor
+[ ] เก็บ provider outcomes อย่างน้อยประมาณ 300 ตัวอย่างจาก >=3 สถานี
+    ก่อนพิจารณาจัดอันดับหรือ blend provider
+[ ] เก็บ community shadow data โดยไม่ส่งผลต่อ public forecast แล้ววัดว่าเพิ่มความแม่นจริง
+[ ] ML ต้องผ่าน rolling backtest, uncertainty, false-safe, shadow และ canary gates
+    ก่อนเปิด ML_FORECAST_ENABLED
+
+คำสั่งตรวจซ้ำก่อน release:
+
+    npm run format:check
+    npm run lint
+    npm run typecheck
+    npm run test:unit
+    npm run build
+    .venv\Scripts\python -m ruff format --check backend api scripts
+    .venv\Scripts\python -m ruff check backend api scripts
+    .venv\Scripts\python -m pytest
+    git diff --check
+
+เอกสารหลัก:
+
+    docs/runbooks/production-deployment.md
+    docs/runbooks/security-privacy-legal.md
+    docs/runbooks/backup-restore.md
+    docs/runbooks/incident-response.md
+    docs/runbooks/pilot-and-model-rollout.md
+
+======================================================================
+END
+======================================================================

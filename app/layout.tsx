@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/frontend/components/auth/AuthProvider";
+import PwaRegistrar from "@/frontend/components/app/PwaRegistrar";
 
 // UI font — variable font, all weights 400–800 available
 const notoThai = Noto_Sans_Thai({
@@ -24,6 +25,13 @@ export const metadata: Metadata = {
     "ติดตามและพยากรณ์ PM2.5 จาก Air4Thai พร้อมรายงานจากชุมชนที่ผ่าน OCR, Trust Score และการตรวจสอบ",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
+  themeColor: "#0b766f",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -36,6 +44,7 @@ export default function RootLayout({
     >
       <body className="h-full min-h-full font-sans antialiased">
         <AuthProvider>{children}</AuthProvider>
+        <PwaRegistrar />
       </body>
     </html>
   );

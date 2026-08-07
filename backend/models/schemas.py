@@ -20,6 +20,8 @@ from .community import (
     CommunityProfileResponse,
     CommunityReport,
     CommunityReportsResponse,
+    DataIssueCategory,
+    DataIssueCreate,
     GapFillBasis,
     LeaderboardResponse,
     ModerationChecks,
@@ -34,8 +36,16 @@ from .community import (
     VerificationMethod,
 )
 from .environment import FirePoint, FirmsResponse, Weather
-from .forecast import ForecastPoint, ForecastResponse
+from .forecast import (
+    ForecastPoint,
+    ForecastQuality,
+    ForecastResponse,
+    ForecastSourcePoint,
+    ForecastSurfaceCell,
+    ForecastSurfaceResponse,
+)
 from .locations import LocationSearchResponse, LocationSuggestion
+from .meta import ReadinessResponse
 from .notifications import (
     NotificationPreferences,
     NotificationsResponse,
@@ -63,10 +73,16 @@ __all__ = [
     "CommunityProfileResponse",
     "CommunityReport",
     "CommunityReportsResponse",
+    "DataIssueCategory",
+    "DataIssueCreate",
     "FirePoint",
     "FirmsResponse",
     "ForecastPoint",
+    "ForecastQuality",
     "ForecastResponse",
+    "ForecastSourcePoint",
+    "ForecastSurfaceCell",
+    "ForecastSurfaceResponse",
     "GapFillBasis",
     "HistoryPoint",
     "HistoryResponse",
@@ -80,6 +96,7 @@ __all__ = [
     "ModerationRequest",
     "ModerationChecks",
     "RatingResult",
+    "ReadinessResponse",
     "ReportCreateResponse",
     "ReportDraftResponse",
     "ReportDraftSubmit",

@@ -121,6 +121,10 @@
   font-family: var(--font-mono);
   font-size: 9px;
 }
+.cp-admin-nav-label--mobile,
+.cp-admin-topbar__home {
+  display: none;
+}
 .cp-admin-sidebar__footer {
   display: grid;
   gap: 9px;
@@ -655,6 +659,103 @@
   grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
   gap: 16px;
 }
+.cp-admin-table-card--wide {
+  grid-column: 1 / -1;
+}
+.cp-admin-review-list,
+.cp-admin-release-list {
+  display: grid;
+  gap: 12px;
+}
+.cp-admin-review-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--cp-line);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--cp-chip);
+}
+.cp-admin-review-card__summary,
+.cp-admin-review-card__actions,
+.cp-admin-release-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cp-admin-review-card__summary > div,
+.cp-admin-release-row > span:last-child {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.cp-admin-review-card__summary strong,
+.cp-admin-release-row strong {
+  font-size: 12px;
+}
+.cp-admin-review-card__summary small,
+.cp-admin-release-row small {
+  margin-top: 3px;
+  color: var(--cp-subink);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.cp-admin-review-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.cp-admin-review-metrics > div {
+  border-radius: 10px;
+  padding: 9px;
+  background: #fff;
+}
+.cp-admin-review-metrics dt {
+  color: var(--cp-subink);
+  font-size: 9px;
+}
+.cp-admin-review-metrics dd {
+  margin: 3px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+}
+.cp-admin-review-card label {
+  display: grid;
+  gap: 6px;
+  color: var(--cp-subink);
+  font-size: 10px;
+  font-weight: 700;
+}
+.cp-admin-review-card select,
+.cp-admin-review-card textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  color: var(--cp-ink);
+  font: inherit;
+  font-size: 13px;
+}
+.cp-admin-review-card textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+.cp-admin-review-card__actions > span {
+  color: var(--cp-subink);
+  font-size: 10px;
+}
+.cp-admin-review-card__actions .cp-admin-button {
+  min-height: 44px;
+}
+.cp-admin-release-row {
+  border-radius: 11px;
+  padding: 11px;
+  background: var(--cp-chip);
+}
 .cp-admin-table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -862,53 +963,76 @@
 @media (max-width: 700px) {
   .cp-admin-app {
     display: block;
+    min-height: 100svh;
+    padding-bottom: calc(74px + env(safe-area-inset-bottom));
+  }
+  .cp-admin-review-metrics {
+    grid-template-columns: 1fr;
+  }
+  .cp-admin-review-card__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .cp-admin-review-card__actions .cp-admin-button {
+    width: 100%;
+  }
+  .cp-admin-release-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .cp-admin-sidebar {
-    position: sticky;
-    top: 0;
-    z-index: 50;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
     width: 100%;
-    height: auto;
+    height: calc(74px + env(safe-area-inset-bottom));
     display: block;
-    padding: 10px 12px 8px;
+    padding: 7px max(9px, env(safe-area-inset-right))
+      max(7px, env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left));
+    border-top: 1px solid var(--cp-line);
+    background: rgba(255, 255, 255, 0.97);
+    color: var(--cp-subink);
+    box-shadow: 0 -8px 26px rgba(15, 49, 44, 0.12);
+    backdrop-filter: blur(16px);
   }
   .cp-admin-brand {
-    padding: 0 2px 9px;
-  }
-  .cp-admin-brand > span {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-  }
-  .cp-admin-brand > div {
-    display: flex;
+    display: none;
   }
   .cp-admin-sidebar nav {
-    display: flex;
-    gap: 5px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    overflow: visible;
   }
   .cp-admin-nav-item {
     position: relative;
-    min-width: 76px;
+    min-width: 0;
     min-height: 58px;
-    flex: 1 0 76px;
     flex-direction: column;
-    gap: 3px;
+    justify-content: center;
+    gap: 2px;
+    border-radius: 13px;
+    padding: 4px 2px;
+    color: var(--cp-subink);
   }
   .cp-admin-nav-item > span:first-child {
-    width: 29px;
-    height: 29px;
+    width: 28px;
+    height: 28px;
+    background: transparent;
   }
   .cp-admin-nav-item > span:nth-child(2) {
     display: flex;
     align-items: center;
   }
   .cp-admin-nav-item > span:nth-child(2) strong {
-    max-width: 68px;
+    max-width: 100%;
     overflow: hidden;
-    font-size: 9px;
+    font-size: 12px;
+    line-height: 1.15;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -916,33 +1040,73 @@
     display: none;
   }
   .cp-admin-nav-item > b {
-    top: 2px;
-    right: 6px;
+    top: 1px;
+    right: max(3px, 12%);
     margin: 0;
+  }
+  .cp-admin-nav-item[data-active="true"] {
+    border-color: transparent;
+    background: var(--cp-teal-soft);
+    color: var(--cp-teal);
+  }
+  .cp-admin-nav-item[data-active="true"] > span:first-child {
+    background: transparent;
+    color: var(--cp-teal);
+  }
+  .cp-admin-nav-label--desktop {
+    display: none;
+  }
+  .cp-admin-nav-label--mobile {
+    display: inline;
   }
   .cp-admin-sidebar__footer {
     display: none;
   }
   .cp-admin-main {
     height: auto;
-    min-height: calc(100dvh - 102px);
+    min-height: calc(100dvh - 74px - env(safe-area-inset-bottom));
     overflow: visible;
   }
   .cp-admin-topbar {
-    min-height: 69px;
-    padding: 12px 17px;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    min-height: calc(72px + env(safe-area-inset-top));
+    gap: 10px;
+    padding: max(12px, env(safe-area-inset-top)) 15px 12px;
+    box-shadow: 0 3px 15px rgba(15, 49, 44, 0.07);
   }
   .cp-admin-topbar h1 {
-    font-size: 17px;
+    margin-top: 2px;
+    font-size: 18px;
+    line-height: 1.25;
   }
-  .cp-admin-topbar__actions .cp-admin-role-pill {
+  .cp-admin-topbar .cp-eyebrow {
+    font-size: 11px;
+  }
+  .cp-admin-topbar__actions {
+    gap: 7px;
+  }
+  .cp-admin-topbar__actions .cp-admin-role-pill,
+  .cp-admin-topbar__actions > span:not(.cp-admin-role-pill) {
     display: none;
+  }
+  .cp-admin-topbar__home {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    flex: none;
+    place-items: center;
+    border: 1px solid var(--cp-line);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--cp-teal);
+    text-decoration: none;
   }
   .cp-admin-content {
     overflow: visible;
-    padding: 18px max(14px, env(safe-area-inset-right))
-      calc(35px + env(safe-area-inset-bottom))
-      max(14px, env(safe-area-inset-left));
+    padding: 18px max(15px, env(safe-area-inset-right)) 30px
+      max(15px, env(safe-area-inset-left));
   }
   .cp-admin-welcome,
   .cp-admin-section-heading {
@@ -950,11 +1114,21 @@
     flex-direction: column;
   }
   .cp-admin-welcome {
-    padding: 19px;
+    border-radius: 16px;
+    padding: 18px;
   }
   .cp-admin-welcome h2,
   .cp-admin-section-heading h2 {
     font-size: 19px;
+  }
+  .cp-admin-welcome p,
+  .cp-admin-section-heading p {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .cp-admin-section-heading {
+    gap: 13px;
+    margin-bottom: 16px;
   }
   .cp-admin-stat-grid,
   .cp-admin-overview-grid,
@@ -970,7 +1144,10 @@
   }
   .cp-admin-button {
     min-height: 48px;
+    border-radius: 12px;
+    padding-inline: 16px;
     font-size: 13px;
+    touch-action: manipulation;
   }
   .cp-admin-form-card input,
   .cp-admin-form-card textarea,
@@ -1003,7 +1180,121 @@
   }
   .cp-admin-table-card,
   .cp-admin-form-card,
-  .cp-admin-overview-card {
+  .cp-admin-overview-card,
+  .cp-admin-report-card {
+    border-radius: 15px !important;
     padding: 16px;
+  }
+  .cp-admin-ops-grid > *,
+  .cp-admin-table-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .cp-admin-table-card {
+    overflow: hidden;
+  }
+  .cp-admin-stat-grid {
+    gap: 11px;
+    margin-top: 14px;
+  }
+  .cp-admin-stat-card {
+    min-height: 88px;
+    gap: 12px;
+    border-radius: 15px;
+    padding: 15px;
+  }
+  .cp-admin-stat-card small,
+  .cp-admin-stat-card em,
+  .cp-admin-card-heading p,
+  .cp-admin-form-card__heading p,
+  .cp-admin-model-row small,
+  .cp-admin-workflow small {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .cp-admin-card-heading h3,
+  .cp-admin-form-card__heading h3,
+  .cp-admin-workflow strong,
+  .cp-admin-model-row strong {
+    font-size: 14px;
+  }
+  .cp-admin-workflow {
+    gap: 10px;
+  }
+  .cp-admin-workflow li,
+  .cp-admin-permission-list > div,
+  .cp-admin-model-row {
+    min-height: 56px;
+    padding: 12px;
+  }
+  .cp-admin-permission-list > div {
+    font-size: 13px;
+  }
+  .cp-admin-form-card label,
+  .cp-admin-report-card label,
+  .cp-admin-report-card legend,
+  .cp-admin-report-card li,
+  .cp-admin-evidence-grid,
+  .cp-admin-evidence-time,
+  .cp-admin-announcement-meta {
+    font-size: 13px !important;
+    line-height: 1.55;
+  }
+  .cp-admin-decision-actions > button,
+  .cp-admin-announcement-actions > button {
+    min-height: 50px !important;
+    font-size: 14px !important;
+  }
+  .cp-admin-table-wrap {
+    width: auto;
+    max-width: calc(100% + 8px);
+    margin-inline: -4px;
+    padding: 0 4px 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cp-admin-table-wrap table {
+    min-width: 560px;
+    font-size: 12px;
+  }
+  .cp-admin-table-wrap th,
+  .cp-admin-table-wrap td {
+    padding: 12px 9px;
+  }
+  .cp-admin-status {
+    font-size: 10px;
+  }
+  .cp-admin-gate {
+    min-height: 100svh;
+    align-items: center;
+    padding: max(16px, env(safe-area-inset-top))
+      max(15px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(15px, env(safe-area-inset-left));
+  }
+  .cp-admin-gate__card {
+    border-radius: 20px;
+    padding: 22px 20px;
+  }
+  .cp-admin-gate h1 {
+    font-size: 22px;
+  }
+  .cp-admin-gate p {
+    font-size: 13px;
+  }
+  .cp-admin-gate .cp-auth-form__row {
+    display: grid;
+    gap: 10px;
+  }
+  .cp-admin-gate input,
+  .cp-admin-gate button {
+    width: 100%;
+    min-height: 50px;
+    border-radius: 11px;
+    font-size: 16px !important;
+  }
+  .cp-admin-back-link {
+    min-height: 44px;
+    margin-top: 14px;
+    font-size: 13px;
   }
 }

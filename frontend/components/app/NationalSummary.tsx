@@ -3,9 +3,14 @@ import { T } from "@/frontend/lib/ui";
 import type { Station } from "@/frontend/types";
 
 export default function NationalSummary({ stations }: { stations: Station[] }) {
-  const values = stations.flatMap((station) =>
+  const currentValues = stations.flatMap((station) =>
     station.pm25 == null || !station.eligible_for_surface ? [] : [station.pm25],
   );
+  const latestValues = stations.flatMap((station) =>
+    station.pm25 == null ? [] : [station.pm25],
+  );
+  const referenceOnly = !currentValues.length && latestValues.length > 0;
+  const values = currentValues.length ? currentValues : latestValues;
   if (!values.length) return null;
 
   const average =
@@ -13,8 +18,11 @@ export default function NationalSummary({ stations }: { stations: Station[] }) {
       (values.reduce((sum, value) => sum + value, 0) / values.length) * 10,
     ) / 10;
   const metrics = [
-    ["เฉลี่ยประเทศ", average],
-    ["สูงสุด", Math.max(...values)],
+    [referenceOnly ? "เฉลี่ยข้อมูลล่าสุด" : "เฉลี่ยทั่วประเทศ", average],
+    [
+      referenceOnly ? "สูงสุดในข้อมูลล่าสุด" : "ค่าสูงสุดในพื้นที่",
+      Math.max(...values),
+    ],
   ] as const;
 
   return (

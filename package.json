@@ -5,36 +5,48 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:e2e": "cross-env ENABLE_LOCAL_API_PROXY=true next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
+    "test:unit": "vitest run",
+    "test:unit:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
     "format": "prettier --write app frontend *.json *.mjs *.ts *.md docs/**/*.md",
-    "format:check": "prettier --check app frontend *.json *.mjs *.ts *.md docs/**/*.md"
+    "format:check": "prettier --check app frontend e2e *.json *.mjs *.ts *.md docs/**/*.md"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
     "leaflet": "^1.9.4",
-    "next": "^16.2.10",
+    "next": "16.2.11",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.9.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^3.2.4",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
-    "eslint-config-next": "^16.2.10",
+    "eslint-config-next": "16.2.11",
     "prettier": "^3.9.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   },
   "overrides": {
     "next": {
-      "postcss": "8.5.10"
-    }
+      "postcss": "8.5.25"
+    },
+    "sharp": "0.35.3"
   }
 }

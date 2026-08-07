@@ -12,6 +12,12 @@
 
 # testing
 /coverage
+/.coverage
+/.pytest_cache/
+/.ruff_cache/
+/.test-results/
+/test-results/
+/playwright-report/
 /.playwright-mcp/
 
 # next.js
@@ -35,6 +41,13 @@ yarn-error.log*
 .env*
 !.env.example
 /supabase.txt
+/forecast-external-evidence.json
+/operational-logs*.jsonl
+/operational-log-audit*.json
+/field-colocation*.csv
+/field-colocation*.json
+/field-comparison*.csv
+/field-comparison*.json
 
 # vercel
 .vercel
@@ -47,6 +60,4 @@ next-env.d.ts
 .venv/
 __pycache__/
 *.py[cod]
-.pytest_cache/
-.ruff_cache/
 .mypy_cache/

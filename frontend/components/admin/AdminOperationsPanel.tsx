@@ -1,8 +1,17 @@
 import type {
   AdminSyncRun,
+  DataIssueRow,
+  ForecastDataQualityRow,
+  ForecastEvaluationRow,
+  ForecastFalseSafeCase,
+  ForecastFalseSafeReviewRequest,
   ForecastModelStatus,
+  ForecastProviderHealthResponse,
+  ForecastReleaseDecision,
   NotificationOutboxSummary,
 } from "@/frontend/types/ui";
+
+import FalseSafeCaseReviewList from "./FalseSafeCaseReviewList";
 
 function formatDate(value?: string | null): string {
   if (!value) return "—";
@@ -27,17 +36,66 @@ export default function AdminOperationsPanel({
   runs,
   models,
   outbox,
+  dataQuality,
+  evaluation,
+  dataIssues,
+  falseSafeCases,
+  releaseDecisions,
+  providerHealth,
   loading,
   error,
   onRefresh,
+  onReviewFalseSafe,
 }: {
   runs: AdminSyncRun[];
   models: ForecastModelStatus[];
   outbox: NotificationOutboxSummary | null;
+  dataQuality: ForecastDataQualityRow[];
+  evaluation: ForecastEvaluationRow[];
+  dataIssues: DataIssueRow[];
+  falseSafeCases: ForecastFalseSafeCase[];
+  releaseDecisions: ForecastReleaseDecision[];
+  providerHealth: ForecastProviderHealthResponse | null;
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
+  onReviewFalseSafe: (
+    row: ForecastFalseSafeCase,
+    body: ForecastFalseSafeReviewRequest,
+  ) => Promise<void>;
 }) {
+  const qualityTotals = dataQuality.reduce(
+    (totals, row) => ({
+      expected: totals.expected + row.expected_hours,
+      observed: totals.observed + row.observed_hours,
+      missing: totals.missing + row.missing_hours,
+      invalid: totals.invalid + row.invalid_rows,
+      duplicate: totals.duplicate + row.duplicate_hours,
+    }),
+    { expected: 0, observed: 0, missing: 0, invalid: 0, duplicate: 0 },
+  );
+  const completeness = qualityTotals.expected
+    ? Math.round((qualityTotals.observed / qualityTotals.expected) * 100)
+    : null;
+  const latestEvaluation = [...evaluation].sort((a, b) =>
+    b.computed_at.localeCompare(a.computed_at),
+  )[0];
+  const comparisons = [1, 3, 6, 12, 24]
+    .map((horizon) => {
+      const rows = evaluation
+        .filter(
+          (row) =>
+            row.horizon_hours === horizon &&
+            row.station_id === "all" &&
+            row.district === "all",
+        )
+        .sort((a, b) => b.evaluation_date.localeCompare(a.evaluation_date));
+      const candidate = rows.find((row) => row.method.includes("xgboost"));
+      const baseline = rows.find((row) => !row.method.includes("xgboost"));
+      return candidate && baseline ? { horizon, candidate, baseline } : null;
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+
   return (
     <section>
       <div className="cp-admin-section-heading">
@@ -62,6 +120,314 @@ export default function AdminOperationsPanel({
       )}
 
       <div className="cp-admin-ops-grid">
+        <article className="cp-admin-table-card cp-admin-table-card--wide">
+          <div className="cp-admin-card-heading">
+            <div>
+              <h3>Multi-source consensus ทั่วประเทศ</h3>
+              <p>
+                coverage, provider errors, disagreement และอิทธิพลข้อมูลชุมชน
+              </p>
+            </div>
+            <span>{providerHealth?.consensus.station_count ?? 0} สถานี</span>
+          </div>
+          <div className="cp-admin-model-list">
+            {(providerHealth?.providers ?? []).map((provider) => (
+              <div key={provider.provider} className="cp-admin-model-row">
+                <span className="cp-admin-model-row__horizon">
+                  {provider.provider === "openmeteo_cams" ? "CAMS" : "OWM"}
+                </span>
+                <span>
+                  <strong>{provider.snapshot_count} snapshots</strong>
+                  <small>
+                    {provider.station_count} สถานี · ผิดพลาด{" "}
+                    {provider.error_count} · {formatDate(provider.completed_at)}
+                  </small>
+                </span>
+                <span className="cp-admin-status" data-status={provider.status}>
+                  {provider.status}
+                </span>
+              </div>
+            ))}
+            <div className="cp-admin-model-row">
+              <span className="cp-admin-model-row__horizon">รวม</span>
+              <span>
+                <strong>
+                  หลายแหล่ง{" "}
+                  {providerHealth?.consensus.multi_provider_count ?? 0} สถานี
+                </strong>
+                <small>
+                  ชุมชนมีอิทธิพล{" "}
+                  {providerHealth?.consensus.community_influenced_count ?? 0} ·
+                  agreement ต่ำ{" "}
+                  {providerHealth?.consensus.agreement_counts.low ?? 0}
+                </small>
+              </span>
+              <span className="cp-admin-status" data-status="running">
+                monitor
+              </span>
+            </div>
+          </div>
+          {!providerHealth?.providers.length && (
+            <div className="cp-admin-empty cp-admin-empty--compact">
+              ยังไม่มี provider sync run — ตรวจ migration, env และ Vercel Cron
+            </div>
+          )}
+        </article>
+        <article className="cp-admin-table-card">
+          <div className="cp-admin-card-heading">
+            <div>
+              <h3>รายการแจ้งข้อมูลผิดพลาด</h3>
+              <p>คิว private จากผู้ใช้ ไม่มีภาพหรือพิกัดละเอียด</p>
+            </div>
+            <span>
+              {dataIssues.filter((issue) => issue.status === "new").length} ใหม่
+            </span>
+          </div>
+          {dataIssues.length ? (
+            <div className="cp-admin-table-wrap">
+              <table>
+                <caption>รายการแจ้งข้อมูลผิดพลาดล่าสุด</caption>
+                <thead>
+                  <tr>
+                    <th>เวลา</th>
+                    <th>ประเภท</th>
+                    <th>อ้างอิง</th>
+                    <th>รายละเอียด</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dataIssues.slice(0, 10).map((issue) => (
+                    <tr key={issue.id}>
+                      <td>{formatDate(issue.created_at)}</td>
+                      <td>{issue.category}</td>
+                      <td>{issue.reference_id ?? "—"}</td>
+                      <td>{issue.message}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="cp-admin-empty cp-admin-empty--compact">
+              ยังไม่มีผู้ใช้แจ้งข้อมูลผิดพลาด
+            </div>
+          )}
+        </article>
+
+        <article className="cp-admin-table-card cp-admin-table-card--wide">
+          <div className="cp-admin-card-heading">
+            <div>
+              <h3>ตรวจเหตุการณ์ false-safe</h3>
+              <p>
+                พยากรณ์ว่าปลอดภัยแต่ค่าจริงเข้าสู่ระดับเสี่ยง
+                ต้องตรวจทุกเหตุการณ์ก่อนอนุมัติ canary
+              </p>
+            </div>
+            <span>
+              {
+                falseSafeCases.filter(
+                  (row) => !row.forecast_false_safe_reviews?.length,
+                ).length
+              }{" "}
+              ยังไม่ตรวจ
+            </span>
+          </div>
+          {falseSafeCases.length ? (
+            <FalseSafeCaseReviewList
+              rows={falseSafeCases}
+              onReview={onReviewFalseSafe}
+            />
+          ) : (
+            <div className="cp-admin-empty cp-admin-empty--compact">
+              ยังไม่มีเหตุการณ์ false-safe ที่ settle ใน 30 วัน
+              ต้องรอข้อมูลจริงก่อนยืนยัน release gate นี้
+            </div>
+          )}
+        </article>
+
+        <article className="cp-admin-table-card cp-admin-table-card--wide">
+          <div className="cp-admin-card-heading">
+            <div>
+              <h3>ประวัติการตัดสินใจ release</h3>
+              <p>
+                หลักฐาน audit ของ shadow, canary, promote, rollback และ reject
+              </p>
+            </div>
+            <span>{releaseDecisions.length} รายการ</span>
+          </div>
+          {releaseDecisions.length ? (
+            <div className="cp-admin-release-list">
+              {releaseDecisions.slice(0, 20).map((item) => (
+                <div key={item.id} className="cp-admin-release-row">
+                  <span
+                    className="cp-admin-status"
+                    data-status={
+                      item.decision === "reject" || item.decision === "rollback"
+                        ? "failed"
+                        : "success"
+                    }
+                  >
+                    {item.decision}
+                  </span>
+                  <span>
+                    <strong>
+                      {item.model_registry
+                        ? `${item.model_registry.model_name} ${item.model_registry.horizon_hours}h · ${item.model_registry.version}`
+                        : "ไม่พบ registry ที่เชื่อมโยง"}
+                    </strong>
+                    <small>
+                      {item.reason} · {formatDate(item.created_at)}
+                    </small>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="cp-admin-empty cp-admin-empty--compact">
+              ยังไม่มี release decision จาก production ห้ามถือว่ารุ่นใดผ่าน
+              canary
+            </div>
+          )}
+        </article>
+
+        <article className="cp-admin-table-card">
+          <div className="cp-admin-card-heading">
+            <div>
+              <h3>ความพร้อมข้อมูลพยากรณ์</h3>
+              <p>Reconciliation 7 วัน แยก source / สถานี / ชั่วโมง</p>
+            </div>
+            <span>{completeness === null ? "—" : `${completeness}% ครบ`}</span>
+          </div>
+          <div className="cp-admin-model-list">
+            <div className="cp-admin-model-row">
+              <span className="cp-admin-model-row__horizon">ขาด</span>
+              <span>
+                <strong>{qualityTotals.missing} ชั่วโมง</strong>
+                <small>จากที่คาด {qualityTotals.expected} station-hours</small>
+              </span>
+              <span
+                className="cp-admin-status"
+                data-status={qualityTotals.missing ? "failed" : "success"}
+              >
+                {qualityTotals.missing ? "review" : "healthy"}
+              </span>
+            </div>
+            <div className="cp-admin-model-row">
+              <span className="cp-admin-model-row__horizon">ผิด</span>
+              <span>
+                <strong>{qualityTotals.invalid} invalid</strong>
+                <small>{qualityTotals.duplicate} ชั่วโมงซ้ำ</small>
+              </span>
+              <span
+                className="cp-admin-status"
+                data-status={
+                  qualityTotals.invalid || qualityTotals.duplicate
+                    ? "failed"
+                    : "success"
+                }
+              >
+                {qualityTotals.invalid || qualityTotals.duplicate
+                  ? "review"
+                  : "healthy"}
+              </span>
+            </div>
+          </div>
+          {!loading && dataQuality.length === 0 && (
+            <div className="cp-admin-empty cp-admin-empty--compact">
+              ยังไม่มี reconciliation จากฐานข้อมูลจริง
+            </div>
+          )}
+        </article>
+
+        <article className="cp-admin-table-card">
+          <div className="cp-admin-card-heading">
+            <div>
+              <h3>Candidate เทียบ Baseline</h3>
+              <p>ใช้เฉพาะผล settled ช่วงวันเดียวกัน ไม่ใช่คะแนนจาก training</p>
+            </div>
+            <span>{comparisons.length}/5 horizons</span>
+          </div>
+          {comparisons.length ? (
+            <div className="cp-admin-table-wrap">
+              <table>
+                <caption>MAE ของ candidate เทียบกับ baseline</caption>
+                <thead>
+                  <tr>
+                    <th>ช่วง</th>
+                    <th>Candidate</th>
+                    <th>Baseline</th>
+                    <th>ต่าง</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparisons.map(({ horizon, candidate, baseline }) => {
+                    const delta =
+                      candidate.mae !== null && baseline.mae !== null
+                        ? candidate.mae - baseline.mae
+                        : null;
+                    return (
+                      <tr key={horizon}>
+                        <th scope="row">{horizon}h</th>
+                        <td>{candidate.mae?.toFixed(1) ?? "—"}</td>
+                        <td>{baseline.mae?.toFixed(1) ?? "—"}</td>
+                        <td>
+                          {delta === null
+                            ? "—"
+                            : `${delta > 0 ? "+" : ""}${delta.toFixed(1)}`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="cp-admin-empty cp-admin-empty--compact">
+              ยังไม่มี candidate และ baseline ที่ settle ในช่วงเดียวกัน
+              ห้ามอนุมัติ canary จากช่องว่างนี้
+            </div>
+          )}
+        </article>
+
+        <article className="cp-admin-table-card">
+          <div className="cp-admin-card-heading">
+            <div>
+              <h3>ความแม่นยำที่วัดได้</h3>
+              <p>Prediction ledger ที่จับคู่ observation แล้วใน 14 วัน</p>
+            </div>
+            <span>
+              {evaluation.reduce((sum, row) => sum + row.rows, 0)} จุด
+            </span>
+          </div>
+          {latestEvaluation ? (
+            <div className="cp-admin-model-list">
+              <div className="cp-admin-model-row">
+                <span className="cp-admin-model-row__horizon">
+                  {latestEvaluation.horizon_hours}h
+                </span>
+                <span>
+                  <strong>
+                    MAE {latestEvaluation.mae?.toFixed(1) ?? "—"} µg/m³
+                  </strong>
+                  <small>
+                    false-safe{" "}
+                    {latestEvaluation.false_safe_rate === null
+                      ? "—"
+                      : `${(latestEvaluation.false_safe_rate * 100).toFixed(1)}%`}
+                  </small>
+                </span>
+                <span className="cp-admin-status" data-status="running">
+                  measured
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="cp-admin-empty cp-admin-empty--compact">
+              ยังไม่มี observation ครบกำหนดสำหรับประเมิน ห้ามสรุปว่าโมเดลผ่าน
+            </div>
+          )}
+        </article>
+
         <article className="cp-admin-table-card">
           <div className="cp-admin-card-heading">
             <div>

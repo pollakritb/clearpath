@@ -42,7 +42,7 @@ export default function RewardsSection({
 
       <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: ".9em" }}>
         <h2 style={{ margin: "0 0 .5em", fontSize: ".95em" }}>
-          Top Contributor · 7 วันล่าสุด
+          ผู้ช่วยชุมชนยอดเยี่ยม · 7 วันล่าสุด
         </h2>
         {leaders.slice(0, 5).map((user, index) => (
           <div

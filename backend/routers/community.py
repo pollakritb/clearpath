@@ -1,4 +1,4 @@
-"""Community API — ส่งรายงานภาพ, peer review, ข่าว, กิจกรรม และ leaderboard."""
+"""Community API — reports, gratitude/star feedback, news and leaderboard."""
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import Response
@@ -17,6 +17,7 @@ from ..models.schemas import (
     CommunityProfileResponse,
     CommunityReport,
     CommunityReportsResponse,
+    DataIssueCreate,
     LeaderboardResponse,
     OperationResponse,
     RatingResult,
@@ -33,6 +34,31 @@ from ..services import local_store, supabase_client
 router = APIRouter()
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
+
+@router.post(
+    "/community/data-issues", response_model=OperationResponse, status_code=201
+)
+async def report_data_issue(
+    body: DataIssueCreate,
+    user: AuthenticatedUser = Depends(require_user),
+):
+    allowed = await run_in_threadpool(
+        supabase_client.take_rate_limit, user.id, "data_issue", 86400, 5
+    )
+    if not allowed:
+        raise HTTPException(429, detail="ส่งได้ไม่เกิน 5 รายการต่อ 24 ชั่วโมง")
+    await run_in_threadpool(supabase_client.ensure_profile, user.id)
+    try:
+        await run_in_threadpool(
+            community_service.create_data_issue, user.id, body.model_dump()
+        )
+    except ValueError as exc:
+        raise HTTPException(400, detail=str(exc)) from exc
+    return OperationResponse(
+        ok=True,
+        message="รับเรื่องแล้ว ผู้ดูแลจะตรวจจากข้อมูลสาธารณะและ reference ที่ให้มา",
+    )
 
 
 @router.post("/community/capture-session", response_model=CaptureSessionResponse)
@@ -207,7 +233,7 @@ async def rate_report(
             supabase_client.take_rate_limit, user.id, "community_rating", 3600, 30
         )
         if not allowed:
-            raise HTTPException(429, detail="ให้คะแนนถี่เกินไป กรุณารอรอบถัดไป")
+            raise HTTPException(429, detail="ส่งคำขอบคุณถี่เกินไป กรุณารอรอบถัดไป")
         result = await run_in_threadpool(
             community_service.rate_report,
             report_id,

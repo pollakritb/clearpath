@@ -3,6 +3,7 @@
 import type { CSSProperties, SyntheticEvent } from "react";
 import { useMap } from "react-leaflet";
 
+import AppIcon from "@/frontend/components/ui/AppIcon";
 import { T } from "@/frontend/lib/ui";
 
 const CONTROL_BUTTON_STYLE: CSSProperties = {
@@ -91,7 +92,7 @@ export default function MapControls({ onLocate }: MapControlsProps) {
           justifyContent: "center",
         }}
       >
-        ◎
+        <AppIcon name="location" size={20} />
       </button>
     </div>
   );

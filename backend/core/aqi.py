@@ -33,3 +33,12 @@ def classify_pm25(pm25: float | None) -> AqiClass:
         if pm25 <= upper:
             return {"level": level, "color": color, "advice": advice}
     return dict(UNKNOWN)  # type: ignore[return-value]
+
+
+def pm25_category_index(pm25: float) -> int:
+    """Return the stable zero-based band index used by training and APIs."""
+
+    for index, (upper, _level, _color, _advice) in enumerate(PM25_BANDS):
+        if pm25 <= upper:
+            return index
+    return len(PM25_BANDS) - 1

@@ -5,8 +5,11 @@
 
 from __future__ import annotations
 
+import logging
+
 import httpx
 
+from ..algorithms.district import resolve_station_district
 from ..core.aqi import classify_pm25
 from ..core.cache import TTLCache
 from ..core.config import settings
@@ -14,7 +17,8 @@ from ..core.errors import UpstreamError
 
 # air4thai อัปเดตทุก ~1 ชม. → cache 5 นาทีก็ลดการยิงซ้ำได้มากโดยข้อมูลยังสด
 _cache = TTLCache(ttl_seconds=300)
-_CACHE_KEY = "stations"
+_CACHE_KEY = "station_snapshot"
+logger = logging.getLogger("clearpath.air4thai")
 
 
 def _to_float(v) -> float | None:
@@ -45,7 +49,7 @@ async def fetch_stations() -> list[dict]:
     """คืน list ของสถานี (พร้อมค่า PM2.5 ล่าสุด + สี/ระดับ) — cache 5 นาที"""
     cached = _cache.get(_CACHE_KEY)
     if cached is not None:
-        return cached
+        return list(cached["stations"])
 
     try:
         async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
@@ -58,11 +62,37 @@ async def fetch_stations() -> list[dict]:
     except (httpx.HTTPError, ValueError, TypeError) as exc:
         raise UpstreamError("Air4Thai ตอบกลับไม่สำเร็จหรือข้อมูลไม่ถูกต้อง") from exc
 
+    out, diagnostics = parse_stations(data)
+    if diagnostics["rejected_count"]:
+        logger.warning("air4thai_rows_rejected", extra=diagnostics)
+    _cache.set(_CACHE_KEY, {"stations": out, "diagnostics": diagnostics})
+    return out
+
+
+def parse_stations(data: dict) -> tuple[list[dict], dict]:
+    """Normalize one payload and return explicit rejection diagnostics."""
+    raw_stations = data.get("stations") or []
     out: list[dict] = []
-    for s in data.get("stations", []):
+    rejection_counts: dict[str, int] = {}
+    rejected_station_ids: list[str] = []
+
+    def reject(reason: str, station_id: object) -> None:
+        rejection_counts[reason] = rejection_counts.get(reason, 0) + 1
+        if len(rejected_station_ids) < 20:
+            rejected_station_ids.append(str(station_id or "unknown"))
+
+    for s in raw_stations:
+        station_id = str(s.get("stationID") or "").strip()
+        if not station_id:
+            reject("missing_station_id", None)
+            continue
         lat = _to_float(s.get("lat"))
         lon = _to_float(s.get("long"))
         if lat is None or lon is None:
+            reject("invalid_coordinates", station_id)
+            continue
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            reject("coordinates_out_of_range", station_id)
             continue
 
         aqi_last = s.get("AQILast") or {}
@@ -73,12 +103,13 @@ async def fetch_stations() -> list[dict]:
 
         out.append(
             {
-                "id": s.get("stationID"),
+                "id": station_id,
                 "name_th": s.get("nameTH"),
                 "name_en": s.get("nameEN"),
                 "lat": lat,
                 "lon": lon,
                 "province": s.get("areaTH"),
+                "district": resolve_station_district(station_id, s.get("areaTH")),
                 "pm25": pm25,
                 "aqi": aqi,
                 "color": cls["color"],
@@ -86,5 +117,24 @@ async def fetch_stations() -> list[dict]:
                 "recorded_at": _recorded_at(aqi_last),
             }
         )
-    _cache.set(_CACHE_KEY, out)
-    return out
+    diagnostics = {
+        "fetched_count": len(raw_stations),
+        "accepted_count": len(out),
+        "rejected_count": len(raw_stations) - len(out),
+        "rejection_counts": rejection_counts,
+        "rejected_station_ids": rejected_station_ids,
+    }
+    return out, diagnostics
+
+
+def get_last_ingestion_diagnostics() -> dict:
+    cached = _cache.get(_CACHE_KEY)
+    if cached is None:
+        return {
+            "fetched_count": 0,
+            "accepted_count": 0,
+            "rejected_count": 0,
+            "rejection_counts": {},
+            "rejected_station_ids": [],
+        }
+    return dict(cached["diagnostics"])

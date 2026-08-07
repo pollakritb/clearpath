@@ -7,5 +7,5 @@ def test_badges_follow_quality_milestones():
     )
     badges = derive_badges(reputation_score=550, approved_reports=25, helpful_reviews=8)
     assert "ผู้พิทักษ์อากาศชุมชน" in badges
-    assert "ผู้ช่วยตรวจข้อมูล" in badges
+    assert "ผู้ส่งคำขอบคุณให้ชุมชน" in badges
     assert "ความน่าเชื่อถือสูง" in badges

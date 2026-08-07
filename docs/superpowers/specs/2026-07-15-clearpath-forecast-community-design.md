@@ -8,7 +8,7 @@
 - Forecast: 1–24 ชั่วโมงต่อสถานี พร้อม uncertainty
 - Fire layer: NASA FIRMS พร้อม acquisition time/confidence และแจ้งเตือนเฉพาะ hotspot ≤12 ชั่วโมง
 - Community evidence: `getUserMedia` camera, server-signed 5-minute session, GPS, private image
-- Explainable Trust Score + reputation-weighted peer review
+- Explainable Trust Score + reputation-weighted gratitude/star feedback
 - Fail-closed automatic approval for high-confidence evidence, with Admin exception review
 - Community announcements, activities, rewards and leaderboard
 
@@ -18,11 +18,11 @@
 
 ```text
 camera + GPS → pending (no public PM2.5) → automatic evidence review
-                    ├─ all high-confidence checks pass → approved → map → nearby peer review
+                    ├─ all high-confidence checks pass → approved → map → nearby gratitude + stars
                     └─ uncertain/failure → Admin exception queue → approved or rejected
 ```
 
-Peer review ไม่สามารถเผยแพร่รายงานเองได้ เปิดหลังรายงานผ่านการอนุมัติอัตโนมัติหรือ Admin แล้ว และผู้ตรวจต้องส่ง GPS
+คำขอบคุณพร้อมดาวไม่สามารถเผยแพร่รายงานเองได้ เปิดหลังรายงานผ่านการอนุมัติอัตโนมัติหรือ Admin แล้ว และผู้ส่งคำขอบคุณต้องส่ง GPS
 ที่อยู่ภายใน 3 กม. ขณะที่รายงานมีอายุไม่เกิน 3 ชั่วโมง ทุกผลตรวจต้องมี reason code
 และห้ามตรวจรายงานของตนเอง
 
@@ -54,7 +54,7 @@ Peer review ไม่สามารถเผยแพร่รายงาน�
 Automatic review อนุมัติเฉพาะเมื่อ OCR confidence ≥92%, device/display ชัดเจน, ค่าที่ผู้ใช้ยืนยันอยู่ใน tolerance,
 GPS ≤100 ม., เวลาปกติ, ไม่เป็นภาพซ้ำ และมี burst เสริม 2 เฟรม การไม่ผ่านเกณฑ์ใดๆ ไม่ใช่การปฏิเสธ
 แต่จะ fail closed และส่งเข้า Admin exception queue โดยเก็บเหตุผลของทุกผลตัดสินเพื่อ audit
-Peer review ปรับเพิ่ม/ลดได้ไม่เกิน 8 คะแนน คะแนนทุกส่วนเก็บเหตุผลเพื่อให้ตรวจสอบได้
+ดาวที่แนบกับคำขอบคุณปรับเพิ่ม/ลด Trust ได้ไม่เกิน 8 คะแนน คะแนนทุกส่วนเก็บเหตุผลเพื่อให้ตรวจสอบได้
 GPS accuracy >200 เมตรและภาพ perceptually similar ถูกหักคะแนน ส่วน exact duplicate ถูกปฏิเสธ
 
 ## Privacy and abuse controls
@@ -62,7 +62,7 @@ GPS accuracy >200 เมตรและภาพ perceptually similar ถูก�
 - เก็บพิกัดจริงเฉพาะงาน moderation/quality computation; API สาธารณะเลื่อนพิกัดแบบ stable 120–250 เมตร
 - ตรวจไฟล์ภาพด้วย Pillow, จำกัด 25 ล้านพิกเซล, เก็บ SHA-256 และ 8×8 average hash
 - exact duplicate ถูกปฏิเสธ; perceptual distance ≤4 ถูกทำเครื่องหมายและหัก Trust
-- จำกัดส่ง 6 รายงาน/ผู้ใช้/24 ชั่วโมง และให้แต้ม peer review สูงสุด 5 ครั้ง/24 ชั่วโมง
+- จำกัดส่ง 6 รายงาน/ผู้ใช้/24 ชั่วโมง และให้แต้มจากคำขอบคุณที่ตรง consensus สูงสุด 5 ครั้ง/24 ชั่วโมง
 - ตำแหน่ง Admin แสดง GPS accuracy เพื่อช่วยตัดสินหลักฐาน
 
 ## Forecast v1

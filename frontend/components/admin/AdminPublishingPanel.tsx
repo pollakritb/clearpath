@@ -24,7 +24,7 @@ export default function AdminPublishingPanel({
     title: "",
     body: "",
     kind: "community" as "news" | "alert" | "community",
-    area: "นครปฐม",
+    area: "ทั่วประเทศ",
     expiresAt: "",
     status: "published" as "draft" | "published",
   });
@@ -310,7 +310,7 @@ export default function AdminPublishingPanel({
             </span>
             <div>
               <h3>สร้างกิจกรรมสะสมคะแนน</h3>
-              <p>ชวนผู้ใช้ส่งรายงานหรือช่วยตรวจสอบข้อมูล</p>
+              <p>ชวนผู้ใช้ส่งรายงานหรือขอบคุณผู้แบ่งปันข้อมูลพร้อมให้ดาว</p>
             </div>
           </div>
           <label>

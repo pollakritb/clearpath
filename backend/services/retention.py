@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
+from ..core.config import settings
 from . import supabase_client
 
 
@@ -34,4 +37,21 @@ def cleanup_expired_reports(limit: int = 200) -> dict:
         "evidence_purged": deleted,
         "drafts_deleted": drafts_deleted,
         "failures": failures,
+    }
+
+
+def cleanup_forecast_telemetry(limit: int = 1000) -> dict:
+    """Enforce the configured prediction-ledger retention in bounded batches."""
+
+    days = max(30, settings.forecast_prediction_retention_days)
+    cutoff = datetime.now(UTC) - timedelta(days=days)
+    deleted_runs = supabase_client.delete_forecast_runs_before(
+        cutoff.isoformat(), limit
+    )
+    return {
+        "retention_days": days,
+        "cutoff_at": cutoff.isoformat(),
+        "deleted_runs": deleted_runs,
+        "batch_limit": limit,
+        "more_may_remain": deleted_runs == limit,
     }

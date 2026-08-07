@@ -169,7 +169,7 @@ def present_report(
         "measurement_duration_seconds": int(
             row.get("measurement_duration_seconds") or 0
         ),
-        "province": row.get("province") or "นครปฐม",
+        "province": row.get("province"),
         "district": row.get("district"),
         "subdistrict": row.get("subdistrict"),
         "camera_session_issued_at": str(row["camera_session_issued_at"])

@@ -1,0 +1,353 @@
+<mxfile host="app.diagrams.net" agent="Codex" pages="3">
+  <diagram id="clearpath-context" name="1. Context Diagram">
+    <mxGraphModel dx="1520" dy="913" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ctx-title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#123047;" value="Context Diagram — ClearPath PM2.5 Forecast &amp; Trusted Community Monitoring" vertex="1">
+          <mxGeometry height="50" width="1120" x="230" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-note" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontColor=#526777;" value="ขอบเขตระบบ: จังหวัดนครปฐม • ไม่มีระบบนำทาง/เปรียบเทียบเส้นทาง" vertex="1">
+          <mxGeometry height="30" width="720" x="430" y="65" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-air" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=15;" value="Air4Thai API" vertex="1">
+          <mxGeometry height="55" width="180" x="40" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-firms" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=15;" value="NASA FIRMS API" vertex="1">
+          <mxGeometry height="55" width="180" x="40" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-weather" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=15;" value="OpenWeather API" vertex="1">
+          <mxGeometry height="55" width="180" x="40" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-cron" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=15;" value="Vercel Cron / Scheduler" vertex="1">
+          <mxGeometry height="55" width="180" x="40" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-user" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=16;" value="ผู้ใช้งาน (User)" vertex="1">
+          <mxGeometry height="65" width="180" x="40" y="570" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-admin" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=15;" value="ผู้ดูแลระบบ (Admin / Moderator)" vertex="1">
+          <mxGeometry height="70" width="180" x="40" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-system" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontStyle=1;fontSize=20;" value="0&#xa;ระบบ ClearPath&#xa;ติดตาม พยากรณ์ และตรวจสอบข้อมูล PM2.5" vertex="1">
+          <mxGeometry height="260" width="420" x="550" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-ocr" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=15;" value="OpenAI OCR (บริการเสริม)" vertex="1">
+          <mxGeometry height="60" width="210" x="1280" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-push" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=15;" value="Web Push Service" vertex="1">
+          <mxGeometry height="60" width="210" x="1280" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e1" edge="1" parent="1" source="ctx-air" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-system" value="ข้อมูลสถานีและค่า PM2.5 ตามรอบ">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e2" edge="1" parent="1" source="ctx-firms" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-system" value="ข้อมูล satellite hotspot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e3" edge="1" parent="1" source="ctx-weather" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-system" value="อุณหภูมิ ความชื้น ลม ฝน">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e4" edge="1" parent="1" source="ctx-cron" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-system" value="คำสั่ง sync / alerts ตามเวลา">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e5" edge="1" parent="1" source="ctx-user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-system" value="ภาพสดจากกล้อง + GPS + ยืนยันค่าฝุ่น&#xa;คะแนนดาว/เหตุผล + ตั้งค่าการแจ้งเตือน">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e6" edge="1" parent="1" source="ctx-system" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-user" value="แผนที่ PM2.5 / พยากรณ์ / hotspot&#xa;สถานะรายงาน / ข่าว / คะแนน / รางวัล">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e7" edge="1" parent="1" source="ctx-admin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-system" value="ตรวจหลักฐาน + ค่า PM2.5 ที่อ่านได้&#xa;คำสั่งอนุมัติ/ปฏิเสธ + จัดการประกาศ">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e8" edge="1" parent="1" source="ctx-system" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-admin" value="คิวรายงาน / ภาพหลักฐาน / สถานะระบบ">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e9" edge="1" parent="1" source="ctx-system" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-ocr" value="ภาพหลักฐาน (server-side)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e10" edge="1" parent="1" source="ctx-ocr" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-system" value="ค่า OCR + confidence (คำแนะนำเท่านั้น)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e11" edge="1" parent="1" source="ctx-system" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-push" value="notification payload">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-e12" edge="1" parent="1" source="ctx-push" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="ctx-user" value="Web Push">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="clearpath-level1" name="2. DFD Level 1">
+    <mxGraphModel dx="2400" dy="1700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="l0" />
+        <mxCell id="l1" parent="l0" />
+        <mxCell id="l-title" value="DFD Level 1 — ClearPath PM2.5 Forecast &amp; Trusted Community Monitoring" style="text;html=1;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#123047;" vertex="1" parent="l1">
+          <mxGeometry x="450" y="20" width="1450" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-cron" value="Vercel Cron" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="30" y="100" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-air" value="Air4Thai API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="30" y="170" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-firms" value="NASA FIRMS API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="30" y="240" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-weather" value="OpenWeather API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="30" y="310" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-user" value="USER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=16;" vertex="1" parent="l1">
+          <mxGeometry x="30" y="520" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-admin" value="ADMIN / MODERATOR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=15;" vertex="1" parent="l1">
+          <mxGeometry x="30" y="760" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-ocr" value="OpenAI OCR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="30" y="650" width="160" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-push" value="Web Push Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="2110" y="1150" width="190" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" value="1.0&#xa;ซิงก์และตรวจสอบ&#xa;ข้อมูลภายนอก" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontStyle=1;fontSize=17;" vertex="1" parent="l1">
+          <mxGeometry x="330" y="150" width="250" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" value="2.0&#xa;รับภาพสดและสร้าง&#xa;รายงาน Pending" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontStyle=1;fontSize=17;" vertex="1" parent="l1">
+          <mxGeometry x="330" y="500" width="250" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="3.0&#xa;ตรวจสอบและอนุมัติ&#xa;รายงาน" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontStyle=1;fontSize=17;" vertex="1" parent="l1">
+          <mxGeometry x="330" y="760" width="250" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" value="4.0&#xa;ประมวลผลดาว เหตุผล&#xa;Trust และรางวัล" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontStyle=1;fontSize=17;" vertex="1" parent="l1">
+          <mxGeometry x="330" y="1030" width="250" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="p5" value="5.0&#xa;รวมข้อมูล แสดงแผนที่&#xa;และพยากรณ์" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontStyle=1;fontSize=17;" vertex="1" parent="l1">
+          <mxGeometry x="1300" y="340" width="270" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="p6" value="6.0&#xa;จัดการข่าว ประกาศ&#xa;และกิจกรรม" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontStyle=1;fontSize=17;" vertex="1" parent="l1">
+          <mxGeometry x="330" y="1320" width="250" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="p7" value="7.0&#xa;สร้างและส่ง&#xa;การแจ้งเตือน" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontStyle=1;fontSize=17;" vertex="1" parent="l1">
+          <mxGeometry x="1660" y="1080" width="250" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" value="D1 แฟ้มสถานีและประวัติ PM2.5 ทางการ" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="760" y="120" width="330" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" value="D2 แฟ้มสภาพอากาศและจุดความร้อน" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="760" y="225" width="330" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" value="D3 แฟ้มผู้ใช้งานและโปรไฟล์ความน่าเชื่อถือ" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="760" y="370" width="330" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" value="D4 แฟ้ม Capture Session และ Draft" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="760" y="480" width="330" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" value="D5 แฟ้มหลักฐานรูปภาพส่วนตัว" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="760" y="585" width="330" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="d6" value="D6 แฟ้มรายงาน PM2.5 จากประชาชน" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="760" y="700" width="330" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="d7" value="D7 แฟ้มคะแนนดาว Trust และ Reputation Events" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="760" y="1035" width="330" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="d8" value="D8 แฟ้มข่าว ประกาศ และกิจกรรม" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="760" y="1360" width="330" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="d9" value="D9 แฟ้มโมเดลและผลพยากรณ์" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="1300" y="150" width="300" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="d10" value="D10 แฟ้ม Notifications / Push Subscriptions / Outbox" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="1630" y="1320" width="340" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="d11" value="D11 แฟ้ม Audit Log และ Sync Runs" style="shape=partialRectangle;left=0;right=0;top=1;bottom=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="760" y="880" width="330" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="policy-note" value="กติกาการเผยแพร่&#xa;• Air4Thai สด ≤ 1 ชม. ภายใน 5 กม. = ข้อมูลหลัก&#xa;• Community เข้า IDW เมื่อ approved/fresh/Trust ≥60 และ corroborated ≥2&#xa;• Public ใช้พิกัดเลื่อน 120–250 ม. และไม่แสดงรูปดิบ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;align=left;spacingLeft=10;" vertex="1" parent="l1">
+          <mxGeometry x="1260" y="590" width="520" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="e101" value="trigger sync" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-cron" target="p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e102" value="สถานี / PM2.5 / เวลา" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-air" target="p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e103" value="hotspot / FRP / เวลา" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-firms" target="p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e104" value="อุณหภูมิ / ความชื้น / ลม / ฝน" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-weather" target="p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e105" value="upsert official readings" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p1" target="d1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e106" value="weather / hotspot snapshots" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p1" target="d2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e107" value="sync result" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p1" target="d11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e201" value="เปิดกล้อง + ภาพสด + GPS + เวลา&#xa;ยืนยันค่าฝุ่นและข้อมูลเครื่อง" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-user" target="p2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e202" value="ภาพหลักฐาน" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p2" target="ext-ocr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e203" value="OCR value / confidence (advisory)" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-ocr" target="p2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e204" value="session / draft / hashes" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p2" target="d4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e205" value="private image + exact metadata" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p2" target="d5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e206" value="รายงาน status=pending; pm25_public=null" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p2" target="d6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e207" value="สร้าง/อ่านโปรไฟล์" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p2" target="d3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e301" value="คำสั่ง approve/reject + verified PM2.5 + reason" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-admin" target="p3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e302" value="pending report" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="d6" target="p3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e303" value="ภาพ / exact GPS / OCR metadata" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="d5" target="p3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e304" value="approved/rejected + admin_verified_pm25" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p3" target="d6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e305" value="moderation audit" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p3" target="d11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e306" value="report_status event" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p3" target="p7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e401" value="1–5 ดาว + reason code + GPS ผู้โหวต" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-user" target="p4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e402" value="approved report ≤3 ชม." style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="d6" target="p4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e403" value="reviewer reputation" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="d3" target="p4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e404" value="rating / consensus / reward event" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p4" target="d7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e405" value="ปรับ trust/rating summary" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p4" target="d6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e406" value="ปรับ points / badges / stats" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p4" target="d3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e407" value="rating / reward event" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p4" target="p7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e501" value="official PM2.5 + freshness" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="d1" target="p5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e502" value="weather + hotspot" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="d2" target="p5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e503" value="approved privacy-safe community reports" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="d6" target="p5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e504" value="active model / previous predictions" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="d9" target="p5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e505" value="forecast results / quality / version" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p5" target="d9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e506" value="แผนที่ Air4Thai + Community + hotspot&#xa;พยากรณ์และคำแนะนำสุขภาพ" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p5" target="ext-user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e507" value="air/hotspot alert event" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p5" target="p7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e601" value="สร้าง/แก้ไข/เผยแพร่/เก็บประกาศ&#xa;สร้างกิจกรรมและรางวัล" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-admin" target="p6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e602" value="announcement/activity CRUD" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p6" target="d8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e603" value="published active content" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="d8" target="p6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e604" value="ข่าว ประกาศ กิจกรรม" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p6" target="ext-user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e605" value="announcement event" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p6" target="p7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e701" value="preferences / subscriptions" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-user" target="p7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e702" value="in-app notification + idempotent outbox" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p7" target="d10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e703" value="pending/retry events" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="d10" target="p7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e704" value="push payload" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="p7" target="ext-push">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e705" value="Web Push" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="l1" source="ext-push" target="ext-user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="clearpath-data-dictionary" name="3. Data Dictionary">
+    <mxGraphModel dx="2100" dy="1700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="dd0" />
+        <mxCell id="dd1" parent="dd0" />
+        <mxCell id="dd-title" value="Data Dictionary — แฟ้มข้อมูลหลักของ ClearPath" style="text;html=1;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#123047;" vertex="1" parent="dd1">
+          <mxGeometry x="370" y="20" width="1300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-note" value="หมายเหตุ: รูปภาพและพิกัดจริงเป็นข้อมูลส่วนตัว • Public API ห้ามเปิด image_path, exact GPS และ OCR raw text" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="420" y="75" width="1200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d1" value="&lt;b&gt;D1 — Official Stations &amp;amp; PM2.5 Readings&lt;/b&gt;&lt;br&gt;&lt;hr&gt;station_id (PK), name_th, name_en, province, lat, lon, pm25, aqi, level, color, recorded_at, updated_at, data_status, eligible_for_surface" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="60" y="170" width="610" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d2" value="&lt;b&gt;D2 — Weather &amp;amp; Fire Hotspot Snapshots&lt;/b&gt;&lt;br&gt;&lt;hr&gt;source, station_id (FK), lat, lon, temperature, humidity, wind_speed, wind_deg, rain_mm, frp, brightness, confidence, satellite, acquired_at, recorded_at" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="730" y="170" width="610" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d3" value="&lt;b&gt;D3 — Profiles / User Reputation&lt;/b&gt;&lt;br&gt;&lt;hr&gt;user_id (PK/FK auth), display_name, role, reputation_score, approved_reports, helpful_reviews, weekly_points (derived), created_at, updated_at" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="1400" y="170" width="610" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d4" value="&lt;b&gt;D4 — Capture Sessions &amp;amp; Report Drafts&lt;/b&gt;&lt;br&gt;&lt;hr&gt;session_id (PK), user_id (FK), issued_at, expires_at, consumed_at&lt;br&gt;draft_id (PK), session_id (FK), exact_lat, exact_lon, gps_accuracy_m, image_path, image_sha256, perceptual_hash, ocr_pm25, ocr_confidence, clock_warning, submitted_at, expires_at" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="60" y="360" width="950" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d5" value="&lt;b&gt;D5 — Private Report Evidence / Image Store&lt;/b&gt;&lt;br&gt;&lt;hr&gt;image_id (PK), report_id (FK), user_id (FK), capture_session_id (FK), storage_path, content_type, file_size_bytes, image_width, image_height, captured_at, server_received_at, exact_latitude, exact_longitude, gps_accuracy_m, image_sha256, perceptual_hash, burst_hashes, ocr_raw_text, ocr_pm25, ocr_confidence, device_detected, display_clear, duplicate_of_report_id, screen_recapture_suspected, retention_until, audit_hold, purged_at, created_at&lt;br&gt;&lt;b&gt;Storage:&lt;/b&gt; private bucket; DB เก็บ path ไม่เก็บ Base64" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="1060" y="360" width="950" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d6" value="&lt;b&gt;D6 — Community Reports&lt;/b&gt;&lt;br&gt;&lt;hr&gt;report_id (PK), user_id (FK), user_claimed_pm25, ocr_pm25, admin_verified_pm25, public_pm25, exact_lat/private, exact_lon/private, public_lat, public_lon, gps_accuracy_m, captured_at, device_model, device_calibrated, calibrated_at, measurement_environment, measurement_stable, near_emission_source, averaging_period, measurement_duration_seconds, status {pending|approved|rejected}, rejection_reason_code, moderation_checks, base_trust_score, trust_score, rating_count, rating_average, data_role {supplementary|gap_fill}, policy_version, created_at, moderated_at" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="60" y="650" width="950" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d7" value="&lt;b&gt;D7 — Ratings / Trust / Reputation Events&lt;/b&gt;&lt;br&gt;&lt;hr&gt;rating_id (PK), report_id (FK), reviewer_id (FK), rating_stars {1..5}, reason_code, note, reviewer_lat/private, reviewer_lon/private, reviewer_distance_km, gps_accuracy_m, reviewer_weight, rating_direction, rewarded_at, created_at&lt;br&gt;event_id (PK), user_id, report_id, points, reason, idempotency_key, created_at" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="1060" y="650" width="950" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d8" value="&lt;b&gt;D8 — Announcements &amp;amp; Activities&lt;/b&gt;&lt;br&gt;&lt;hr&gt;announcement_id (PK), title, body, kind {news|alert|community}, area, image_path, status {draft|published|archived|expired}, published, published_at, expires_at, created_by, updated_by, created_at, updated_at&lt;br&gt;activity_id (PK), title, description, reward_points, starts_at, ends_at, active" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="60" y="950" width="950" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d9" value="&lt;b&gt;D9 — Forecast Models &amp;amp; Predictions&lt;/b&gt;&lt;br&gt;&lt;hr&gt;model_id (PK), station_id, horizon_hours, algorithm, version, artifact_path, trained_at, train_rows, validation_rmse, baseline_rmse, eligible, active, activation_reason&lt;br&gt;prediction_id, station_id, forecast_at, pm25, lower_bound, upper_bound, model_version, data_quality, generated_at" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="1060" y="950" width="950" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d10" value="&lt;b&gt;D10 — Notifications / Subscriptions / Outbox&lt;/b&gt;&lt;br&gt;&lt;hr&gt;notification_id (PK), user_id (FK), event_type, title, body, url, entity_type, entity_id, payload, deduplication_key, read_at, created_at&lt;br&gt;subscription_id, user_id, endpoint, p256dh, auth_secret, user_agent, active, updated_at&lt;br&gt;outbox_id, notification_id, event_key, status, attempts, next_attempt_at, last_error, processed_at" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="60" y="1200" width="950" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-d11" value="&lt;b&gt;D11 — Audit Logs &amp;amp; Sync Runs&lt;/b&gt;&lt;br&gt;&lt;hr&gt;audit_id (PK), actor_id, action, entity_type, entity_id, details, created_at&lt;br&gt;sync_run_id (PK), source, status, started_at, completed_at, fetched_count, station_count, reading_count, source_recorded_at, error_message" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="1060" y="1200" width="950" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="dd-rules" value="&lt;b&gt;กฎสำคัญของข้อมูล&lt;/b&gt;&lt;br&gt;1) รายงานใหม่เป็น pending และ public_pm25 ต้องเป็น null&lt;br&gt;2) Admin เท่านั้นที่กำหนด admin_verified_pm25 และเปลี่ยนเป็น approved&lt;br&gt;3) OCR เป็น advisory ไม่อนุมัติอัตโนมัติ&lt;br&gt;4) Public coordinates ใช้ stable obfuscation 120–250 ม.&lt;br&gt;5) ผู้ให้คะแนนต้องอยู่ภายใน 3 กม., GPS ≤200 ม., รายงานอายุ ≤3 ชม. และห้ามให้คะแนนตนเอง&lt;br&gt;6) Hotspot ต้องเรียกว่า satellite hotspot ไม่ใช่เหตุไฟไหม้ยืนยันแล้ว" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;" vertex="1" parent="dd1">
+          <mxGeometry x="300" y="1470" width="1450" height="180" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

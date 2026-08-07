@@ -39,7 +39,7 @@ export default function MyContribution() {
         <div
           style={{ background: T.chip, borderRadius: "9px", padding: ".6em" }}
         >
-          <small>Trust / คะแนนรวม</small>
+          <small>คะแนนความน่าเชื่อถือ</small>
           <strong style={{ display: "block", fontFamily: T.mono }}>
             {profile.reputation_score}
           </strong>
@@ -55,7 +55,7 @@ export default function MyContribution() {
         <div
           style={{ background: T.chip, borderRadius: "9px", padding: ".6em" }}
         >
-          <small>ช่วยตรวจ</small>
+          <small>ขอบคุณที่ช่วยชุมชน</small>
           <strong style={{ display: "block", fontFamily: T.mono }}>
             {profile.helpful_reviews}
           </strong>
@@ -63,7 +63,7 @@ export default function MyContribution() {
       </div>
       {profile.badges.length > 0 && (
         <p style={{ fontSize: ".72em", color: T.teal }}>
-          Badge: {profile.badges.join(" · ")}
+          เหรียญรางวัล: {profile.badges.join(" · ")}
         </p>
       )}
       {profile.reports.slice(0, 5).map((report) => (

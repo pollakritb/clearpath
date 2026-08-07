@@ -8,7 +8,8 @@ from uuid import uuid4
 from starlette.concurrency import run_in_threadpool
 
 from ...algorithms.community_quality import obfuscate_coordinates
-from ...algorithms.trust import calculate_trust_score, is_nakhon_pathom_area
+from ...algorithms.distance import haversine_km
+from ...algorithms.trust import calculate_trust_score, is_thailand_area
 from ...core.config import settings
 from ...core.errors import UpstreamError
 from .. import capture, image_fingerprint, ocr, supabase_client
@@ -51,8 +52,8 @@ async def create_draft(
     content_type: str,
     burst_images: list[tuple[bytes, str]] | None = None,
 ) -> dict:
-    if not is_nakhon_pathom_area(lat, lon):
-        raise ValueError("ขณะนี้รับรายงานเฉพาะพื้นที่นครปฐม")
+    if not is_thailand_area(lat, lon):
+        raise ValueError("ขณะนี้รับรายงานเฉพาะพิกัดในประเทศไทย")
     if gps_accuracy_m > 200:
         raise ValueError("GPS คลาดเคลื่อนเกิน 200 เมตร กรุณาขอตำแหน่งใหม่")
 
@@ -167,6 +168,26 @@ async def submit_draft(*, draft_id: str, user_id: str, values: dict) -> dict:
         supabase_client.ensure_profile, user_id, values.get("display_name")
     )
     official, _source = await get_current_stations()
+    nearest_location = min(
+        official,
+        key=lambda station: haversine_km(
+            float(draft["exact_lat"]),
+            float(draft["exact_lon"]),
+            float(station["lat"]),
+            float(station["lon"]),
+        ),
+        default=None,
+    )
+    nearest_location_distance = (
+        haversine_km(
+            float(draft["exact_lat"]),
+            float(draft["exact_lon"]),
+            float(nearest_location["lat"]),
+            float(nearest_location["lon"]),
+        )
+        if nearest_location
+        else None
+    )
     trust = calculate_trust_score(
         lat=float(draft["exact_lat"]),
         lon=float(draft["exact_lon"]),
@@ -206,8 +227,20 @@ async def submit_draft(*, draft_id: str, user_id: str, values: dict) -> dict:
         "lon": draft["exact_lon"],
         "public_lat": public_lat,
         "public_lon": public_lon,
-        "province": "นครปฐม",
-        "district": None,
+        "province": (
+            nearest_location.get("province")
+            if nearest_location
+            and nearest_location_distance is not None
+            and nearest_location_distance <= 150
+            else None
+        ),
+        "district": (
+            nearest_location.get("district")
+            if nearest_location
+            and nearest_location_distance is not None
+            and nearest_location_distance <= 50
+            else None
+        ),
         "subdistrict": None,
         "pm25": None,
         "user_claimed_pm25": claimed_pm25,

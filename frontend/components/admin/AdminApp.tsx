@@ -10,7 +10,14 @@ import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type {
   AdminSyncRun,
+  DataIssueRow,
+  ForecastDataQualityRow,
+  ForecastEvaluationRow,
+  ForecastFalseSafeCase,
+  ForecastFalseSafeReviewRequest,
   ForecastModelStatus,
+  ForecastProviderHealthResponse,
+  ForecastReleaseDecision,
   NotificationOutboxSummary,
 } from "@/frontend/types/ui";
 
@@ -29,6 +36,12 @@ interface OverviewData {
   runs: AdminSyncRun[];
   models: ForecastModelStatus[];
   outbox: NotificationOutboxSummary | null;
+  dataQuality: ForecastDataQualityRow[];
+  evaluation: ForecastEvaluationRow[];
+  dataIssues: DataIssueRow[];
+  falseSafeCases: ForecastFalseSafeCase[];
+  releaseDecisions: ForecastReleaseDecision[];
+  providerHealth: ForecastProviderHealthResponse | null;
 }
 
 const EMPTY_OVERVIEW: OverviewData = {
@@ -36,6 +49,12 @@ const EMPTY_OVERVIEW: OverviewData = {
   runs: [],
   models: [],
   outbox: null,
+  dataQuality: [],
+  evaluation: [],
+  dataIssues: [],
+  falseSafeCases: [],
+  releaseDecisions: [],
+  providerHealth: null,
 };
 
 export default function AdminApp() {
@@ -56,6 +75,12 @@ export default function AdminApp() {
       api.adminSyncRuns(20),
       api.adminForecastModels(),
       api.adminNotificationOutbox(),
+      api.adminForecastDataQuality(7),
+      api.adminForecastEvaluation(14),
+      api.adminDataIssues(100),
+      api.adminForecastFalseSafeCases(30, 100),
+      api.adminForecastReleaseDecisions(100),
+      api.adminForecastProviderHealth(),
     ]);
     setOverview((current) => ({
       queueCount:
@@ -72,6 +97,30 @@ export default function AdminApp() {
           : current.models,
       outbox:
         results[3].status === "fulfilled" ? results[3].value : current.outbox,
+      dataQuality:
+        results[4].status === "fulfilled"
+          ? results[4].value.rows
+          : current.dataQuality,
+      evaluation:
+        results[5].status === "fulfilled"
+          ? results[5].value.rows
+          : current.evaluation,
+      dataIssues:
+        results[6].status === "fulfilled"
+          ? results[6].value.issues
+          : current.dataIssues,
+      falseSafeCases:
+        results[7].status === "fulfilled"
+          ? results[7].value.cases
+          : current.falseSafeCases,
+      releaseDecisions:
+        results[8].status === "fulfilled"
+          ? results[8].value.decisions
+          : current.releaseDecisions,
+      providerHealth:
+        results[9].status === "fulfilled"
+          ? results[9].value
+          : current.providerHealth,
     }));
     const failed = results.find((result) => result.status === "rejected");
     if (failed?.status === "rejected") {
@@ -121,7 +170,14 @@ export default function AdminApp() {
                 <AppIcon name={item.icon} size={20} />
               </span>
               <span>
-                <strong>{item.label}</strong>
+                <strong>
+                  <span className="cp-admin-nav-label--desktop">
+                    {item.label}
+                  </span>
+                  <span className="cp-admin-nav-label--mobile">
+                    {item.mobileLabel}
+                  </span>
+                </strong>
                 <small>{item.description}</small>
               </span>
               {item.id === "moderation" && overview.queueCount > 0 && (
@@ -154,6 +210,13 @@ export default function AdminApp() {
             <h1>{copy.title}</h1>
           </div>
           <div className="cp-admin-topbar__actions">
+            <Link
+              href="/"
+              className="cp-admin-topbar__home cp-focus"
+              aria-label="กลับไปหน้าแผนที่"
+            >
+              <AppIcon name="map" size={19} />
+            </Link>
             <span className="cp-admin-role-pill">
               <AppIcon name="shield" size={15} /> {auth.role}
             </span>
@@ -193,9 +256,27 @@ export default function AdminApp() {
               runs={overview.runs}
               models={overview.models}
               outbox={overview.outbox}
+              dataQuality={overview.dataQuality}
+              evaluation={overview.evaluation}
+              dataIssues={overview.dataIssues}
+              falseSafeCases={overview.falseSafeCases}
+              releaseDecisions={overview.releaseDecisions}
+              providerHealth={overview.providerHealth}
               loading={loading}
               error={error}
               onRefresh={() => void loadOverview()}
+              onReviewFalseSafe={async (
+                row: ForecastFalseSafeCase,
+                body: ForecastFalseSafeReviewRequest,
+              ) => {
+                await api.reviewForecastFalseSafeCase(
+                  row.run_id,
+                  row.horizon_hours,
+                  row.variant,
+                  body,
+                );
+                await loadOverview();
+              }}
             />
           )}
         </div>

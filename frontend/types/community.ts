@@ -12,6 +12,15 @@ export type RejectionReason =
   | "duplicate"
   | "other";
 export type AnnouncementStatus = "draft" | "published" | "archived" | "expired";
+export type DataIssueCategory =
+  "station" | "forecast" | "map" | "community" | "other";
+
+export interface DataIssueCreate {
+  category: DataIssueCategory;
+  reference_id?: string | null;
+  message: string;
+}
+
 export interface CaptureSessionResponse {
   token: string;
   session_id: string;

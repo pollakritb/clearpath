@@ -5,30 +5,35 @@ export type AdminView = "overview" | "moderation" | "publishing" | "operations";
 export const ADMIN_NAV_ITEMS: Array<{
   id: AdminView;
   label: string;
+  mobileLabel: string;
   description: string;
   icon: AppIconName;
 }> = [
   {
     id: "overview",
     label: "ภาพรวม",
+    mobileLabel: "ภาพรวม",
     description: "งานสำคัญวันนี้",
     icon: "home",
   },
   {
     id: "moderation",
     label: "คิวตรวจข้อยกเว้น",
+    mobileLabel: "คิวตรวจ",
     description: "เคสที่ระบบยังไม่มั่นใจ",
     icon: "shield",
   },
   {
     id: "publishing",
     label: "ประกาศและกิจกรรม",
+    mobileLabel: "ประกาศ",
     description: "สื่อสารกับชุมชน",
     icon: "megaphone",
   },
   {
     id: "operations",
     label: "ข้อมูลและโมเดล",
+    mobileLabel: "ระบบ",
     description: "Air4Thai sync และ ML",
     icon: "activity",
   },
@@ -38,7 +43,7 @@ export const ADMIN_PAGE_COPY: Record<
   AdminView,
   { eyebrow: string; title: string }
 > = {
-  overview: { eyebrow: "Admin overview", title: "ศูนย์ควบคุม ClearPath" },
+  overview: { eyebrow: "ภาพรวมผู้ดูแล", title: "ศูนย์ควบคุม ClearPath" },
   moderation: {
     eyebrow: "Review exceptions",
     title: "คิวตรวจเคสที่ระบบยังไม่มั่นใจ",

@@ -1,4 +1,4 @@
-export type DashboardTab = "overview" | "report" | "community";
+export type DashboardTab = "map" | "overview" | "report" | "community";
 export type SheetSnap = "peek" | "half" | "full";
 export type ViewMode = "map" | "list";
 

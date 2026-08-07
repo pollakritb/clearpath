@@ -18,6 +18,7 @@ class Station(BaseModel):
     data_status: str = "expired"
     age_minutes: float | None = None
     eligible_for_surface: bool = False
+    in_service_area: bool = False
 
 
 class StationsResponse(BaseModel):

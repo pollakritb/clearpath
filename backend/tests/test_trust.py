@@ -4,6 +4,7 @@ from backend.algorithms.trust import (
     calculate_trust_score,
     is_nakhon_pathom_area,
     is_report_fresh,
+    is_thailand_area,
     nearest_official_station,
     peer_adjustment,
 )
@@ -53,6 +54,12 @@ def test_nakhon_pathom_bounds_and_freshness():
     assert is_nakhon_pathom_area(13.8199, 100.0622)
     assert not is_nakhon_pathom_area(13.7563, 100.5018)
     assert is_report_fresh(datetime.now(UTC).isoformat())
+
+
+def test_nationwide_community_area_accepts_bangkok_and_chiang_mai():
+    assert is_thailand_area(13.7563, 100.5018)
+    assert is_thailand_area(18.7883, 98.9853)
+    assert not is_thailand_area(35.6762, 139.6503)
 
 
 def test_peer_adjustment_is_bounded():

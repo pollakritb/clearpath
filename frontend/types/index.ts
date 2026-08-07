@@ -5,5 +5,6 @@ export * from "./community";
 export * from "./environment";
 export * from "./forecast";
 export * from "./locations";
+export * from "./meta";
 export * from "./notifications";
 export * from "./validation";

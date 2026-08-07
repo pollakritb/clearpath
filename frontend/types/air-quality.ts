@@ -13,6 +13,7 @@ export interface Station {
   data_status: "fresh" | "delayed" | "expired";
   age_minutes: number | null;
   eligible_for_surface: boolean;
+  in_service_area: boolean;
 }
 
 export interface StationsResponse {

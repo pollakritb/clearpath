@@ -5,6 +5,7 @@
 
 from fastapi import APIRouter
 
+from ..algorithms.area import is_thailand
 from ..algorithms.freshness import station_freshness
 from ..models.schemas import Station, StationsResponse
 from ..services.stations import get_current_stations
@@ -24,6 +25,7 @@ async def current_pm25():
                 **freshness,
                 "eligible_for_surface": freshness["eligible_for_surface"]
                 and row.get("pm25") is not None,
+                "in_service_area": is_thailand(float(row["lat"]), float(row["lon"])),
             }
         )
     stations = [

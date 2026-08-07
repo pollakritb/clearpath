@@ -9,11 +9,12 @@ import type { CommunityReport } from "@/frontend/types";
 
 function reportIcon(color: string, trust: number) {
   const size = trust >= 75 ? 27 : 23;
+  const touchSize = 44;
   return L.divIcon({
     className: "cp-marker",
-    html: `<div style="width:${size}px;height:${size}px;border-radius:8px 8px 8px 2px;background:${color};transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);color:#fff;font-size:12px;font-weight:800">ช</span></div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
+    html: `<div style="width:${touchSize}px;height:${touchSize}px;display:flex;align-items:center;justify-content:center"><div style="width:${size}px;height:${size}px;border-radius:8px 8px 8px 2px;background:${color};transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);color:#fff;font-size:12px;font-weight:800">ช</span></div></div>`,
+    iconSize: [touchSize, touchSize],
+    iconAnchor: [touchSize / 2, touchSize / 2 + size / 2],
   });
 }
 
@@ -32,6 +33,8 @@ export default function ReportMarkers({
             key={report.id}
             position={[report.lat, report.lon]}
             icon={reportIcon(cls.color, report.trust_score)}
+            title={`รายงานชุมชน PM2.5 ${report.pm25} ไมโครกรัมต่อลูกบาศก์เมตร ${cls.level}`}
+            alt={`รายงานชุมชน PM2.5 ${report.pm25} ไมโครกรัมต่อลูกบาศก์เมตร ${cls.level}`}
           >
             <Popup>
               <div style={{ fontFamily: "inherit", minWidth: "11em" }}>
@@ -121,7 +124,7 @@ export default function ReportMarkers({
                   {report.verification_method === "automatic"
                     ? "อัตโนมัติ"
                     : "โดย Admin"}{" "}
-                  · {report.rating_count} คะแนน
+                  · {report.rating_count} คำขอบคุณ
                   {report.rating_average != null
                     ? ` · เฉลี่ย ${report.rating_average.toFixed(1)} ดาว`
                     : ""}

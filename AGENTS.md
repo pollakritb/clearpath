@@ -31,7 +31,7 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 - Air4Thai ที่อายุไม่เกิน 1 ชั่วโมงภายใน 5 กม. เป็นข้อมูลหลัก; community เป็น supplementary.
 - Community เข้า IDW ได้เฉพาะ approved/fresh/Trust ≥60 และต้อง corroborated จากผู้ใช้คนละคน ≥2 ราย หรือ Trust ≥80 พร้อม calibrated device.
 - Gap-fill ต้องมี GPS accuracy ≤200 ม., ไม่วัดติดแหล่งกำเนิดโดยตรง และไม่เป็นภาพซ้ำ.
-- Peer review รับเฉพาะผู้ใช้ที่ส่ง GPS อยู่ภายใน 3 กม. รายงานอายุไม่เกิน 3 ชั่วโมง และต้องมี reason code ที่สอดคล้องกับผลโหวต.
+- Community gratitude แสดงเป็นคำขอบคุณพร้อมดาว 1–5; รับเฉพาะผู้ใช้ที่ส่ง GPS อยู่ภายใน 3 กม. รายงานอายุไม่เกิน 3 ชั่วโมง และเก็บ reason code ภายในที่สอดคล้องกับดาวเพื่อคำนวณ Trust.
 - พิกัดจริงเปิดเฉพาะ Admin; public coordinates ต้องผ่าน stable obfuscation 120–250 ม.
 - Fire alert ใช้ hotspot ในขอบเขตนครปฐมที่อายุไม่เกิน 12 ชั่วโมง และต้องเรียกว่า satellite hotspot ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว.
 - ภาพรายงานเก็บ private bucket; ฝั่ง browser ห้ามถือ service-role/OpenAI/admin keys.

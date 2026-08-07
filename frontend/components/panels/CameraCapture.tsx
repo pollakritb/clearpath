@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, ApiError } from "@/frontend/lib/api-client";
 import { T } from "@/frontend/lib/ui";
 
@@ -206,10 +207,20 @@ export default function CameraCapture({
               fontSize: ".75em",
             }}
           >
-            <div aria-hidden style={{ fontSize: "2.2em" }}>
-              ▣
+            <div
+              aria-hidden
+              style={{ display: "flex", justifyContent: "center" }}
+            >
+              <AppIcon name="camera" size={34} />
             </div>
-            ไม่มีปุ่มเลือกไฟล์จากแกลเลอรี
+            <strong
+              style={{ display: "block", marginTop: ".65em", color: "#fff" }}
+            >
+              ถ่ายภาพเครื่องวัดด้วยกล้องสด
+            </strong>
+            <span style={{ display: "block", marginTop: ".3em" }}>
+              ไม่รับภาพจากแกลเลอรีเพื่อรักษาความน่าเชื่อถือ
+            </span>
           </div>
         )}
       </div>

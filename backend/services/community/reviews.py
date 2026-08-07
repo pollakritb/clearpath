@@ -1,4 +1,4 @@
-"""Peer-review and administrator moderation workflows."""
+"""Community gratitude/star feedback and administrator moderation workflows."""
 
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -34,9 +34,9 @@ def rate_report(
     if not report:
         raise KeyError(report_id)
     if report["status"] != "approved":
-        raise ValueError("ให้คะแนนได้เฉพาะรายงานที่ผู้ดูแลอนุมัติแล้ว")
+        raise ValueError("ส่งคำขอบคุณได้เฉพาะข้อมูลที่ผ่านการตรวจแล้ว")
     if str(report["user_id"]) == reviewer_id:
-        raise ValueError("ไม่สามารถให้คะแนนรายงานของตนเองได้")
+        raise ValueError("ไม่สามารถส่งคำขอบคุณให้ข้อมูลของตนเองได้")
     if rating not in {1, 2, 3, 4, 5}:
         raise ValueError("คะแนนต้องอยู่ระหว่าง 1–5 ดาว")
     if gps_accuracy_m > 200:
@@ -48,15 +48,15 @@ def rate_report(
         float(report["lon"]),
     )
     if distance > PEER_REVIEW_RADIUS_KM:
-        raise ValueError("ต้องอยู่ภายใน 3 กม. จากจุดรายงานจึงจะให้คะแนนได้")
+        raise ValueError("ต้องอยู่ภายใน 3 กม. จากจุดรายงานจึงจะส่งคำขอบคุณได้")
     if not is_report_fresh(
         str(report["captured_at"]),
         max_age_minutes=PUBLIC_REPORT_MAX_AGE_MINUTES,
     ):
-        raise ValueError("รายงานหมดอายุสำหรับการให้คะแนนแล้ว")
+        raise ValueError("ข้อมูลนี้หมดช่วงเวลาสำหรับส่งคำขอบคุณแล้ว")
     existing = supabase_client.get_report_reviews(report_id)
     if any(str(review.get("reviewer_id")) == reviewer_id for review in existing):
-        raise ValueError("คุณให้คะแนนรายงานนี้แล้ว")
+        raise ValueError("คุณส่งคำขอบคุณให้ข้อมูลนี้แล้ว")
 
     profile = supabase_client.ensure_profile(reviewer_id)
     direction = star_rating_direction(rating)
@@ -110,8 +110,8 @@ def rate_report(
     notifications.enqueue_user_notification(
         user_id=str(report["user_id"]),
         event_type="rating",
-        title="มีคนให้คะแนนรายงานของคุณ",
-        body=f"รายงานล่าสุดได้รับ {rating} ดาวจากผู้ใช้ที่อยู่ใกล้จุดวัด",
+        title="มีคนขอบคุณข้อมูลของคุณ",
+        body=f"ผู้ใช้ใกล้จุดวัดส่งคำขอบคุณพร้อม {rating} ดาวให้รายงานล่าสุด",
         url="/",
         entity_type="community_report",
         entity_id=report_id,
@@ -148,8 +148,8 @@ def rate_report(
                 notifications.enqueue_user_notification(
                     user_id=reviewer_id,
                     event_type="reward",
-                    title="ได้รับคะแนนช่วยตรวจข้อมูล",
-                    body="คะแนนของคุณตรงกับ consensus ของชุมชน รับเพิ่ม 2 คะแนน",
+                    title="คำขอบคุณของคุณช่วยชุมชน",
+                    body="ดาวที่คุณให้สอดคล้องกับความเห็นของชุมชน รับเพิ่ม 2 คะแนน",
                     url="/",
                     entity_type="community_report",
                     entity_id=report_id,

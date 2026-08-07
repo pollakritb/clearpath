@@ -25,7 +25,7 @@
   --cp-navy: #102f2b;
   --cp-navy-soft: #1a423d;
   --cp-green: #2bbf73; /* "recommended" */
-  --cp-red: #e0554b; /* destination */
+  --cp-red: #b43a32; /* error/danger; WCAG AA on panel and app backgrounds */
 
   /* AQI — 5 levels, semantic, never reordered */
   --cp-aqi-good: #27ae60;
@@ -52,12 +52,24 @@
 html,
 body {
   height: 100%;
+  overscroll-behavior: none;
 }
 
 body {
+  margin: 0;
   background: var(--cp-appbg);
   color: var(--cp-ink);
   font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 /* ============================================================

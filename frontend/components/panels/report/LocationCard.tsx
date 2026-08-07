@@ -1,3 +1,4 @@
+import AppIcon from "@/frontend/components/ui/AppIcon";
 import { T } from "@/frontend/lib/ui";
 import type { ReportLocation } from "@/frontend/types/ui";
 
@@ -45,6 +46,9 @@ export default function LocationCard({
           onClick={onRequestLocation}
           className="cp-focus"
           style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: ".35em",
             marginTop: ".45em",
             border: "none",
             borderRadius: "8px",
@@ -55,7 +59,8 @@ export default function LocationCard({
             fontWeight: 700,
           }}
         >
-          ◎ ขอสิทธิ์ GPS อีกครั้ง
+          <AppIcon name="location" size={17} />
+          ขอสิทธิ์ GPS อีกครั้ง
         </button>
       )}
     </div>

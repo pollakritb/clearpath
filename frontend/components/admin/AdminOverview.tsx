@@ -28,7 +28,7 @@ export default function AdminOverview({
     <section>
       <div className="cp-admin-welcome">
         <div>
-          <span className="cp-eyebrow">Daily control center</span>
+          <span className="cp-eyebrow">ศูนย์ควบคุมรายวัน</span>
           <h2>สิ่งที่ต้องดูแลวันนี้</h2>
           <p>
             ตรวจเฉพาะรายงานที่ระบบยังไม่มั่นใจ ติดตาม Air4Thai
@@ -94,11 +94,11 @@ export default function AdminOverview({
             <AppIcon name="model" size={22} />
           </span>
           <span>
-            <small>ML activation gate</small>
+            <small>สถานะเปิดใช้โมเดล</small>
             <strong>
               {loading ? "…" : `${activeModels}/${modelCount || 5}`}
             </strong>
-            <em>โมเดล active</em>
+            <em>โมเดลที่เปิดใช้งาน</em>
           </span>
           <AppIcon name="chevron" size={18} />
         </button>

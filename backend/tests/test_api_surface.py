@@ -7,6 +7,9 @@ def test_new_product_api_surface_and_no_navigation_api():
     openapi = create_app().openapi()
     paths = set(openapi["paths"])
     assert "/api/forecast" in paths
+    assert "/api/forecast/surface" in paths
+    assert "/api/forecast/stations" not in paths
+    assert "/api/cron/forecast-consensus" not in paths
     assert "/api/community/reports" in paths
     assert "/api/community/capture-session" in paths
     assert "/api/community/review-queue" in paths
@@ -25,10 +28,20 @@ def test_new_product_api_surface_and_no_navigation_api():
     assert "/api/notifications" in paths
     assert "/api/locations/search" in paths
     assert "/api/cron/alerts" in paths
+    assert "/api/cron/forecast-evaluation" in paths
+    assert "/api/community/data-issues" in paths
+    assert "/api/admin/data-issues" in paths
     assert "/api/admin/reports/{report_id}/moderate" in paths
     assert "/api/admin/announcements/{announcement_id}" in paths
     assert "/api/admin/notification-outbox" in paths
+    assert "/api/admin/forecast-false-safe-cases" in paths
+    assert (
+        "/api/admin/forecast-false-safe-cases/{run_id}/{horizon_hours}/{variant}/review"
+        in paths
+    )
+    assert "/api/admin/forecast-release-decisions" in paths
     assert "/api/health" in paths
+    assert "/api/ready" in paths
     assert "/api/route/compare" not in paths
     assert "/api/geocode" not in paths
     assert "/api/community/reports/pending" not in paths
@@ -36,4 +49,10 @@ def test_new_product_api_surface_and_no_navigation_api():
 
 def test_public_contract_has_no_legacy_user_entered_pm25_field():
     openapi = create_app().openapi()
-    assert "manual_pm25" not in json.dumps(openapi)
+    serialized = json.dumps(openapi)
+    assert "manual_pm25" not in serialized
+    assert "google_air" not in serialized
+    assert (
+        "community_report_count"
+        not in openapi["components"]["schemas"]["ForecastResponse"]["properties"]
+    )

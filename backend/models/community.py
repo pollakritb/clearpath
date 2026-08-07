@@ -19,6 +19,7 @@ RejectionReason = Literal[
     "other",
 ]
 AnnouncementStatus = Literal["draft", "published", "archived", "expired"]
+DataIssueCategory = Literal["station", "forecast", "map", "community", "other"]
 
 
 class CaptureSessionResponse(BaseModel):
@@ -110,6 +111,12 @@ class CommunityMapPoint(BaseModel):
 class CommunityMapPointsResponse(BaseModel):
     points: list[CommunityMapPoint]
     count: int
+
+
+class DataIssueCreate(BaseModel):
+    category: DataIssueCategory
+    reference_id: str | None = Field(default=None, max_length=100)
+    message: str = Field(min_length=10, max_length=1000)
 
 
 class ReportCreateResponse(BaseModel):

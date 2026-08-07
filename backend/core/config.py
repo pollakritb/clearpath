@@ -15,6 +15,13 @@ class Settings(BaseSettings):
     openweather_api_key: str = ""
     firms_map_key: str = ""
     air4thai_url: str = "http://air4thai.pcd.go.th/services/getNewAQI_JSON.php"
+    openweather_air_enabled: bool = True
+    openmeteo_air_enabled: bool = True
+    # Community forecast correction remains shadow-only until field/backtest gates pass.
+    community_forecast_shadow_enabled: bool = False
+    forecast_provider_max_batch_size: int = 50
+    forecast_station_min_history_points: int = 24
+    forecast_station_max_age_minutes: int = 90
 
     # OCR ภาพหน้าจอเครื่องวัด (OpenAI Responses API, server only)
     openai_api_key: str = ""
@@ -24,6 +31,13 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_role_key: str = ""
     report_image_bucket: str = "report-images"
+
+    # Runtime / operations
+    app_environment: str = "development"
+    release_sha: str = "local"
+    log_level: str = "INFO"
+    cors_allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    readiness_max_station_age_minutes: int = 90
 
     # Signed camera session (server-issued timestamp; 5-minute freshness window)
     capture_session_secret: str = ""
@@ -49,6 +63,10 @@ class Settings(BaseSettings):
     # model registry before ML forecasts are served.
     push_enabled: bool = False
     ml_forecast_enabled: bool = False
+    ml_forecast_shadow_enabled: bool = False
+    ml_forecast_canary_percentage: int = 0
+    ml_forecast_canary_station_allowlist: str = ""
+    forecast_prediction_retention_days: int = 400
 
     @property
     def effective_capture_secret(self) -> str:
@@ -62,6 +80,27 @@ class Settings(BaseSettings):
     @property
     def has_supabase(self) -> bool:
         return bool(self.supabase_url and self.supabase_service_role_key)
+
+    @property
+    def allowed_cors_origins(self) -> list[str]:
+        """Explicit browser origins; production never falls back to a wildcard."""
+        return [
+            origin.strip().rstrip("/")
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
+        ]
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_environment.lower() == "production"
+
+    @property
+    def canary_station_allowlist(self) -> list[str]:
+        return [
+            station.strip()
+            for station in self.ml_forecast_canary_station_allowlist.split(",")
+            if station.strip()
+        ]
 
 
 settings = Settings()

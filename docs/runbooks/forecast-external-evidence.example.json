@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "owners": {
+    "product": { "primary": "TBD", "backup": "TBD", "contact": "TBD" },
+    "data_ml": { "primary": "TBD", "backup": "TBD", "contact": "TBD" },
+    "production_incident": {
+      "primary": "TBD",
+      "backup": "TBD",
+      "contact": "TBD",
+      "rollback_authority": false
+    },
+    "privacy_legal": {
+      "primary": "TBD",
+      "backup": "TBD",
+      "contact": "TBD"
+    },
+    "health_communication": {
+      "primary": "TBD",
+      "backup": "TBD",
+      "contact": "TBD"
+    }
+  },
+  "infrastructure": {
+    "staging_project_ref": "TBD",
+    "production_project_ref": "TBD",
+    "migration_sha256": "9457b7fdab59861973a5c027e46fe99408275d33c0811ea1037fd05d05c9a039",
+    "migration_guard_destructive": false,
+    "staging_migration_applied": false,
+    "production_migration_applied": false,
+    "server_browser_project_match": false,
+    "cron_secret_configured": false,
+    "sync_schedule_minutes": 60,
+    "alert_schedule_minutes": 30,
+    "evaluation_schedule_minutes": 60,
+    "openweather_key_configured": false,
+    "firms_key_configured": false,
+    "local_demo_disabled_staging": false,
+    "local_demo_disabled_production": false,
+    "cron_monitoring_enabled": false,
+    "upstream_alert_tested": false
+  },
+  "reviews": {
+    "wording": {
+      "approved": false,
+      "approver": "TBD",
+      "approved_at": null,
+      "document_sha256": "TBD"
+    },
+    "shadow": {
+      "started_at": null,
+      "ended_at": null,
+      "settled_prediction_count": 0,
+      "false_safe_total": 0,
+      "false_safe_reviewed": 0,
+      "release_decision_id": "TBD"
+    },
+    "canary": {
+      "rollback_drill_passed": false,
+      "rollback_drill_at": null,
+      "log_sample_count": 0,
+      "log_violations": null,
+      "log_audit_sha256": "TBD"
+    }
+  },
+  "operations": {
+    "monthly_review_owner": "TBD",
+    "next_review_at": null,
+    "alert_fallback_drill_passed": false,
+    "alert_fallback_drill_at": null,
+    "function_memory_mb": null,
+    "p95_latency_ms": null,
+    "monthly_cost_amount": null,
+    "cost_currency": "THB",
+    "cost_period": "TBD"
+  },
+  "field": {
+    "devices": [],
+    "colocation_hours": 0,
+    "colocation_paired_samples": 0,
+    "dry_season_samples": 0,
+    "wet_season_samples": 0,
+    "districts_evaluated": 0,
+    "sparse_area_evaluated": false,
+    "official_community_comparison_complete": false,
+    "community_safety_gate_passed": false,
+    "privacy_review_approved": false,
+    "privacy_review_approver": "TBD"
+  },
+  "security": {
+    "production_mfa_verified": false,
+    "least_privilege_reviewed": false,
+    "incident_owner_disable_access_tested": false,
+    "vendor_inventory_complete": false,
+    "dpa_review_approved": false,
+    "health_sources": [],
+    "health_source_approved": false,
+    "health_source_approver": "TBD"
+  }
+}

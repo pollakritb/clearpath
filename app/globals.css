@@ -2,3 +2,36 @@
 @import "../frontend/styles/foundation.css";
 @import "../frontend/styles/user-app.css";
 @import "../frontend/styles/admin-app.css";
+
+.cp-error-page {
+  min-height: 100dvh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: #173a37;
+  background: #f4f7f6;
+}
+
+.cp-error-page h1,
+.cp-error-page p {
+  margin: 0;
+}
+
+.cp-error-page button,
+.cp-error-page a {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 16px;
+  background: #0b766f;
+  color: white;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}

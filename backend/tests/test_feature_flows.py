@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from io import BytesIO
 from uuid import uuid4
 
@@ -320,6 +321,11 @@ def test_complete_report_moderation_rating_reward_and_privacy_flow(feature_clien
     inbox = client.get("/api/notifications")
     assert inbox.status_code == 200
     assert inbox.json()["unread_count"] >= 4
+    rating_notifications = [
+        item for item in inbox.json()["notifications"] if item["event_type"] == "rating"
+    ]
+    assert rating_notifications
+    assert all("ขอบคุณ" in item["title"] for item in rating_notifications)
     notification_id = inbox.json()["notifications"][0]["id"]
     assert client.patch(f"/api/notifications/{notification_id}/read").status_code == 200
     assert client.post("/api/notifications/read-all").status_code == 200
@@ -338,8 +344,8 @@ def test_camera_evidence_validation_and_single_use_session(feature_client):
     outside = client.post(
         "/api/community/report-drafts",
         data={
-            "lat": "13.7563",
-            "lon": "100.5018",
+            "lat": "35.6762",
+            "lon": "139.6503",
             "gps_accuracy_m": "10",
             "camera_session_token": session["token"],
         },
@@ -538,6 +544,8 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
     assert stations_response.status_code == 200
     stations = stations_response.json()["stations"]
     assert stations
+    assert any(station["in_service_area"] for station in stations)
+    assert all(station["in_service_area"] for station in stations)
     station_id = stations[0]["id"]
 
     history = client.get("/api/history", params={"station_id": station_id, "hours": 24})
@@ -548,11 +556,16 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
         "/api/forecast", params={"station_id": station_id, "hours": 12}
     )
     assert forecast.status_code == 200
-    assert len(forecast.json()["points"]) == 12
-    assert forecast.json()["method"] in {
+    forecast_body = forecast.json()
+    assert len(forecast_body["points"]) == 12
+    assert forecast_body["method"] in {
         "damped-local-trend-v1",
-        "hybrid_xgboost_gated",
+        "hybrid-registry-baseline",
     }
+    assert forecast_body["source_recorded_at"]
+    assert forecast_body["quality"]["source_points"] >= 24
+    assert forecast_body["points"][0]["horizon_hours"] == 1
+    assert "ml_forecast_disabled" in forecast_body["fallback_reason_codes"]
 
     search = client.get("/api/locations/search", params={"q": "นครปฐม"})
     assert search.status_code == 200
@@ -570,8 +583,57 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
     assert firms.status_code == 200
     assert firms.json()["count"] == 1
 
+    feedback = client.post(
+        "/api/community/data-issues",
+        json={
+            "category": "station",
+            "reference_id": station_id,
+            "message": "เวลาของสถานีนี้ดูไม่ตรงกับเวลาที่แสดงบนหน้าหลัก",
+        },
+    )
+    assert feedback.status_code == 201
+    assert feedback.json()["ok"] is True
+
     become("admin")
     assert client.get("/api/admin/reports").status_code == 200
     assert client.get("/api/admin/sync-runs").status_code == 200
     assert client.get("/api/admin/forecast-models").status_code == 200
+    assert client.get("/api/admin/forecast-data-quality").status_code == 200
+    assert client.get("/api/admin/forecast-evaluation").status_code == 200
+    assert client.get("/api/admin/forecast-false-safe-cases").status_code == 200
+    assert client.get("/api/admin/forecast-release-decisions").status_code == 200
+    reviewed = client.put(
+        "/api/admin/forecast-false-safe-cases/"
+        "00000000-0000-0000-0000-000000000099/12/served/review",
+        json={
+            "disposition": "model_issue",
+            "note": "ค่าพยากรณ์ต่ำกว่าค่าจริงและต้องตรวจโมเดลเพิ่มเติม",
+        },
+    )
+    assert reviewed.status_code == 200
+    assert reviewed.json()["disposition"] == "model_issue"
+    issues = client.get("/api/admin/data-issues")
+    assert issues.status_code == 200
+    assert any(row["reference_id"] == station_id for row in issues.json()["issues"])
     assert client.get("/api/admin/notification-outbox").status_code == 200
+
+
+def test_forecast_local_load_budget_and_contract(feature_client):
+    """Bounded regression load check; production capacity needs staging evidence."""
+
+    client, become = feature_client
+    become("user")
+    station_id = client.get("/api/pm25/current").json()["stations"][0]["id"]
+    latencies = []
+    for _ in range(25):
+        started = time.perf_counter()
+        response = client.get(
+            "/api/forecast", params={"station_id": station_id, "hours": 24}
+        )
+        latencies.append((time.perf_counter() - started) * 1000)
+        assert response.status_code == 200
+        body = response.json()
+        assert len(body["points"]) == 24
+        assert body["quality"]["source_points"] >= 24
+    p95 = sorted(latencies)[int(len(latencies) * 0.95) - 1]
+    assert p95 < 1500

@@ -24,6 +24,7 @@ STATION_COLS = [
     "lat",
     "lon",
     "province",
+    "district",
     "pm25",
     "aqi",
     "color",
@@ -85,6 +86,8 @@ def insert_readings(stations: list[dict]) -> int:
             "pm25": s.get("pm25"),
             "aqi": s.get("aqi"),
             "recorded_at": s["recorded_at"],
+            "source_at": s["recorded_at"],
+            "source_status": "observed",
         }
         for s in stations
         if s.get("id") and s.get("recorded_at") and s.get("pm25") is not None
@@ -103,6 +106,23 @@ def get_stations() -> list[dict]:
     return res.data or []
 
 
+def get_station_by_id(station_id: str) -> dict | None:
+    if settings.local_demo_mode:
+        return next(
+            (row for row in local_store.get_stations() if str(row["id"]) == station_id),
+            None,
+        )
+    rows = (
+        get_client()
+        .table("stations")
+        .select("*")
+        .eq("id", station_id)
+        .limit(1)
+        .execute()
+    ).data or []
+    return rows[0] if rows else None
+
+
 def get_history(station_id: str, hours: int = 24) -> list[dict]:
     if settings.local_demo_mode:
         return local_store.get_history(station_id, hours)
@@ -117,6 +137,147 @@ def get_history(station_id: str, hours: int = 24) -> list[dict]:
         .execute()
     )
     return res.data or []
+
+
+def create_provider_sync_run(row: dict) -> dict:
+    if settings.local_demo_mode:
+        return local_store.create_provider_sync_run(row)
+    rows = (
+        get_client().table("forecast_provider_sync_runs").insert(row).execute().data
+        or []
+    )
+    return rows[0] if rows else row
+
+
+def update_provider_sync_run(run_id: str, values: dict) -> dict:
+    if settings.local_demo_mode:
+        return local_store.update_provider_sync_run(run_id, values)
+    rows = (
+        get_client()
+        .table("forecast_provider_sync_runs")
+        .update(values)
+        .eq("id", run_id)
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else {"id": run_id, **values}
+
+
+def upsert_provider_snapshots(rows: list[dict]) -> int:
+    if not rows:
+        return 0
+    if settings.local_demo_mode:
+        return local_store.upsert_provider_snapshots(rows)
+    get_client().table("forecast_provider_snapshots").upsert(
+        rows, on_conflict="station_id,provider,issued_at,forecast_at"
+    ).execute()
+    return len(rows)
+
+
+def get_provider_snapshots(station_id: str) -> list[dict]:
+    if settings.local_demo_mode:
+        return local_store.get_provider_snapshots(station_id)
+    return (
+        get_client()
+        .table("forecast_provider_snapshots")
+        .select("*")
+        .eq("station_id", station_id)
+        .order("issued_at", desc=True)
+        .limit(500)
+        .execute()
+        .data
+        or []
+    )
+
+
+def upsert_forecast_consensus(
+    row: dict, sources: list[dict], feature: dict | None = None
+) -> None:
+    if settings.local_demo_mode:
+        local_store.upsert_forecast_consensus(row, sources, feature)
+        return
+    get_client().table("forecast_consensus_latest").upsert(
+        row, on_conflict="station_id,horizon_hours"
+    ).execute()
+    if sources:
+        get_client().table("forecast_prediction_sources").insert(sources).execute()
+    if feature:
+        get_client().table("community_forecast_feature_snapshots").insert(
+            feature
+        ).execute()
+
+
+def get_forecast_consensus(
+    station_id: str, horizon_hours: int | None = None
+) -> list[dict]:
+    if settings.local_demo_mode:
+        return local_store.get_forecast_consensus(station_id, horizon_hours)
+    query = (
+        get_client()
+        .table("forecast_consensus_latest")
+        .select("*")
+        .eq("station_id", station_id)
+    )
+    if horizon_hours is not None:
+        query = query.eq("horizon_hours", horizon_hours)
+    return query.order("horizon_hours").execute().data or []
+
+
+def list_forecast_consensus(horizon_hours: int) -> list[dict]:
+    if settings.local_demo_mode:
+        return local_store.list_forecast_consensus(horizon_hours)
+    return (
+        get_client()
+        .table("forecast_consensus_latest")
+        .select("*")
+        .eq("horizon_hours", horizon_hours)
+        .execute()
+        .data
+        or []
+    )
+
+
+def forecast_provider_health() -> dict:
+    if settings.local_demo_mode:
+        runs = local_store.list_provider_sync_runs(20)
+    else:
+        runs = (
+            get_client()
+            .table("forecast_provider_sync_runs")
+            .select("*")
+            .order("started_at", desc=True)
+            .limit(20)
+            .execute()
+            .data
+            or []
+        )
+    latest = {}
+    for row in runs:
+        latest.setdefault(str(row.get("provider") or "unknown"), row)
+    consensus = list_forecast_consensus(1)
+    agreement_counts = {
+        level: sum(row.get("agreement") == level for row in consensus)
+        for level in ("high", "medium", "low")
+    }
+    return {
+        "providers": list(latest.values()),
+        "consensus": {
+            "station_count": len(consensus),
+            "multi_provider_count": sum(
+                int(row.get("provider_count") or 0) >= 2 for row in consensus
+            ),
+            "community_influenced_count": sum(
+                int(row.get("community_report_count") or 0) > 0 for row in consensus
+            ),
+            "agreement_counts": agreement_counts,
+        },
+        "feature_flags": {
+            "openweather": settings.openweather_air_enabled,
+            "openmeteo_cams": settings.openmeteo_air_enabled,
+            "community_forecast_shadow": settings.community_forecast_shadow_enabled,
+        },
+    }
 
 
 # ── Community platform ─────────────────────────────────────
@@ -346,6 +507,26 @@ def create_audit_log(row: dict) -> dict:
         return local_store.create_audit_log(row)
     rows = get_client().table("audit_logs").insert(row).execute().data or []
     return rows[0] if rows else row
+
+
+def create_data_issue(row: dict) -> dict:
+    if settings.local_demo_mode:
+        return local_store.create_data_issue(row)
+    rows = get_client().table("data_issue_reports").insert(row).execute().data or []
+    return rows[0] if rows else row
+
+
+def list_data_issues(limit: int = 100) -> list[dict]:
+    if settings.local_demo_mode:
+        return local_store.list_data_issues(limit)
+    return (
+        get_client()
+        .table("data_issue_reports")
+        .select("id,category,reference_id,message,status,created_at,updated_at")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    ).data or []
 
 
 def create_public_map_event(row: dict) -> dict:
@@ -609,6 +790,11 @@ def notification_outbox_summary() -> dict:
 
 
 def upsert_weather_observation(row: dict) -> None:
+    row = {
+        **row,
+        "source_at": row.get("source_at") or row.get("recorded_at"),
+        "source_status": row.get("source_status") or "observed",
+    }
     if settings.local_demo_mode:
         local_store.upsert_weather_observation(row)
         return
@@ -620,15 +806,23 @@ def upsert_weather_observation(row: dict) -> None:
 def upsert_weather_forecasts(rows: list[dict]) -> None:
     if not rows:
         return
+    normalized = [
+        {**row, "source_status": row.get("source_status") or "observed"} for row in rows
+    ]
     if settings.local_demo_mode:
-        local_store.upsert_weather_forecasts(rows)
+        local_store.upsert_weather_forecasts(normalized)
         return
     get_client().table("weather_forecasts").upsert(
-        rows, on_conflict="station_id,issued_at,forecast_at"
+        normalized, on_conflict="station_id,issued_at,forecast_at"
     ).execute()
 
 
 def upsert_fire_feature(row: dict) -> None:
+    row = {
+        **row,
+        "source_at": row.get("source_at") or row.get("recorded_at"),
+        "source_status": row.get("source_status") or "observed",
+    }
     if settings.local_demo_mode:
         local_store.upsert_fire_feature(row)
         return
@@ -643,7 +837,10 @@ def get_latest_forecast_features(station_id: str) -> dict:
     weather_rows = (
         get_client()
         .table("weather_observations")
-        .select("recorded_at,temperature,humidity,wind_speed,wind_deg,rain_mm")
+        .select(
+            "recorded_at,source_at,source_status,temperature,humidity,"
+            "wind_speed,wind_deg,rain_mm"
+        )
         .eq("station_id", station_id)
         .order("recorded_at", desc=True)
         .limit(1)
@@ -652,16 +849,389 @@ def get_latest_forecast_features(station_id: str) -> dict:
     fire_rows = (
         get_client()
         .table("fire_feature_snapshots")
-        .select("recorded_at,hotspot_count,weighted_frp,upwind_hotspot_count")
+        .select(
+            "recorded_at,source_at,source_status,hotspot_count,weighted_frp,"
+            "upwind_hotspot_count"
+        )
         .eq("station_id", station_id)
         .order("recorded_at", desc=True)
         .limit(1)
         .execute()
     ).data or []
-    return {
-        **(weather_rows[0] if weather_rows else {}),
-        **(fire_rows[0] if fire_rows else {}),
+    now = datetime.now(UTC)
+    forecast_rows = (
+        get_client()
+        .table("weather_forecasts")
+        .select(
+            "issued_at,forecast_at,source_status,temperature,humidity,"
+            "wind_speed,wind_deg,rain_mm"
+        )
+        .eq("station_id", station_id)
+        .lte("issued_at", now.isoformat())
+        .gte("forecast_at", now.isoformat())
+        .order("issued_at", desc=True)
+        .limit(80)
+        .execute()
+    ).data or []
+    result: dict = {}
+    if weather_rows:
+        weather = weather_rows[0]
+        result.update(weather)
+        result["weather_source_at"] = weather.get("source_at") or weather.get(
+            "recorded_at"
+        )
+        result["weather_status"] = weather.get("source_status") or "observed"
+    if fire_rows:
+        fire = fire_rows[0]
+        result.update(fire)
+        result["fire_source_at"] = fire.get("source_at") or fire.get("recorded_at")
+        result["fire_status"] = fire.get("source_status") or "observed"
+    for horizon in (1, 3, 6, 12, 24):
+        target = now + timedelta(hours=horizon)
+        eligible = []
+        for row in forecast_rows:
+            try:
+                distance = abs(
+                    (
+                        datetime.fromisoformat(
+                            str(row["forecast_at"]).replace("Z", "+00:00")
+                        )
+                        - target
+                    ).total_seconds()
+                )
+            except (KeyError, TypeError, ValueError):
+                continue
+            if distance <= 90 * 60:
+                eligible.append((distance, row))
+        if not eligible:
+            result[f"forecast_weather_status_h{horizon}"] = "missing"
+            continue
+        row = min(eligible, key=lambda item: item[0])[1]
+        result[f"forecast_weather_status_h{horizon}"] = (
+            row.get("source_status") or "observed"
+        )
+        result[f"forecast_weather_issued_at_h{horizon}"] = row.get("issued_at")
+        for name in ("temperature", "humidity", "wind_speed", "wind_deg", "rain_mm"):
+            result[f"forecast_{name}_h{horizon}"] = row.get(name)
+    return result
+
+
+def get_active_forecast_model(horizon_hours: int) -> dict | None:
+    return get_runtime_forecast_model(horizon_hours, prefer_canary=False)
+
+
+def get_runtime_forecast_model(
+    horizon_hours: int, *, prefer_canary: bool = False
+) -> dict | None:
+    if settings.local_demo_mode:
+        return None
+    statuses = ("canary", "active") if prefer_canary else ("active",)
+    for status in statuses:
+        rows = (
+            get_client()
+            .table("model_registry")
+            .select("*")
+            .eq("environment", settings.app_environment)
+            .eq("horizon_hours", horizon_hours)
+            .eq("activation_status", status)
+            .order("updated_at", desc=True)
+            .limit(1)
+            .execute()
+        ).data or []
+        if rows:
+            return rows[0]
+    return None
+
+
+def get_shadow_forecast_model(horizon_hours: int) -> dict | None:
+    if settings.local_demo_mode:
+        return None
+    rows = (
+        get_client()
+        .table("model_registry")
+        .select("*")
+        .eq("environment", settings.app_environment)
+        .eq("horizon_hours", horizon_hours)
+        .eq("activation_status", "shadow")
+        .order("updated_at", desc=True)
+        .limit(1)
+        .execute()
+    ).data or []
+    return rows[0] if rows else None
+
+
+def insert_forecast_ledger(run: dict, predictions: list[dict]) -> None:
+    """Persist a run and its predictions; callers schedule this after response."""
+
+    if settings.local_demo_mode:
+        local_store.insert_forecast_ledger(run, predictions)
+        return
+    get_client().table("forecast_runs").insert(run).execute()
+    if predictions:
+        get_client().table("forecast_predictions").insert(predictions).execute()
+
+
+def get_unsettled_forecast_predictions(limit: int = 500) -> list[dict]:
+    if settings.local_demo_mode:
+        return []
+    return (
+        get_client()
+        .table("forecast_predictions")
+        .select("*,forecast_runs!inner(station_id,environment)")
+        .is_("settled_at", "null")
+        .lte("forecast_at", datetime.now(UTC).isoformat())
+        .order("forecast_at")
+        .limit(limit)
+        .execute()
+    ).data or []
+
+
+def get_observation_near(
+    station_id: str,
+    target_at: str,
+    tolerance_minutes: int = 45,
+) -> dict | None:
+    target = datetime.fromisoformat(target_at.replace("Z", "+00:00"))
+    if target.tzinfo is None:
+        target = target.replace(tzinfo=UTC)
+    if settings.local_demo_mode:
+        rows = local_store.get_history(station_id, 168)
+    else:
+        delta = timedelta(minutes=tolerance_minutes)
+        rows = (
+            get_client()
+            .table("pm25_readings")
+            .select("recorded_at,pm25")
+            .eq("station_id", station_id)
+            .gte("recorded_at", (target - delta).isoformat())
+            .lte("recorded_at", (target + delta).isoformat())
+            .execute()
+        ).data or []
+    candidates = []
+    for row in rows:
+        try:
+            observed_at = datetime.fromisoformat(
+                str(row["recorded_at"]).replace("Z", "+00:00")
+            )
+            distance = abs((observed_at - target).total_seconds())
+            if distance <= tolerance_minutes * 60 and row.get("pm25") is not None:
+                candidates.append((distance, row))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return min(candidates, key=lambda item: item[0])[1] if candidates else None
+
+
+def settle_forecast_prediction(
+    run_id: str, horizon_hours: int, variant: str, values: dict
+) -> None:
+    if settings.local_demo_mode:
+        return
+    (
+        get_client()
+        .table("forecast_predictions")
+        .update(values)
+        .eq("run_id", run_id)
+        .eq("horizon_hours", horizon_hours)
+        .eq("variant", variant)
+        .is_("settled_at", "null")
+        .execute()
+    )
+
+
+def list_settled_forecast_predictions(since_at: str, limit: int = 10000) -> list[dict]:
+    if settings.local_demo_mode:
+        return []
+    return (
+        get_client()
+        .table("forecast_predictions")
+        .select(
+            "*,forecast_runs!inner(station_id,district,environment,fallback_reason,latency_ms)"
+        )
+        .not_.is_("settled_at", "null")
+        .gte("forecast_at", since_at)
+        .order("forecast_at")
+        .limit(limit)
+        .execute()
+    ).data or []
+
+
+def upsert_forecast_evaluation(rows: list[dict]) -> None:
+    if not rows or settings.local_demo_mode:
+        return
+    get_client().table("forecast_evaluation_daily").upsert(rows).execute()
+
+
+def get_forecast_evaluation_summary(days: int = 14) -> list[dict]:
+    if settings.local_demo_mode:
+        return []
+    cutoff = (datetime.now(UTC).date() - timedelta(days=days - 1)).isoformat()
+    return (
+        get_client()
+        .table("forecast_evaluation_daily")
+        .select("*")
+        .gte("evaluation_date", cutoff)
+        .order("evaluation_date", desc=True)
+        .order("horizon_hours")
+        .limit(10000)
+        .execute()
+    ).data or []
+
+
+def list_forecast_false_safe_cases(days: int = 30, limit: int = 100) -> list[dict]:
+    """Return settled false-safe events plus any private administrator review."""
+
+    if settings.local_demo_mode:
+        return []
+    cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+    return (
+        get_client()
+        .table("forecast_predictions")
+        .select(
+            "run_id,horizon_hours,variant,forecast_at,pm25,lower,upper,method,"
+            "model_version,observed_pm25,observed_at,absolute_error,signed_error,"
+            "settled_at,forecast_runs!inner(station_id,district,environment),"
+            "forecast_false_safe_reviews(disposition,note,reviewed_at)"
+        )
+        .eq("false_safe", True)
+        .gte("settled_at", cutoff)
+        .order("settled_at", desc=True)
+        .limit(limit)
+        .execute()
+    ).data or []
+
+
+def upsert_forecast_false_safe_review(row: dict) -> dict:
+    if settings.local_demo_mode:
+        return local_store.upsert_forecast_false_safe_review(row)
+    result = (
+        get_client()
+        .table("forecast_false_safe_reviews")
+        .upsert(row, on_conflict="run_id,horizon_hours,variant")
+        .execute()
+    )
+    return result.data[0]
+
+
+def list_forecast_release_decisions(limit: int = 100) -> list[dict]:
+    if settings.local_demo_mode:
+        return []
+    return (
+        get_client()
+        .table("forecast_release_decisions")
+        .select(
+            "id,registry_id,decision,environment,actor_id,reason,evidence,created_at,"
+            "model_registry(model_name,horizon_hours,version,activation_status)"
+        )
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    ).data or []
+
+
+def delete_forecast_runs_before(cutoff_at: str, limit: int = 1000) -> int:
+    """Delete old run batches; prediction rows cascade from the run foreign key."""
+
+    if settings.local_demo_mode:
+        return local_store.delete_forecast_runs_before(cutoff_at, limit)
+    rows = (
+        get_client()
+        .table("forecast_runs")
+        .select("id")
+        .lt("generated_at", cutoff_at)
+        .order("generated_at")
+        .limit(limit)
+        .execute()
+    ).data or []
+    run_ids = [str(row["id"]) for row in rows]
+    if not run_ids:
+        return 0
+    get_client().table("forecast_runs").delete().in_("id", run_ids).execute()
+    return len(run_ids)
+
+
+def list_forecast_monitoring_rows(since_at: str, until_at: str) -> list[dict]:
+    if settings.local_demo_mode:
+        return local_store.list_forecast_monitoring_rows(since_at, until_at)
+    return (
+        get_client()
+        .table("forecast_predictions")
+        .select(
+            "pm25,horizon_hours,method,model_version,"
+            "forecast_runs!inner(generated_at,environment,feature_quality)"
+        )
+        .gte("forecast_runs.generated_at", since_at)
+        .lt("forecast_runs.generated_at", until_at)
+        .limit(20000)
+        .execute()
+    ).data or []
+
+
+def insert_forecast_drift_snapshots(rows: list[dict]) -> None:
+    if not rows or settings.local_demo_mode:
+        return
+    get_client().table("forecast_drift_snapshots").upsert(rows).execute()
+
+
+def list_source_quality_rows(
+    source_name: str, since_at: str, until_at: str
+) -> list[dict]:
+    if settings.local_demo_mode:
+        if source_name != "pm25":
+            return []
+        output = []
+        for station in local_store.get_stations():
+            output.extend(
+                {
+                    **row,
+                    "station_id": station["id"],
+                    "source_status": "observed",
+                }
+                for row in local_store.get_history(str(station["id"]), 48)
+                if since_at <= str(row.get("recorded_at")) < until_at
+            )
+        return output
+    mapping = {
+        "pm25": ("pm25_readings", "recorded_at"),
+        "weather": ("weather_observations", "recorded_at"),
+        "forecast_weather": ("weather_forecasts", "issued_at"),
+        "fire": ("fire_feature_snapshots", "recorded_at"),
     }
+    if source_name not in mapping:
+        raise ValueError("quality_source_unsupported")
+    table, timestamp_column = mapping[source_name]
+    rows = (
+        get_client()
+        .table(table)
+        .select(f"station_id,{timestamp_column},source_status")
+        .gte(timestamp_column, since_at)
+        .lt(timestamp_column, until_at)
+        .limit(10000)
+        .execute()
+    ).data or []
+    return [{**row, "recorded_at": row.get(timestamp_column)} for row in rows]
+
+
+def upsert_forecast_data_quality(rows: list[dict]) -> None:
+    if not rows or settings.local_demo_mode:
+        return
+    get_client().table("forecast_data_quality_daily").upsert(rows).execute()
+
+
+def get_forecast_data_quality_summary(days: int = 7) -> list[dict]:
+    if settings.local_demo_mode:
+        return []
+    cutoff = (datetime.now(UTC).date() - timedelta(days=days - 1)).isoformat()
+    return (
+        get_client()
+        .table("forecast_data_quality_daily")
+        .select("*")
+        .gte("quality_date", cutoff)
+        .order("quality_date", desc=True)
+        .order("source_name")
+        .order("station_id")
+        .limit(5000)
+        .execute()
+    ).data or []
 
 
 def signed_report_image_url(path: str | None, expires_in: int = 3600) -> str | None:
