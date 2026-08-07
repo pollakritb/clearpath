@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:admin@example.com"
 
+    # LINE Messaging API (LINE Notify was discontinued). Secrets remain server-only.
+    line_messaging_enabled: bool = False
+    line_channel_secret: str = ""
+    line_channel_access_token: str = ""
+    line_official_account_url: str = ""
+
     # Production feature gates. A model must also pass its quality gate in the
     # model registry before ML forecasts are served.
     push_enabled: bool = False
@@ -80,6 +86,24 @@ class Settings(BaseSettings):
     @property
     def has_supabase(self) -> bool:
         return bool(self.supabase_url and self.supabase_service_role_key)
+
+    @property
+    def web_push_ready(self) -> bool:
+        """True only when both halves of the VAPID credential are usable."""
+        return bool(
+            self.push_enabled
+            and self.vapid_public_key
+            and self.vapid_private_key
+            and self.vapid_subject
+        )
+
+    @property
+    def line_messaging_ready(self) -> bool:
+        return bool(
+            self.line_messaging_enabled
+            and self.line_channel_secret
+            and self.line_channel_access_token
+        )
 
     @property
     def allowed_cors_origins(self) -> list[str]:

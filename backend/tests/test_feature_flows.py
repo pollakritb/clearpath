@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import time
 from io import BytesIO
 from uuid import uuid4
@@ -12,8 +16,8 @@ from backend.core.auth import AuthenticatedUser, require_user
 from backend.core.config import settings
 from backend.main import create_app
 from backend.services import firms as firms_service
+from backend.services import line_messaging, openweather
 from backend.services import ocr as ocr_service
-from backend.services import openweather
 
 
 @pytest.fixture
@@ -113,6 +117,7 @@ def _create_pending_report(client: TestClient, seed: int = 1) -> dict:
     assert draft_response.status_code == 201, draft_response.text
     draft = draft_response.json()
     assert draft["ocr_available"] is False
+    assert draft["ocr_status"] == "unavailable"
     assert draft["image_preview_url"]
 
     submit_response = client.post(
@@ -142,6 +147,7 @@ def test_high_confidence_report_is_automatically_approved(feature_client, monkey
     async def confident_ocr(_image: bytes, _content_type: str) -> dict:
         return {
             "available": True,
+            "service_error": False,
             "pm25": 42.0,
             "confidence": 0.98,
             "device_detected": True,
@@ -168,6 +174,7 @@ def test_high_confidence_report_is_automatically_approved(feature_client, monkey
     )
     assert draft_response.status_code == 201, draft_response.text
     draft = draft_response.json()
+    assert draft["ocr_status"] == "ready"
 
     submitted = client.post(
         f"/api/community/report-drafts/{draft['id']}/submit",
@@ -437,7 +444,7 @@ def test_role_guards_and_report_rejection_flow(feature_client):
 
 
 def test_announcement_activity_notification_preferences_and_push_contract(
-    feature_client,
+    feature_client, monkeypatch
 ):
     client, become = feature_client
     member = become("user")
@@ -522,6 +529,18 @@ def test_announcement_activity_notification_preferences_and_push_contract(
         "keys": {"p256dh": "test-p256dh-key-material", "auth": "test-auth"},
         "user_agent": "pytest",
     }
+    disabled_subscription = client.post(
+        "/api/notifications/subscriptions", json=subscription
+    )
+    assert disabled_subscription.status_code == 503
+    monkeypatch.setattr(settings, "push_enabled", True)
+    monkeypatch.setattr(settings, "vapid_public_key", "test-public-key")
+    monkeypatch.setattr(settings, "vapid_private_key", "test-private-key")
+    monkeypatch.setattr(settings, "vapid_subject", "mailto:test@example.com")
+    assert client.get("/api/notifications/config").json() == {
+        "enabled": True,
+        "public_key": "test-public-key",
+    }
     assert (
         client.post("/api/notifications/subscriptions", json=subscription).status_code
         == 200
@@ -534,6 +553,67 @@ def test_announcement_activity_notification_preferences_and_push_contract(
         ).status_code
         == 200
     )
+
+
+def test_line_account_link_webhook_and_delivery(feature_client, monkeypatch):
+    client, become = feature_client
+    member = become("user")
+    secret = "test-line-channel-secret"
+    monkeypatch.setattr(settings, "line_messaging_enabled", True)
+    monkeypatch.setattr(settings, "line_channel_secret", secret)
+    monkeypatch.setattr(settings, "line_channel_access_token", "test-line-token")
+    monkeypatch.setattr(
+        settings, "line_official_account_url", "https://line.me/R/ti/p/@clearpath"
+    )
+    sent: list[tuple[str, dict]] = []
+    monkeypatch.setattr(
+        line_messaging, "_post", lambda url, payload: sent.append((url, payload))
+    )
+
+    initial = client.get("/api/notifications/line")
+    assert initial.status_code == 200
+    assert initial.json()["enabled"] is True
+    assert initial.json()["linked"] is False
+
+    code_response = client.post("/api/notifications/line/link-code")
+    assert code_response.status_code == 200, code_response.text
+    code = code_response.json()["code"]
+    line_user_id = f"U{uuid4().hex}"
+    event = {
+        "events": [
+            {
+                "type": "message",
+                "replyToken": "reply-token",
+                "source": {"type": "user", "userId": line_user_id},
+                "message": {"type": "text", "text": code},
+            }
+        ]
+    }
+    body = json.dumps(event, separators=(",", ":")).encode()
+    signature = base64.b64encode(
+        hmac.new(secret.encode(), body, hashlib.sha256).digest()
+    ).decode()
+    invalid = client.post(
+        "/api/notifications/line/webhook",
+        content=body,
+        headers={"content-type": "application/json", "x-line-signature": "bad"},
+    )
+    assert invalid.status_code == 401
+    webhook = client.post(
+        "/api/notifications/line/webhook",
+        content=body,
+        headers={"content-type": "application/json", "x-line-signature": signature},
+    )
+    assert webhook.status_code == 200, webhook.text
+    assert webhook.json() == {"handled": 1, "linked": 1}
+    assert client.get("/api/notifications/line").json()["linked"] is True
+
+    delivered = client.post("/api/notifications/test")
+    assert delivered.status_code == 200, delivered.text
+    assert any(url == line_messaging.LINE_PUSH_URL for url, _payload in sent)
+    assert client.delete("/api/notifications/line").status_code == 200
+    assert client.get("/api/notifications/line").json()["linked"] is False
+    assert member.id
 
 
 def test_official_history_forecast_search_validation_and_admin_health(feature_client):

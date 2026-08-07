@@ -9,6 +9,7 @@ from starlette.concurrency import run_in_threadpool
 
 from ...algorithms.community_quality import obfuscate_coordinates
 from ...algorithms.distance import haversine_km
+from ...algorithms.ocr_quality import classify_ocr_result
 from ...algorithms.trust import calculate_trust_score, is_thailand_area
 from ...core.config import settings
 from ...core.errors import UpstreamError
@@ -81,6 +82,7 @@ async def create_draft(
     except UpstreamError:
         ocr_result = {
             "available": False,
+            "service_error": True,
             "pm25": None,
             "confidence": 0.0,
             "device_detected": False,
@@ -131,6 +133,7 @@ async def create_draft(
         "ocr_pm25": saved.get("ocr_pm25"),
         "ocr_confidence": float(saved.get("ocr_confidence") or 0),
         "ocr_available": bool(ocr_result.get("available")),
+        "ocr_status": classify_ocr_result(ocr_result),
         "device_detected": bool(saved.get("device_detected")),
         "display_clear": bool(saved.get("display_clear")),
         "duplicate_detected": bool(saved.get("duplicate_of_report_id")),

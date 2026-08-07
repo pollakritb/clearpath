@@ -114,6 +114,14 @@ export interface CommunityMapPointsResponse {
 export interface ReportCreateResponse {
   report: CommunityReport;
   ocr_available: boolean;
+  ocr_status:
+    | "unavailable"
+    | "service_error"
+    | "no_device"
+    | "unclear_display"
+    | "no_reading"
+    | "low_confidence"
+    | "ready";
   review_outcome: "automatic_approved" | "pending_manual_review";
   review_reasons: string[];
   message: string;
@@ -124,6 +132,14 @@ export interface ReportDraftResponse {
   ocr_pm25: number | null;
   ocr_confidence: number;
   ocr_available: boolean;
+  ocr_status:
+    | "unavailable"
+    | "service_error"
+    | "no_device"
+    | "unclear_display"
+    | "no_reading"
+    | "low_confidence"
+    | "ready";
   device_detected: boolean;
   display_clear: boolean;
   duplicate_detected: boolean;

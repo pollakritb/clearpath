@@ -16,6 +16,7 @@ export default function AuthControl({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [googleSending, setGoogleSending] = useState(false);
 
   if (auth.loading)
     return <span style={{ fontSize: ".68em" }}>กำลังตรวจ session…</span>;
@@ -46,27 +47,58 @@ export default function AuthControl({
   }
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        setSending(true);
-        setError(null);
-        void auth
-          .signInWithOtp(email)
-          .then(() => setMessage("ส่งลิงก์เข้าสู่ระบบไปที่อีเมลแล้ว"))
-          .catch((cause: unknown) =>
-            setError(
-              cause instanceof Error ? cause.message : "ส่ง OTP ไม่สำเร็จ",
-            ),
-          )
-          .finally(() => setSending(false));
-      }}
-      className="cp-auth-form"
-    >
+    <div className="cp-auth-form">
       {!compact && (
         <b style={{ fontSize: ".76em" }}>เข้าสู่ระบบก่อนร่วมรายงาน</b>
       )}
-      <div className="cp-auth-form__row">
+      <button
+        type="button"
+        disabled={googleSending || sending || !auth.configured}
+        className="cp-auth-google cp-focus"
+        onClick={() => {
+          setGoogleSending(true);
+          setMessage(null);
+          setError(null);
+          void auth
+            .signInWithGoogle()
+            .catch((cause: unknown) =>
+              setError(
+                cause instanceof Error
+                  ? cause.message
+                  : "เข้าสู่ระบบด้วย Google ไม่สำเร็จ",
+              ),
+            )
+            .finally(() => setGoogleSending(false));
+        }}
+      >
+        <span aria-hidden className="cp-auth-google__mark">
+          G
+        </span>
+        <span>
+          {googleSending ? "กำลังเชื่อมต่อ…" : "เข้าสู่ระบบด้วย Google"}
+        </span>
+      </button>
+      <div className="cp-auth-divider" aria-hidden>
+        <span>หรือรับลิงก์ทางอีเมล</span>
+      </div>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          setSending(true);
+          setMessage(null);
+          setError(null);
+          void auth
+            .signInWithOtp(email)
+            .then(() => setMessage("ส่งลิงก์เข้าสู่ระบบไปที่อีเมลแล้ว"))
+            .catch((cause: unknown) =>
+              setError(
+                cause instanceof Error ? cause.message : "ส่ง OTP ไม่สำเร็จ",
+              ),
+            )
+            .finally(() => setSending(false));
+        }}
+        className="cp-auth-form__row"
+      >
         <input
           type="email"
           required
@@ -78,25 +110,27 @@ export default function AuthControl({
         />
         <button
           type="submit"
-          disabled={sending || !auth.configured}
+          disabled={sending || googleSending || !auth.configured}
           className="cp-focus"
         >
           {sending ? "…" : "ส่ง OTP"}
         </button>
-      </div>
+      </form>
       {!auth.configured && (
         <span role="alert" style={{ fontSize: ".66em", color: T.red }}>
           ยังไม่ได้ตั้งค่า NEXT_PUBLIC_SUPABASE_URL/ANON_KEY
         </span>
       )}
       {message && (
-        <span style={{ fontSize: ".66em", color: T.teal }}>{message}</span>
+        <span aria-live="polite" style={{ fontSize: ".66em", color: T.teal }}>
+          {message}
+        </span>
       )}
       {error && (
         <span role="alert" style={{ fontSize: ".66em", color: T.red }}>
           {error}
         </span>
       )}
-    </form>
+    </div>
   );
 }

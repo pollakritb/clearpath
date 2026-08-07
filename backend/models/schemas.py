@@ -47,6 +47,8 @@ from .forecast import (
 from .locations import LocationSearchResponse, LocationSuggestion
 from .meta import ReadinessResponse
 from .notifications import (
+    LineLinkCodeResponse,
+    LineNotificationStatus,
     NotificationPreferences,
     NotificationsResponse,
     OperationResponse,
@@ -90,6 +92,8 @@ __all__ = [
     "LoocvMetrics",
     "LocationSearchResponse",
     "LocationSuggestion",
+    "LineLinkCodeResponse",
+    "LineNotificationStatus",
     "NotificationPreferences",
     "NotificationsResponse",
     "OperationResponse",

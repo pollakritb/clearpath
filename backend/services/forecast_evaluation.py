@@ -12,6 +12,8 @@ from ..algorithms.forecast_monitoring import (
 )
 from . import forecast_monitoring, retention, supabase_client
 
+EVALUATION_HORIZONS = frozenset({1, 3, 6, 12, 24})
+
 
 def _fallback_rate(members: list[dict], method: str) -> float:
     # A shadow prediction exists only when shadow inference succeeded. The served
@@ -67,12 +69,19 @@ def aggregate_recent(days: int = 7) -> dict:
     rows = supabase_client.list_settled_forecast_predictions(since.isoformat())
     groups: dict[tuple[str, str, int, str, str, str], list[dict]] = defaultdict(list)
     for row in rows:
+        horizon = int(row["horizon_hours"])
+        # Forecast responses expose every hour, while the production monitoring
+        # schema intentionally stores only the product/release-gate horizons.
+        # Filtering here keeps hourly predictions settleable without violating
+        # forecast_evaluation_daily_horizon_hours_check.
+        if horizon not in EVALUATION_HORIZONS:
+            continue
         run = row.get("forecast_runs") or {}
         date = str(row.get("forecast_at") or "")[:10]
         prefix = (
             date,
             str(run.get("environment") or "unknown"),
-            int(row["horizon_hours"]),
+            horizon,
             str(row.get("method") or "unknown"),
         )
         station_id = str(run.get("station_id") or "unknown")
@@ -136,10 +145,13 @@ def weekly_metrics(days: int = 7) -> dict:
     rows = supabase_client.list_settled_forecast_predictions(since.isoformat())
     groups: dict[tuple[str, int, str, str, str], list[dict]] = defaultdict(list)
     for row in rows:
+        horizon = int(row["horizon_hours"])
+        if horizon not in EVALUATION_HORIZONS:
+            continue
         run = row.get("forecast_runs") or {}
         prefix = (
             str(run.get("environment") or "unknown"),
-            int(row["horizon_hours"]),
+            horizon,
             str(row.get("method") or "unknown"),
         )
         station_id = str(run.get("station_id") or "unknown")

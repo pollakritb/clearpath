@@ -10,11 +10,11 @@ from pywebpush import WebPushException, webpush
 
 from ..core.config import settings
 from ..core.errors import ConfigurationError
-from . import supabase_client
+from . import line_messaging, supabase_client
 
 
 def send_to_subscription(subscription: dict, payload: dict) -> bool:
-    if not settings.push_enabled:
+    if not settings.web_push_ready:
         raise ConfigurationError("Web Push ยังไม่เปิดใช้งาน")
     if not settings.vapid_private_key or not settings.vapid_subject:
         raise ConfigurationError("ยังไม่ได้ตั้งค่า VAPID_PRIVATE_KEY/VAPID_SUBJECT")
@@ -51,6 +51,13 @@ def send_to_user(user_id: str, payload: dict) -> int:
     delivered = 0
     for subscription in supabase_client.list_push_subscriptions(user_id):
         delivered += int(send_to_subscription(subscription, payload))
+    return delivered
+
+
+def deliver_to_user(user_id: str, payload: dict) -> int:
+    """Deliver through every configured channel linked by the user."""
+    delivered = send_to_user(user_id, payload) if settings.web_push_ready else 0
+    delivered += line_messaging.send_to_user(user_id, payload)
     return delivered
 
 
@@ -123,10 +130,8 @@ def process_outbox(limit: int = 100) -> dict:
         processed += 1
         attempts = int(event.get("attempts") or 0) + 1
         try:
-            count = (
-                send_to_user(str(event["user_id"]), dict(event.get("payload") or {}))
-                if settings.push_enabled
-                else 0
+            count = deliver_to_user(
+                str(event["user_id"]), dict(event.get("payload") or {})
             )
             delivered += count
             supabase_client.update_outbox_event(

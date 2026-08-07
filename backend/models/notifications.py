@@ -58,6 +58,20 @@ class PushConfigResponse(BaseModel):
     public_key: str | None = None
 
 
+class LineNotificationStatus(BaseModel):
+    enabled: bool
+    linked: bool
+    linked_at: str | None = None
+    official_account_url: str | None = None
+
+
+class LineLinkCodeResponse(BaseModel):
+    code: str
+    expires_at: str
+    official_account_url: str | None = None
+    instruction: str
+
+
 class OperationResponse(BaseModel):
     ok: bool
     message: str

@@ -68,7 +68,9 @@ async def read_pm25(image: bytes, content_type: str) -> dict:
                         "text": (
                             "อ่านข้อความบนหน้าจอเครื่องวัด PM2.5 จากภาพนี้เท่านั้น "
                             "คืนค่า PM2.5 ที่แสดง ไม่ใช่ AQI หรืออุณหภูมิ "
-                            "ถ้าไม่พบเครื่องวัดหรืออ่านเลขไม่ได้ให้ pm25 เป็น null และ confidence ต่ำ"
+                            "ใช้เฉพาะตัวเลขที่มีป้ายกำกับ PM2.5 หรือหน่วย µg/m³ ชัดเจน "
+                            "ห้ามเดาจากสีหรือค่า AQI ถ้าไม่พบเครื่องวัด หน้าจอไม่ชัด "
+                            "หรือไม่แน่ใจว่าตัวเลขเป็น PM2.5 ให้ pm25 เป็น null และ confidence ต่ำ"
                         ),
                     },
                     {"type": "input_image", "image_url": data_url, "detail": "high"},
@@ -105,6 +107,7 @@ async def read_pm25(image: bytes, content_type: str) -> dict:
         value = max(0.0, min(1000.0, float(value)))
     return {
         "available": True,
+        "service_error": False,
         "pm25": value,
         "confidence": max(0.0, min(1.0, float(result.get("confidence", 0.0)))),
         "device_detected": bool(result.get("device_detected")),

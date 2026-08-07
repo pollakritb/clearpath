@@ -29,7 +29,7 @@ function stationIcon(
 function clusterIcon(count: number, color: string) {
   return L.divIcon({
     className: "cp-marker cp-marker--cluster",
-    html: `<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center"><div style="min-width:34px;height:34px;padding:0 8px;border-radius:18px;background:${color};border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font:800 13px system-ui">${count}</div></div>`,
+    html: `<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center"><div style="min-width:34px;height:34px;padding:0 8px;border-radius:18px;background:${color};border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#111827;font:800 13px system-ui">${count}</div></div>`,
     iconSize: [44, 44],
     iconAnchor: [22, 22],
   });

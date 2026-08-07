@@ -3,8 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 const isWindows = process.platform === "win32";
 const python = isWindows ? ".venv\\Scripts\\python.exe" : "python";
 const isCi = Boolean(process.env.CI);
-const frontendPort = isCi ? 3000 : 3100;
-const backendPort = 8000;
+const frontendPort = isCi ? 3000 : 3117;
+const backendPort = isCi ? 8000 : 8017;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -14,6 +14,13 @@ export default defineConfig({
   reporter: isCi ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: `http://127.0.0.1:${frontendPort}`,
+    permissions: ["camera"],
+    launchOptions: {
+      args: [
+        "--use-fake-device-for-media-stream",
+        "--use-fake-ui-for-media-stream",
+      ],
+    },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -21,7 +28,7 @@ export default defineConfig({
     {
       command: `${python} -m uvicorn backend.main:app --host 127.0.0.1 --port ${backendPort}`,
       url: `http://127.0.0.1:${backendPort}/api/health`,
-      reuseExistingServer: !isCi,
+      reuseExistingServer: false,
       timeout: 120_000,
       env: {
         ...process.env,
@@ -35,7 +42,7 @@ export default defineConfig({
     {
       command: `npm run build && npm run start -- --hostname 127.0.0.1 --port ${frontendPort}`,
       url: `http://127.0.0.1:${frontendPort}`,
-      reuseExistingServer: !isCi,
+      reuseExistingServer: false,
       timeout: 120_000,
       env: {
         ...process.env,

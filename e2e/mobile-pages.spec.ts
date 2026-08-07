@@ -58,6 +58,30 @@ test("mobile primary navigation targets are at least 44px", async ({
   }
 });
 
+test("mobile camera opens, becomes ready and captures a live frame", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-390", "Camera flow runs once.");
+  await page.goto("/report");
+  await page.getByRole("button", { name: "เปิดกล้องในแอป" }).click();
+  await expect(
+    page.getByText("กล้องพร้อมแล้ว ถือเครื่องให้นิ่ง", { exact: false }),
+  ).toBeVisible();
+  const capture = page.getByRole("button", {
+    name: "ถ่ายหน้าจอเครื่องวัด",
+  });
+  await expect(capture).toBeEnabled();
+  await capture.click();
+  await expect(
+    page.getByRole("img", { name: "ภาพหน้าจอเครื่องวัดที่เพิ่งถ่าย" }),
+  ).toBeVisible();
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
+});
+
 test("map separates official stations from community reports", async ({
   page,
 }) => {

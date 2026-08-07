@@ -5,6 +5,10 @@ import { useEffect, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, ApiError } from "@/frontend/lib/api-client";
+import {
+  cameraErrorMessage,
+  fitCaptureDimensions,
+} from "@/frontend/lib/camera";
 import { T } from "@/frontend/lib/ui";
 
 export interface CameraEvidence {
@@ -26,6 +30,7 @@ export default function CameraCapture({
   const sessionRef = useRef<{ token: string; issuedAt: string } | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +38,7 @@ export default function CameraCapture({
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     setCameraOpen(false);
+    setCameraReady(false);
   }
 
   useEffect(() => {
@@ -57,7 +63,11 @@ export default function CameraCapture({
       }
       const session = await api.captureSession();
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
         audio: false,
       });
       streamRef.current = stream;
@@ -67,20 +77,18 @@ export default function CameraCapture({
       };
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        await videoRef.current.play().catch(() => undefined);
       }
       setCameraOpen(true);
     } catch (cause) {
       stopStream();
       if (cause instanceof ApiError) setError(cause.message);
-      else if (
-        cause instanceof DOMException &&
-        cause.name === "NotAllowedError"
-      ) {
-        setError("กรุณาอนุญาตการใช้กล้อง แล้วกดเปิดกล้องอีกครั้ง");
-      } else {
-        setError(cause instanceof Error ? cause.message : "เปิดกล้องไม่สำเร็จ");
-      }
+      else if (cause instanceof DOMException)
+        setError(cameraErrorMessage(cause.name));
+      else
+        setError(
+          cause instanceof Error ? cause.message : cameraErrorMessage(""),
+        );
     } finally {
       setLoading(false);
     }
@@ -89,8 +97,12 @@ export default function CameraCapture({
   function captureFrame(video: HTMLVideoElement, index: number): Promise<File> {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      const dimensions = fitCaptureDimensions(
+        video.videoWidth,
+        video.videoHeight,
+      );
+      canvas.width = dimensions.width;
+      canvas.height = dimensions.height;
       const context = canvas.getContext("2d");
       if (!context) {
         reject(new Error("ไม่สามารถสร้างภาพจากกล้องได้"));
@@ -111,7 +123,7 @@ export default function CameraCapture({
           );
         },
         "image/jpeg",
-        0.9,
+        0.88,
       );
     });
   }
@@ -119,7 +131,13 @@ export default function CameraCapture({
   async function takePhoto() {
     const video = videoRef.current;
     const session = sessionRef.current;
-    if (!video || !session || !video.videoWidth || !video.videoHeight) {
+    if (
+      !video ||
+      !session ||
+      !cameraReady ||
+      !video.videoWidth ||
+      !video.videoHeight
+    ) {
       setError("กล้องยังไม่พร้อม กรุณารอสักครู่แล้วลองใหม่");
       return;
     }
@@ -174,8 +192,10 @@ export default function CameraCapture({
       >
         <video
           ref={videoRef}
+          autoPlay
           playsInline
           muted
+          onLoadedMetadata={() => setCameraReady(true)}
           aria-label="ภาพจากกล้องสำหรับถ่ายหน้าจอเครื่องวัด"
           style={{
             width: "100%",
@@ -183,6 +203,11 @@ export default function CameraCapture({
             display: cameraOpen ? "block" : "none",
           }}
         />
+        {cameraOpen && (
+          <div className="cp-camera-guide" aria-hidden>
+            <span>วางตัวเลข PM2.5 ให้อยู่ในกรอบ</span>
+          </div>
+        )}
         {preview && (
           <Image
             unoptimized
@@ -250,6 +275,7 @@ export default function CameraCapture({
             <button
               type="button"
               onClick={takePhoto}
+              disabled={loading || !cameraReady}
               className="cp-focus"
               style={{
                 ...buttonStyle,
@@ -258,7 +284,11 @@ export default function CameraCapture({
                 color: "#fff",
               }}
             >
-              {loading ? "กำลังเก็บ 3 เฟรม…" : "ถ่ายหน้าจอเครื่องวัด"}
+              {loading
+                ? "กำลังเก็บ 3 เฟรม…"
+                : cameraReady
+                  ? "ถ่ายหน้าจอเครื่องวัด"
+                  : "กำลังเตรียมกล้อง…"}
             </button>
             <button
               type="button"
@@ -271,6 +301,13 @@ export default function CameraCapture({
           </>
         )}
       </div>
+      {cameraOpen && (
+        <p aria-live="polite" className="cp-camera-status">
+          {cameraReady
+            ? "กล้องพร้อมแล้ว ถือเครื่องให้นิ่งและหลีกเลี่ยงแสงสะท้อน"
+            : "กำลังเตรียมภาพจากกล้อง…"}
+        </p>
+      )}
       {error && (
         <p role="alert" style={{ fontSize: ".72em", color: "#c2433a" }}>
           {error}

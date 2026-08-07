@@ -597,6 +597,95 @@ def list_push_subscriptions(user_id: str | None = None) -> list[dict]:
     return query.execute().data or []
 
 
+def upsert_line_notification_link(user_id: str, values: dict) -> dict:
+    row = {
+        "user_id": user_id,
+        **values,
+        "updated_at": datetime.now(UTC).isoformat(),
+    }
+    if settings.local_demo_mode:
+        return local_store.upsert_line_notification_link(user_id, row)
+    rows = (
+        get_client()
+        .table("line_notification_links")
+        .upsert(row, on_conflict="user_id")
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else row
+
+
+def get_line_notification_link(user_id: str) -> dict | None:
+    if settings.local_demo_mode:
+        return local_store.get_line_notification_link(user_id)
+    rows = (
+        get_client()
+        .table("line_notification_links")
+        .select("*")
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else None
+
+
+def get_line_notification_link_by_code(code_hash: str) -> dict | None:
+    if settings.local_demo_mode:
+        return local_store.get_line_notification_link_by_code(code_hash)
+    rows = (
+        get_client()
+        .table("line_notification_links")
+        .select("*")
+        .eq("link_code_hash", code_hash)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else None
+
+
+def get_line_notification_link_by_line_user(line_user_id: str) -> dict | None:
+    if settings.local_demo_mode:
+        return local_store.get_line_notification_link_by_line_user(line_user_id)
+    rows = (
+        get_client()
+        .table("line_notification_links")
+        .select("*")
+        .eq("line_user_id", line_user_id)
+        .eq("active", True)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else None
+
+
+def deactivate_line_notification_link(
+    *, user_id: str | None = None, line_user_id: str | None = None
+) -> bool:
+    if settings.local_demo_mode:
+        return local_store.deactivate_line_notification_link(
+            user_id=user_id, line_user_id=line_user_id
+        )
+    query = (
+        get_client()
+        .table("line_notification_links")
+        .update({"active": False, "updated_at": datetime.now(UTC).isoformat()})
+    )
+    if user_id:
+        query = query.eq("user_id", user_id)
+    elif line_user_id:
+        query = query.eq("line_user_id", line_user_id)
+    else:
+        return False
+    return bool(query.execute().data or [])
+
+
 def upsert_notification_preferences(user_id: str, values: dict) -> dict:
     row = {"user_id": user_id, **values, "updated_at": datetime.now(UTC).isoformat()}
     if settings.local_demo_mode:

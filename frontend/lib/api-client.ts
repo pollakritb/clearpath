@@ -18,6 +18,8 @@ import type {
   ForecastResponse,
   ForecastSurfaceResponse,
   HistoryResponse,
+  LineLinkCodeResponse,
+  LineNotificationStatus,
   NotificationPreferences,
   NotificationsResponse,
   OperationResponse,
@@ -222,6 +224,21 @@ export const api = {
   testNotification: () =>
     http<OperationResponse>("/api/notifications/test", {
       method: "POST",
+      auth: true,
+    }),
+
+  lineNotificationStatus: () =>
+    http<LineNotificationStatus>("/api/notifications/line", { auth: true }),
+
+  createLineLinkCode: () =>
+    http<LineLinkCodeResponse>("/api/notifications/line/link-code", {
+      method: "POST",
+      auth: true,
+    }),
+
+  disconnectLine: () =>
+    http<OperationResponse>("/api/notifications/line", {
+      method: "DELETE",
       auth: true,
     }),
 

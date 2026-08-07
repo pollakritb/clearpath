@@ -35,6 +35,7 @@ _NOTIFICATION_PREFERENCES: dict[str, dict] = {}
 _ALERT_EVENTS: dict[str, dict] = {}
 _USER_NOTIFICATIONS: dict[str, dict] = {}
 _NOTIFICATION_OUTBOX: dict[str, dict] = {}
+_LINE_NOTIFICATION_LINKS: dict[str, dict] = {}
 _AUDIT_LOGS: list[dict] = []
 _PUBLIC_MAP_EVENTS: list[dict] = []
 _WEATHER_OBSERVATIONS: list[dict] = []
@@ -503,6 +504,61 @@ def list_push_subscriptions(user_id: str | None = None) -> list[dict]:
             if row.get("active")
             and (user_id is None or str(row.get("user_id")) == user_id)
         ]
+
+
+def upsert_line_notification_link(user_id: str, values: dict) -> dict:
+    with _LOCK:
+        current = _LINE_NOTIFICATION_LINKS.get(user_id, {"user_id": user_id})
+        current.update(values)
+        _LINE_NOTIFICATION_LINKS[user_id] = current
+        return dict(current)
+
+
+def get_line_notification_link(user_id: str) -> dict | None:
+    with _LOCK:
+        row = _LINE_NOTIFICATION_LINKS.get(user_id)
+        return dict(row) if row else None
+
+
+def get_line_notification_link_by_code(code_hash: str) -> dict | None:
+    with _LOCK:
+        row = next(
+            (
+                item
+                for item in _LINE_NOTIFICATION_LINKS.values()
+                if item.get("link_code_hash") == code_hash
+            ),
+            None,
+        )
+        return dict(row) if row else None
+
+
+def get_line_notification_link_by_line_user(line_user_id: str) -> dict | None:
+    with _LOCK:
+        row = next(
+            (
+                item
+                for item in _LINE_NOTIFICATION_LINKS.values()
+                if item.get("line_user_id") == line_user_id and item.get("active")
+            ),
+            None,
+        )
+        return dict(row) if row else None
+
+
+def deactivate_line_notification_link(
+    *, user_id: str | None = None, line_user_id: str | None = None
+) -> bool:
+    changed = False
+    with _LOCK:
+        for row in _LINE_NOTIFICATION_LINKS.values():
+            if (user_id and str(row.get("user_id")) == user_id) or (
+                line_user_id and row.get("line_user_id") == line_user_id
+            ):
+                row["active"] = False
+                row["updated_at"] = datetime.now(UTC).isoformat()
+                changed = True
+    return changed
 
 
 def upsert_notification_preferences(user_id: str, values: dict) -> dict:

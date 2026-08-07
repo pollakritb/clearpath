@@ -20,6 +20,7 @@ interface AuthState {
   loading: boolean;
   configured: boolean;
   localDemo: boolean;
+  signInWithGoogle: () => Promise<void>;
   signInWithOtp: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -79,6 +80,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [client],
   );
 
+  const signInWithGoogle = useCallback(async () => {
+    if (!client) throw new Error("ยังไม่ได้ตั้งค่า Supabase Auth");
+    const { error } = await client.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) throw error;
+  }, [client]);
+
   const signOut = useCallback(async () => {
     if (client) await client.auth.signOut();
   }, [client]);
@@ -90,10 +100,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       configured: Boolean(client),
       localDemo,
+      signInWithGoogle,
       signInWithOtp,
       signOut,
     }),
-    [user, role, loading, client, localDemo, signInWithOtp, signOut],
+    [
+      user,
+      role,
+      loading,
+      client,
+      localDemo,
+      signInWithGoogle,
+      signInWithOtp,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

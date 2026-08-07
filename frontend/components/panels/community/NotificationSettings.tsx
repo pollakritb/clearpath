@@ -8,6 +8,10 @@ import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { T } from "@/frontend/lib/ui";
 import type { NotificationPreferences } from "@/frontend/types";
+import type {
+  LineLinkCodeResponse,
+  LineNotificationStatus,
+} from "@/frontend/types";
 
 const DEFAULTS: NotificationPreferences = {
   district: null,
@@ -42,12 +46,26 @@ export default function NotificationSettings() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission | null>(
+    null,
+  );
+  const [lineStatus, setLineStatus] = useState<LineNotificationStatus | null>(
+    null,
+  );
+  const [lineCode, setLineCode] = useState<LineLinkCodeResponse | null>(null);
 
   useEffect(() => {
+    if ("Notification" in window) {
+      queueMicrotask(() => setPermission(Notification.permission));
+    }
     if (!auth.user && !auth.localDemo) return;
     void api
       .notificationPreferences()
       .then(setPreferences)
+      .catch(() => undefined);
+    void api
+      .lineNotificationStatus()
+      .then(setLineStatus)
       .catch(() => undefined);
     if ("serviceWorker" in navigator) {
       void navigator.serviceWorker.ready
@@ -61,7 +79,11 @@ export default function NotificationSettings() {
     setSaving(true);
     setError(null);
     try {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      if (
+        !("serviceWorker" in navigator) ||
+        !("PushManager" in window) ||
+        !("Notification" in window)
+      ) {
         throw new Error("Browser นี้ไม่รองรับ Web Push");
       }
       const config = await api.pushConfig();
@@ -69,7 +91,14 @@ export default function NotificationSettings() {
         throw new Error("Server ยังไม่ได้เปิด Web Push");
       }
       const permission = await Notification.requestPermission();
-      if (permission !== "granted") throw new Error("ไม่ได้รับสิทธิ์แจ้งเตือน");
+      setPermission(permission);
+      if (permission !== "granted") {
+        throw new Error(
+          permission === "denied"
+            ? "เบราว์เซอร์บล็อกการแจ้งเตือน กรุณาเปิดสิทธิ์ใน Settings"
+            : "ยังไม่ได้รับสิทธิ์แจ้งเตือน",
+        );
+      }
       const registration = await navigator.serviceWorker.ready;
       const next =
         (await registration.pushManager.getSubscription()) ??
@@ -120,6 +149,10 @@ export default function NotificationSettings() {
         การแจ้งเตือนฝุ่นและจุดความร้อน
       </h2>
       <div className="cp-notification-settings">
+        <p className="cp-notification-settings__hint">
+          iPhone/iPad ต้องเพิ่ม ClearPath ไปที่หน้าจอโฮมก่อน
+          แล้วเปิดจากไอคอนบนหน้าจอโฮมเพื่อรับ Web Push
+        </p>
         <label>
           แจ้งเมื่อ PM2.5 ตั้งแต่ {preferences.pm25_threshold} µg/m³
           <input
@@ -237,7 +270,18 @@ export default function NotificationSettings() {
           <div className="cp-notification-settings__actions">
             <button
               type="button"
-              onClick={() => void api.testNotification()}
+              onClick={() => {
+                setSaving(true);
+                setError(null);
+                void api
+                  .testNotification()
+                  .then((result) => setMessage(result.message))
+                  .catch((cause) =>
+                    setError(apiErrorMessage(cause, "ทดสอบแจ้งเตือนไม่สำเร็จ")),
+                  )
+                  .finally(() => setSaving(false));
+              }}
+              disabled={saving}
               className="cp-focus"
             >
               ทดสอบ
@@ -260,7 +304,106 @@ export default function NotificationSettings() {
             </button>
           </div>
         )}
+        <div className="cp-line-link">
+          <div>
+            <strong>แจ้งเตือนผ่าน LINE</strong>
+            <small>
+              {lineStatus?.linked
+                ? "เชื่อมกับบัญชี LINE แล้ว"
+                : "รับข้อความเตือนในแชต LINE โดยไม่ต้องเปิดเว็บค้างไว้"}
+            </small>
+          </div>
+          {!lineStatus?.enabled ? (
+            <p>ระบบ LINE ยังรอการตั้งค่า Official Account</p>
+          ) : lineStatus.linked ? (
+            <button
+              type="button"
+              className="cp-focus"
+              disabled={saving}
+              onClick={() => {
+                setSaving(true);
+                setError(null);
+                void api
+                  .disconnectLine()
+                  .then((result) => {
+                    setLineStatus((current) =>
+                      current ? { ...current, linked: false } : current,
+                    );
+                    setMessage(result.message);
+                  })
+                  .catch((cause) =>
+                    setError(apiErrorMessage(cause, "ยกเลิก LINE ไม่สำเร็จ")),
+                  )
+                  .finally(() => setSaving(false));
+              }}
+            >
+              ยกเลิกการเชื่อม LINE
+            </button>
+          ) : (
+            <>
+              {lineStatus.official_account_url && (
+                <a
+                  href={lineStatus.official_account_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="cp-focus"
+                >
+                  1. เพิ่มเพื่อน ClearPath ใน LINE
+                </a>
+              )}
+              <button
+                type="button"
+                className="cp-focus"
+                disabled={saving}
+                onClick={() => {
+                  setSaving(true);
+                  setError(null);
+                  void api
+                    .createLineLinkCode()
+                    .then(setLineCode)
+                    .catch((cause) =>
+                      setError(
+                        apiErrorMessage(cause, "สร้างรหัส LINE ไม่สำเร็จ"),
+                      ),
+                    )
+                    .finally(() => setSaving(false));
+                }}
+              >
+                2. สร้างรหัสเชื่อมบัญชี
+              </button>
+              {lineCode && (
+                <div className="cp-line-link__code" role="status">
+                  <b>{lineCode.code}</b>
+                  <span>{lineCode.instruction}</span>
+                  <small>รหัสหมดอายุใน 10 นาทีและใช้ได้ครั้งเดียว</small>
+                </div>
+              )}
+              <button
+                type="button"
+                className="cp-focus"
+                onClick={() =>
+                  void api.lineNotificationStatus().then((next) => {
+                    setLineStatus(next);
+                    setMessage(
+                      next.linked
+                        ? "เชื่อม LINE สำเร็จแล้ว"
+                        : "ยังไม่พบการเชื่อม กรุณาส่งรหัสในแชต LINE ก่อน",
+                    );
+                  })
+                }
+              >
+                3. ตรวจสถานะการเชื่อม
+              </button>
+            </>
+          )}
+        </div>
       </div>
+      {permission === "denied" && (
+        <p role="alert" style={{ fontSize: ".7em", color: T.red }}>
+          สิทธิ์แจ้งเตือนถูกบล็อกอยู่ ต้องเปิดใน Settings
+          ของเบราว์เซอร์หรืออุปกรณ์ก่อน
+        </p>
+      )}
       {message && (
         <p role="status" style={{ fontSize: ".7em", color: T.teal }}>
           {message}

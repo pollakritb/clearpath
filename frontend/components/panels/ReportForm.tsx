@@ -23,6 +23,22 @@ interface ReportFormProps {
   onSubmitted: () => void;
 }
 
+const OCR_STATUS_MESSAGES: Record<ReportDraftResponse["ocr_status"], string> = {
+  unavailable:
+    "ระบบอ่านภาพอัตโนมัติยังไม่เปิดใช้งาน กรุณากรอกค่าที่เห็นบนเครื่อง ระบบจะเก็บรายงานไว้ตรวจสอบ",
+  service_error:
+    "ระบบอ่านภาพขัดข้องชั่วคราว กรุณากรอกค่าที่เห็นบนเครื่อง รายงานจะยังไม่เผยแพร่จนกว่าจะผ่านการตรวจ",
+  no_device:
+    "ระบบไม่พบเครื่องวัดในภาพ กรุณาตรวจภาพและกรอกค่าที่เห็น รายงานจะถูกพักไว้เพื่อตรวจสอบ",
+  unclear_display:
+    "หน้าจอในภาพยังไม่ชัด กรุณากรอกค่าที่เห็น รายงานจะถูกพักไว้เพื่อตรวจสอบ",
+  no_reading:
+    "ระบบแยกค่า PM2.5 จากค่าอื่นไม่ได้ กรุณากรอกค่าตามหน้าจอเครื่องวัด",
+  low_confidence:
+    "ระบบอ่านค่าได้แต่ยังไม่มั่นใจ กรุณาเทียบกับหน้าจอและแก้ไขให้ตรงก่อนส่ง",
+  ready: "ระบบอ่านค่า PM2.5 ได้ กรุณาเทียบกับหน้าจอและแก้ไขให้ตรงก่อนส่ง",
+};
+
 export default function ReportForm({
   location,
   onRequestLocation,
@@ -88,9 +104,10 @@ export default function ReportForm({
           nextDraft.ocr_pm25 == null ? "" : String(nextDraft.ocr_pm25),
         );
         setMessage(
-          nextDraft.ocr_pm25 == null
-            ? "OCR อ่านค่าไม่ได้ กรุณากรอกค่าที่เห็นบนเครื่องก่อนส่ง"
-            : `OCR อ่านได้ ${nextDraft.ocr_pm25} µg/m³ กรุณาตรวจและแก้ไขให้ตรงกับหน้าจอ`,
+          `${OCR_STATUS_MESSAGES[nextDraft.ocr_status]}` +
+            (nextDraft.ocr_pm25 == null
+              ? ""
+              : ` ค่าที่อ่านได้ ${nextDraft.ocr_pm25} µg/m³`),
         );
         return;
       }

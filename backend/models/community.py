@@ -132,6 +132,15 @@ class ReportDraftResponse(BaseModel):
     ocr_pm25: float | None = None
     ocr_confidence: float = 0.0
     ocr_available: bool = False
+    ocr_status: Literal[
+        "unavailable",
+        "service_error",
+        "no_device",
+        "unclear_display",
+        "no_reading",
+        "low_confidence",
+        "ready",
+    ] = "unavailable"
     device_detected: bool = False
     display_clear: bool = False
     duplicate_detected: bool = False

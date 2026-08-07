@@ -1,10 +1,10 @@
 from backend.services import forecast_evaluation
 
 
-def _settled_row(station_id: str, *, error: float) -> dict:
+def _settled_row(station_id: str, *, error: float, horizon: int = 3) -> dict:
     return {
         "run_id": f"run-{station_id}",
-        "horizon_hours": 3,
+        "horizon_hours": horizon,
         "forecast_at": "2026-08-01T03:00:00+00:00",
         "method": "xgboost-shadow-v2",
         "absolute_error": abs(error),
@@ -52,6 +52,32 @@ def test_daily_aggregation_emits_station_district_and_global_slices(monkeypatch)
     assert any(
         row["station_id"] == "all" and row["district"] == "all" for row in persisted
     )
+
+
+def test_daily_and_weekly_aggregation_ignore_non_product_horizons(monkeypatch):
+    persisted = []
+    rows = [
+        _settled_row("81t", error=2, horizon=1),
+        _settled_row("82t", error=4, horizon=2),
+        _settled_row("83t", error=6, horizon=24),
+    ]
+    monkeypatch.setattr(
+        forecast_evaluation.supabase_client,
+        "list_settled_forecast_predictions",
+        lambda _since: rows,
+    )
+    monkeypatch.setattr(
+        forecast_evaluation.supabase_client,
+        "upsert_forecast_evaluation",
+        lambda values: persisted.extend(values),
+    )
+
+    daily = forecast_evaluation.aggregate_recent()
+    weekly = forecast_evaluation.weekly_metrics()
+
+    assert daily == {"source_rows": 3, "aggregate_rows": 6}
+    assert {row["horizon_hours"] for row in persisted} == {1, 24}
+    assert {row["horizon_hours"] for row in weekly["rows"]} == {1, 24}
 
 
 def test_monitoring_alerts_compare_global_candidate_with_baseline():

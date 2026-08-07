@@ -3,6 +3,20 @@ export interface PushConfigResponse {
   public_key: string | null;
 }
 
+export interface LineNotificationStatus {
+  enabled: boolean;
+  linked: boolean;
+  linked_at: string | null;
+  official_account_url: string | null;
+}
+
+export interface LineLinkCodeResponse {
+  code: string;
+  expires_at: string;
+  official_account_url: string | null;
+  instruction: string;
+}
+
 export interface NotificationPreferences {
   district: string | null;
   subdistrict: string | null;
