@@ -40,7 +40,7 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": redact_log_message(record.getMessage()),
             "environment": settings.app_environment,
-            "release": settings.release_sha,
+            "release": settings.current_release,
         }
         for field in (
             "request_id",

@@ -63,7 +63,7 @@ def _result(
         "status": "ready" if ready else "not_ready",
         "service": "clearpath-api",
         "environment": settings.app_environment,
-        "release": settings.release_sha,
+        "release": settings.current_release,
         "checks": checks,
         "station_count": station_count,
         "fresh_station_count": fresh_station_count,

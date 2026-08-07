@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     # Runtime / operations
     app_environment: str = "development"
     release_sha: str = "local"
+    vercel_git_commit_sha: str = ""
     log_level: str = "INFO"
     cors_allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     readiness_max_station_age_minutes: int = 90
@@ -117,6 +118,11 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_environment.lower() == "production"
+
+    @property
+    def current_release(self) -> str:
+        """Prefer the immutable Vercel deployment SHA over a stale manual value."""
+        return self.vercel_git_commit_sha or self.release_sha
 
     @property
     def canary_station_allowlist(self) -> list[str]:
