@@ -1,4 +1,21 @@
-from backend.services.air4thai import parse_stations
+import ssl
+
+from backend.services.air4thai import (
+    _CA_BUNDLE_PATH,
+    _air4thai_tls_context,
+    parse_stations,
+)
+
+
+def test_air4thai_tls_context_keeps_verification_enabled():
+    context = _air4thai_tls_context()
+
+    assert context.check_hostname is True
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert (
+        _CA_BUNDLE_PATH.read_text(encoding="ascii").count("-----BEGIN CERTIFICATE-----")
+        == 2
+    )
 
 
 def test_parse_stations_audits_every_rejected_row():

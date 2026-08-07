@@ -6,6 +6,8 @@
 from __future__ import annotations
 
 import logging
+import ssl
+from pathlib import Path
 
 import httpx
 
@@ -19,6 +21,14 @@ from ..core.errors import UpstreamError
 _cache = TTLCache(ttl_seconds=300)
 _CACHE_KEY = "station_snapshot"
 logger = logging.getLogger("clearpath.air4thai")
+_CA_BUNDLE_PATH = Path(__file__).parent / "certs" / "letsencrypt-gen-y-chain.pem"
+
+
+def _air4thai_tls_context() -> ssl.SSLContext:
+    """Trust Air4Thai's verified Let's Encrypt chain when its server omits it."""
+    context = ssl.create_default_context()
+    context.load_verify_locations(cafile=str(_CA_BUNDLE_PATH))
+    return context
 
 
 def _to_float(v) -> float | None:
@@ -52,7 +62,11 @@ async def fetch_stations() -> list[dict]:
         return list(cached["stations"])
 
     try:
-        async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=25.0,
+            follow_redirects=True,
+            verify=_air4thai_tls_context(),
+        ) as client:
             resp = await client.get(
                 settings.air4thai_url,
                 headers={"User-Agent": "ClearPath/1.0 (final-year-project)"},
