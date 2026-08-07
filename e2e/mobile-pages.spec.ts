@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 const pages = [
-  { path: "/", text: "ภาพรวมนครปฐม" },
+  { path: "/", text: "คุณภาพอากาศทั่วไทย" },
   { path: "/air", text: "อากาศวันนี้" },
   { path: "/report", text: "ส่งข้อมูลจากเครื่องวัด" },
   { path: "/community", text: "ช่วยกันทำให้ข้อมูลอากาศดีขึ้น" },
@@ -56,6 +56,71 @@ test("mobile primary navigation targets are at least 44px", async ({
     expect(size.width).toBeGreaterThanOrEqual(44);
     expect(size.height).toBeGreaterThanOrEqual(44);
   }
+});
+
+test("map separates official stations from community reports", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "เลือกข้อมูลที่แสดงบนแผนที่" })
+    .click();
+
+  const official = page.getByRole("button", {
+    name: /สถานีตรวจวัดทางการ/,
+  });
+  const community = page.getByRole("button", {
+    name: /รายงานจากประชาชน/,
+  });
+  await expect(official).toBeVisible();
+  await expect(community).toBeVisible();
+  await expect(official).toHaveAttribute("aria-pressed", "true");
+  await expect(community).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/สีบอกระดับ PM2.5/)).toBeVisible();
+});
+
+test("community marker opens a distinct privacy-safe report card", async ({
+  page,
+}) => {
+  await page.route("**/api/community/reports", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        count: 1,
+        reports: [
+          {
+            id: "community-map-demo",
+            display_name: "สมาชิกชุมชน",
+            lat: 13.7367,
+            lon: 100.5231,
+            pm25: 42,
+            trust_score: 84,
+            verification_method: "automatic",
+            age_minutes: 15,
+            location_precision_m: 180,
+            subdistrict: "ปทุมวัน",
+            district: "ปทุมวัน",
+            province: "กรุงเทพมหานคร",
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.goto("/");
+  const marker = page.locator('[title^="รายงานจากประชาชน"]');
+  await expect(marker).toHaveCount(1);
+  await marker.click();
+
+  const card = page.getByRole("region", {
+    name: "รายละเอียดรายงานจากประชาชน",
+  });
+  await expect(card).toBeVisible();
+  await expect(
+    card.getByText("รายงานจากประชาชน", { exact: true }),
+  ).toBeVisible();
+  await expect(card.getByText(/ผู้รายงาน: สมาชิกชุมชน/)).toBeVisible();
+  await expect(card.getByText(/พิกัดจริงประมาณ 180 ม./)).toBeVisible();
 });
 
 test("large text and high contrast remain mobile-safe", async ({ page }) => {

@@ -52,9 +52,7 @@ test("map forecast horizon selector is touch-safe and reports coverage", async (
     );
   expect(sizes.every((height) => height >= 44)).toBe(true);
   await expect(
-    page.getByRole("heading", { name: "พยากรณ์นครปฐมอีก 12 ชั่วโมง" }),
+    page.getByText("พยากรณ์ประเทศไทยอีก 12 ชั่วโมง", { exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByText(/บางพื้นที่มีสถานีน้อย|ข้อมูลพยากรณ์|กำลังคำนวณ/).first(),
-  ).toBeVisible();
+  await expect(page.locator(".cp-map-forecast-chip")).toBeVisible();
 });

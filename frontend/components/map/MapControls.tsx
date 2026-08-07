@@ -43,6 +43,7 @@ export default function MapControls({ onLocate }: MapControlsProps) {
       onDoubleClick={stopPropagation}
     >
       <div
+        className="cp-mapctrls__zoom"
         style={{
           display: "flex",
           flexDirection: "column",
@@ -75,7 +76,7 @@ export default function MapControls({ onLocate }: MapControlsProps) {
       <button
         type="button"
         aria-label="ตำแหน่งของฉัน"
-        className="cp-focus"
+        className="cp-mapctrls__locate cp-focus"
         onClick={locate}
         style={{
           width: "2.9em",

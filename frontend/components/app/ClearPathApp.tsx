@@ -23,7 +23,11 @@ import { usePm25 } from "@/frontend/hooks/usePm25";
 import { useValidation } from "@/frontend/hooks/useValidation";
 import { useWeather } from "@/frontend/hooks/useWeather";
 import { T } from "@/frontend/lib/ui";
-import type { LocationSuggestion, Station } from "@/frontend/types";
+import type {
+  CommunityReport,
+  LocationSuggestion,
+  Station,
+} from "@/frontend/types";
 import type { ReportLocation, ViewportBounds } from "@/frontend/types/ui";
 
 import DashboardSidebar from "./DashboardSidebar";
@@ -63,6 +67,9 @@ export default function ClearPathApp({
 
   const [manuallySelectedStation, setSelectedStation] =
     useState<Station | null>(null);
+  const [selectedReport, setSelectedReport] = useState<CommunityReport | null>(
+    null,
+  );
   const [showHistory, setShowHistory] = useState(false);
   const [reportPin, setReportPin] = useState<ReportLocation | null>(null);
   const [bigText, setBigText] = useState(false);
@@ -123,12 +130,20 @@ export default function ClearPathApp({
   const selectStation = useCallback(
     (station: Station) => {
       setSelectedStation(station);
+      setSelectedReport(null);
+      setMapHorizon(0);
       setShowHistory(false);
       void weather.load(station.lat, station.lon);
       void forecast.load(station.id, 24);
     },
     [weather, forecast],
   );
+
+  const selectReport = useCallback((report: CommunityReport) => {
+    setSelectedReport(report);
+    setSelectedStation(null);
+    setMapHorizon(0);
+  }, []);
 
   const toggleHistory = useCallback(() => {
     setShowHistory((previous) => {
@@ -395,18 +410,32 @@ export default function ClearPathApp({
           showHeatmap={showHeatmap}
           showStations={showStations}
           showCommunity={showCommunity}
-          onMapClick={(lat, lon) => setFocusPoint({ lat, lon })}
+          onMapClick={(lat, lon) => {
+            setFocusPoint({ lat, lon });
+            setSelectedStation(null);
+            setSelectedReport(null);
+          }}
           onSelectStation={selectStation}
+          onSelectReport={selectReport}
+          selectedStationId={selectedStation?.id}
+          selectedReportId={selectedReport?.id}
           onLocate={(lat, lon) => setFocusPoint({ lat, lon })}
           onViewportChange={setMapBounds}
         />
         <MapChrome
           viewMode={viewMode}
           stationCount={serviceAreaStations.length}
+          reportCount={community.reports.length}
           stations={serviceAreaStations}
           bigText={bigText}
+          showHeatmap={showHeatmap}
+          showStations={showStations}
+          showCommunity={showCommunity}
           onViewModeChange={setViewMode}
           onToggleBigText={() => setBigText((value) => !value)}
+          onToggleHeatmap={() => setShowHeatmap((value) => !value)}
+          onToggleStations={() => setShowStations((value) => !value)}
+          onToggleCommunity={() => setShowCommunity((value) => !value)}
           onLocationSelect={(location: LocationSuggestion) => {
             setFocusPoint({ lat: location.lat, lon: location.lon });
             setViewMode("map");
@@ -428,15 +457,18 @@ export default function ClearPathApp({
         )}
         {activeTab === "map" && (
           <MapStatusCard
-            stations={serviceAreaStations}
-            forecastStations={forecastSurfaceStations}
             station={selectedStation}
+            report={selectedReport}
             updatedAt={pm25.updatedAt}
             horizon={mapHorizon}
             forecastLoading={forecastSurface.loading}
             forecastError={forecastSurface.error}
             forecastWarnings={forecastSurface.data?.warnings ?? []}
             onHorizonChange={setMapHorizon}
+            onClose={() => {
+              setSelectedStation(null);
+              setSelectedReport(null);
+            }}
           />
         )}
       </main>

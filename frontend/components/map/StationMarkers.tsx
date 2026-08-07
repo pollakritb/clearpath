@@ -2,24 +2,27 @@
 
 import L from "leaflet";
 import { useMemo, useState } from "react";
-import { Marker, Popup, useMapEvents } from "react-leaflet";
+import { Marker, useMapEvents } from "react-leaflet";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { clusterStations } from "@/frontend/lib/station-clusters";
-import { T } from "@/frontend/lib/ui";
 import type { Station } from "@/frontend/types";
 
-// ไอคอนสถานี = วงกลมสีตามระดับ AQI + ไอคอนรูปทรง (●◆▲■✦) ข้างใน
-// (สี + รูปทรง สื่อระดับพร้อมกัน — รองรับ color-blind) · ขนาดโตขึ้นเมื่อค่าสูง
-function stationIcon(color: string, glyph: string, size: number) {
-  const fs = Math.round(size * 0.52);
+// วงกลมตัวเลข = สถานีตรวจวัดทางการ ส่วนรายงานชุมชนใช้หมุดรูปคนคนละทรง
+function stationIcon(
+  color: string,
+  value: number | null,
+  expired: boolean,
+  selected: boolean,
+) {
   const touchSize = 44;
+  const size = selected ? 38 : 34;
+  const label = expired ? "×" : value == null ? "—" : Math.round(value);
   return L.divIcon({
-    className: "cp-marker",
-    html: `<div style="width:${touchSize}px;height:${touchSize}px;display:flex;align-items:center;justify-content:center"><div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2.5px solid #fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.32),0 1px 4px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:${fs}px;font-weight:800;line-height:1">${glyph}</div></div>`,
+    className: "cp-marker cp-marker--station",
+    html: `<div class="cp-station-marker${selected ? " is-selected" : ""}" style="--marker-color:${color};--marker-size:${size}px"><span aria-hidden="true">${label}</span><i aria-hidden="true"></i></div>`,
     iconSize: [touchSize, touchSize],
     iconAnchor: [touchSize / 2, touchSize / 2],
-    popupAnchor: [0, -touchSize / 2],
   });
 }
 
@@ -35,9 +38,11 @@ function clusterIcon(count: number, color: string) {
 export default function StationMarkers({
   stations,
   onSelect,
+  selectedId,
 }: {
   stations: Station[];
   onSelect?: (s: Station) => void;
+  selectedId?: string | null;
 }) {
   const [viewVersion, setViewVersion] = useState(0);
   const map = useMapEvents({
@@ -92,8 +97,6 @@ export default function StationMarkers({
         }
         const s = cluster.stations[0];
         const cls = classifyPm25(s.pm25);
-        const pm = s.pm25 ?? 0;
-        const size = pm > 90 ? 28 : pm > 50 ? 24 : 20;
         const stationName = s.name_th ?? s.name_en ?? s.id;
         const markerLabel = `${stationName} PM2.5 ${s.pm25 ?? "ไม่มีข้อมูล"} ไมโครกรัมต่อลูกบาศก์เมตร ${
           s.data_status === "expired" ? "ข้อมูลหมดอายุ" : cls.level
@@ -106,107 +109,12 @@ export default function StationMarkers({
             alt={markerLabel}
             icon={stationIcon(
               s.data_status === "expired" ? "#7b8583" : cls.color,
-              s.data_status === "expired" ? "×" : cls.glyph,
-              size,
+              s.pm25,
+              s.data_status === "expired",
+              s.id === selectedId,
             )}
             eventHandlers={{ click: () => onSelect?.(s) }}
-          >
-            <Popup>
-              <div style={{ fontFamily: "inherit", minWidth: "8.5em" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: ".4em",
-                    marginBottom: ".25em",
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    style={{
-                      width: "1.1em",
-                      height: "1.1em",
-                      borderRadius: "50%",
-                      background: cls.color,
-                      color: "#fff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: ".7em",
-                      flex: "none",
-                    }}
-                  >
-                    {cls.glyph}
-                  </span>
-                  <span style={{ fontWeight: 700 }}>{stationName}</span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: ".3em",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: T.mono,
-                      fontWeight: 600,
-                      fontSize: "1.5em",
-                      lineHeight: 1,
-                      color: cls.color,
-                    }}
-                  >
-                    {s.pm25 ?? "—"}
-                  </span>
-                  <span style={{ fontSize: ".75em", color: "#5a6664" }}>
-                    µg/m³
-                  </span>
-                  <span
-                    style={{
-                      marginLeft: "auto",
-                      fontSize: ".75em",
-                      fontWeight: 700,
-                      color: cls.color,
-                    }}
-                  >
-                    {cls.glyph} {cls.level}
-                  </span>
-                </div>
-                {s.province && (
-                  <div
-                    style={{
-                      fontSize: ".75em",
-                      color: "#5a6664",
-                      marginTop: ".2em",
-                    }}
-                  >
-                    จ.{s.province}
-                  </div>
-                )}
-                <div
-                  style={{
-                    fontSize: ".72em",
-                    color:
-                      s.data_status === "fresh"
-                        ? T.teal
-                        : s.data_status === "delayed"
-                          ? "#b36b00"
-                          : "#b53d35",
-                    marginTop: ".2em",
-                  }}
-                >
-                  {s.data_status === "fresh"
-                    ? "ข้อมูลสด"
-                    : s.data_status === "delayed"
-                      ? "ข้อมูลล่าช้า"
-                      : "ข้อมูลหมดอายุ ไม่ใช้คำนวณพื้นผิว"}
-                  {s.age_minutes != null
-                    ? ` · ${Math.round(s.age_minutes)} นาที`
-                    : ""}
-                </div>
-              </div>
-            </Popup>
-          </Marker>
+          />
         );
       })}
     </>

@@ -1,148 +1,54 @@
 "use client";
 
 import L from "leaflet";
-import { Marker, Popup } from "react-leaflet";
+import { Marker } from "react-leaflet";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
-import { T } from "@/frontend/lib/ui";
 import type { CommunityReport } from "@/frontend/types";
 
-function reportIcon(color: string, trust: number) {
-  const size = trust >= 75 ? 27 : 23;
+function reportIcon(color: string, trust: number, selected: boolean) {
   const touchSize = 44;
+  const size = selected ? 38 : trust >= 75 ? 34 : 31;
   return L.divIcon({
-    className: "cp-marker",
-    html: `<div style="width:${touchSize}px;height:${touchSize}px;display:flex;align-items:center;justify-content:center"><div style="width:${size}px;height:${size}px;border-radius:8px 8px 8px 2px;background:${color};transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);color:#fff;font-size:12px;font-weight:800">ช</span></div></div>`,
+    className: "cp-marker cp-marker--community",
+    html: `<div class="cp-community-marker${selected ? " is-selected" : ""}" style="--marker-aqi:${color};--marker-size:${size}px"><span><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"></circle><path d="M5.5 20c.5-4 2.7-6 6.5-6s6 2 6.5 6"></path></svg></span><i aria-hidden="true"></i></div>`,
     iconSize: [touchSize, touchSize],
-    iconAnchor: [touchSize / 2, touchSize / 2 + size / 2],
+    iconAnchor: [touchSize / 2, touchSize / 2 + size / 2 - 4],
   });
 }
 
 export default function ReportMarkers({
   reports,
+  onSelect,
+  selectedId,
 }: {
   reports: CommunityReport[];
+  onSelect?: (report: CommunityReport) => void;
+  selectedId?: string | null;
 }) {
   return (
     <>
       {reports.map((report) => {
         if (report.pm25 == null) return null;
         const cls = classifyPm25(report.pm25);
+        const area =
+          [report.subdistrict, report.district, report.province]
+            .filter(Boolean)
+            .join(" ") || "พื้นที่โดยประมาณ";
+        const label = `รายงานจากประชาชน ${area} PM2.5 ${report.pm25} ไมโครกรัมต่อลูกบาศก์เมตร ${cls.level}`;
         return (
           <Marker
             key={report.id}
             position={[report.lat, report.lon]}
-            icon={reportIcon(cls.color, report.trust_score)}
-            title={`รายงานชุมชน PM2.5 ${report.pm25} ไมโครกรัมต่อลูกบาศก์เมตร ${cls.level}`}
-            alt={`รายงานชุมชน PM2.5 ${report.pm25} ไมโครกรัมต่อลูกบาศก์เมตร ${cls.level}`}
-          >
-            <Popup>
-              <div style={{ fontFamily: "inherit", minWidth: "11em" }}>
-                <div style={{ fontWeight: 700 }}>Community Report</div>
-                <div style={{ fontSize: ".68em", color: T.subInk }}>
-                  ค่าขณะวัด (Instantaneous) · ไม่ใช่ค่าเฉลี่ย 24 ชั่วโมง
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: ".35em",
-                    margin: ".35em 0",
-                  }}
-                >
-                  <b
-                    style={{
-                      fontFamily: T.mono,
-                      fontSize: "1.7em",
-                      color: cls.color,
-                    }}
-                  >
-                    {report.pm25}
-                  </b>
-                  <span style={{ fontSize: ".75em" }}>µg/m³</span>
-                </div>
-                <div style={{ fontSize: ".78em", color: T.subInk }}>
-                  Trust {report.trust_score}/100 ·{" "}
-                  {report.display_name ?? "สมาชิกชุมชน"}
-                </div>
-                <div
-                  style={{
-                    fontSize: ".7em",
-                    color: T.subInk,
-                    marginTop: ".2em",
-                  }}
-                >
-                  วัดเมื่อ{" "}
-                  {report.age_minutes == null
-                    ? "ไม่ทราบ"
-                    : `${Math.round(report.age_minutes)} นาทีที่แล้ว`}{" "}
-                  · ตำแหน่งสาธารณะคลาดเคลื่อนประมาณ{" "}
-                  {report.location_precision_m} ม.
-                </div>
-                <div
-                  style={{
-                    fontSize: ".72em",
-                    color: T.subInk,
-                    marginTop: ".2em",
-                  }}
-                >
-                  {report.data_role === "supplementary"
-                    ? `ข้อมูลเสริม · Air4Thai ใกล้สุด ${report.nearest_official_distance_km?.toFixed(1) ?? "–"} กม.`
-                    : report.eligible_for_gap_fill
-                      ? "ผ่านเกณฑ์เติมพื้นที่ที่ไม่มี Air4Thai"
-                      : "พื้นที่ไม่มี Air4Thai ใกล้เคียง · ยังไม่ใช้คำนวณพื้นผิว"}
-                </div>
-                <div
-                  style={{
-                    fontSize: ".7em",
-                    color: report.eligible_for_gap_fill ? "#167a4a" : T.subInk,
-                    marginTop: ".2em",
-                    fontWeight: 600,
-                  }}
-                >
-                  {report.eligibility_reason}
-                </div>
-                <div
-                  style={{
-                    fontSize: ".69em",
-                    color: T.subInk,
-                    marginTop: ".2em",
-                  }}
-                >
-                  เครื่อง: {report.device_model ?? "ไม่ระบุ"}
-                  {report.device_calibrated ? " · มีข้อมูลสอบเทียบ" : ""} ·
-                  ผู้รายงานสอดคล้อง {report.corroboration_count} คน
-                </div>
-                <div
-                  style={{
-                    fontSize: ".69em",
-                    color: T.subInk,
-                    marginTop: ".2em",
-                  }}
-                >
-                  ค่าจากภาพที่ผ่านการตรวจ
-                  {report.verification_method === "automatic"
-                    ? "อัตโนมัติ"
-                    : "โดย Admin"}{" "}
-                  · {report.rating_count} คำขอบคุณ
-                  {report.rating_average != null
-                    ? ` · เฉลี่ย ${report.rating_average.toFixed(1)} ดาว`
-                    : ""}
-                </div>
-                {report.near_emission_source && (
-                  <div
-                    style={{
-                      fontSize: ".69em",
-                      color: "#b53d35",
-                      marginTop: ".2em",
-                    }}
-                  >
-                    จุดวัดอยู่ติดแหล่งควันโดยตรง จึงไม่ใช้กับ IDW
-                  </div>
-                )}
-              </div>
-            </Popup>
-          </Marker>
+            icon={reportIcon(
+              cls.color,
+              report.trust_score,
+              report.id === selectedId,
+            )}
+            title={label}
+            alt={label}
+            eventHandlers={{ click: () => onSelect?.(report) }}
+          />
         );
       })}
     </>

@@ -35,6 +35,9 @@ export interface MapViewProps {
   showCommunity: boolean;
   onMapClick: (lat: number, lon: number) => void;
   onSelectStation: (s: Station) => void;
+  onSelectReport: (report: CommunityReport) => void;
+  selectedStationId?: string | null;
+  selectedReportId?: string | null;
   onLocate?: (lat: number, lon: number, accuracy?: number) => void;
   onViewportChange?: (bounds: ViewportBounds) => void;
 }
@@ -51,6 +54,9 @@ export default function MapView({
   showCommunity,
   onMapClick,
   onSelectStation,
+  onSelectReport,
+  selectedStationId = null,
+  selectedReportId = null,
   onLocate,
   onViewportChange,
 }: MapViewProps) {
@@ -74,9 +80,19 @@ export default function MapView({
         <IdwSurface stations={surfaceStations} min={pmMin} max={pmMax} />
       )}
       {showStations && (
-        <StationMarkers stations={stations} onSelect={onSelectStation} />
+        <StationMarkers
+          stations={stations}
+          onSelect={onSelectStation}
+          selectedId={selectedStationId}
+        />
       )}
-      {showCommunity && <ReportMarkers reports={reports} />}
+      {showCommunity && (
+        <ReportMarkers
+          reports={reports}
+          onSelect={onSelectReport}
+          selectedId={selectedReportId}
+        />
+      )}
       {fires.length > 0 && <FireLayer fires={fires} />}
 
       {reportPin && (
