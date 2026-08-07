@@ -1,0 +1,200 @@
+ClearPath — งานที่เจ้าของระบบต้องตั้งค่าเองหลัง deploy
+อัปเดต: 7 สิงหาคม 2026
+
+สถานะที่ AI ทำเสร็จแล้ว
+- Production: https://clearpath-gray.vercel.app
+- Source: main @ 1426534 (ก่อนเพิ่มไฟล์คำแนะนำนี้)
+- Supabase migration line_notification_links ลงแล้วและเปิด RLS แล้ว
+- GitHub scheduler #7 ผ่าน sync, alerts และ forecast-evaluation
+- /api/ready ตอบ 200, มี 177 สถานี และข้อมูล fresh 150 สถานี ณ เวลาทดสอบ
+- Localhost frontend http://localhost:3000 และ backend http://localhost:8000 เปิดอยู่
+
+สำคัญ
+- ห้ามใส่ SERVICE_ROLE, OpenAI key, LINE secret/token หรือ VAPID private key ใน NEXT_PUBLIC_*
+- ห้าม commit key ลง GitHub หรือส่ง key ในแชต
+- หลังแก้ Environment Variables บน Vercel ให้ Redeploy production ทุกครั้ง
+
+============================================================
+1. เปิด Google Login ผ่าน Supabase
+============================================================
+
+สิ่งที่ต้องมี
+- บัญชี Google ที่ใช้จัดการ Google Cloud Console
+- สิทธิ์ Owner/Admin ของ Supabase project ClearPath
+
+ขั้นตอน Google Cloud
+1) เปิด https://console.cloud.google.com/
+2) เลือกหรือสร้าง Project สำหรับ ClearPath
+3) ไปที่ APIs & Services > OAuth consent screen
+4) ตั้งชื่อแอป ClearPath, support email และ developer contact
+5) ถ้าแอปยังอยู่ Testing ให้เพิ่มอีเมลผู้ทดสอบก่อน
+6) ไปที่ APIs & Services > Credentials > Create Credentials > OAuth client ID
+7) เลือก Web application
+8) Authorized JavaScript origins เพิ่ม:
+   https://clearpath-gray.vercel.app
+9) Authorized redirect URIs เพิ่ม:
+   https://qnrtryspglioqhdxglzu.supabase.co/auth/v1/callback
+10) บันทึก Client ID และ Client Secret ไว้ใน password manager
+
+ขั้นตอน Supabase
+1) เปิด Supabase > ClearPath > Authentication > Sign In / Providers
+2) เลือก Google แล้วเปิด Enable
+3) วาง Client ID และ Client Secret จาก Google Cloud
+4) กด Save
+5) ไป Authentication > URL Configuration
+6) Site URL ตั้งเป็น:
+   https://clearpath-gray.vercel.app
+7) Redirect URLs เพิ่มอย่างน้อย:
+   https://clearpath-gray.vercel.app/**
+   http://localhost:3000/**
+8) ทดสอบหน้า /report และ /community ด้วยปุ่ม “ดำเนินการต่อด้วย Google”
+9) ตรวจว่า login กลับมาที่ ClearPath และ refresh หน้าแล้วยังมี session
+
+หมายเหตุ
+- Email magic link ยังอยู่เป็น fallback ไม่ต้องปิด
+- ก่อนเปิดให้คนทั่วไปใช้ ให้เปลี่ยน OAuth consent screen จาก Testing เป็น Production
+
+============================================================
+2. เปิด OCR อ่านภาพเครื่องวัด
+============================================================
+
+1) สร้าง OpenAI API key ในบัญชี/Project ที่เจ้าของระบบควบคุม
+2) ตั้ง billing limit และ usage alert เพื่อคุมค่าใช้จ่าย
+3) เปิด Vercel > clearpath > Settings > Environment Variables
+4) แก้ OPENAI_API_KEY เป็น key จริง เฉพาะ Production/Preview ตามที่ต้องการ
+5) ตั้ง OPENAI_OCR_MODEL เป็น gpt-5.4-mini หรือรุ่นที่ทีมอนุมัติ
+6) Redeploy production
+7) เปิด ClearPath บนมือถือ > ส่งรายงาน > ถ่ายหน้าจอเครื่องวัดจริง
+8) ตรวจว่าระบบแสดงสถานะใดสถานะหนึ่งอย่างชัดเจน:
+   ready / low_confidence / no_reading / unclear_display / no_device
+9) ทดสอบภาพที่มีทั้ง AQI, อุณหภูมิ และ PM2.5 เพื่อยืนยันว่าระบบเลือก PM2.5 เท่านั้น
+10) ทดสอบภาพเบลอ/สะท้อนแสง ระบบต้องคงรายงานเป็น pending ไม่เผยแพร่เอง
+
+นโยบายที่ห้ามเปลี่ยน
+- OCR เป็นเพียงหนึ่งสัญญาณ ไม่ใช่หลักฐานเดี่ยว
+- เคสไม่ชัดต้อง fail closed และอยู่ pending
+- ห้ามส่ง key ไป browser หรือ NEXT_PUBLIC_*
+
+============================================================
+3. เปิด LINE Messaging API
+============================================================
+
+LINE Notify ใช้งานไม่ได้แล้ว ระบบนี้ใช้ LINE Official Account + Messaging API
+
+ขั้นตอนสร้าง channel
+1) สร้าง LINE Official Account ที่ https://manager.line.biz/
+2) เปิด LINE Developers Console ที่ https://developers.line.biz/console/
+3) สร้าง Provider แล้วสร้าง Messaging API channel ที่เชื่อมกับ Official Account
+4) ใน Basic settings คัดลอก Channel secret เก็บใน password manager
+5) ใน Messaging API สร้าง Channel access token แบบ long-lived
+6) คัดลอก URL เพิ่มเพื่อนของ Official Account เช่น https://lin.ee/xxxx
+7) ตั้ง Webhook URL เป็น:
+   https://clearpath-gray.vercel.app/api/notifications/line/webhook
+8) เปิด Use webhook แล้วกด Verify หลังตั้งค่า Vercel ตามขั้นตอนถัดไป
+9) ปิด Auto-reply messages หากข้อความอัตโนมัติชนกับข้อความเชื่อมบัญชีของ ClearPath
+
+ตั้งค่า Vercel
+1) เพิ่ม/แก้ Environment Variables ต่อไปนี้ โดยห้ามเติม NEXT_PUBLIC_:
+   LINE_MESSAGING_ENABLED=true
+   LINE_CHANNEL_SECRET=<Channel secret>
+   LINE_CHANNEL_ACCESS_TOKEN=<long-lived channel access token>
+   LINE_OFFICIAL_ACCOUNT_URL=<URL เพิ่มเพื่อน เช่น https://lin.ee/xxxx>
+2) เลือก Production และ Preview ตามนโยบายของทีม
+3) Redeploy production
+4) กลับ LINE Developers แล้วกด Verify webhook อีกครั้ง ต้องผ่าน
+
+ทดสอบ end-to-end
+1) Login ClearPath > Community > การตั้งค่าแจ้งเตือน
+2) กดเพิ่มเพื่อน ClearPath ใน LINE
+3) กดสร้างรหัส CP-XXXXXXXX
+4) ส่งรหัสดังกล่าวในแชต LINE ภายใน 10 นาที
+5) กลับเว็บแล้วกดตรวจสถานะ ต้องขึ้นว่าเชื่อมสำเร็จ
+6) กดทดสอบ notification ต้องได้รับข้อความ LINE
+7) กดยกเลิกการเชื่อม แล้วทดสอบว่าข้อความไม่ถูกส่งอีก
+8) ตรวจ quota ฟรีของ Messaging API ใน LINE Developers/Official Account Manager เป็นประจำ
+
+============================================================
+4. เปิด Web Push ฟรีด้วย VAPID
+============================================================
+
+VAPID key pair ต้องสร้างในเครื่องของเจ้าของระบบหรือ secret manager เท่านั้น
+ห้ามส่ง private key ในแชตหรือ commit ลง repository
+
+ทางเลือกที่ง่าย
+1) ใช้เครื่องมือมาตรฐานที่เชื่อถือได้ เช่น web-push CLI หรือ py_vapid ในเครื่องนี้
+2) สร้าง key pair แล้วคัดลอกค่าตรงจาก terminal ไป Vercel
+3) ตั้ง Vercel Environment Variables:
+   VAPID_PUBLIC_KEY=<URL-safe public key>
+   VAPID_PRIVATE_KEY=<private key ที่ pywebpush รองรับ>
+   VAPID_SUBJECT=mailto:<อีเมลผู้ดูแลจริง>
+   PUSH_ENABLED=true
+4) ล้าง private key จาก clipboard และอย่าเก็บในไฟล์ใต้ repository
+5) Redeploy production
+6) ตรวจ:
+   https://clearpath-gray.vercel.app/api/notifications/config
+   ต้องได้ enabled=true และมี public_key
+
+ทดสอบ Android
+1) เปิดเว็บผ่าน HTTPS ใน Chrome
+2) Login และเปิด Web Push จากหน้าตั้งค่าแจ้งเตือน
+3) อนุญาต notification
+4) กดทดสอบ แล้วปิด/ย่อ browser เพื่อตรวจ notification จริง
+
+ทดสอบ iPhone/iPad
+1) ใช้ iOS/iPadOS ที่รองรับ Web Push สำหรับ Home Screen web app
+2) เปิด ClearPath ใน Safari
+3) Share > Add to Home Screen
+4) เปิด ClearPath จากไอคอนบน Home Screen ไม่ใช่ tab Safari เดิม
+5) Login > เปิด Web Push > Allow
+6) กดทดสอบและตรวจ notification เมื่อแอปอยู่ background
+
+============================================================
+5. Physical mobile QA ที่ระบบจำลองแทนไม่ได้
+============================================================
+
+ทดสอบอย่างน้อย 1 เครื่องต่อกลุ่ม
+- iPhone Safari/Home Screen PWA
+- Android Chrome
+- ถ้ามี ให้ทดสอบ Samsung Internet เพิ่ม
+
+Checklist กล้อง
+1) เปิด /report ผ่าน HTTPS
+2) ปฏิเสธ permission 1 ครั้ง ต้องมีข้อความแนะนำที่เข้าใจได้
+3) เปิด permission แล้วลองใหม่ ต้องเห็น live preview
+4) กล้องหลังควรถูกเลือกเป็นค่าเริ่มต้นถ้าอุปกรณ์รองรับ
+5) ถือแนวตั้ง/แนวนอนและหมุนเครื่อง ภาพต้องไม่ล้นจอ
+6) ถ่ายในแสงน้อย แสงสะท้อน และตัวเลขเล็ก
+7) หลังถ่ายต้องเห็น preview และส่ง 3 เฟรมได้
+8) รูปต้องไม่มาจาก gallery picker
+9) GPS accuracy เกิน 200 เมตรต้องส่งไม่ได้
+10) OCR ไม่มั่นใจต้อง pending และไม่แสดงเป็นสถานี/รายงานสาธารณะ
+
+Checklist notification/login
+1) Google login กลับมาถูก domain
+2) Refresh แล้วยัง login อยู่
+3) Logout แล้ว subscription ของ user ถูกยกเลิกตาม flow
+4) LINE code หมดอายุหลัง 10 นาทีและใช้ซ้ำไม่ได้
+5) Web Push/LINE เคารพ preference ที่ user ปิดไว้
+
+============================================================
+6. ตรวจ production หลังตั้งค่าทุกอย่าง
+============================================================
+
+1) เปิด https://clearpath-gray.vercel.app/api/ready
+   ต้อง HTTP 200 และ status=ready
+2) เปิด https://clearpath-gray.vercel.app/api/notifications/config
+   หลังเปิด VAPID ต้อง enabled=true
+3) เปิด GitHub Actions > Production hourly scheduler
+4) Run workflow บน branch main
+5) ต้องผ่านครบ:
+   /api/cron/sync
+   /api/cron/alerts
+   /api/cron/forecast-evaluation
+6) ตรวจ Vercel Runtime Logs ว่าไม่มี 5xx ใหม่
+7) ตรวจ Supabase Logs/Advisors และ quota ของ Free plan
+8) ถ้าค่าฝุ่นไม่ fresh ให้ตรวจ Air4Thai sync ก่อนเชื่อ forecast
+
+สิ่งที่ยังไม่ควรเปิด
+- ML_FORECAST_ENABLED ให้คง false จน rolling backtest/calibration/release gate ผ่าน
+- COMMUNITY_FORECAST_SHADOW_ENABLED ให้คง false จนมีข้อมูลภาคสนามเพียงพอ
+- ห้ามเรียก satellite hotspot ว่าเหตุไฟไหม้ที่ยืนยันแล้ว
