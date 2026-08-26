@@ -133,7 +133,7 @@ async def test_notification(user: AuthenticatedUser = Depends(require_user)):
         },
     )
     if delivered == 0:
-        raise HTTPException(422, detail="ไม่พบ subscription ที่ส่งได้")
+        raise HTTPException(422, detail="ไม่พบ Web Push หรือ LINE ที่เชื่อมไว้")
     return OperationResponse(ok=True, message="ส่งการแจ้งเตือนทดสอบแล้ว")
 
 
@@ -153,6 +153,14 @@ async def create_line_link_code(user: AuthenticatedUser = Depends(require_user))
 async def disconnect_line(user: AuthenticatedUser = Depends(require_user)):
     await run_in_threadpool(line_messaging.disconnect, user.id)
     return OperationResponse(ok=True, message="ยกเลิกการเชื่อม LINE แล้ว")
+
+
+@router.post("/notifications/line/test", response_model=OperationResponse)
+async def test_line_notification(user: AuthenticatedUser = Depends(require_user)):
+    delivered = await run_in_threadpool(line_messaging.send_test_to_user, user.id)
+    if not delivered:
+        raise HTTPException(422, detail="ยังไม่ได้เชื่อมบัญชี LINE")
+    return OperationResponse(ok=True, message="ส่งข้อความทดสอบเข้า LINE แล้ว")
 
 
 @router.post("/notifications/line/webhook", include_in_schema=False)

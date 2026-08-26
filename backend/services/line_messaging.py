@@ -12,6 +12,7 @@ from ..algorithms.line_security import (
     extract_link_code,
     hash_link_code,
     valid_line_signature,
+    valid_line_user_id,
 )
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
@@ -127,44 +128,60 @@ def handle_webhook(body: bytes, signature: str) -> dict:
         payload = json.loads(body)
     except json.JSONDecodeError as exc:
         raise ValueError("LINE webhook JSON ไม่ถูกต้อง") from exc
-    handled = linked = 0
+    if not isinstance(payload, dict) or not isinstance(payload.get("events", []), list):
+        raise ValueError("LINE webhook JSON ไม่ถูกต้อง")
+    handled = linked = duplicates = 0
     for event in payload.get("events") or []:
-        line_user_id = str((event.get("source") or {}).get("userId") or "")
-        if not line_user_id:
+        if not isinstance(event, dict):
             continue
-        event_type = event.get("type")
-        if event_type == "unfollow":
-            supabase_client.deactivate_line_notification_link(line_user_id=line_user_id)
-            handled += 1
+        event_id = str(event.get("webhookEventId") or "").strip()
+        if event_id and not supabase_client.claim_line_webhook_event(event_id):
+            duplicates += 1
             continue
-        if event_type == "follow":
+        try:
+            source = event.get("source") or {}
+            line_user_id = str(source.get("userId") or "")
+            if source.get("type") != "user" or not valid_line_user_id(line_user_id):
+                continue
+            event_type = event.get("type")
+            if event_type == "unfollow":
+                supabase_client.deactivate_line_notification_link(
+                    line_user_id=line_user_id
+                )
+                handled += 1
+                continue
+            if event_type == "follow":
+                _reply(
+                    event.get("replyToken"),
+                    "เพิ่มเพื่อน ClearPath สำเร็จแล้ว กลับไปที่เว็บเพื่อสร้างรหัสเชื่อมบัญชี แล้วส่งรหัสนั้นในแชตนี้",
+                )
+                handled += 1
+                continue
+            message = event.get("message") or {}
+            if event_type != "message" or message.get("type") != "text":
+                continue
+            code = extract_link_code(str(message.get("text") or ""))
+            if not code:
+                _reply(
+                    event.get("replyToken"),
+                    "กรุณาสร้างรหัสเชื่อม LINE จากหน้าแจ้งเตือนใน ClearPath แล้วส่งรหัส CP-XXXXXXXX ที่นี่",
+                )
+                handled += 1
+                continue
+            success = _link(code, line_user_id)
             _reply(
                 event.get("replyToken"),
-                "เพิ่มเพื่อน ClearPath สำเร็จแล้ว กลับไปที่เว็บเพื่อสร้างรหัสเชื่อมบัญชี แล้วส่งรหัสนั้นในแชตนี้",
+                "เชื่อม LINE กับ ClearPath สำเร็จแล้ว"
+                if success
+                else "รหัสไม่ถูกต้องหรือหมดอายุ กรุณาสร้างรหัสใหม่จาก ClearPath",
             )
             handled += 1
-            continue
-        message = event.get("message") or {}
-        if event_type != "message" or message.get("type") != "text":
-            continue
-        code = extract_link_code(str(message.get("text") or ""))
-        if not code:
-            _reply(
-                event.get("replyToken"),
-                "กรุณาสร้างรหัสเชื่อม LINE จากหน้าแจ้งเตือนใน ClearPath แล้วส่งรหัส CP-XXXXXXXX ที่นี่",
-            )
-            handled += 1
-            continue
-        success = _link(code, line_user_id)
-        _reply(
-            event.get("replyToken"),
-            "เชื่อม LINE กับ ClearPath สำเร็จแล้ว"
-            if success
-            else "รหัสไม่ถูกต้องหรือหมดอายุ กรุณาสร้างรหัสใหม่จาก ClearPath",
-        )
-        handled += 1
-        linked += int(success)
-    return {"handled": handled, "linked": linked}
+            linked += int(success)
+        except Exception:
+            if event_id:
+                supabase_client.release_line_webhook_event(event_id)
+            raise
+    return {"handled": handled, "linked": linked, "duplicates": duplicates}
 
 
 def send_to_user(user_id: str, payload: dict) -> int:
@@ -175,7 +192,12 @@ def send_to_user(user_id: str, payload: dict) -> int:
         return 0
     title = str(payload.get("title") or "ClearPath")
     body = str(payload.get("body") or "มีข้อมูลใหม่")
-    text = f"{title}\n{body}"[:5000]
+    url = str(payload.get("url") or "").strip()
+    if url.startswith("/") and settings.app_public_url:
+        url = f"{settings.app_public_url.rstrip('/')}{url}"
+    elif not url.startswith("https://"):
+        url = ""
+    text = "\n".join(part for part in (title, body, url) if part)[:5000]
     _post(
         LINE_PUSH_URL,
         {
@@ -184,3 +206,20 @@ def send_to_user(user_id: str, payload: dict) -> int:
         },
     )
     return 1
+
+
+def send_test_to_user(user_id: str) -> bool:
+    if not settings.line_messaging_ready:
+        raise ConfigurationError("LINE Messaging API ยังไม่เปิดใช้งาน")
+    if not status(user_id)["linked"]:
+        return False
+    return bool(
+        send_to_user(
+            user_id,
+            {
+                "title": "ClearPath เชื่อม LINE สำเร็จ",
+                "body": "คุณจะได้รับข้อความตามพื้นที่และเกณฑ์แจ้งเตือนที่บันทึกไว้",
+                "url": "/community",
+            },
+        )
+    )

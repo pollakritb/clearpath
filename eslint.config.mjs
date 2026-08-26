@@ -15,7 +15,10 @@ const eslintConfig = defineConfig([
     // Non-source dirs (Python venv ships .js that must not be linted)
     "node_modules/**",
     ".venv/**",
+    ".pytest_cache/**",
     ".playwright-mcp/**",
+    "playwright-report/**",
+    "test-results/**",
     "docs/eval/**",
     "scripts/**.py",
   ]),

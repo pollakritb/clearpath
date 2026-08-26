@@ -58,6 +58,59 @@ test("mobile primary navigation targets are at least 44px", async ({
   }
 });
 
+test("LINE notification card explains production setup state on mobile", async ({
+  page,
+}) => {
+  await page.goto("/community");
+  await page.getByText("การแจ้งเตือน", { exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "แจ้งเตือนผ่าน LINE" }),
+  ).toBeVisible();
+  await expect(page.getByText("ยังไม่เชื่อม", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("ระบบ LINE ยังรอการเปิดใช้งาน Official Account", {
+      exact: false,
+    }),
+  ).toBeVisible();
+});
+
+test("LINE linking flow creates a one-time code on mobile", async ({
+  page,
+}) => {
+  await page.route("**/api/notifications/line", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        enabled: true,
+        linked: false,
+        linked_at: null,
+        official_account_url: "https://line.me/R/ti/p/@clearpath",
+      }),
+    });
+  });
+  await page.route("**/api/notifications/line/link-code", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        code: "CP-ABCD2345",
+        expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+        official_account_url: "https://line.me/R/ti/p/@clearpath",
+        instruction:
+          "ส่งข้อความ CP-ABCD2345 ไปที่บัญชี LINE Official ของ ClearPath",
+      }),
+    });
+  });
+
+  await page.goto("/community");
+  await page.getByText("การแจ้งเตือน", { exact: true }).click();
+  await page.getByRole("button", { name: "สร้างรหัสเชื่อมบัญชี" }).click();
+  await expect(page.getByText("CP-ABCD2345", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "คัดลอกรหัส" })).toBeVisible();
+  await expect(page.getByText("หมดอายุใน", { exact: false })).toBeVisible();
+});
+
 test("mobile camera opens, becomes ready and captures a live frame", async ({
   page,
 }, testInfo) => {

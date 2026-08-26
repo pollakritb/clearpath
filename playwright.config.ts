@@ -48,6 +48,7 @@ export default defineConfig({
         ...process.env,
         BACKEND_ORIGIN: `http://127.0.0.1:${backendPort}`,
         ENABLE_LOCAL_API_PROXY: "true",
+        NEXT_PUBLIC_LOCAL_DEMO_MODE: "true",
       },
     },
   ],

@@ -242,6 +242,12 @@ export const api = {
       auth: true,
     }),
 
+  testLineNotification: () =>
+    http<OperationResponse>("/api/notifications/line/test", {
+      method: "POST",
+      auth: true,
+    }),
+
   notifications: () =>
     http<NotificationsResponse>("/api/notifications", { auth: true }),
 

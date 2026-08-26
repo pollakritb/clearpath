@@ -8,10 +8,8 @@ import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { T } from "@/frontend/lib/ui";
 import type { NotificationPreferences } from "@/frontend/types";
-import type {
-  LineLinkCodeResponse,
-  LineNotificationStatus,
-} from "@/frontend/types";
+
+import LineNotificationCard from "./LineNotificationCard";
 
 const DEFAULTS: NotificationPreferences = {
   district: null,
@@ -49,11 +47,6 @@ export default function NotificationSettings() {
   const [permission, setPermission] = useState<NotificationPermission | null>(
     null,
   );
-  const [lineStatus, setLineStatus] = useState<LineNotificationStatus | null>(
-    null,
-  );
-  const [lineCode, setLineCode] = useState<LineLinkCodeResponse | null>(null);
-
   useEffect(() => {
     if ("Notification" in window) {
       queueMicrotask(() => setPermission(Notification.permission));
@@ -62,10 +55,6 @@ export default function NotificationSettings() {
     void api
       .notificationPreferences()
       .then(setPreferences)
-      .catch(() => undefined);
-    void api
-      .lineNotificationStatus()
-      .then(setLineStatus)
       .catch(() => undefined);
     if ("serviceWorker" in navigator) {
       void navigator.serviceWorker.ready
@@ -304,99 +293,7 @@ export default function NotificationSettings() {
             </button>
           </div>
         )}
-        <div className="cp-line-link">
-          <div>
-            <strong>แจ้งเตือนผ่าน LINE</strong>
-            <small>
-              {lineStatus?.linked
-                ? "เชื่อมกับบัญชี LINE แล้ว"
-                : "รับข้อความเตือนในแชต LINE โดยไม่ต้องเปิดเว็บค้างไว้"}
-            </small>
-          </div>
-          {!lineStatus?.enabled ? (
-            <p>ระบบ LINE ยังรอการตั้งค่า Official Account</p>
-          ) : lineStatus.linked ? (
-            <button
-              type="button"
-              className="cp-focus"
-              disabled={saving}
-              onClick={() => {
-                setSaving(true);
-                setError(null);
-                void api
-                  .disconnectLine()
-                  .then((result) => {
-                    setLineStatus((current) =>
-                      current ? { ...current, linked: false } : current,
-                    );
-                    setMessage(result.message);
-                  })
-                  .catch((cause) =>
-                    setError(apiErrorMessage(cause, "ยกเลิก LINE ไม่สำเร็จ")),
-                  )
-                  .finally(() => setSaving(false));
-              }}
-            >
-              ยกเลิกการเชื่อม LINE
-            </button>
-          ) : (
-            <>
-              {lineStatus.official_account_url && (
-                <a
-                  href={lineStatus.official_account_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="cp-focus"
-                >
-                  1. เพิ่มเพื่อน ClearPath ใน LINE
-                </a>
-              )}
-              <button
-                type="button"
-                className="cp-focus"
-                disabled={saving}
-                onClick={() => {
-                  setSaving(true);
-                  setError(null);
-                  void api
-                    .createLineLinkCode()
-                    .then(setLineCode)
-                    .catch((cause) =>
-                      setError(
-                        apiErrorMessage(cause, "สร้างรหัส LINE ไม่สำเร็จ"),
-                      ),
-                    )
-                    .finally(() => setSaving(false));
-                }}
-              >
-                2. สร้างรหัสเชื่อมบัญชี
-              </button>
-              {lineCode && (
-                <div className="cp-line-link__code" role="status">
-                  <b>{lineCode.code}</b>
-                  <span>{lineCode.instruction}</span>
-                  <small>รหัสหมดอายุใน 10 นาทีและใช้ได้ครั้งเดียว</small>
-                </div>
-              )}
-              <button
-                type="button"
-                className="cp-focus"
-                onClick={() =>
-                  void api.lineNotificationStatus().then((next) => {
-                    setLineStatus(next);
-                    setMessage(
-                      next.linked
-                        ? "เชื่อม LINE สำเร็จแล้ว"
-                        : "ยังไม่พบการเชื่อม กรุณาส่งรหัสในแชต LINE ก่อน",
-                    );
-                  })
-                }
-              >
-                3. ตรวจสถานะการเชื่อม
-              </button>
-            </>
-          )}
-        </div>
+        <LineNotificationCard />
       </div>
       {permission === "denied" && (
         <p role="alert" style={{ fontSize: ".7em", color: T.red }}>

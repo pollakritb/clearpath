@@ -6,6 +6,7 @@ from backend.algorithms.line_security import (
     extract_link_code,
     hash_link_code,
     valid_line_signature,
+    valid_line_user_id,
 )
 
 
@@ -25,3 +26,9 @@ def test_link_code_parsing_and_hashing_are_normalized():
     assert hash_link_code("cp-abcd2345", "secret") == hash_link_code(
         "CP-ABCD2345", "secret"
     )
+
+
+def test_line_user_id_accepts_only_direct_user_targets():
+    assert valid_line_user_id("U0123456789abcdef0123456789abcdef")
+    assert not valid_line_user_id("C0123456789abcdef0123456789abcdef")
+    assert not valid_line_user_id("U-short")

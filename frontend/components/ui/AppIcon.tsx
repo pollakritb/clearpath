@@ -9,6 +9,7 @@ export type AppIconName =
   | "calibration"
   | "check"
   | "chevron"
+  | "copy"
   | "community"
   | "community-station"
   | "database"
@@ -19,7 +20,9 @@ export type AppIconName =
   | "model"
   | "close"
   | "layers"
+  | "line"
   | "search"
+  | "send"
   | "sensor"
   | "station"
   | "report"
@@ -161,6 +164,24 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
           <path d="M10 10h4M10 14h2M12 6V3" />
           <path d="M8.5 3.8a5 5 0 0 0-2.3 2.4M15.5 3.8a5 5 0 0 1 2.3 2.4" />
           <circle cx="14" cy="16" r="1" />
+        </>
+      )}
+      {name === "line" && (
+        <>
+          <path d="M20 11.3c0 4-3.6 7.2-8 7.2-.6 0-1.2-.1-1.8-.2L6 20l1.1-3.1C5.2 15.6 4 13.6 4 11.3c0-4 3.6-7.3 8-7.3s8 3.3 8 7.3Z" />
+          <path d="M8 9v4h2M11 9v4M13 13V9l3 4V9" />
+        </>
+      )}
+      {name === "copy" && (
+        <>
+          <rect x="8" y="8" width="11" height="11" rx="2" />
+          <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+        </>
+      )}
+      {name === "send" && (
+        <>
+          <path d="m3 11 18-8-7.5 18-3-7Z" />
+          <path d="m10.5 14 4-4" />
         </>
       )}
       {name === "calibration" && (

@@ -578,6 +578,21 @@ def test_line_account_link_webhook_and_delivery(feature_client, monkeypatch):
     assert initial.json()["enabled"] is True
     assert initial.json()["linked"] is False
 
+    verify_body = b'{"events":[]}'
+    verify_signature = base64.b64encode(
+        hmac.new(secret.encode(), verify_body, hashlib.sha256).digest()
+    ).decode()
+    verify_webhook = client.post(
+        "/api/notifications/line/webhook",
+        content=verify_body,
+        headers={
+            "content-type": "application/json",
+            "x-line-signature": verify_signature,
+        },
+    )
+    assert verify_webhook.status_code == 200
+    assert verify_webhook.json() == {"handled": 0, "linked": 0, "duplicates": 0}
+
     code_response = client.post("/api/notifications/line/link-code")
     assert code_response.status_code == 200, code_response.text
     code = code_response.json()["code"]
@@ -586,6 +601,7 @@ def test_line_account_link_webhook_and_delivery(feature_client, monkeypatch):
         "events": [
             {
                 "type": "message",
+                "webhookEventId": f"evt-{uuid4().hex}",
                 "replyToken": "reply-token",
                 "source": {"type": "user", "userId": line_user_id},
                 "message": {"type": "text", "text": code},
@@ -608,14 +624,34 @@ def test_line_account_link_webhook_and_delivery(feature_client, monkeypatch):
         headers={"content-type": "application/json", "x-line-signature": signature},
     )
     assert webhook.status_code == 200, webhook.text
-    assert webhook.json() == {"handled": 1, "linked": 1}
+    assert webhook.json() == {"handled": 1, "linked": 1, "duplicates": 0}
     assert client.get("/api/notifications/line").json()["linked"] is True
 
-    delivered = client.post("/api/notifications/test")
+    sent_before_redelivery = len(sent)
+    redelivery = client.post(
+        "/api/notifications/line/webhook",
+        content=body,
+        headers={"content-type": "application/json", "x-line-signature": signature},
+    )
+    assert redelivery.status_code == 200
+    assert redelivery.json() == {"handled": 0, "linked": 0, "duplicates": 1}
+    assert len(sent) == sent_before_redelivery
+
+    delivered = client.post("/api/notifications/line/test")
     assert delivered.status_code == 200, delivered.text
     assert any(url == line_messaging.LINE_PUSH_URL for url, _payload in sent)
+    line_payload = next(
+        payload
+        for url, payload in reversed(sent)
+        if url == line_messaging.LINE_PUSH_URL
+    )
+    assert (
+        "https://clearpath-gray.vercel.app/community"
+        in line_payload["messages"][0]["text"]
+    )
     assert client.delete("/api/notifications/line").status_code == 200
     assert client.get("/api/notifications/line").json()["linked"] is False
+    assert client.post("/api/notifications/line/test").status_code == 422
     assert member.id
 
 

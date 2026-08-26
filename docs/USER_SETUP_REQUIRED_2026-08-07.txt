@@ -86,7 +86,8 @@ LINE Notify ใช้งานไม่ได้แล้ว ระบบนี�
 2) เปิด LINE Developers Console ที่ https://developers.line.biz/console/
 3) สร้าง Provider แล้วสร้าง Messaging API channel ที่เชื่อมกับ Official Account
 4) ใน Basic settings คัดลอก Channel secret เก็บใน password manager
-5) ใน Messaging API สร้าง Channel access token แบบ long-lived
+5) ใน Messaging API สร้าง Channel access token v2.1 ตามคำแนะนำปัจจุบันของ LINE
+   (หรือ long-lived token สำหรับการเริ่มต้นแบบง่าย แล้ววางแผนหมุน token ภายหลัง)
 6) คัดลอก URL เพิ่มเพื่อนของ Official Account เช่น https://lin.ee/xxxx
 7) ตั้ง Webhook URL เป็น:
    https://clearpath-gray.vercel.app/api/notifications/line/webhook
@@ -97,8 +98,9 @@ LINE Notify ใช้งานไม่ได้แล้ว ระบบนี�
 1) เพิ่ม/แก้ Environment Variables ต่อไปนี้ โดยห้ามเติม NEXT_PUBLIC_:
    LINE_MESSAGING_ENABLED=true
    LINE_CHANNEL_SECRET=<Channel secret>
-   LINE_CHANNEL_ACCESS_TOKEN=<long-lived channel access token>
+   LINE_CHANNEL_ACCESS_TOKEN=<channel access token>
    LINE_OFFICIAL_ACCOUNT_URL=<URL เพิ่มเพื่อน เช่น https://lin.ee/xxxx>
+   APP_PUBLIC_URL=https://clearpath-gray.vercel.app
 2) เลือก Production และ Preview ตามนโยบายของทีม
 3) Redeploy production
 4) กลับ LINE Developers แล้วกด Verify webhook อีกครั้ง ต้องผ่าน
@@ -109,7 +111,7 @@ LINE Notify ใช้งานไม่ได้แล้ว ระบบนี�
 3) กดสร้างรหัส CP-XXXXXXXX
 4) ส่งรหัสดังกล่าวในแชต LINE ภายใน 10 นาที
 5) กลับเว็บแล้วกดตรวจสถานะ ต้องขึ้นว่าเชื่อมสำเร็จ
-6) กดทดสอบ notification ต้องได้รับข้อความ LINE
+6) กด "ส่งข้อความทดสอบ" ในการ์ด LINE ต้องได้รับข้อความพร้อมลิงก์กลับ ClearPath
 7) กดยกเลิกการเชื่อม แล้วทดสอบว่าข้อความไม่ถูกส่งอีก
 8) ตรวจ quota ฟรีของ Messaging API ใน LINE Developers/Official Account Manager เป็นประจำ
 

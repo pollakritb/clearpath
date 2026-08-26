@@ -178,6 +178,59 @@ CREATE TABLE IF NOT EXISTS activities (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS line_notification_links (
+  user_id TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  line_user_id TEXT UNIQUE,
+  link_code_hash TEXT UNIQUE,
+  link_code_expires_at TIMESTAMPTZ,
+  active BOOLEAN NOT NULL DEFAULT FALSE,
+  linked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS line_notification_links_active_idx
+  ON line_notification_links (user_id) WHERE active = TRUE;
+
+ALTER TABLE line_notification_links ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS line_webhook_events (
+  event_id TEXT PRIMARY KEY,
+  processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
+);
+
+CREATE INDEX IF NOT EXISTS line_webhook_events_expiry_idx
+  ON line_webhook_events (expires_at);
+
+ALTER TABLE line_webhook_events ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION claim_line_webhook_event(p_event_id TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  inserted_count INTEGER := 0;
+BEGIN
+  IF p_event_id IS NULL OR length(trim(p_event_id)) < 8 OR length(p_event_id) > 200 THEN
+    RETURN FALSE;
+  END IF;
+  DELETE FROM line_webhook_events WHERE expires_at < NOW();
+  INSERT INTO line_webhook_events(event_id)
+  VALUES (p_event_id)
+  ON CONFLICT (event_id) DO NOTHING;
+  GET DIAGNOSTICS inserted_count = ROW_COUNT;
+  RETURN inserted_count = 1;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION claim_line_webhook_event(TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION claim_line_webhook_event(TEXT) FROM anon;
+REVOKE ALL ON FUNCTION claim_line_webhook_event(TEXT) FROM authenticated;
+GRANT EXECUTE ON FUNCTION claim_line_webhook_event(TEXT) TO service_role;
+
 -- private bucket: backend service_role อัปโหลดและออก signed URL เท่านั้น
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (

@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     line_channel_secret: str = ""
     line_channel_access_token: str = ""
     line_official_account_url: str = ""
+    app_public_url: str = "https://clearpath-gray.vercel.app"
 
     # Production feature gates. A model must also pass its quality gate in the
     # model registry before ML forecasts are served.

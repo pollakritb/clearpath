@@ -36,6 +36,7 @@ _ALERT_EVENTS: dict[str, dict] = {}
 _USER_NOTIFICATIONS: dict[str, dict] = {}
 _NOTIFICATION_OUTBOX: dict[str, dict] = {}
 _LINE_NOTIFICATION_LINKS: dict[str, dict] = {}
+_LINE_WEBHOOK_EVENTS: dict[str, str] = {}
 _AUDIT_LOGS: list[dict] = []
 _PUBLIC_MAP_EVENTS: list[dict] = []
 _WEATHER_OBSERVATIONS: list[dict] = []
@@ -559,6 +560,27 @@ def deactivate_line_notification_link(
                 row["updated_at"] = datetime.now(UTC).isoformat()
                 changed = True
     return changed
+
+
+def claim_line_webhook_event(event_id: str) -> bool:
+    now = datetime.now(UTC)
+    with _LOCK:
+        expired = [
+            key
+            for key, expires_at in _LINE_WEBHOOK_EVENTS.items()
+            if expires_at <= now.isoformat()
+        ]
+        for key in expired:
+            _LINE_WEBHOOK_EVENTS.pop(key, None)
+        if event_id in _LINE_WEBHOOK_EVENTS:
+            return False
+        _LINE_WEBHOOK_EVENTS[event_id] = (now + timedelta(days=7)).isoformat()
+        return True
+
+
+def release_line_webhook_event(event_id: str) -> None:
+    with _LOCK:
+        _LINE_WEBHOOK_EVENTS.pop(event_id, None)
 
 
 def upsert_notification_preferences(user_id: str, values: dict) -> dict:

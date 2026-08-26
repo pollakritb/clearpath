@@ -26,6 +26,7 @@ def test_new_product_api_surface_and_no_navigation_api():
     assert "/api/notifications/subscriptions" in paths
     assert "/api/notifications/preferences" in paths
     assert "/api/notifications" in paths
+    assert "/api/notifications/line/test" in paths
     assert "/api/locations/search" in paths
     assert "/api/cron/alerts" in paths
     assert "/api/cron/forecast-evaluation" in paths

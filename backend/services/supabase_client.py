@@ -686,6 +686,27 @@ def deactivate_line_notification_link(
     return bool(query.execute().data or [])
 
 
+def claim_line_webhook_event(event_id: str) -> bool:
+    if settings.local_demo_mode:
+        return local_store.claim_line_webhook_event(event_id)
+    result = (
+        get_client()
+        .rpc("claim_line_webhook_event", {"p_event_id": event_id})
+        .execute()
+        .data
+    )
+    return bool(result)
+
+
+def release_line_webhook_event(event_id: str) -> None:
+    if settings.local_demo_mode:
+        local_store.release_line_webhook_event(event_id)
+        return
+    get_client().table("line_webhook_events").delete().eq(
+        "event_id", event_id
+    ).execute()
+
+
 def upsert_notification_preferences(user_id: str, values: dict) -> dict:
     row = {"user_id": user_id, **values, "updated_at": datetime.now(UTC).isoformat()}
     if settings.local_demo_mode:
