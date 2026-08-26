@@ -128,6 +128,9 @@ export default function LineNotificationCard() {
 
   return (
     <section className="cp-line-link" aria-labelledby="line-notification-title">
+      {!status?.linked && (
+        <span className="cp-line-link__recommended">แนะนำ</span>
+      )}
       <header className="cp-line-link__header">
         <span className="cp-line-link__brand" aria-hidden="true">
           <AppIcon name="line" size={23} />
@@ -185,9 +188,28 @@ export default function LineNotificationCard() {
         </div>
       ) : (
         <div className="cp-line-link__steps">
-          <p>
-            <b>1</b> เพิ่มเพื่อนบัญชี ClearPath Official
-          </p>
+          <ol
+            className="cp-line-link__stepper"
+            aria-label="ขั้นตอนเชื่อมบัญชี LINE"
+          >
+            <li data-current="true">
+              <b>1</b>
+              <span>เพิ่มเพื่อน</span>
+            </li>
+            <li data-current={linkCode !== null}>
+              <b>2</b>
+              <span>รับรหัส</span>
+            </li>
+            <li>
+              <b>3</b>
+              <span>ส่งในแชต</span>
+            </li>
+          </ol>
+
+          <div className="cp-line-link__instruction">
+            <strong>เพิ่มเพื่อนบัญชี ClearPath ก่อน</strong>
+            <small>จากนั้นกลับมาสร้างรหัสสำหรับบัญชีนี้</small>
+          </div>
           {status.official_account_url ? (
             <a
               href={status.official_account_url}
@@ -201,9 +223,6 @@ export default function LineNotificationCard() {
           ) : (
             <small>ยังไม่มีลิงก์เพิ่มเพื่อน กรุณาติดต่อผู้ดูแลระบบ</small>
           )}
-          <p>
-            <b>2</b> สร้างรหัสสำหรับบัญชีนี้
-          </p>
           <button
             type="button"
             className="cp-focus cp-line-link__secondary"
@@ -232,8 +251,8 @@ export default function LineNotificationCard() {
               </small>
             </div>
           )}
-          <p>
-            <b>3</b> ส่งรหัสในแชต LINE ระบบจะตรวจสถานะให้อัตโนมัติ
+          <p className="cp-line-link__final-step">
+            ส่งรหัสในแชต LINE แล้วหน้านี้จะเปลี่ยนเป็น “เชื่อมแล้ว” ให้อัตโนมัติ
           </p>
         </div>
       )}

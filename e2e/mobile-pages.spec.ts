@@ -6,7 +6,7 @@ const pages = [
   { path: "/air", text: "อากาศวันนี้" },
   { path: "/report", text: "ส่งข้อมูลจากเครื่องวัด" },
   { path: "/community", text: "ช่วยกันทำให้ข้อมูลอากาศดีขึ้น" },
-  { path: "/admin", text: "เข้าสู่ระบบผู้ดูแล" },
+  { path: "/admin", text: "ศูนย์ควบคุม ClearPath" },
   { path: "/offline", text: "ขณะนี้ไม่ได้เชื่อมต่ออินเทอร์เน็ต" },
 ];
 
@@ -71,6 +71,34 @@ test("LINE notification card explains production setup state on mobile", async (
     page.getByText("ระบบ LINE ยังรอการเปิดใช้งาน Official Account", {
       exact: false,
     }),
+  ).toBeVisible();
+});
+
+test("notification settings separate channels from conditions on mobile", async ({
+  page,
+}) => {
+  await page.goto("/community");
+  await page.getByText("การแจ้งเตือน", { exact: true }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "ช่องทางรับแจ้งเตือน" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "แจ้งเตือนผ่าน LINE" }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Web Push" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "เงื่อนไขแจ้งเตือน" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "แก้ไขเงื่อนไข" }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByText("เลือกประเภทเหตุการณ์")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "แก้ไขเงื่อนไข" }).click();
+  await expect(page.getByText("เลือกประเภทเหตุการณ์")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "บันทึกเงื่อนไข" }),
   ).toBeVisible();
 });
 
