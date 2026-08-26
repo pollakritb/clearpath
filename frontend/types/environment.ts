@@ -5,6 +5,7 @@ export interface Weather {
   wind_deg: number;
   description: string;
   icon: string | null;
+  source: "openweather" | "open_meteo";
 }
 
 export interface FirePoint {
@@ -22,4 +23,7 @@ export interface FirePoint {
 export interface FirmsResponse {
   fires: FirePoint[];
   count: number;
+  available: boolean;
+  message: string | null;
+  source: "nasa_firms";
 }

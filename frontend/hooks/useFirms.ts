@@ -17,6 +17,11 @@ export function useFirms() {
     try {
       const res = await api.firms(days);
       setFires(res.fires);
+      setError(
+        res.available
+          ? null
+          : (res.message ?? "ยังตรวจสอบจุดความร้อนจากดาวเทียมไม่ได้"),
+      );
       setLoaded(true);
     } catch (error) {
       setError(apiErrorMessage(error, "โหลดจุดความร้อนไม่สำเร็จ"));

@@ -1,5 +1,7 @@
 """Weather and NASA FIRMS contracts."""
 
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -10,6 +12,7 @@ class Weather(BaseModel):
     wind_deg: float
     description: str
     icon: str | None = None
+    source: Literal["openweather", "open_meteo"] = "openweather"
 
 
 class FirePoint(BaseModel):
@@ -27,3 +30,6 @@ class FirePoint(BaseModel):
 class FirmsResponse(BaseModel):
     fires: list[FirePoint]
     count: int
+    available: bool = True
+    message: str | None = None
+    source: Literal["nasa_firms"] = "nasa_firms"

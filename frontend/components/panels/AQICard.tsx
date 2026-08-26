@@ -201,6 +201,31 @@ export default function AQICard({
           <WxStat label="ลม (m/s)" value={wind} />
         </div>
 
+        {weather && (
+          <div
+            style={{
+              color: T.subInk,
+              fontSize: ".64em",
+              margin: ".35em 0 .65em",
+              textAlign: "right",
+            }}
+          >
+            สภาพอากาศจาก{" "}
+            <a
+              href={
+                weather.source === "open_meteo"
+                  ? "https://open-meteo.com/"
+                  : "https://openweathermap.org/"
+              }
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: "inherit", textDecoration: "underline" }}
+            >
+              {weather.source === "open_meteo" ? "Open-Meteo" : "OpenWeather"}
+            </a>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={onToggleHistory}

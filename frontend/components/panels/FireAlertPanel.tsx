@@ -48,8 +48,13 @@ export default function FireAlertPanel({
         ? "watch"
         : "clear";
   const active = severity !== "clear";
+  const unavailable = Boolean(error);
   const tone =
-    severity === "high" ? T.red : severity === "watch" ? "#d97706" : T.teal;
+    unavailable || severity === "watch"
+      ? "#d97706"
+      : severity === "high"
+        ? T.red
+        : T.teal;
   const newest = nearby.reduce<string | null>((latest, fire) => {
     if (!fire.acquired_at) return latest;
     return !latest || fire.acquired_at > latest ? fire.acquired_at : latest;
@@ -58,26 +63,28 @@ export default function FireAlertPanel({
   return (
     <section
       style={{
-        border: `1px solid ${active ? tone : T.line}`,
+        border: `1px solid ${active || unavailable ? tone : T.line}`,
         borderRadius: "11px",
         padding: ".7em",
-        background: active ? `${tone}12` : T.chip,
+        background: active || unavailable ? `${tone}12` : T.chip,
       }}
       aria-live="polite"
     >
       <div style={{ display: "flex", alignItems: "center", gap: ".5em" }}>
         <span aria-hidden style={{ color: tone, fontSize: "1.2em" }}>
-          {active ? "▲" : "✓"}
+          {loading ? "…" : unavailable ? "!" : active ? "▲" : "✓"}
         </span>
         <div style={{ flex: 1 }}>
           <b style={{ fontSize: ".78em" }}>
             {loading
               ? "กำลังตรวจ NASA FIRMS…"
-              : severity === "high"
-                ? `เฝ้าระวังสูง: ${nearby.length} จุดความร้อนสดในนครปฐม`
-                : severity === "watch"
-                  ? `เฝ้าระวัง: พบ ${nearby.length} จุดความร้อนสดในนครปฐม`
-                  : "ไม่พบจุดความร้อนอายุไม่เกิน 12 ชั่วโมงในพื้นที่"}
+              : unavailable
+                ? "ยังตรวจสอบจุดความร้อนจากดาวเทียมไม่ได้"
+                : severity === "high"
+                  ? `เฝ้าระวังสูง: ${nearby.length} จุดความร้อนสดในนครปฐม`
+                  : severity === "watch"
+                    ? `เฝ้าระวัง: พบ ${nearby.length} จุดความร้อนสดในนครปฐม`
+                    : "ไม่พบจุดความร้อนอายุไม่เกิน 12 ชั่วโมงในพื้นที่"}
           </b>
           <div
             style={{ fontSize: ".66em", color: T.subInk, marginTop: ".15em" }}
@@ -112,7 +119,7 @@ export default function FireAlertPanel({
         <div
           style={{ fontSize: ".65em", color: "#b53d35", marginTop: ".35em" }}
         >
-          ยังตรวจสอบไม่ได้: {error}
+          {error}
         </div>
       )}
     </section>
