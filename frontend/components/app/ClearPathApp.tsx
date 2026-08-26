@@ -275,14 +275,14 @@ export default function ClearPathApp({
     },
     {
       key: "community-sensors",
-      label: `เซนเซอร์ชุมชน · ${communitySourceCounts.sensor}`,
+      label: `สถานีชุมชน · ${communitySourceCounts.sensor}`,
       dot: "#0b8f83",
       on: showCommunitySensors,
       onToggle: () => setShowCommunitySensors((value) => !value),
     },
     {
       key: "individual-reports",
-      label: `บุคคลรายงาน · ${communitySourceCounts.individual}`,
+      label: `รายงานจากบุคคล · ${communitySourceCounts.individual}`,
       dot: "#e77b28",
       on: showIndividualReports,
       onToggle: () => setShowIndividualReports((value) => !value),

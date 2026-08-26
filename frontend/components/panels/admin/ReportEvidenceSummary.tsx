@@ -1,5 +1,8 @@
 import Image from "next/image";
 
+import CalibrationBadge from "@/frontend/components/ui/CalibrationBadge";
+import SourceBadge from "@/frontend/components/ui/SourceBadge";
+import { communitySourceKind } from "@/frontend/lib/source-kind";
 import { T } from "@/frontend/lib/ui";
 import type { CommunityReport } from "@/frontend/types";
 
@@ -24,6 +27,8 @@ export default function ReportEvidenceSummary({
 }: {
   report: CommunityReport;
 }) {
+  const source = communitySourceKind(report);
+
   return (
     <>
       {report.image_url && (
@@ -44,6 +49,9 @@ export default function ReportEvidenceSummary({
       )}
 
       <div className="cp-admin-evidence-grid">
+        <EvidenceMetric label="เจ้าของแหล่งข้อมูล">
+          <SourceBadge kind={source} compact />
+        </EvidenceMetric>
         <EvidenceMetric label="OCR ช่วยอ่าน">
           {report.ocr_pm25 ?? "ไม่พร้อม"} ·{" "}
           {Math.round(report.ocr_confidence * 100)}%
@@ -58,9 +66,11 @@ export default function ReportEvidenceSummary({
         </EvidenceMetric>
         <EvidenceMetric label="เครื่องวัด">
           {report.device_model ?? "ไม่ระบุ"}
-          {report.device_calibrated
-            ? ` · สอบเทียบ ${report.calibrated_at ?? "แล้ว"}`
-            : " · ไม่ระบุการสอบเทียบ"}
+          {report.device_calibrated ? (
+            <CalibrationBadge date={report.calibrated_at} />
+          ) : (
+            " · ไม่ระบุหลักฐานการสอบเทียบ"
+          )}
         </EvidenceMetric>
         <EvidenceMetric label="GPS จริงสำหรับ Admin">
           {report.lat.toFixed(5)}, {report.lon.toFixed(5)} · ±

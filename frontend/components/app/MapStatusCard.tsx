@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
+import CalibrationBadge from "@/frontend/components/ui/CalibrationBadge";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
@@ -120,9 +121,9 @@ export default function MapStatusCard({
       }
       aria-label={
         source === "sensor"
-          ? "รายละเอียดเซนเซอร์ชุมชน"
+          ? "รายละเอียดสถานีเซนเซอร์ชุมชน"
           : isCommunity
-            ? "รายละเอียดรายงานจากประชาชน"
+            ? "รายละเอียดรายงานจากบุคคล"
             : "รายละเอียดสถานีตรวจวัดทางการ"
       }
       aria-live="polite"
@@ -143,10 +144,13 @@ export default function MapStatusCard({
         <p>
           {report
             ? source === "sensor"
-              ? `${report.device_model ?? "เครื่องวัดชุมชน"} · ผู้ส่ง ${report.display_name ?? "สมาชิกชุมชน"}`
-              : `ผู้รายงาน: ${report.display_name ?? "สมาชิกชุมชน"}`
+              ? `${report.device_model ?? "ไม่ระบุรุ่นอุปกรณ์"} · อุปกรณ์ประจำจุดที่ลงทะเบียน`
+              : `${report.device_model ?? "ไม่ระบุรุ่นเครื่องวัด"} · ผู้รายงาน ${report.display_name ?? "สมาชิกชุมชน"}`
             : `Air4Thai · กรมควบคุมมลพิษ${station?.province ? ` · ${station.province}` : ""}`}
         </p>
+        {report?.device_calibrated && (
+          <CalibrationBadge date={report.calibrated_at} />
+        )}
       </header>
 
       <div className="cp-map-selection-reading">
@@ -166,15 +170,11 @@ export default function MapStatusCard({
           <>
             <span>
               <strong>
-                {source === "sensor" ? "ระบุการสอบเทียบ" : "ตรวจแล้ว"}
+                {report.verification_method === "automatic"
+                  ? "ระบบตรวจแล้ว"
+                  : "ผู้ดูแลตรวจแล้ว"}
               </strong>
-              <small>
-                {source === "sensor" && report.calibrated_at
-                  ? `สอบเทียบ ${formatTime(report.calibrated_at)} น.`
-                  : report.verification_method === "automatic"
-                    ? "โดยระบบอัตโนมัติ"
-                    : "โดยผู้ดูแล"}
-              </small>
+              <small>{SOURCE_LABELS[source].description}</small>
             </span>
             <span>
               <strong>Trust {report.trust_score}/100</strong>
@@ -216,7 +216,9 @@ export default function MapStatusCard({
         <span>
           {source === "official"
             ? "ดูค่าฝุ่นและพยากรณ์สถานีนี้"
-            : `ดู${SOURCE_LABELS[source].shortLabel}ในชุมชน`}
+            : source === "sensor"
+              ? "ดูสถานีชุมชนในเครือข่าย"
+              : "ดูรายงานนี้ในชุมชน"}
         </span>
         <AppIcon name="chevron" size={19} />
       </Link>

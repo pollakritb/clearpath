@@ -143,15 +143,15 @@ export default function MapChrome({
         </span>
         <span data-source="sensor">
           <i>
-            <AppIcon name="sensor" size={15} />
+            <AppIcon name="community-station" size={15} />
           </i>
-          เซนเซอร์
+          สถานีชุมชน
         </span>
         <span data-source="individual">
           <i>
             <AppIcon name="user" size={15} />
           </i>
-          บุคคล
+          บุคคลรายงาน
         </span>
       </div>
 
@@ -297,11 +297,11 @@ export default function MapChrome({
               onClick={onToggleCommunitySensors}
             >
               <span className="cp-layer-symbol cp-layer-symbol--sensor">
-                <AppIcon name="sensor" size={17} />
+                <AppIcon name="community-station" size={17} />
               </span>
               <span>
-                <strong>เซนเซอร์ชุมชน</strong>
-                <small>ระบุการสอบเทียบ · {sensorCount} จุด</small>
+                <strong>สถานีเซนเซอร์ชุมชน</strong>
+                <small>อุปกรณ์ประจำจุดที่ลงทะเบียน · {sensorCount} สถานี</small>
               </span>
               <span className="cp-layer-switch" aria-hidden />
             </button>
@@ -316,8 +316,10 @@ export default function MapChrome({
                 <AppIcon name="user" size={15} />
               </span>
               <span>
-                <strong>รายงานจากประชาชน</strong>
-                <small>ผ่านการตรวจแล้ว · {individualReportCount} รายงาน</small>
+                <strong>รายงานจากบุคคล</strong>
+                <small>
+                  ภาพเครื่องวัดพร้อม GPS · {individualReportCount} รายงาน
+                </small>
               </span>
               <span className="cp-layer-switch" aria-hidden />
             </button>

@@ -267,6 +267,9 @@ async def submit_draft(*, draft_id: str, user_id: str, values: dict) -> dict:
         "burst_hashes": draft.get("burst_hashes") or [],
         "duplicate_of_report_id": draft.get("duplicate_of_report_id"),
         "device_model": (values.get("device_model") or "").strip() or None,
+        # A camera + GPS submission belongs to an individual. Calibration is a
+        # separate quality signal, not permission to become a fixed station.
+        "source_type": "individual",
         "device_calibrated": bool(values.get("device_calibrated")),
         "calibrated_at": values.get("calibrated_at"),
         "averaging_period": values.get("averaging_period") or "instant",

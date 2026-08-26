@@ -3,9 +3,9 @@ import type { CommunityReport } from "@/frontend/types";
 export type MapSourceKind = "official" | "sensor" | "individual";
 
 export function communitySourceKind(
-  report: Pick<CommunityReport, "device_calibrated">,
+  report: Pick<CommunityReport, "source_type">,
 ): Exclude<MapSourceKind, "official"> {
-  return report.device_calibrated ? "sensor" : "individual";
+  return report.source_type === "community_sensor" ? "sensor" : "individual";
 }
 
 export const SOURCE_LABELS: Record<
@@ -18,13 +18,13 @@ export const SOURCE_LABELS: Record<
     description: "Air4Thai · กรมควบคุมมลพิษ",
   },
   sensor: {
-    label: "เซนเซอร์ชุมชน",
-    shortLabel: "เซนเซอร์",
-    description: "เครื่องที่ระบุข้อมูลการสอบเทียบ",
+    label: "สถานีเซนเซอร์ชุมชน",
+    shortLabel: "สถานีชุมชน",
+    description: "อุปกรณ์ประจำจุดที่ลงทะเบียนกับ ClearPath",
   },
   individual: {
-    label: "รายงานจากประชาชน",
-    shortLabel: "บุคคล",
-    description: "ภาพเครื่องวัดที่ผ่านการตรวจ",
+    label: "รายงานจากบุคคล",
+    shortLabel: "บุคคลรายงาน",
+    description: "ผู้ใช้ถ่ายเครื่องวัดพร้อมยืนยัน GPS",
   },
 };

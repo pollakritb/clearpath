@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS community_reports (
   image_ahash        TEXT,
   duplicate_of_report_id UUID REFERENCES community_reports(id) ON DELETE SET NULL,
   device_model       TEXT,
+  source_type        TEXT NOT NULL DEFAULT 'individual' CHECK (source_type IN ('individual', 'community_sensor')),
   device_calibrated  BOOLEAN NOT NULL DEFAULT FALSE,
   calibrated_at      DATE,
   measurement_environment TEXT NOT NULL DEFAULT 'outdoor' CHECK (measurement_environment IN ('outdoor', 'indoor')),
@@ -106,6 +107,7 @@ ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS image_sha256 TEXT;
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS image_ahash TEXT;
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS duplicate_of_report_id UUID REFERENCES community_reports(id) ON DELETE SET NULL;
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS device_model TEXT;
+ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS source_type TEXT NOT NULL DEFAULT 'individual';
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS device_calibrated BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS calibrated_at DATE;
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS measurement_environment TEXT NOT NULL DEFAULT 'outdoor';
@@ -113,6 +115,21 @@ ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS measurement_stable BOOLEA
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS near_emission_source BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS measurement_note TEXT;
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS gps_accuracy_m DOUBLE PRECISION;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'community_reports_source_type_check'
+      AND conrelid = 'public.community_reports'::regclass
+  ) THEN
+    ALTER TABLE community_reports
+      ADD CONSTRAINT community_reports_source_type_check
+      CHECK (source_type IN ('individual', 'community_sensor'));
+  END IF;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS report_reviews (
   id           BIGSERIAL PRIMARY KEY,

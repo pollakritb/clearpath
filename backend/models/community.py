@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 ReportStatus = Literal["pending", "approved", "rejected"]
 VerificationMethod = Literal["pending", "automatic", "admin"]
 CommunityDataRole = Literal["supplementary", "gap_fill"]
+CommunitySourceType = Literal["individual", "community_sensor"]
 GapFillBasis = Literal["none", "corroborated", "calibrated_high_trust"]
 RatingDirection = Literal["negative", "neutral", "positive"]
 RejectionReason = Literal[
@@ -60,6 +61,7 @@ class CommunityReport(BaseModel):
     age_minutes: float | None = None
     location_precision_m: int = 0
     device_model: str | None = None
+    source_type: CommunitySourceType = "individual"
     device_calibrated: bool = False
     calibrated_at: str | None = None
     measurement_environment: Literal["outdoor", "indoor"] = "outdoor"

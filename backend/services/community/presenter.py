@@ -147,6 +147,7 @@ def present_report(
         "age_minutes": round(age, 1) if age is not None else None,
         "location_precision_m": location_precision,
         "device_model": row.get("device_model"),
+        "source_type": row.get("source_type") or "individual",
         "device_calibrated": bool(row.get("device_calibrated")),
         "calibrated_at": (
             str(row["calibrated_at"]) if row.get("calibrated_at") else None

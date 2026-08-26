@@ -10,7 +10,11 @@ export default function SourceBadge({
   compact?: boolean;
 }) {
   const icon =
-    kind === "official" ? "station" : kind === "sensor" ? "sensor" : "user";
+    kind === "official"
+      ? "station"
+      : kind === "sensor"
+        ? "community-station"
+        : "user";
 
   return (
     <span className="cp-source-badge" data-source={kind}>

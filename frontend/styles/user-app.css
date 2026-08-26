@@ -3898,6 +3898,26 @@
   background: var(--cp-source-individual);
 }
 
+.cp-calibration-badge {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  border: 1px solid #d9ccef;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: var(--cp-calibration-soft);
+  color: #5e35a4;
+  font-size: 0.64rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.cp-map-selection-card__heading .cp-calibration-badge {
+  margin-top: 7px;
+}
+
 .cp-context-header__title {
   display: flex;
   align-items: flex-start;
@@ -4153,9 +4173,34 @@
   place-items: center;
   border: 2px solid #fff;
   border-radius: 50%;
-  background: var(--cp-source-sensor);
+  background: var(--cp-calibration);
   color: #fff;
   font: 900 0.55rem/1 system-ui;
+}
+
+.cp-report-source-guide > div[data-source="calibration"] {
+  flex-direction: row;
+  align-items: center;
+  border-color: #d9ccef;
+  background: var(--cp-calibration-soft);
+}
+
+.cp-report-calibration-icon {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--cp-calibration);
+  color: #fff;
+}
+
+.cp-device-calibration-hint {
+  display: block;
+  margin-top: 3px;
+  color: var(--cp-subink);
+  font-size: 0.84em;
 }
 
 .cp-map-selection-card[data-source="official"] {

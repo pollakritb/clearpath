@@ -161,13 +161,17 @@ export default function ReportForm({
         className="cp-report-source-guide"
         aria-label="ประเภทข้อมูลที่จะเผยแพร่"
       >
-        <div data-source="sensor">
-          <SourceBadge kind="sensor" />
-          <small>เลือก “ผ่านการสอบเทียบ” พร้อมระบุวันที่</small>
-        </div>
         <div data-source="individual">
           <SourceBadge kind="individual" />
-          <small>เครื่องทั่วไปที่ส่งภาพสดและ GPS</small>
+          <small>ข้อมูลจากหน้านี้เผยแพร่เป็นรายงานของบุคคลเสมอ</small>
+        </div>
+        <div data-source="calibration">
+          <span className="cp-report-calibration-icon">
+            <AppIcon name="calibration" size={17} />
+          </span>
+          <small>
+            การสอบเทียบเพิ่มความน่าเชื่อถือ แต่ไม่เปลี่ยนรายงานเป็นสถานีชุมชน
+          </small>
         </div>
       </div>
       <ol className="cp-report-progress" aria-label="ขั้นตอนส่งข้อมูล">

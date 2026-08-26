@@ -94,10 +94,10 @@ test("map separates official stations from community reports", async ({
     name: /สถานีตรวจวัดทางการ/,
   });
   const community = page.getByRole("button", {
-    name: /รายงานจากประชาชน/,
+    name: /รายงานจากบุคคล/,
   });
   const sensors = page.getByRole("button", {
-    name: /เซนเซอร์ชุมชน/,
+    name: /สถานีเซนเซอร์ชุมชน/,
   });
   await expect(official).toBeVisible();
   await expect(sensors).toBeVisible();
@@ -127,6 +127,10 @@ test("community marker opens a distinct privacy-safe report card", async ({
             verification_method: "automatic",
             age_minutes: 15,
             location_precision_m: 180,
+            source_type: "individual",
+            device_calibrated: true,
+            calibrated_at: "2026-08-01",
+            device_model: "Xiaomi Air Monitor",
             subdistrict: "ปทุมวัน",
             district: "ปทุมวัน",
             province: "กรุงเทพมหานคร",
@@ -137,18 +141,17 @@ test("community marker opens a distinct privacy-safe report card", async ({
   });
 
   await page.goto("/");
-  const marker = page.locator('[title^="รายงานจากประชาชน"]');
+  const marker = page.locator('[title^="รายงานจากบุคคล"]');
   await expect(marker).toHaveCount(1);
   await marker.click();
 
   const card = page.getByRole("region", {
-    name: "รายละเอียดรายงานจากประชาชน",
+    name: "รายละเอียดรายงานจากบุคคล",
   });
   await expect(card).toBeVisible();
-  await expect(
-    card.getByText("รายงานจากประชาชน", { exact: true }),
-  ).toBeVisible();
-  await expect(card.getByText(/ผู้รายงาน: สมาชิกชุมชน/)).toBeVisible();
+  await expect(card.getByText("รายงานจากบุคคล", { exact: true })).toBeVisible();
+  await expect(card.getByText(/ผู้รายงาน สมาชิกชุมชน/)).toBeVisible();
+  await expect(card.getByText(/สอบเทียบ/)).toBeVisible();
   await expect(card.getByText(/พิกัดจริงประมาณ 180 ม./)).toBeVisible();
 });
 

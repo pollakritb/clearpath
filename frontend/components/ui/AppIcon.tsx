@@ -6,9 +6,11 @@ export type AppIconName =
   | "alert"
   | "back"
   | "camera"
+  | "calibration"
   | "check"
   | "chevron"
   | "community"
+  | "community-station"
   | "database"
   | "home"
   | "map"
@@ -151,6 +153,21 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
           <rect x="5" y="4" width="14" height="16" rx="3" />
           <path d="M8 8h8M8 12h5M8 16h3" />
           <circle cx="16" cy="16" r="1.4" />
+        </>
+      )}
+      {name === "community-station" && (
+        <>
+          <rect x="7" y="6" width="10" height="14" rx="2.5" />
+          <path d="M10 10h4M10 14h2M12 6V3" />
+          <path d="M8.5 3.8a5 5 0 0 0-2.3 2.4M15.5 3.8a5 5 0 0 1 2.3 2.4" />
+          <circle cx="14" cy="16" r="1" />
+        </>
+      )}
+      {name === "calibration" && (
+        <>
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 7v2M7 12h2M15 12h2M12 15v2" />
+          <path d="m9.5 12 1.7 1.7 3.5-4" />
         </>
       )}
       {name === "close" && <path d="m6 6 12 12M18 6 6 18" />}

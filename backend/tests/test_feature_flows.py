@@ -137,7 +137,10 @@ def _create_pending_report(client: TestClient, seed: int = 1) -> dict:
         },
     )
     assert submit_response.status_code == 201, submit_response.text
-    return submit_response.json()["report"]
+    report = submit_response.json()["report"]
+    assert report["source_type"] == "individual"
+    assert report["device_calibrated"] is True
+    return report
 
 
 def test_high_confidence_report_is_automatically_approved(feature_client, monkeypatch):

@@ -84,7 +84,12 @@ export default function DeviceFields({ details, onChange }: DeviceFieldsProps) {
           }
           style={CHECKBOX_STYLE}
         />
-        <span>เครื่องนี้มีการสอบเทียบหรือเทียบกับเครื่องมาตรฐาน</span>
+        <span>
+          เครื่องนี้มีหลักฐานการสอบเทียบหรือเคยเทียบกับเครื่องมาตรฐาน
+          <small className="cp-device-calibration-hint">
+            เป็นข้อมูลคุณภาพของเครื่อง ไม่ใช่ประเภทสถานี
+          </small>
+        </span>
       </label>
       {details.deviceCalibrated && (
         <label style={{ fontSize: ".74em", fontWeight: 600 }}>

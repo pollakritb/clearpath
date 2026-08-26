@@ -46,11 +46,11 @@ export default function CommunityPanel({
       >
         <div>
           <SourceBadge kind="sensor" />
-          <small>เครื่องสอบเทียบ</small>
+          <small>อุปกรณ์ประจำจุดที่ลงทะเบียน</small>
         </div>
         <div>
           <SourceBadge kind="individual" />
-          <small>สมาชิกส่งภาพสด</small>
+          <small>สมาชิกถ่ายภาพสดพร้อม GPS</small>
         </div>
       </div>
 

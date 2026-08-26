@@ -1,6 +1,7 @@
 export type ReportStatus = "pending" | "approved" | "rejected";
 export type VerificationMethod = "pending" | "automatic" | "admin";
 export type CommunityDataRole = "supplementary" | "gap_fill";
+export type CommunitySourceType = "individual" | "community_sensor";
 export type GapFillBasis = "none" | "corroborated" | "calibrated_high_trust";
 export type RatingDirection = "negative" | "neutral" | "positive";
 export type RejectionReason =
@@ -58,6 +59,7 @@ export interface CommunityReport {
   age_minutes: number | null;
   location_precision_m: number;
   device_model: string | null;
+  source_type: CommunitySourceType;
   device_calibrated: boolean;
   calibrated_at: string | null;
   measurement_environment: "outdoor" | "indoor";
