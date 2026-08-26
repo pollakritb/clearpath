@@ -190,7 +190,7 @@ export default function ReportForm({
           <span>ตรวจและส่ง</span>
         </li>
       </ol>
-      {!auth.user && !auth.localDemo && <AuthControl />}
+      <AuthControl />
       <form onSubmit={submit} className="cp-report-form">
         <div className="cp-report-step-card" data-complete={Boolean(evidence)}>
           <div className="cp-report-step-card__heading">

@@ -10,6 +10,7 @@ import MyContribution from "./community/MyContribution";
 import DataIssueForm from "./community/DataIssueForm";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
+import AuthControl from "@/frontend/components/auth/AuthControl";
 
 interface CommunityPanelProps {
   announcements: Announcement[];
@@ -51,6 +52,10 @@ export default function CommunityPanel({
           <SourceBadge kind="individual" />
           <small>สมาชิกส่งภาพสด</small>
         </div>
+      </div>
+
+      <div className="cp-community-account" aria-label="บัญชีผู้ร่วมรายงาน">
+        <AuthControl />
       </div>
 
       <div className="cp-community-card">

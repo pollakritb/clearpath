@@ -28,11 +28,35 @@ export default function AuthControl({
     );
   }
   if (auth.user) {
+    const metadata = auth.user.user_metadata;
+    const displayName =
+      typeof metadata.full_name === "string"
+        ? metadata.full_name
+        : typeof metadata.name === "string"
+          ? metadata.name
+          : null;
+    const isGoogle =
+      auth.user.app_metadata.provider === "google" ||
+      auth.user.identities?.some((identity) => identity.provider === "google");
+
     return (
-      <div className="cp-auth-session">
+      <div className="cp-auth-session" data-compact={compact}>
         {!compact && (
-          <span style={{ fontSize: ".68em", color: T.subInk }}>
-            {auth.user.email} · {auth.role}
+          <span className="cp-auth-session__identity">
+            <span aria-hidden className="cp-auth-google__mark">
+              {isGoogle ? "G" : "✓"}
+            </span>
+            <span>
+              <strong>
+                {isGoogle ? "เข้าสู่ระบบด้วย Google แล้ว" : "เข้าสู่ระบบแล้ว"}
+              </strong>
+              <small>
+                {displayName || auth.user.email}
+                {displayName && auth.user.email
+                  ? ` · ${auth.user.email}`
+                  : ` · ${auth.role}`}
+              </small>
+            </span>
           </span>
         )}
         <button

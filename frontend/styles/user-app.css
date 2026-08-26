@@ -531,9 +531,72 @@
 .cp-auth-session {
   align-items: center;
 }
+
+.cp-auth-session[data-compact="false"] {
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid #d8e5e1;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.cp-auth-session__identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cp-auth-session__identity > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cp-auth-session__identity strong,
+.cp-auth-session__identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-auth-session__identity strong {
+  color: var(--cp-ink);
+  font-size: 0.76rem;
+}
+
+.cp-auth-session__identity small {
+  color: var(--cp-subink);
+  font-size: 0.64rem;
+}
+
+.cp-auth-session[data-compact="false"] > button {
+  min-height: 44px;
+  flex: none;
+}
 .cp-auth-form {
   display: grid;
   gap: 0.4rem;
+}
+
+.cp-community-account {
+  padding: 12px;
+  border: 1px solid #dbe5e2;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 24px rgba(11, 67, 61, 0.06);
+}
+
+@media (max-width: 480px) {
+  .cp-auth-session[data-compact="false"] {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cp-auth-session[data-compact="false"] > button {
+    width: 100%;
+  }
 }
 .cp-auth-google {
   min-height: 46px;
