@@ -10,28 +10,28 @@ import type { Station } from "@/frontend/types";
 
 // วงกลมตัวเลข = สถานีตรวจวัดทางการ ส่วนรายงานชุมชนใช้หมุดรูปคนคนละทรง
 function stationIcon(
-  color: string,
+  aqiColor: string,
   value: number | null,
   expired: boolean,
   selected: boolean,
 ) {
-  const touchSize = 44;
-  const size = selected ? 38 : 34;
+  const touchSize = 48;
+  const size = selected ? 44 : 40;
   const label = expired ? "×" : value == null ? "—" : Math.round(value);
   return L.divIcon({
     className: "cp-marker cp-marker--station",
-    html: `<div class="cp-station-marker${selected ? " is-selected" : ""}" style="--marker-color:${color};--marker-size:${size}px"><span aria-hidden="true">${label}</span><i aria-hidden="true"></i></div>`,
+    html: `<div class="cp-station-marker${selected ? " is-selected" : ""}" style="--marker-aqi:${aqiColor};--marker-size:${size}px"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 20h8M10 20l2-9 2 9M9.5 8.5a3.5 3.5 0 0 1 5 0M7 6a7 7 0 0 1 10 0"></path></svg><b>${label}</b></span><i aria-hidden="true"></i></div>`,
     iconSize: [touchSize, touchSize],
     iconAnchor: [touchSize / 2, touchSize / 2],
   });
 }
 
-function clusterIcon(count: number, color: string) {
+function clusterIcon(count: number, aqiColor: string) {
   return L.divIcon({
     className: "cp-marker cp-marker--cluster",
-    html: `<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center"><div style="min-width:34px;height:34px;padding:0 8px;border-radius:18px;background:${color};border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#111827;font:800 13px system-ui">${count}</div></div>`,
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
+    html: `<div class="cp-official-cluster" style="--marker-aqi:${aqiColor}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 20h8M10 20l2-9 2 9M9.5 8.5a3.5 3.5 0 0 1 5 0M7 6a7 7 0 0 1 10 0"></path></svg><b>${count}</b></div>`,
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
   });
 }
 

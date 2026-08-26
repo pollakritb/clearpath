@@ -32,7 +32,8 @@ export interface MapViewProps {
   focusPoint?: { lat: number; lon: number } | null;
   showHeatmap: boolean;
   showStations: boolean;
-  showCommunity: boolean;
+  showCommunitySensors: boolean;
+  showIndividualReports: boolean;
   onMapClick: (lat: number, lon: number) => void;
   onSelectStation: (s: Station) => void;
   onSelectReport: (report: CommunityReport) => void;
@@ -51,7 +52,8 @@ export default function MapView({
   focusPoint = null,
   showHeatmap,
   showStations,
-  showCommunity,
+  showCommunitySensors,
+  showIndividualReports,
   onMapClick,
   onSelectStation,
   onSelectReport,
@@ -86,11 +88,13 @@ export default function MapView({
           selectedId={selectedStationId}
         />
       )}
-      {showCommunity && (
+      {(showCommunitySensors || showIndividualReports) && (
         <ReportMarkers
           reports={reports}
           onSelect={onSelectReport}
           selectedId={selectedReportId}
+          showSensors={showCommunitySensors}
+          showIndividuals={showIndividualReports}
         />
       )}
       {fires.length > 0 && <FireLayer fires={fires} />}

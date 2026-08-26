@@ -5,6 +5,8 @@ import { useState } from "react";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import AuthControl from "@/frontend/components/auth/AuthControl";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import AppIcon from "@/frontend/components/ui/AppIcon";
+import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { T } from "@/frontend/lib/ui";
 import {
   EMPTY_REPORT_DETAILS,
@@ -148,21 +150,43 @@ export default function ReportForm({
   return (
     <section aria-label="ส่งรายงาน PM2.5 จากชุมชน" className="cp-report-flow">
       <div className="cp-report-intro">
-        <span>ใช้เวลาประมาณ 2 นาที</span>
+        <span className="cp-report-intro__eyebrow">
+          <AppIcon name="camera" size={16} />
+          ใช้เวลาประมาณ 2 นาที
+        </span>
         <h2>เริ่มจากถ่ายภาพหน้าจอเครื่องวัด</h2>
         <p>เตรียมเครื่องวัดให้นิ่ง แล้วทำตาม 3 ขั้นตอนด้านล่าง</p>
       </div>
+      <div
+        className="cp-report-source-guide"
+        aria-label="ประเภทข้อมูลที่จะเผยแพร่"
+      >
+        <div data-source="sensor">
+          <SourceBadge kind="sensor" />
+          <small>เลือก “ผ่านการสอบเทียบ” พร้อมระบุวันที่</small>
+        </div>
+        <div data-source="individual">
+          <SourceBadge kind="individual" />
+          <small>เครื่องทั่วไปที่ส่งภาพสดและ GPS</small>
+        </div>
+      </div>
       <ol className="cp-report-progress" aria-label="ขั้นตอนส่งข้อมูล">
         <li data-complete={Boolean(evidence)}>
-          <b>1</b>
+          <b>
+            <AppIcon name="camera" size={17} />
+          </b>
           <span>ถ่ายภาพ</span>
         </li>
         <li data-complete={hasGps}>
-          <b>2</b>
+          <b>
+            <AppIcon name="location" size={17} />
+          </b>
           <span>ยืนยัน GPS</span>
         </li>
         <li data-complete={Boolean(draft)}>
-          <b>3</b>
+          <b>
+            <AppIcon name="check" size={17} />
+          </b>
           <span>ตรวจและส่ง</span>
         </li>
       </ol>
@@ -170,7 +194,9 @@ export default function ReportForm({
       <form onSubmit={submit} className="cp-report-form">
         <div className="cp-report-step-card" data-complete={Boolean(evidence)}>
           <div className="cp-report-step-card__heading">
-            <b>1</b>
+            <b>
+              <AppIcon name="camera" size={19} />
+            </b>
             <span>
               <strong>ถ่ายหน้าจอเครื่องวัด</strong>
               <small>ใช้กล้องสดให้เห็นตัวเลขชัดเจน</small>
@@ -196,7 +222,9 @@ export default function ReportForm({
 
         <div className="cp-report-step-card" data-complete={hasGps}>
           <div className="cp-report-step-card__heading">
-            <b>2</b>
+            <b>
+              <AppIcon name="location" size={19} />
+            </b>
             <span>
               <strong>ยืนยันตำแหน่ง</strong>
               <small>ใช้ GPS เพื่อยืนยันว่าข้อมูลมาจากพื้นที่จริง</small>
@@ -211,7 +239,9 @@ export default function ReportForm({
         {draft && (
           <div className="cp-report-step-card">
             <div className="cp-report-step-card__heading">
-              <b>3</b>
+              <b>
+                <AppIcon name="check" size={19} />
+              </b>
               <span>
                 <strong>ตรวจรายละเอียดก่อนส่ง</strong>
                 <small>บอกข้อมูลเครื่องวัดเพื่อให้ระบบตรวจได้แม่นยำ</small>

@@ -101,6 +101,7 @@ export default function DashboardSidebar({
                 aria-current={selected ? "page" : undefined}
                 className="cp-nav-item cp-focus"
                 data-active={selected}
+                data-tab={item.id}
               >
                 <span className="cp-nav-item__icon">
                   <AppIcon name={item.icon} size={21} />
@@ -162,6 +163,7 @@ export default function DashboardSidebar({
               href={item.href}
               aria-current={selected ? "page" : undefined}
               data-active={selected}
+              data-tab={item.id}
               className="cp-focus"
             >
               <AppIcon name={item.icon} size={21} />

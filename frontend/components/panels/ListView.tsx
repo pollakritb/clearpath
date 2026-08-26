@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import AppIcon from "@/frontend/components/ui/AppIcon";
+import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { T } from "@/frontend/lib/ui";
 import type { Station } from "@/frontend/types";
@@ -72,6 +74,7 @@ export default function ListView({
         >
           รายการสถานีวัดฝุ่น
         </h2>
+        <SourceBadge kind="official" />
         <p style={{ margin: "0 0 1.1em", fontSize: ".92em", color: T.subInk }}>
           ดูสถานีในพื้นที่เป็นรายการ แล้วเลือกเพื่อเปิดรายละเอียดบนแผนที่
         </p>
@@ -145,7 +148,7 @@ export default function ListView({
                       height: "2.6em",
                       flex: "none",
                       borderRadius: "11px",
-                      background: cls.color,
+                      background: "#2f6fed",
                       color: "#fff",
                       display: "flex",
                       alignItems: "center",
@@ -153,7 +156,7 @@ export default function ListView({
                       fontSize: "1.2em",
                     }}
                   >
-                    {cls.glyph}
+                    <AppIcon name="station" size={22} />
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span

@@ -22,6 +22,14 @@
   --cp-teal: #0b766f;
   --cp-teal-bright: #06978d;
   --cp-teal-soft: #e7f5f2;
+  --cp-source-official: #2f6fed;
+  --cp-source-official-ink: #1f4fae;
+  --cp-source-official-soft: #eaf1ff;
+  --cp-source-sensor: #0b8f83;
+  --cp-source-sensor-soft: #e5f6f2;
+  --cp-source-individual: #e77b28;
+  --cp-source-individual-ink: #99400f;
+  --cp-source-individual-soft: #fff0e3;
   --cp-navy: #102f2b;
   --cp-navy-soft: #1a423d;
   --cp-green: #2bbf73; /* "recommended" */

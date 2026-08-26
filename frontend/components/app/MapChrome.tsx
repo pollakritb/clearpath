@@ -11,17 +11,20 @@ import type { ViewMode } from "./dashboard-types";
 interface MapChromeProps {
   viewMode: ViewMode;
   stationCount: number;
-  reportCount: number;
+  sensorCount: number;
+  individualReportCount: number;
   stations: Station[];
   bigText: boolean;
   showHeatmap: boolean;
   showStations: boolean;
-  showCommunity: boolean;
+  showCommunitySensors: boolean;
+  showIndividualReports: boolean;
   onViewModeChange: (mode: ViewMode) => void;
   onToggleBigText: () => void;
   onToggleHeatmap: () => void;
   onToggleStations: () => void;
-  onToggleCommunity: () => void;
+  onToggleCommunitySensors: () => void;
+  onToggleIndividualReports: () => void;
   onLocationSelect: (location: LocationSuggestion) => void;
   onStationSelect: (station: Station) => void;
 }
@@ -31,17 +34,20 @@ type OpenPanel = "search" | "layers" | null;
 export default function MapChrome({
   viewMode,
   stationCount,
-  reportCount,
+  sensorCount,
+  individualReportCount,
   stations,
   bigText,
   showHeatmap,
   showStations,
-  showCommunity,
+  showCommunitySensors,
+  showIndividualReports,
   onViewModeChange,
   onToggleBigText,
   onToggleHeatmap,
   onToggleStations,
-  onToggleCommunity,
+  onToggleCommunitySensors,
+  onToggleIndividualReports,
   onLocationSelect,
   onStationSelect,
 }: MapChromeProps) {
@@ -91,7 +97,8 @@ export default function MapChrome({
           <small>คุณภาพอากาศทั่วไทย</small>
         </div>
         <span className="cp-map-topbar__count">
-          {stationCount} <small>สถานี</small>
+          {stationCount + sensorCount + individualReportCount}{" "}
+          <small>จุดข้อมูล</small>
         </span>
       </div>
 
@@ -122,6 +129,30 @@ export default function MapChrome({
         >
           <AppIcon name="layers" size={22} />
         </button>
+      </div>
+
+      <div
+        className="cp-map-source-legend"
+        aria-label="คำอธิบายประเภทจุดข้อมูล"
+      >
+        <span data-source="official">
+          <i>
+            <AppIcon name="station" size={15} />
+          </i>
+          สถานีรัฐ
+        </span>
+        <span data-source="sensor">
+          <i>
+            <AppIcon name="sensor" size={15} />
+          </i>
+          เซนเซอร์
+        </span>
+        <span data-source="individual">
+          <i>
+            <AppIcon name="user" size={15} />
+          </i>
+          บุคคล
+        </span>
       </div>
 
       {openPanel === "search" && (
@@ -250,7 +281,7 @@ export default function MapChrome({
               onClick={onToggleStations}
             >
               <span className="cp-layer-symbol cp-layer-symbol--station">
-                12
+                <AppIcon name="station" size={18} />
               </span>
               <span>
                 <strong>สถานีตรวจวัดทางการ</strong>
@@ -261,16 +292,32 @@ export default function MapChrome({
             <button
               type="button"
               className="cp-map-layer cp-focus"
-              data-active={showCommunity}
-              aria-pressed={showCommunity}
-              onClick={onToggleCommunity}
+              data-active={showCommunitySensors}
+              aria-pressed={showCommunitySensors}
+              onClick={onToggleCommunitySensors}
             >
-              <span className="cp-layer-symbol cp-layer-symbol--community">
+              <span className="cp-layer-symbol cp-layer-symbol--sensor">
+                <AppIcon name="sensor" size={17} />
+              </span>
+              <span>
+                <strong>เซนเซอร์ชุมชน</strong>
+                <small>ระบุการสอบเทียบ · {sensorCount} จุด</small>
+              </span>
+              <span className="cp-layer-switch" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="cp-map-layer cp-focus"
+              data-active={showIndividualReports}
+              aria-pressed={showIndividualReports}
+              onClick={onToggleIndividualReports}
+            >
+              <span className="cp-layer-symbol cp-layer-symbol--individual">
                 <AppIcon name="user" size={15} />
               </span>
               <span>
                 <strong>รายงานจากประชาชน</strong>
-                <small>ผ่านการตรวจแล้ว · {reportCount} รายงาน</small>
+                <small>ผ่านการตรวจแล้ว · {individualReportCount} รายงาน</small>
               </span>
               <span className="cp-layer-switch" aria-hidden />
             </button>
@@ -314,7 +361,7 @@ export default function MapChrome({
             </button>
           </div>
           <p className="cp-map-layer-note">
-            สีบอกระดับ PM2.5 ส่วนรูปทรงบอกแหล่งข้อมูล
+            สีหลักและรูปทรงบอกเจ้าของข้อมูล · จุดเล็กบอกระดับ PM2.5
           </p>
         </section>
       )}

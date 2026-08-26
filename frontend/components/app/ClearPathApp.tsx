@@ -23,6 +23,7 @@ import { usePm25 } from "@/frontend/hooks/usePm25";
 import { useValidation } from "@/frontend/hooks/useValidation";
 import { useWeather } from "@/frontend/hooks/useWeather";
 import { T } from "@/frontend/lib/ui";
+import { communitySourceKind } from "@/frontend/lib/source-kind";
 import type {
   CommunityReport,
   LocationSuggestion,
@@ -76,7 +77,8 @@ export default function ClearPathApp({
   const [contrast, setContrast] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showStations, setShowStations] = useState(true);
-  const [showCommunity, setShowCommunity] = useState(true);
+  const [showCommunitySensors, setShowCommunitySensors] = useState(true);
+  const [showIndividualReports, setShowIndividualReports] = useState(true);
   const [showFires, setShowFires] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
   const [mapHorizon, setMapHorizon] = useState<0 | 1 | 3 | 6 | 12 | 24>(0);
@@ -105,6 +107,17 @@ export default function ClearPathApp({
   const serviceAreaStations = useMemo(
     () => pm25.stations.filter((station) => station.in_service_area),
     [pm25.stations],
+  );
+  const communitySourceCounts = useMemo(
+    () =>
+      community.reports.reduce(
+        (counts, report) => {
+          counts[communitySourceKind(report)] += 1;
+          return counts;
+        },
+        { sensor: 0, individual: 0 },
+      ),
+    [community.reports],
   );
 
   const sectionCopy = {
@@ -261,11 +274,18 @@ export default function ClearPathApp({
       onToggle: () => setShowStations((value) => !value),
     },
     {
-      key: "community",
-      label: `รายงานชุมชน · ${community.reports.length}`,
-      dot: "#7c3aed",
-      on: showCommunity,
-      onToggle: () => setShowCommunity((value) => !value),
+      key: "community-sensors",
+      label: `เซนเซอร์ชุมชน · ${communitySourceCounts.sensor}`,
+      dot: "#0b8f83",
+      on: showCommunitySensors,
+      onToggle: () => setShowCommunitySensors((value) => !value),
+    },
+    {
+      key: "individual-reports",
+      label: `บุคคลรายงาน · ${communitySourceCounts.individual}`,
+      dot: "#e77b28",
+      on: showIndividualReports,
+      onToggle: () => setShowIndividualReports((value) => !value),
     },
     {
       key: "fires",
@@ -300,6 +320,16 @@ export default function ClearPathApp({
         showAdmin={canModerate}
         header={
           <Header
+            icon={
+              activeTab === "map"
+                ? "map"
+                : activeTab === "overview"
+                  ? "activity"
+                  : activeTab === "report"
+                    ? "camera"
+                    : "community"
+            }
+            theme={activeTab}
             title={sectionCopy.title}
             description={sectionCopy.description}
             stationCount={serviceAreaStations.length}
@@ -409,7 +439,8 @@ export default function ClearPathApp({
           focusPoint={focusPoint}
           showHeatmap={showHeatmap}
           showStations={showStations}
-          showCommunity={showCommunity}
+          showCommunitySensors={showCommunitySensors}
+          showIndividualReports={showIndividualReports}
           onMapClick={(lat, lon) => {
             setFocusPoint({ lat, lon });
             setSelectedStation(null);
@@ -425,17 +456,24 @@ export default function ClearPathApp({
         <MapChrome
           viewMode={viewMode}
           stationCount={serviceAreaStations.length}
-          reportCount={community.reports.length}
+          sensorCount={communitySourceCounts.sensor}
+          individualReportCount={communitySourceCounts.individual}
           stations={serviceAreaStations}
           bigText={bigText}
           showHeatmap={showHeatmap}
           showStations={showStations}
-          showCommunity={showCommunity}
+          showCommunitySensors={showCommunitySensors}
+          showIndividualReports={showIndividualReports}
           onViewModeChange={setViewMode}
           onToggleBigText={() => setBigText((value) => !value)}
           onToggleHeatmap={() => setShowHeatmap((value) => !value)}
           onToggleStations={() => setShowStations((value) => !value)}
-          onToggleCommunity={() => setShowCommunity((value) => !value)}
+          onToggleCommunitySensors={() =>
+            setShowCommunitySensors((value) => !value)
+          }
+          onToggleIndividualReports={() =>
+            setShowIndividualReports((value) => !value)
+          }
           onLocationSelect={(location: LocationSuggestion) => {
             setFocusPoint({ lat: location.lat, lon: location.lon });
             setViewMode("map");

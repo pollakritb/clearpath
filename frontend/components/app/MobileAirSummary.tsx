@@ -1,4 +1,5 @@
 import AppIcon from "@/frontend/components/ui/AppIcon";
+import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import type { Station } from "@/frontend/types";
 
@@ -83,7 +84,7 @@ export default function MobileAirSummary({
             : classification.advice}
         </p>
         <div className="cp-mobile-air-card__source">
-          <AppIcon name="database" size={16} />
+          <SourceBadge kind="official" compact />
           <span>
             Air4Thai · {values.length} สถานี
             {referenceOnly ? " · ยังไม่มีสถานีสดใหม่" : "ที่พร้อมใช้งาน"}

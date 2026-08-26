@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
+import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
+import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
 import type { CommunityReport, Station } from "@/frontend/types";
 
 interface MapStatusCardProps {
@@ -91,6 +93,7 @@ export default function MapStatusCard({
   }
 
   const isCommunity = report != null;
+  const source = report ? communitySourceKind(report) : "official";
   const value = isCommunity ? report.pm25 : station?.pm25;
   const classification = classifyPm25(value);
   const stationName = station
@@ -108,7 +111,7 @@ export default function MapStatusCard({
   return (
     <section
       className="cp-map-selection-card"
-      data-source={isCommunity ? "community" : "station"}
+      data-source={source}
       style={
         {
           "--cp-selection-color": classification.color,
@@ -116,9 +119,11 @@ export default function MapStatusCard({
         } as React.CSSProperties
       }
       aria-label={
-        isCommunity
-          ? "รายละเอียดรายงานจากประชาชน"
-          : "รายละเอียดสถานีตรวจวัดทางการ"
+        source === "sensor"
+          ? "รายละเอียดเซนเซอร์ชุมชน"
+          : isCommunity
+            ? "รายละเอียดรายงานจากประชาชน"
+            : "รายละเอียดสถานีตรวจวัดทางการ"
       }
       aria-live="polite"
     >
@@ -133,14 +138,13 @@ export default function MapStatusCard({
       </button>
 
       <header className="cp-map-selection-card__heading">
-        <span className="cp-map-source-badge">
-          <AppIcon name={isCommunity ? "user" : "station"} size={17} />
-          {isCommunity ? "รายงานจากประชาชน" : "สถานีตรวจวัดทางการ"}
-        </span>
+        <SourceBadge kind={source} />
         <h1>{isCommunity ? communityArea : stationName}</h1>
         <p>
-          {isCommunity
-            ? `ผู้รายงาน: ${report.display_name ?? "สมาชิกชุมชน"}`
+          {report
+            ? source === "sensor"
+              ? `${report.device_model ?? "เครื่องวัดชุมชน"} · ผู้ส่ง ${report.display_name ?? "สมาชิกชุมชน"}`
+              : `ผู้รายงาน: ${report.display_name ?? "สมาชิกชุมชน"}`
             : `Air4Thai · กรมควบคุมมลพิษ${station?.province ? ` · ${station.province}` : ""}`}
         </p>
       </header>
@@ -161,11 +165,15 @@ export default function MapStatusCard({
         {isCommunity ? (
           <>
             <span>
-              <strong>ตรวจแล้ว</strong>
+              <strong>
+                {source === "sensor" ? "ระบุการสอบเทียบ" : "ตรวจแล้ว"}
+              </strong>
               <small>
-                {report.verification_method === "automatic"
-                  ? "โดยระบบอัตโนมัติ"
-                  : "โดยผู้ดูแล"}
+                {source === "sensor" && report.calibrated_at
+                  ? `สอบเทียบ ${formatTime(report.calibrated_at)} น.`
+                  : report.verification_method === "automatic"
+                    ? "โดยระบบอัตโนมัติ"
+                    : "โดยผู้ดูแล"}
               </small>
             </span>
             <span>
@@ -206,7 +214,9 @@ export default function MapStatusCard({
 
       <Link href={href} className="cp-map-selection-card__action cp-focus">
         <span>
-          {isCommunity ? "ดูข้อมูลชุมชน" : "ดูค่าฝุ่นและพยากรณ์สถานีนี้"}
+          {source === "official"
+            ? "ดูค่าฝุ่นและพยากรณ์สถานีนี้"
+            : `ดู${SOURCE_LABELS[source].shortLabel}ในชุมชน`}
         </span>
         <AppIcon name="chevron" size={19} />
       </Link>

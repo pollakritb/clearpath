@@ -1,9 +1,12 @@
 "use client";
 
 import AuthControl from "@/frontend/components/auth/AuthControl";
-import AppIcon from "@/frontend/components/ui/AppIcon";
+import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
+import type { DashboardTab } from "@/frontend/components/app/dashboard-types";
 
 interface HeaderProps {
+  icon: AppIconName;
+  theme: DashboardTab;
   title: string;
   description: string;
   stationCount: number;
@@ -29,6 +32,8 @@ function fmtTime(iso: string | null): string {
 }
 
 export default function Header({
+  icon,
+  theme,
   title,
   description,
   stationCount,
@@ -46,7 +51,7 @@ export default function Header({
   const state = error ? "error" : hasStaleData ? "warning" : "healthy";
 
   return (
-    <header className="cp-context-header">
+    <header className="cp-context-header" data-theme={theme}>
       <div className="cp-context-header__topline">
         <span className="cp-eyebrow">ClearPath · ประเทศไทย</span>
         <div className="cp-a11y-actions" aria-label="การช่วยการเข้าถึง">
@@ -72,8 +77,15 @@ export default function Header({
           </button>
         </div>
       </div>
-      <h1>{title}</h1>
-      <p>{description}</p>
+      <div className="cp-context-header__title">
+        <span className="cp-context-header__title-icon">
+          <AppIcon name={icon} size={22} />
+        </span>
+        <span>
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </span>
+      </div>
 
       <div className="cp-data-status" data-state={state}>
         <span className="cp-data-status__icon">

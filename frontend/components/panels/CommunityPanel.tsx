@@ -9,6 +9,7 @@ import NotificationInbox from "./community/NotificationInbox";
 import MyContribution from "./community/MyContribution";
 import DataIssueForm from "./community/DataIssueForm";
 import AppIcon from "@/frontend/components/ui/AppIcon";
+import SourceBadge from "@/frontend/components/ui/SourceBadge";
 
 interface CommunityPanelProps {
   announcements: Announcement[];
@@ -37,6 +38,20 @@ export default function CommunityPanel({
           <p>ดูข่าว ส่งคำขอบคุณ และติดตามสิ่งที่คุณช่วยชุมชนไว้</p>
         </div>
       </header>
+
+      <div
+        className="cp-community-source-key"
+        aria-label="ประเภทผู้ให้ข้อมูลชุมชน"
+      >
+        <div>
+          <SourceBadge kind="sensor" />
+          <small>เครื่องสอบเทียบ</small>
+        </div>
+        <div>
+          <SourceBadge kind="individual" />
+          <small>สมาชิกส่งภาพสด</small>
+        </div>
+      </div>
 
       <div className="cp-community-card">
         <AnnouncementsSection announcements={announcements} />

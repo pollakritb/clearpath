@@ -96,11 +96,16 @@ test("map separates official stations from community reports", async ({
   const community = page.getByRole("button", {
     name: /รายงานจากประชาชน/,
   });
+  const sensors = page.getByRole("button", {
+    name: /เซนเซอร์ชุมชน/,
+  });
   await expect(official).toBeVisible();
+  await expect(sensors).toBeVisible();
   await expect(community).toBeVisible();
   await expect(official).toHaveAttribute("aria-pressed", "true");
+  await expect(sensors).toHaveAttribute("aria-pressed", "true");
   await expect(community).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText(/สีบอกระดับ PM2.5/)).toBeVisible();
+  await expect(page.getByText(/สีหลักและรูปทรงบอกเจ้าของข้อมูล/)).toBeVisible();
 });
 
 test("community marker opens a distinct privacy-safe report card", async ({

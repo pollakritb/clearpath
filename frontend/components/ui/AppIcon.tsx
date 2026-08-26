@@ -18,6 +18,7 @@ export type AppIconName =
   | "close"
   | "layers"
   | "search"
+  | "sensor"
   | "station"
   | "report"
   | "settings"
@@ -143,6 +144,13 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
           <path d="M5 21V9l7-5 7 5v12" />
           <path d="M3 21h18M9 13h6M9 17h6" />
           <circle cx="12" cy="9" r="1" />
+        </>
+      )}
+      {name === "sensor" && (
+        <>
+          <rect x="5" y="4" width="14" height="16" rx="3" />
+          <path d="M8 8h8M8 12h5M8 16h3" />
+          <circle cx="16" cy="16" r="1.4" />
         </>
       )}
       {name === "close" && <path d="m6 6 12 12M18 6 6 18" />}
