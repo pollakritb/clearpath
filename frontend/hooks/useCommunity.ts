@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import {
+  buildDemoCommunityReports,
+  isCommunityDemoMode,
+} from "@/frontend/lib/demo-community";
 import { getSupabaseBrowserClient } from "@/frontend/lib/supabase";
 import type {
   Activity,
@@ -32,9 +36,18 @@ export function useCommunity() {
   const [mapPoints, setMapPoints] = useState<CommunityMapPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
 
   const applyResults = useCallback((results: CommunityResults) => {
-    if (results[0].status === "fulfilled") setReports(results[0].value.reports);
+    const demo = isCommunityDemoMode();
+    setDemoMode(demo);
+    if (results[0].status === "fulfilled" || demo) {
+      const liveReports =
+        results[0].status === "fulfilled" ? results[0].value.reports : [];
+      setReports(
+        demo ? [...buildDemoCommunityReports(), ...liveReports] : liveReports,
+      );
+    }
     if (results[1].status === "fulfilled") {
       setAnnouncements(results[1].value.announcements);
     }
@@ -104,6 +117,7 @@ export function useCommunity() {
     mapPoints,
     loading,
     error,
+    demoMode,
     refresh,
   };
 }

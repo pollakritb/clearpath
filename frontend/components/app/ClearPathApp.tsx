@@ -24,6 +24,7 @@ import { useValidation } from "@/frontend/hooks/useValidation";
 import { useWeather } from "@/frontend/hooks/useWeather";
 import { T } from "@/frontend/lib/ui";
 import { communitySourceKind } from "@/frontend/lib/source-kind";
+import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
 import type {
   CommunityReport,
   LocationSuggestion,
@@ -79,7 +80,7 @@ export default function ClearPathApp({
   const [showStations, setShowStations] = useState(true);
   const [showCommunitySensors, setShowCommunitySensors] = useState(true);
   const [showIndividualReports, setShowIndividualReports] = useState(true);
-  const [showFires, setShowFires] = useState(false);
+  const [showFires, setShowFires] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
   const [mapHorizon, setMapHorizon] = useState<0 | 1 | 3 | 6 | 12 | 24>(0);
   const [snap, setSnap] = useState<SheetSnap>("half");
@@ -104,6 +105,8 @@ export default function ClearPathApp({
     [activeTab, pm25.stations, stationId],
   );
   const selectedStation = manuallySelectedStation ?? routeStation;
+  const effectiveFocusPoint =
+    focusPoint ?? (community.demoMode ? DEMO_COMMUNITY_CENTER : null);
   const serviceAreaStations = useMemo(
     () => pm25.stations.filter((station) => station.in_service_area),
     [pm25.stations],
@@ -289,7 +292,7 @@ export default function ClearPathApp({
     },
     {
       key: "fires",
-      label: `จุดความร้อน FIRMS${firms.loaded ? ` · ${firms.fires.length}` : ""}`,
+      label: `จุดต้องสงสัยการเผาไหม้${firms.loaded ? ` · ${firms.fires.length}` : ""}`,
       dot: "#ff5722",
       on: showFires,
       onToggle: () => setShowFires((value) => !value),
@@ -436,7 +439,7 @@ export default function ClearPathApp({
           fires={showFires ? firms.fires : []}
           reports={community.reports}
           reportPin={reportPin}
-          focusPoint={focusPoint}
+          focusPoint={effectiveFocusPoint}
           showHeatmap={showHeatmap}
           showStations={showStations}
           showCommunitySensors={showCommunitySensors}
@@ -458,12 +461,16 @@ export default function ClearPathApp({
           stationCount={serviceAreaStations.length}
           sensorCount={communitySourceCounts.sensor}
           individualReportCount={communitySourceCounts.individual}
+          fireCount={firms.fires.length}
+          fireAvailable={!firms.error}
+          demoMode={community.demoMode}
           stations={serviceAreaStations}
           bigText={bigText}
           showHeatmap={showHeatmap}
           showStations={showStations}
           showCommunitySensors={showCommunitySensors}
           showIndividualReports={showIndividualReports}
+          showFires={showFires}
           onViewModeChange={setViewMode}
           onToggleBigText={() => setBigText((value) => !value)}
           onToggleHeatmap={() => setShowHeatmap((value) => !value)}
@@ -474,6 +481,7 @@ export default function ClearPathApp({
           onToggleIndividualReports={() =>
             setShowIndividualReports((value) => !value)
           }
+          onToggleFires={() => setShowFires((value) => !value)}
           onLocationSelect={(location: LocationSuggestion) => {
             setFocusPoint({ lat: location.lat, lon: location.lon });
             setViewMode("map");

@@ -20,11 +20,11 @@ export function useFirms() {
       setError(
         res.available
           ? null
-          : (res.message ?? "ยังตรวจสอบจุดความร้อนจากดาวเทียมไม่ได้"),
+          : (res.message ?? "ยังตรวจสอบสัญญาณการเผาไหม้จากดาวเทียมไม่ได้"),
       );
       setLoaded(true);
     } catch (error) {
-      setError(apiErrorMessage(error, "โหลดจุดความร้อนไม่สำเร็จ"));
+      setError(apiErrorMessage(error, "โหลดสัญญาณดาวเทียมไม่สำเร็จ"));
     } finally {
       setLoading(false);
     }

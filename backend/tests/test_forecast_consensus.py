@@ -112,3 +112,18 @@ def test_strong_corroborated_community_can_change_consensus_without_a_hard_cap()
         community_reports=community,
     )
     assert result["pm25"] > 32
+
+
+def test_consensus_uses_point_estimate_when_provider_interval_is_null():
+    result = build_consensus(
+        provider_points=[
+            {"source": "clearpath", "pm25": 18, "lower": 12, "upper": 24},
+            {"source": "openmeteo_cams", "pm25": 20, "lower": None, "upper": None},
+        ],
+        horizon_hours=3,
+        station_lat=13.82,
+        station_lon=100.06,
+    )
+
+    assert result["provider_count"] == 2
+    assert result["lower"] <= result["pm25"] <= result["upper"]

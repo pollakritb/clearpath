@@ -127,6 +127,13 @@ def agreement_level(values: Sequence[float]) -> tuple[str, float]:
     return ("high" if spread <= 0.2 else "medium" if spread <= 0.5 else "low", spread)
 
 
+def _interval_value(point: dict, field: str) -> float:
+    """Use the point estimate when a provider has no uncertainty interval."""
+
+    value = point.get(field)
+    return float(point["pm25"] if value is None else value)
+
+
 def build_consensus(
     *,
     provider_points: Sequence[dict],
@@ -173,8 +180,8 @@ def build_consensus(
     if community["report_count"]:
         combined.append((corrected, community_weight))
     consensus = max(0.0, weighted_median(combined))
-    lowers = [float(point.get("lower", point["pm25"])) for point in usable]
-    uppers = [float(point.get("upper", point["pm25"])) for point in usable]
+    lowers = [_interval_value(point, "lower") for point in usable]
+    uppers = [_interval_value(point, "upper") for point in usable]
     provider_half_width = max(
         max(uppers) - consensus,
         consensus - min(lowers),

@@ -3698,6 +3698,16 @@
   font: 700 0.62rem var(--font-sans);
 }
 
+.cp-map-demo-badge {
+  padding: 0.28rem 0.48rem;
+  border-radius: 999px;
+  background: #fff3cd;
+  color: #7a4b00;
+  font-size: 0.6rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .cp-map-actions {
   position: absolute;
   top: 16px;
@@ -4723,6 +4733,11 @@
   border-radius: 50% 50% 50% 12px;
   background: var(--cp-source-individual);
   color: #fff;
+}
+
+.cp-layer-symbol--fire {
+  background: #fff0e8;
+  color: #d9480f;
 }
 
 .cp-station-marker > span {

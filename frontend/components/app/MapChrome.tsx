@@ -13,18 +13,23 @@ interface MapChromeProps {
   stationCount: number;
   sensorCount: number;
   individualReportCount: number;
+  fireCount: number;
+  fireAvailable: boolean;
+  demoMode: boolean;
   stations: Station[];
   bigText: boolean;
   showHeatmap: boolean;
   showStations: boolean;
   showCommunitySensors: boolean;
   showIndividualReports: boolean;
+  showFires: boolean;
   onViewModeChange: (mode: ViewMode) => void;
   onToggleBigText: () => void;
   onToggleHeatmap: () => void;
   onToggleStations: () => void;
   onToggleCommunitySensors: () => void;
   onToggleIndividualReports: () => void;
+  onToggleFires: () => void;
   onLocationSelect: (location: LocationSuggestion) => void;
   onStationSelect: (station: Station) => void;
 }
@@ -36,18 +41,23 @@ export default function MapChrome({
   stationCount,
   sensorCount,
   individualReportCount,
+  fireCount,
+  fireAvailable,
+  demoMode,
   stations,
   bigText,
   showHeatmap,
   showStations,
   showCommunitySensors,
   showIndividualReports,
+  showFires,
   onViewModeChange,
   onToggleBigText,
   onToggleHeatmap,
   onToggleStations,
   onToggleCommunitySensors,
   onToggleIndividualReports,
+  onToggleFires,
   onLocationSelect,
   onStationSelect,
 }: MapChromeProps) {
@@ -100,6 +110,7 @@ export default function MapChrome({
           {stationCount + sensorCount + individualReportCount}{" "}
           <small>จุดข้อมูล</small>
         </span>
+        {demoMode && <span className="cp-map-demo-badge">ข้อมูลจำลอง</span>}
       </div>
 
       <div className="cp-map-actions" aria-label="เครื่องมือแผนที่">
@@ -286,6 +297,25 @@ export default function MapChrome({
               <span>
                 <strong>สถานีตรวจวัดทางการ</strong>
                 <small>Air4Thai · {stationCount} สถานี</small>
+              </span>
+              <span className="cp-layer-switch" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="cp-map-layer cp-focus"
+              data-active={showFires}
+              aria-pressed={showFires}
+              onClick={onToggleFires}
+            >
+              <span className="cp-layer-symbol cp-layer-symbol--fire">
+                <AppIcon name="fire" size={18} />
+              </span>
+              <span>
+                <strong>จุดต้องสงสัยการเผาไหม้</strong>
+                <small>
+                  NASA FIRMS ·{" "}
+                  {fireAvailable ? `${fireCount} จุด` : "ยังไม่มีข้อมูล"}
+                </small>
               </span>
               <span className="cp-layer-switch" aria-hidden />
             </button>

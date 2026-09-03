@@ -13,6 +13,7 @@ export type AppIconName =
   | "community"
   | "community-station"
   | "database"
+  | "fire"
   | "home"
   | "map"
   | "megaphone"
@@ -104,6 +105,9 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
           <ellipse cx="12" cy="5" rx="8" ry="3" />
           <path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
         </>
+      )}
+      {name === "fire" && (
+        <path d="M13.5 3.5c.7 3-1.3 4.2-2.2 6.1-.7-1.1-.8-2.2-.3-3.5-3 2.2-5 5-5 8.1A6 6 0 0 0 18 14c0-2.4-1.4-5.5-4.5-7.5.2 1.8-.5 3-1.4 4.1" />
       )}
       {name === "activity" && <path d="M3 12h4l2-7 4 14 2-7h6" />}
       {name === "megaphone" && (

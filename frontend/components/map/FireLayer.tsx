@@ -5,7 +5,7 @@ import { Marker, Popup } from "react-leaflet";
 
 import type { FirePoint } from "@/frontend/types";
 
-// ไอคอนจุดความร้อนจากดาวเทียม = 🔥 มีแสงเรืองส้ม · ขนาดตาม FRP
+// Flame marker means a satellite signal that may indicate combustion.
 function fireIcon(size: number) {
   const touchSize = 44;
   return L.divIcon({
@@ -28,13 +28,14 @@ export default function FireLayer({ fires }: { fires: FirePoint[] }) {
             key={`${f.lat}-${f.lon}-${i}`}
             position={[f.lat, f.lon]}
             icon={fireIcon(size)}
-            title={`จุดความร้อนจากดาวเทียม ${f.frp ?? "ไม่ระบุ"} MW`}
-            alt={`จุดความร้อนจากดาวเทียม ${f.frp ?? "ไม่ระบุ"} MW`}
+            title={`จุดต้องสงสัยการเผาไหม้จากดาวเทียม ${f.frp ?? "ไม่ระบุ"} MW`}
+            alt={`จุดต้องสงสัยการเผาไหม้จากดาวเทียม ${f.frp ?? "ไม่ระบุ"} MW`}
           >
             <Popup>
               <div style={{ fontFamily: "inherit" }}>
-                <div style={{ fontWeight: 700 }}>
-                  🔥 จุดความร้อน (NASA FIRMS)
+                <div style={{ fontWeight: 700 }}>🔥 จุดต้องสงสัยการเผาไหม้</div>
+                <div style={{ color: "#5a6664", fontSize: ".82em" }}>
+                  NASA FIRMS · {f.satellite ?? "ไม่ระบุดาวเทียม"}
                 </div>
                 {f.frp != null && <div>FRP: {f.frp} MW</div>}
                 {f.acq_date && (
@@ -46,7 +47,14 @@ export default function FireLayer({ fires }: { fires: FirePoint[] }) {
                 )}
                 {f.confidence && (
                   <div style={{ color: "#5a6664", fontSize: ".8em" }}>
-                    Confidence: {f.confidence}
+                    ความเชื่อมั่น:{" "}
+                    {f.confidence === "h"
+                      ? "สูง"
+                      : f.confidence === "n"
+                        ? "ปานกลาง"
+                        : f.confidence === "l"
+                          ? "ต่ำ"
+                          : f.confidence}
                   </div>
                 )}
                 <div
@@ -56,7 +64,8 @@ export default function FireLayer({ fires }: { fires: FirePoint[] }) {
                     marginTop: ".25em",
                   }}
                 >
-                  สัญญาณดาวเทียม ไม่ใช่การยืนยันไฟไหม้
+                  สัญญาณดาวเทียมที่อาจเกิดจากการเผาไหม้
+                  ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว
                 </div>
               </div>
             </Popup>
