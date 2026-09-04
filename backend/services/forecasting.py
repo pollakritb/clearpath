@@ -7,6 +7,8 @@ from datetime import UTC, datetime, timedelta
 from time import perf_counter
 from uuid import uuid4
 
+import httpx
+
 from ..algorithms.forecast import forecast_pm25
 from ..algorithms.forecast_consensus import build_consensus
 from ..algorithms.forecast_quality import evaluate_inference_quality
@@ -123,10 +125,19 @@ def station_forecast(
 ) -> tuple[dict, dict]:
     started = perf_counter()
     generated_at = datetime.now(UTC)
+    read_warnings: list[str] = []
     station_metadata = supabase_client.get_station_by_id(station_id) or {}
     if not station_metadata:
         raise ValueError("station_not_found")
-    history = supabase_client.get_history(station_id, max(96, hours + 72))
+    try:
+        history = supabase_client.get_history(station_id, max(96, hours + 72))
+    except httpx.HTTPError:
+        history = []
+        read_warnings.append("official_history_temporarily_unavailable")
+        logger.warning(
+            "forecast_input_degraded",
+            extra={"station_id": station_id, "input": "official_history"},
+        )
     baseline_input = history
     if not baseline_input:
         baseline_input = [
@@ -136,15 +147,36 @@ def station_forecast(
             }
         ]
     baseline = forecast_pm25(baseline_input, hours)
-    inputs = supabase_client.get_latest_forecast_features(station_id)
+    try:
+        inputs = supabase_client.get_latest_forecast_features(station_id)
+    except httpx.HTTPError:
+        inputs = {}
+        read_warnings.append("forecast_features_temporarily_unavailable")
+        logger.warning(
+            "forecast_input_degraded",
+            extra={"station_id": station_id, "input": "forecast_features"},
+        )
     inputs["station_id"] = station_id
     quality = evaluate_inference_quality(history, inputs, now=generated_at)
-    provider_snapshots = supabase_client.get_provider_snapshots(station_id)
-    community_reports = (
-        _qualified_community(supabase_client.get_stations())
-        if include_community
-        else []
-    )
+    try:
+        provider_snapshots = supabase_client.get_provider_snapshots(station_id)
+    except httpx.HTTPError:
+        provider_snapshots = []
+        read_warnings.append("external_forecast_temporarily_unavailable")
+        logger.warning(
+            "forecast_input_degraded",
+            extra={"station_id": station_id, "input": "provider_snapshots"},
+        )
+    community_reports = []
+    if include_community:
+        try:
+            community_reports = _qualified_community(supabase_client.get_stations())
+        except httpx.HTTPError:
+            read_warnings.append("community_context_temporarily_unavailable")
+            logger.warning(
+                "forecast_input_degraded",
+                extra={"station_id": station_id, "input": "community_context"},
+            )
     points = []
     source_details = []
     consensus_rows = []
@@ -304,7 +336,7 @@ def station_forecast(
 
     methods = {str(point["method"]) for point in points}
     method = next(iter(methods)) if len(methods) == 1 else "mixed-external-local-v1"
-    warnings = list(quality["warnings"])
+    warnings = [*quality["warnings"], *read_warnings]
     if any(point["upper"] - point["lower"] >= 50 for point in points):
         warnings.append("wide_uncertainty_interval")
     input_age = quality["input_freshness_minutes"]
@@ -365,6 +397,7 @@ def station_forecast(
         if forecast_status != "unavailable"
         else "unavailable"
     )
+    served_fallback_codes = reason_codes if forecast_mode == "local_fallback" else set()
     response = {
         "station_id": station_id,
         "generated_at": generated_at.isoformat(),
@@ -380,8 +413,10 @@ def station_forecast(
         "coverage_target": min(coverage_targets) if coverage_targets else 0.9,
         "data_quality": quality["status"],
         "quality": quality,
-        "fallback_reason": ",".join(sorted(reason_codes)) if reason_codes else None,
-        "fallback_reason_codes": sorted(reason_codes),
+        "fallback_reason": (
+            ",".join(sorted(served_fallback_codes)) if served_fallback_codes else None
+        ),
+        "fallback_reason_codes": sorted(served_fallback_codes),
         "warnings": sorted(set(warnings)),
         "points": points,
         "forecast_status": forecast_status,

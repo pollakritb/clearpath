@@ -1,226 +1,239 @@
-CLEARPATH — ขั้นตอนที่เจ้าของระบบต้องทำก่อน Deploy Vercel
-อัปเดต: 7 สิงหาคม 2026 (Asia/Bangkok)
+CLEARPATH — สถานะระบบพยากรณ์และงานที่เจ้าของระบบต้องทำต่อ
+อัปเดต: 4 กันยายน 2026 (Asia/Bangkok)
 Workspace: C:\Users\smfga\Documents\ClearPath
+Production: https://clearpath-gray.vercel.app
 
 ======================================================================
-สถานะปัจจุบัน
+1) สิ่งที่ระบบพยากรณ์ทำเสร็จและใช้งานบน Production แล้ว
 ======================================================================
 
-[เสร็จ] Frontend localhost: http://localhost:3000
-[เสร็จ] Backend localhost: http://localhost:8011
-[หมายเหตุ] localhost ใช้ LOCAL_DEMO_MODE=true เฉพาะ process ที่กำลังรัน เพราะ
-           เครื่องนี้ resolve Supabase ไม่ได้ ห้ามนำค่านี้ไปใช้บน Vercel
-[เสร็จ] แผนที่/อากาศ/ส่งรายงาน/ชุมชนผ่าน browser QA ที่ 390x844 px
-[เสร็จ] แผนที่แสดงสถานี Air4Thai ทั่วประเทศไทยและ cluster marker ตาม zoom
-[เสร็จ] พื้นผิวพยากรณ์คำนวณเฉพาะ viewport ไม่เกิน 500 กม. และ mask พื้นที่ห่างสถานี
-[เสร็จ] Forecast แสดง ClearPath/OpenWeather/Open-Meteo แยกกัน ไม่เฉลี่ยรวมเพื่อหลอกความแม่น
-[เสร็จ] Community forecast correction เป็น shadow-only และค่าเริ่มต้นปิด
-[เสร็จ] ถอด Google Air, bulk /api/forecast/stations และ cron consensus 5 นาที
-[เสร็จ] Air4Thai ingestion เก็บจำนวน/สาเหตุแถวที่ reject แทนการทิ้งเงียบ
-[เสร็จ] Python 3.12 ถูก pin สำหรับ Vercel และ exclude test/docs ออกจาก Python bundle
-[เสร็จ] Vercel Hobby config ไม่มี cron ที่ถี่และใช้ GitHub Actions scheduler รายชั่วโมง
-[เสร็จ] Production build ผ่าน
-[เสร็จ] Frontend unit tests 17/17
-[เสร็จ] Backend tests 169/169
-[เสร็จ] Prettier, ESLint, TypeScript, Ruff และ git diff --check ผ่าน
+[เสร็จ] Source code อยู่ branch main และ worktree ตรงกับ origin/main
+[เสร็จ] Forecast release commit: 1b39dfb
+[เสร็จ] Deployment-support commit: a9a7dab
+[เสร็จ] Vercel production deployment: dpl_GynUg4hTvGJ4LxvqHRhoAVx49jRq
+[เสร็จ] Production release SHA: a9a7dabf61d15acb2e24a80741b938b8b49dfc62
+[เสร็จ] /api/ready = 200 หลังรัน scheduler
+[เสร็จ] Supabase ClearPath มีสถานี 177 แห่ง และมีสถานีข้อมูลสด 171 แห่งในการตรวจรับรอบนี้
+[เสร็จ] GitHub Actions Production hourly scheduler รัน manual และ scheduled สำเร็จบน main
+[เสร็จ] Supabase server client ใช้ HTTP/1.1 เพื่อตัดปัญหา HTTP/2 RemoteProtocolError
+[เสร็จ] Read-only query ที่จำเป็นต่อพยากรณ์ retry แบบจำกัด 3 ครั้ง
+[เสร็จ] History/weather/fire/provider/community ที่เป็นข้อมูลเสริม fail-soft พร้อม warning code
+[เสร็จ] External provider ที่ให้บริการจริงไม่ถูกนับผิดเป็น local fallback
 
-ยังไม่ได้ทำ: apply migration, ตั้ง production secrets, deploy Preview/Production,
-commit/push รอบนี้ หรือทดสอบกับบัญชี/อุปกรณ์จริง
+[เสร็จ] พยากรณ์รายชั่วโมง 1–24 ชั่วโมง และปุ่มหลัก 1/3/6/12/24 ชั่วโมง
+[เสร็จ] ใช้ external-first: เลือกค่าดิบจาก provider ที่สดก่อน ClearPath local fallback
+[เสร็จ] เปิดใช้จริง 2 แหล่ง: CAMS ผ่าน Open-Meteo และ OpenWeather Air Pollution
+[เสร็จ] รองรับสูงสุด 3 แหล่ง โดยเตรียม GISTDA ไว้แต่ปิดด้วย legal gate
+[เสร็จ] ไม่เฉลี่ยหรือแก้ค่าดิบของ provider แต่ละราย
+[เสร็จ] ผู้ใช้กดเปรียบเทียบและเลือกดูค่าดิบของแต่ละ provider เองได้
+[เสร็จ] แสดงแหล่งที่มา เวลาออกพยากรณ์ freshness และลิงก์ attribution
+[เสร็จ] สถานะ available/limited/unavailable เป็น fail-closed
+[เสร็จ] ถ้า provider ต่างกันมาก ระบบแสดง "ข้อมูลจำกัด" แทนการอ้างความมั่นใจเกินจริง
+[เสร็จ] ถ้าไม่มี external ที่ใช้ได้ จะใช้ local deterministic fallback เฉพาะเมื่อ input ยังดีพอ
+[เสร็จ] ถ้าทั้ง external และ local ใช้ไม่ได้ UI จะซ่อนตัวเลขและบอกเหตุผล
+[เสร็จ] ช่วงความไม่แน่นอนเป็น envelope ประกอบการตัดสินใจ ไม่ได้เปลี่ยนค่าดิบ provider
+[เสร็จ] Forecast surface ใช้ IDW แบบ haversine และมี sparse-area warning
+
+[เสร็จ] ข้อมูลชุมชนแสดงแยกจาก provider และยังไม่แก้ค่าพยากรณ์หลัก
+[เสร็จ] Community ต้อง approved, สด, Trust >=60, GPS accuracy <=200 ม.
+[เสร็จ] Community ต้อง corroborated จากคนละคน >=2 ราย หรือ Trust >=80 พร้อม calibrated device
+[เสร็จ] ภาพซ้ำ/ติดแหล่งกำเนิด/GPS ไม่มีหรือไม่ผ่านเกณฑ์จะไม่ถูกใช้
+[เสร็จ] COMMUNITY_FORECAST_SHADOW_ENABLED=false บน Production
+[เสร็จ] พิกัดจริงและหลักฐาน private ไม่ถูกส่งใน public forecast contract
+
+[เสร็จ] เก็บ provider snapshots 7 วัน และ completed sync runs 30 วัน
+[เสร็จ] OpenWeather sync ทุก 8 ชั่วโมง และ Open-Meteo sync ทุก 12 ชั่วโมง
+[เสร็จ] GISTDA scheduler เป็น safe no-op จนกว่าจะผ่านทั้ง feature และ licence flags
+[เสร็จ] Admin provider health แสดง flags, จำนวน sync, failure และเวลา completion
+[เสร็จ] Runbook: docs/runbooks/forecast-providers.md
 
 ======================================================================
-ขั้นที่ 1 — เตรียม Vercel Hobby และ GitHub Actions
+2) หลักฐานการตรวจรับรอบล่าสุด
 ======================================================================
 
-ClearPath ใช้ Vercel Hobby ได้แล้ว โดย vercel.json ไม่มี Vercel cron และ workflow
-.github/workflows/production-scheduler.yml จะเรียกงานที่ป้องกันด้วย CRON_SECRET
-ทุกชั่วโมงแทน เพื่อลดจำนวน GitHub Actions runs และคง Air4Thai freshness รายชั่วโมง
+[ผ่าน] Backend pytest 201 tests
+[ผ่าน] Backend coverage 79.92% (release gate >=75%)
+[ผ่าน] Ruff format/check
+[ผ่าน] Frontend unit tests 23 tests
+[ผ่าน] Frontend coverage 98.19%
+[ผ่าน] Prettier, ESLint และ TypeScript
+[ผ่าน] Next.js 16.2.11 production build
+[ผ่าน] Playwright mobile E2E 56 tests ที่ 360x800, 390x844 และ 430x932
+[ข้ามตามเงื่อนไข] 4 camera tests ที่ต้องใช้อุปกรณ์/สิทธิ์กล้องจริง
+[ผ่าน] pip check
+[ผ่าน] pip-audit: ไม่พบช่องโหว่ที่ทราบใน requirements.txt
+[ผ่าน] Deployment verifier: home, health, readiness, HSTS, security headers และ Admin auth
+[ผ่าน] Production UI: แสดง CAMS/Open-Meteo เป็นค่าที่แนะนำ
+[ผ่าน] Production UI: เลือก OpenWeather แล้วแสดงค่าดิบ พร้อมข้อความ "ไม่ได้เฉลี่ยกับแหล่งอื่น"
+[ผ่าน] Production API: ตอบครบ 24 จุด, provider_count=2 และ raw_provider_values_preserved=true
+[ผ่าน] GitHub scheduler run #438 และ #439
+[ผ่าน] Local production-data runtime sample หลัง reliability hardening: 30/30 ตอบ 200,
+       fallback rate 0%, median 598.81 ms, p95 793.29 ms และไม่มี ledger write error
 
-[ ] ใช้ Vercel Hobby ได้ ไม่ต้องอัปเกรด Pro
-[ ] หลังได้ Production URL ให้เพิ่ม GitHub Actions repository variable
-    CLEARPATH_PRODUCTION_URL=https://<PRODUCTION_HOST> (ไม่มี slash ท้าย)
-[ ] เพิ่ม GitHub Actions repository secret CRON_SECRET ให้ตรงกับ Vercel Production
-[ ] ถ้า repository เป็น private ให้ตรวจ Actions Usage รายเดือน เพราะใช้โควตาฟรีร่วมกับ CI
-[ ] ยอมรับว่า GitHub scheduled workflow อาจเริ่มช้ากว่าเวลาที่กำหนดเมื่อระบบโหลดสูง
-[ ] เปิด MFA ให้ GitHub, Vercel, Supabase, OpenAI และบัญชีผู้ดูแล
-[ ] แยก Supabase staging และ production คนละ project
-[ ] ระบุ Product/Data/Incident/Privacy/Health owner ใน
+หมายเหตุ: GitHub scheduled workflows เป็นบริการแบบ best-effort และอาจเริ่มช้ากว่า
+เวลาที่กำหนด จึงต้องตรวจ SLO ต่อเนื่องตามขั้นที่ 5 ห้ามใช้ผลสำเร็จครั้งเดียวแทน
+หลักฐาน 14 วัน
+
+======================================================================
+3) งานที่เจ้าของระบบต้องทำทันที (บัญชี/สิทธิ์/อุปกรณ์)
+======================================================================
+
+[ ] เปิด MFA ให้ GitHub, Vercel, Supabase, Google Cloud, OpenAI และบัญชี Admin
+[ ] ระบุชื่อ Product Owner, Data/ML Owner, Production/Incident Owner,
+    Privacy/Legal Owner และ Health Communication Approver ในไฟล์
     docs/runbooks/forecast-ownership-decisions.md
+[ ] ระบุว่าใครมีอำนาจตั้ง ML_FORECAST_ENABLED=false, หยุด scheduler และ rollback Vercel
+[ ] สร้าง Supabase staging แยกจาก ClearPath production; ห้ามทดสอบ migration เสี่ยงบน production
+[ ] ทำ backup และ restore rehearsal บน staging ตาม docs/runbooks/backup-restore.md
+[ ] ตรวจ DPA/vendor inventory และอนุมัติ privacy notice
+[ ] ให้ผู้เชี่ยวชาญตรวจข้อความสุขภาพและข้อจำกัดของคำพยากรณ์
+[ ] ตรวจ least privilege และ MFA ของ service accounts/secrets
+
+ขั้นตอนตรวจ Environment Variables ใน Vercel Production:
+
+1. เปิด Vercel > clearpath > Settings > Environment Variables
+2. ยืนยัน APP_ENVIRONMENT=production
+3. ยืนยัน LOCAL_DEMO_MODE=false หรือไม่มีตัวแปรนี้
+4. ยืนยัน SUPABASE_URL และ SUPABASE_SERVICE_ROLE_KEY เป็นของ ClearPath เท่านั้น
+5. ยืนยัน NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY เป็น ClearPath
+6. ยืนยัน CRON_SECRET ตรงกับ GitHub Actions secret แต่ห้ามนำค่ามาวางใน chat/source
+7. ยืนยัน CAPTURE_SESSION_SECRET แยกจาก CRON_SECRET และยาวอย่างน้อย 32 ตัวอักษร
+8. คง ML_FORECAST_ENABLED=false, ML_FORECAST_SHADOW_ENABLED=false และ canary=0
+9. คง COMMUNITY_FORECAST_SHADOW_ENABLED=false จน field validation ผ่าน
+10. คง GISTDA_AIR_ENABLED=false และ GISTDA_LICENSE_APPROVED=false
 
 ======================================================================
-ขั้นที่ 2 — Apply Supabase migrations ใน STAGING ก่อน
+4) ตรวจมือถือ/กล้อง/GPS ด้วยอุปกรณ์จริง
 ======================================================================
 
-1. Backup และซ้อม restore ตาม docs/runbooks/backup-restore.md
-2. ตรวจว่า CLI link ไป staging จริง:
+ต้องทำทั้ง iPhone Safari และ Android Chrome อย่างน้อยอย่างละ 1 เครื่อง:
 
-    npx supabase login
-    npx supabase link --project-ref <STAGING_PROJECT_REF>
-    npx supabase migration list
-
-3. ตรวจ migration แบบ read-only:
-
-    .venv\Scripts\python -m scripts.migration_guard `
-      supabase\migrations\20260717_production_foundation.sql `
-      supabase\migrations\20260722_tor_alignment.sql `
-      supabase\migrations\20260803_forecast_production_hardening.sql `
-      supabase\migrations\20260804_nationwide_forecast_consensus.sql
-
-หมายเหตุ: foundation migration อาจเป็น destructive สำหรับฐานเดิม ต้องอ่านผล guard,
-backup และใช้กับฐานว่าง/ตาม runbook เท่านั้น ห้ามยืนยันโดยไม่ตรวจ target database
-
-4. Preview แล้ว apply:
-
-    npx supabase db push --dry-run
-    npx supabase db push
-
-5. ตรวจว่ามี 28 ตารางที่ production_preflight ระบุ รวมตารางใหม่:
-
-[ ] forecast_provider_sync_runs
-[ ] forecast_provider_snapshots
-[ ] forecast_consensus_latest (เก็บ shadow/evaluation ไม่ใช่ค่าหลักหน้าเว็บ)
-[ ] forecast_prediction_sources
-[ ] community_forecast_feature_snapshots
-[ ] sync_runs มี rejected_count และ rejection_summary
-[ ] RLS เปิดบนตาราง server-only ทั้งหมด
-[ ] bucket report-images เป็น Private จำกัด JPEG/PNG/WebP และไม่เกิน 8 MB
-
-======================================================================
-ขั้นที่ 3 — ตั้ง Environment Variables ใน Vercel
-======================================================================
-
-ตั้ง Preview และ Production แยกกันผ่าน Vercel dashboard หรือ `vercel env add`
-อย่าวาง secret ใน source code, terminal history, issue หรือ chat
-
-ค่าที่ต้องมี:
-
-[ ] APP_ENVIRONMENT=staging สำหรับ Preview / production สำหรับ Production
-[ ] LOCAL_DEMO_MODE=false หรือไม่สร้างตัวแปรนี้เลย
-[ ] RELEASE_SHA=<git commit sha>
-[ ] SUPABASE_URL
-[ ] SUPABASE_SERVICE_ROLE_KEY (server only ห้ามใช้ NEXT_PUBLIC_*)
-[ ] NEXT_PUBLIC_SUPABASE_URL
-[ ] NEXT_PUBLIC_SUPABASE_ANON_KEY
-[ ] REPORT_IMAGE_BUCKET=report-images
-[ ] CRON_SECRET สุ่มอย่างน้อย 32 ตัวอักษร
-[ ] CAPTURE_SESSION_SECRET สุ่มอย่างน้อย 32 ตัวอักษรและห้ามซ้ำ CRON/Supabase key
-[ ] CORS_ALLOWED_ORIGINS=https://<PREVIEW_OR_PRODUCTION_HOST> ไม่มี wildcard
-[ ] OPENWEATHER_API_KEY เมื่อ OPENWEATHER_AIR_ENABLED=true
-[ ] FIRMS_MAP_KEY หากต้องการ satellite hotspot จริง
-[ ] OPENAI_API_KEY เมื่อ AUTOMATIC_REVIEW_ENABLED=true
-[ ] COMMUNITY_FORECAST_SHADOW_ENABLED=false ตอน launch
-[ ] ML_FORECAST_ENABLED=false
-[ ] ML_FORECAST_SHADOW_ENABLED=false
-[ ] ML_FORECAST_CANARY_PERCENTAGE=0
-[ ] PUSH_ENABLED=false จนกว่าจะตั้ง VAPID และทดสอบ delivery จริง
-
-หากยังไม่มี OPENAI_API_KEY ให้ตั้ง AUTOMATIC_REVIEW_ENABLED=false ระบบจะ fail
-closed และเก็บเคสไม่ชัดเป็น pending ให้ Admin ตรวจ ห้ามเปิด auto-review โดยไม่มี OCR
-
-Preflight ล่าสุดบนเครื่องนี้ยังไม่พร้อมเพราะ:
-
-- APP_ENVIRONMENT ยังไม่ใช่ production
-- NEXT_PUBLIC_SUPABASE_URL/ANON_KEY ยังไม่ครบ
-- CAPTURE_SESSION_SECRET ยังไม่แยก
-- AUTOMATIC_REVIEW_ENABLED=true แต่ OPENAI_API_KEY ไม่พร้อม
-- เชื่อม Supabase ไม่ได้จาก DNS เครื่องนี้ ทำให้ตรวจ 28 tables ไม่สำเร็จ
-
-หลังใส่ staging env ให้รันจน `ready: true`:
-
-    .venv\Scripts\python -m scripts.production_preflight `
-      --env-file .env.local --json --strict-features
-
-======================================================================
-ขั้นที่ 4 — Deploy Preview และตรวจรับ
-======================================================================
-
-1. Link project และ deploy Preview:
-
-    vercel link
-    vercel deploy
-
-2. ตรวจ Preview:
-
-    .venv\Scripts\python -m scripts.verify_deployment https://<PREVIEW_HOST>
-    .venv\Scripts\python scripts\measure_forecast_runtime.py `
-      https://<PREVIEW_HOST> --requests 30
-    vercel logs --deployment https://<PREVIEW_HOST> --level error
-
-3. ตรวจ browser/device จริง:
-
-[ ] iPhone Safari และ Android Chrome
 [ ] หน้า /, /air, /report, /community ไม่มี horizontal overflow
-[ ] ค้นหา/เลือกสถานีทั่วประเทศและดู forecast ได้
-[ ] provider แต่ละแหล่งแสดงแยก ไม่อ้างว่า consensus แม่นกว่า
-[ ] OTP login สำเร็จและ normal user เข้า Admin ไม่ได้
-[ ] Camera/GPS ทั้งกรณีอนุญาตและปฏิเสธ
-[ ] รายงานไม่ชัด/ภาพซ้ำ/GPS แย่ยัง pending
-[ ] public API/map ไม่เผยภาพ พิกัดจริง หรือ PM2.5 ของ pending report
-[ ] public coordinates ถูก stable obfuscation 120–250 ม.
-[ ] ข้อความดาวเป็นคำขอบคุณข้อมูล ไม่ใช่จัดอันดับคุณค่าบุคคล
-[ ] report-images อ่านตรงจาก browser ไม่ได้ และ signed URL หมดอายุจริง
-[ ] /api/ready ตอบ 200 และ Admin provider health แสดงสถานะจริง
+[ ] แตะหมุดสถานี > เปิดหน้าอากาศ > เปลี่ยน 1/3/6/12/24 ชั่วโมงได้
+[ ] เปิด "เปรียบเทียบแหล่งข้อมูล" และเลือก provider ได้โดยไม่เลื่อนผิดตำแหน่ง
+[ ] ตัวอักษรใหญ่และ high contrast ยังอ่านได้
+[ ] อนุญาตกล้องแล้ว preview/capture ทำงาน
+[ ] ปฏิเสธกล้องแล้วระบบแสดงคำแนะนำ ไม่ค้างและไม่ crash
+[ ] อนุญาต GPS แล้ว accuracy ถูกบันทึก
+[ ] ปฏิเสธ GPS แล้วรายงานไม่ถูก auto-approve
+[ ] ภาพเบลอ/ภาพซ้ำ/เวลาไม่ต่อเนื่อง/GPS แย่ยัง pending
+[ ] Google login, OTP และ LINE linking ทำงานบน mobile browser จริง
+[ ] User ปกติเข้า /admin ไม่ได้ และบัญชี Admin ที่กำหนดเข้าได้
+[ ] report-images เปิดตรงจาก browser ไม่ได้ และ signed URL หมดอายุจริง
+[ ] ตรวจว่า public map/API ไม่เผยภาพ พิกัดจริง หรือ PM2.5 ของ pending report
+
+บันทึกวัน อุปกรณ์ OS/browser ผล pass/fail และ screenshot เฉพาะข้อมูลที่ไม่อ่อนไหว
+ไว้ใน release evidence ห้ามบันทึก access token หรือ precise community location
 
 ======================================================================
-ขั้นที่ 5 — Deploy Production และตรวจ GitHub Scheduler
+5) เก็บหลักฐาน Production 14–30 วัน
 ======================================================================
 
-ทำเมื่อ Preview, backup, privacy/security และ device acceptance ผ่านแล้วเท่านั้น:
+ตรวจ GitHub Actions และ Admin Operations ทุกวัน:
 
-    vercel deploy --prod
-    .venv\Scripts\python -m scripts.verify_deployment `
-      https://<PRODUCTION_HOST>
-    vercel logs --environment production --level error --since 5m
+[ ] Air4Thai sync/alerts/forecast-evaluation ได้ 2xx และไม่มีช่วงขาดเกิน policy
+[ ] /api/ready = 200 ต่อเนื่อง และ official station สดไม่เกิน 90 นาที
+[ ] Cron success >=99% ใน acceptance window 14 วัน
+[ ] PM2.5 completeness >=95% สำหรับ pilot stations
+[ ] Weather completeness >=90%
+[ ] OpenWeather สำเร็จทุก 8 ชั่วโมง และ Open-Meteo สำเร็จทุก 12 ชั่วโมง
+[ ] Provider freshness ไม่เกิน SLA: OpenWeather 10 ชม., Open-Meteo 14 ชม.
+[ ] Forecast API error/fallback spike ไม่มี หรือมี incident record ครบ
+[ ] Prediction ledger จับคู่ observation ได้ และไม่มี future leakage
+[ ] ตรวจ false-safe, bias, MAE/RMSE, category accuracy และ interval coverage
+[ ] ตรวจ metrics แยก horizon/station/district/season/high-pollution day
+[ ] ตรวจ operational logs ไม่มี secret, image URL หรือ precise community coordinates
+[ ] ซ้อม alert > ปิด ML > redeploy > ตรวจ baseline fallback และจับเวลา rollback
 
-ตรวจ GitHub > repository > Settings > Secrets and variables > Actions:
-
-[ ] Variable CLEARPATH_PRODUCTION_URL เป็น HTTPS Production URL
-[ ] Secret CRON_SECRET ตรงกับค่าใน Vercel Production
-[ ] Actions > Production hourly scheduler > Run workflow สำเร็จ
-[ ] Scheduled run ทำงานที่นาที 7 ของทุกชั่วโมงบน branch main
-[ ] sync, alerts และ forecast-evaluation ได้ 2xx ทุกชั่วโมง
-[ ] OpenWeather ได้ 2xx ทุก 8 ชั่วโมงและ Open-Meteo ได้ 2xx ทุก 12 ชั่วโมง
-[ ] Vercel Settings > Cron Jobs ว่าง ซึ่งเป็นสถานะที่ถูกต้องสำหรับ Hobby
-[ ] ไม่มี /api/cron/forecast-consensus
-[ ] Air4Thai sync มี station/readings และ rejected diagnostics
-[ ] Provider sync เก็บ snapshots โดยไม่ทำให้ค่าหลักหน้าเว็บถูกเฉลี่ยทับ
-[ ] /api/ready = 200 และมี official station สดอย่างน้อยหนึ่งสถานี
-
-ห้ามเปิด cron URL พร้อม bearer secret ใน browser เพราะอาจติด history/log
+เหตุผลที่ต้องรอ: เกณฑ์เหล่านี้ต้องใช้เวลาและเหตุการณ์จริง AI ไม่สามารถสร้างหลักฐาน
+ย้อนหลังหรือเซ็นอนุมัติแทนเจ้าของระบบได้
 
 ======================================================================
-ขั้นที่ 6 — สิ่งที่ต้องใช้คน/เวลาและ AI ทำแทนไม่ได้
+6) การเปิด GISTDA เป็นแหล่งที่ 3 (ห้ามทำก่อนมีสิทธิ์เป็นลายลักษณ์อักษร)
 ======================================================================
 
-[ ] Privacy notice, DPA/vendor inventory และ legal sign-off
-[ ] Health wording ได้รับอนุมัติจากผู้เชี่ยวชาญ
-[ ] Incident owner/on-call/backup และช่องทาง alert จริง
-[ ] Backup/restore rehearsal บน staging
-[ ] Field validation ด้วยเครื่อง calibrated และ reference monitor
+สถานะปัจจุบัน: adapter, tests, API contract, UI และ scheduler พร้อม แต่ Production ปิด
+เพราะหน้า Open Data ยังไม่ระบุ licence สำหรับ automated calls, caching และ public display
+อย่างชัดเจน
+
+[ ] ขอหนังสือ/อีเมลอนุญาตที่ครอบคลุม automated API calls, caching,
+    public display, attribution และ retention
+[ ] บันทึก reference, ผู้อนุมัติ และวันที่ใน legal register ของโครงการ
+[ ] ทดลอง migration บน Supabase staging ก่อน
+[ ] Apply เฉพาะไฟล์ต่อไปนี้กับ Supabase project ClearPath เท่านั้น:
+    supabase/migrations/20260904_forecast_gistda_provider.sql
+[ ] ตั้ง GISTDA_AIR_ENABLED=true และ GISTDA_LICENSE_APPROVED=true ใน Vercel Production
+[ ] Redeploy Vercel
+[ ] Run Production hourly scheduler หนึ่งรอบ
+[ ] ตรวจ Admin provider health ว่า GISTDA success และมี snapshots
+[ ] ตรวจ public UI ว่ามี attribution และแสดงไม่เกิน 3 provider
+
+ถ้าไม่ได้รับอนุญาต ให้คง flags=false ระบบจะใช้ CAMS/Open-Meteo + OpenWeather ต่อได้
+โดยไม่เรียก GISTDA และไม่ทำให้พยากรณ์หลักล้ม
+
+======================================================================
+7) งานระยะยาวก่อนเปิด ML หรือ community correction ต่อผู้ใช้
+======================================================================
+
+[ ] เก็บ official/weather/fire history อย่างน้อย 6 เดือนก่อนเปิด candidate ML
+[ ] สำหรับ mature claim ต้องมีข้อมูลและ validation ครบฤดูฝน/แล้งหรือ 12+ เดือน
 [ ] เก็บ provider outcomes อย่างน้อยประมาณ 300 ตัวอย่างจาก >=3 สถานี
-    ก่อนพิจารณาจัดอันดับหรือ blend provider
-[ ] เก็บ community shadow data โดยไม่ส่งผลต่อ public forecast แล้ววัดว่าเพิ่มความแม่นจริง
-[ ] ML ต้องผ่าน rolling backtest, uncertainty, false-safe, shadow และ canary gates
-    ก่อนเปิด ML_FORECAST_ENABLED
+    ก่อนจัดอันดับความแม่นหรือ blend provider
+[ ] Train candidate และผ่าน rolling-origin backtest ทุก horizon 1/3/6/12/24
+[ ] ผ่าน untouched temporal holdout, station/district/season/high-event slices
+[ ] Calibrate uncertainty และผ่าน empirical coverage policy
+[ ] Verify artifact SHA-256, feature-schema checksum และ registry active status
+[ ] เปิด production shadow 14–30 วันโดยยังไม่แสดง ML ต่อผู้ใช้
+[ ] Product/Data/Operations ตรวจทุก false-safe case และลง release decision
+[ ] ทำ canary 10% > 25% > 50% > 100% ทีละช่วง พร้อม observation window ใหม่
+[ ] ทำ field co-location ด้วย calibrated device/reference monitor
+[ ] เก็บ dry/wet season samples และเทียบ official-only กับ community supplementary
+[ ] Privacy/Legal/Health/Product ลงนามก่อน public ML/community correction
 
-คำสั่งตรวจซ้ำก่อน release:
+ห้ามเปลี่ยน ML_FORECAST_ENABLED หรือ COMMUNITY_FORECAST_SHADOW_ENABLED เพื่อข้าม gate
+เวลา/ข้อมูล/field/approval เหล่านี้
+
+======================================================================
+8) คำสั่งตรวจซ้ำสำหรับผู้ดูแล
+======================================================================
+
+Local quality gates:
 
     npm run format:check
     npm run lint
     npm run typecheck
-    npm run test:unit
+    npm run test:unit:coverage
     npm run build
+    npm run test:e2e
     .venv\Scripts\python -m ruff format --check backend api scripts
     .venv\Scripts\python -m ruff check backend api scripts
-    .venv\Scripts\python -m pytest
-    git diff --check
+    .venv\Scripts\python -m pytest --cov=backend --cov-fail-under=75
+    .venv\Scripts\python -m pip check
+    .venv\Scripts\python -m pip_audit -r requirements.txt
 
-เอกสารหลัก:
+Production checks:
 
-    docs/runbooks/production-deployment.md
-    docs/runbooks/security-privacy-legal.md
-    docs/runbooks/backup-restore.md
-    docs/runbooks/incident-response.md
-    docs/runbooks/pilot-and-model-rollout.md
+    .venv\Scripts\python -m scripts.verify_deployment https://clearpath-gray.vercel.app
+    .venv\Scripts\python scripts\measure_forecast_runtime.py `
+      https://clearpath-gray.vercel.app --requests 30
+    vercel logs --environment production --level error --since 5m
+
+ห้ามเรียก protected cron URL พร้อม bearer secret ใน browser หรือวาง secret ใน terminal
+history ที่แชร์กับผู้อื่น ให้ใช้ GitHub Actions > Production hourly scheduler > Run workflow
+
+======================================================================
+9) เอกสารหลัก
+======================================================================
+
+docs/runbooks/forecast-providers.md
+docs/runbooks/production-deployment.md
+docs/runbooks/pilot-and-model-rollout.md
+docs/runbooks/forecast-field-validation.md
+docs/runbooks/forecast-ownership-decisions.md
+docs/runbooks/security-privacy-legal.md
+docs/runbooks/backup-restore.md
+docs/runbooks/incident-response.md
+docs/superpowers/plans/2026-08-03-production-pm25-forecast-plan.md
 
 ======================================================================
 END

@@ -1,5 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
+import httpx
+
 from backend.services import forecasting
 
 
@@ -48,10 +50,56 @@ def test_station_forecast_serves_external_when_official_history_is_missing(monke
     assert response["forecast_status"] == "limited"
     assert response["forecast_mode"] == "external_provider"
     assert response["recommended_source"] == "openmeteo_cams"
+    assert response["fallback_reason"] is None
+    assert response["fallback_reason_codes"] == []
     assert [point["pm25"] for point in response["points"]] == [21, 22, 23]
     assert all(point["source"] == "openmeteo_cams" for point in response["points"])
     assert "official_observation_stale" not in response["limitation_reason_codes"]
     assert len(ledger["predictions"]) == 3
+
+
+def test_station_forecast_keeps_external_result_when_optional_reads_fail(monkeypatch):
+    now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+    station = {"id": "station-a", "lat": 13.82, "lon": 100.06, "pm25": 18}
+    snapshots = [
+        {
+            "station_id": "station-a",
+            "provider": "openmeteo_cams",
+            "issued_at": now.isoformat(),
+            "forecast_at": (now + timedelta(hours=horizon)).isoformat(),
+            "horizon_hours": horizon,
+            "pm25": 20 + horizon,
+        }
+        for horizon in range(1, 4)
+    ]
+
+    def transport_error(*_args):
+        raise httpx.ReadError("temporary Supabase disconnect")
+
+    monkeypatch.setattr(
+        forecasting.supabase_client, "get_station_by_id", lambda _id: station
+    )
+    monkeypatch.setattr(forecasting.supabase_client, "get_history", transport_error)
+    monkeypatch.setattr(
+        forecasting.supabase_client,
+        "get_latest_forecast_features",
+        transport_error,
+    )
+    monkeypatch.setattr(
+        forecasting.supabase_client, "get_provider_snapshots", lambda _id: snapshots
+    )
+    monkeypatch.setattr(forecasting.supabase_client, "get_stations", transport_error)
+
+    response, _ledger = forecasting.station_forecast("station-a", 3)
+
+    assert response["forecast_mode"] == "external_provider"
+    assert [point["pm25"] for point in response["points"]] == [21, 22, 23]
+    assert response["fallback_reason"] is None
+    assert {
+        "official_history_temporarily_unavailable",
+        "forecast_features_temporarily_unavailable",
+        "community_context_temporarily_unavailable",
+    }.issubset(response["warnings"])
 
 
 def test_qualified_community_fails_closed_and_accepts_policy_paths(monkeypatch):

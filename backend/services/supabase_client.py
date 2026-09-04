@@ -6,16 +6,23 @@
 
 from __future__ import annotations
 
+import logging
+import time
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
-from supabase import Client, create_client
+import httpx
+
+from supabase import Client, ClientOptions, create_client
 
 from ..core.config import settings
 from ..core.errors import ConfigurationError
 from . import local_store
 
 _client: Client | None = None
+_READ_RETRY_DELAYS_SECONDS = (0.05, 0.15)
+logger = logging.getLogger("clearpath.supabase")
 
 STATION_COLS = [
     "id",
@@ -40,10 +47,34 @@ def get_client() -> Client:
             raise ConfigurationError(
                 "ยังไม่ได้ตั้งค่า Supabase (SUPABASE_URL / SERVICE_ROLE_KEY)"
             )
+        http_client = httpx.Client(
+            timeout=httpx.Timeout(20.0, connect=5.0),
+            transport=httpx.HTTPTransport(http2=False, retries=2),
+            follow_redirects=True,
+        )
         _client = create_client(
-            settings.supabase_url, settings.supabase_service_role_key
+            settings.supabase_url,
+            settings.supabase_service_role_key,
+            options=ClientOptions(httpx_client=http_client),
         )
     return _client
+
+
+def _execute_read[T](operation: Callable[[], T]) -> T:
+    """Retry transient transport failures for idempotent Supabase reads only."""
+
+    for attempt in range(len(_READ_RETRY_DELAYS_SECONDS) + 1):
+        try:
+            return operation()
+        except httpx.HTTPError:
+            if attempt >= len(_READ_RETRY_DELAYS_SECONDS):
+                raise
+            logger.warning(
+                "supabase_read_retry",
+                extra={"attempt": attempt + 1},
+            )
+            time.sleep(_READ_RETRY_DELAYS_SECONDS[attempt])
+    raise RuntimeError("supabase_read_retry_exhausted")  # pragma: no cover
 
 
 def get_auth_user(access_token: str) -> dict:
@@ -102,7 +133,7 @@ def insert_readings(stations: list[dict]) -> int:
 def get_stations() -> list[dict]:
     if settings.local_demo_mode:
         return local_store.get_stations()
-    res = get_client().table("stations").select("*").execute()
+    res = _execute_read(lambda: get_client().table("stations").select("*").execute())
     return res.data or []
 
 
@@ -113,13 +144,18 @@ def get_station_by_id(station_id: str) -> dict | None:
             None,
         )
     rows = (
-        get_client()
-        .table("stations")
-        .select("*")
-        .eq("id", station_id)
-        .limit(1)
-        .execute()
-    ).data or []
+        _execute_read(
+            lambda: (
+                get_client()
+                .table("stations")
+                .select("*")
+                .eq("id", station_id)
+                .limit(1)
+                .execute()
+            )
+        ).data
+        or []
+    )
     return rows[0] if rows else None
 
 
@@ -127,14 +163,16 @@ def get_history(station_id: str, hours: int = 24) -> list[dict]:
     if settings.local_demo_mode:
         return local_store.get_history(station_id, hours)
     cutoff = (datetime.now(UTC) - timedelta(hours=hours)).isoformat()
-    res = (
-        get_client()
-        .table("pm25_readings")
-        .select("recorded_at,pm25,aqi")
-        .eq("station_id", station_id)
-        .gte("recorded_at", cutoff)
-        .order("recorded_at")
-        .execute()
+    res = _execute_read(
+        lambda: (
+            get_client()
+            .table("pm25_readings")
+            .select("recorded_at,pm25,aqi")
+            .eq("station_id", station_id)
+            .gte("recorded_at", cutoff)
+            .order("recorded_at")
+            .execute()
+        )
     )
     return res.data or []
 
@@ -179,14 +217,17 @@ def get_provider_snapshots(station_id: str) -> list[dict]:
     if settings.local_demo_mode:
         return local_store.get_provider_snapshots(station_id)
     return (
-        get_client()
-        .table("forecast_provider_snapshots")
-        .select("*")
-        .eq("station_id", station_id)
-        .order("issued_at", desc=True)
-        .limit(500)
-        .execute()
-        .data
+        _execute_read(
+            lambda: (
+                get_client()
+                .table("forecast_provider_snapshots")
+                .select("*")
+                .eq("station_id", station_id)
+                .order("issued_at", desc=True)
+                .limit(500)
+                .execute()
+            )
+        ).data
         or []
     )
 
@@ -974,44 +1015,59 @@ def get_latest_forecast_features(station_id: str) -> dict:
     if settings.local_demo_mode:
         return local_store.get_latest_forecast_features(station_id)
     weather_rows = (
-        get_client()
-        .table("weather_observations")
-        .select(
-            "recorded_at,source_at,source_status,temperature,humidity,"
-            "wind_speed,wind_deg,rain_mm"
-        )
-        .eq("station_id", station_id)
-        .order("recorded_at", desc=True)
-        .limit(1)
-        .execute()
-    ).data or []
+        _execute_read(
+            lambda: (
+                get_client()
+                .table("weather_observations")
+                .select(
+                    "recorded_at,source_at,source_status,temperature,humidity,"
+                    "wind_speed,wind_deg,rain_mm"
+                )
+                .eq("station_id", station_id)
+                .order("recorded_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+        ).data
+        or []
+    )
     fire_rows = (
-        get_client()
-        .table("fire_feature_snapshots")
-        .select(
-            "recorded_at,source_at,source_status,hotspot_count,weighted_frp,"
-            "upwind_hotspot_count"
-        )
-        .eq("station_id", station_id)
-        .order("recorded_at", desc=True)
-        .limit(1)
-        .execute()
-    ).data or []
+        _execute_read(
+            lambda: (
+                get_client()
+                .table("fire_feature_snapshots")
+                .select(
+                    "recorded_at,source_at,source_status,hotspot_count,weighted_frp,"
+                    "upwind_hotspot_count"
+                )
+                .eq("station_id", station_id)
+                .order("recorded_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+        ).data
+        or []
+    )
     now = datetime.now(UTC)
     forecast_rows = (
-        get_client()
-        .table("weather_forecasts")
-        .select(
-            "issued_at,forecast_at,source_status,temperature,humidity,"
-            "wind_speed,wind_deg,rain_mm"
-        )
-        .eq("station_id", station_id)
-        .lte("issued_at", now.isoformat())
-        .gte("forecast_at", now.isoformat())
-        .order("issued_at", desc=True)
-        .limit(80)
-        .execute()
-    ).data or []
+        _execute_read(
+            lambda: (
+                get_client()
+                .table("weather_forecasts")
+                .select(
+                    "issued_at,forecast_at,source_status,temperature,humidity,"
+                    "wind_speed,wind_deg,rain_mm"
+                )
+                .eq("station_id", station_id)
+                .lte("issued_at", now.isoformat())
+                .gte("forecast_at", now.isoformat())
+                .order("issued_at", desc=True)
+                .limit(80)
+                .execute()
+            )
+        ).data
+        or []
+    )
     result: dict = {}
     if weather_rows:
         weather = weather_rows[0]
@@ -1429,7 +1485,7 @@ def list_community_reports(status: str = "approved", limit: int = 200) -> list[d
     )
     if status != "all":
         query = query.eq("status", status)
-    return query.execute().data or []
+    return _execute_read(query.execute).data or []
 
 
 def list_user_reports(user_id: str, limit: int = 50) -> list[dict]:
