@@ -1,0 +1,9 @@
+.pytest-tmp-*
+.pytest_cache
+.ruff_cache
+coverage
+test-results
+playwright-report
+.playwright-mcp
+.venv
+node_modules
