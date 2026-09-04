@@ -101,6 +101,26 @@ def get_provider_snapshots(station_id: str) -> list[dict]:
         ]
 
 
+def delete_provider_history_before(
+    snapshot_cutoff_at: str, run_cutoff_at: str
+) -> tuple[int, int]:
+    with _LOCK:
+        snapshot_count = len(_FORECAST_PROVIDER_SNAPSHOTS)
+        _FORECAST_PROVIDER_SNAPSHOTS[:] = [
+            row
+            for row in _FORECAST_PROVIDER_SNAPSHOTS
+            if str(row.get("issued_at") or "") >= snapshot_cutoff_at
+        ]
+        expired_runs = [
+            run_id
+            for run_id, row in _FORECAST_PROVIDER_SYNC_RUNS.items()
+            if row.get("completed_at") and str(row["completed_at"]) < run_cutoff_at
+        ]
+        for run_id in expired_runs:
+            _FORECAST_PROVIDER_SYNC_RUNS.pop(run_id, None)
+        return snapshot_count - len(_FORECAST_PROVIDER_SNAPSHOTS), len(expired_runs)
+
+
 def upsert_forecast_consensus(
     row: dict, sources: list[dict], feature: dict | None
 ) -> None:

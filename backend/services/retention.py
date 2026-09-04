@@ -48,10 +48,23 @@ def cleanup_forecast_telemetry(limit: int = 1000) -> dict:
     deleted_runs = supabase_client.delete_forecast_runs_before(
         cutoff.isoformat(), limit
     )
+    provider_snapshot_days = max(2, settings.forecast_provider_snapshot_retention_days)
+    provider_run_days = max(7, settings.forecast_provider_run_retention_days)
+    snapshot_cutoff = datetime.now(UTC) - timedelta(days=provider_snapshot_days)
+    run_cutoff = datetime.now(UTC) - timedelta(days=provider_run_days)
+    deleted_snapshots, deleted_provider_runs = (
+        supabase_client.delete_provider_history_before(
+            snapshot_cutoff.isoformat(), run_cutoff.isoformat()
+        )
+    )
     return {
         "retention_days": days,
         "cutoff_at": cutoff.isoformat(),
         "deleted_runs": deleted_runs,
         "batch_limit": limit,
         "more_may_remain": deleted_runs == limit,
+        "provider_snapshot_retention_days": provider_snapshot_days,
+        "provider_run_retention_days": provider_run_days,
+        "deleted_provider_snapshots": deleted_snapshots,
+        "deleted_provider_runs": deleted_provider_runs,
     }

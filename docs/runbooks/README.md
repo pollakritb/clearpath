@@ -12,6 +12,8 @@
   accountable owners, release evidence and approval record templates.
 - [Forecast field validation protocol](forecast-field-validation.md) —
   co-location, seasonal sampling, privacy and community inclusion gates.
+- [Forecast provider operations](forecast-providers.md) — source selection,
+  freshness, attribution, free-tier scheduling and the GISTDA legal gate.
 - [External evidence template](forecast-external-evidence.example.json) —
   non-secret machine-checkable inputs for every FCAST task that requires an
   owner, live environment, elapsed observation window or human approval.

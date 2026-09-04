@@ -94,6 +94,9 @@ Required in both Vercel Preview and Production unless marked optional:
 | `CAPTURE_SESSION_SECRET`            | Different independent random secret                       |
 | `CORS_ALLOWED_ORIGINS`              | Exact HTTPS origin, no `*`                                |
 | `OPENWEATHER_API_KEY`               | Server only; required while its provider flag is enabled  |
+| `OPENMETEO_AIR_ENABLED`             | `true`; no key, with CAMS/Open-Meteo attribution          |
+| `GISTDA_AIR_ENABLED`                | Keep `false` until the documented legal gate passes       |
+| `GISTDA_LICENSE_APPROVED`           | Keep `false` until written reuse permission is recorded   |
 | `FIRMS_MAP_KEY`                     | Server only                                               |
 | `OPENAI_API_KEY`                    | Required before enabling real automatic review            |
 | `AUTOMATIC_REVIEW_ENABLED`          | Start `false` in staging until evidence acceptance passes |
@@ -191,7 +194,8 @@ Then configure GitHub → repository Settings → Secrets and variables → Acti
    Vercel Production environment variable. Never store it as a plain variable.
 3. Open Actions → Production hourly scheduler → Run workflow once. The run must
    complete sync, alerts and evaluation with 2xx responses. Provider endpoints
-   also run when the current UTC hour is divisible by 8 or 12.
+   also run every 3 hours for GISTDA (safe no-op while disabled), every 8 hours
+   for OpenWeather and every 12 hours for CAMS/Open-Meteo.
 4. Confirm the scheduled workflow is enabled on the default branch and runs at
    minute 7 each hour. GitHub schedules may be delayed under load, so monitor
    the last successful run rather than expecting exact-to-the-minute execution.

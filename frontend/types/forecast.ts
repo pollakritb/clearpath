@@ -27,10 +27,14 @@ export interface ForecastPoint {
   calibration_version: string;
   agreement: "high" | "medium" | "low" | null;
   provider_count: number;
+  source: ForecastSource;
 }
 
+export type ForecastSource =
+  "clearpath" | "gistda" | "openmeteo_cams" | "openweather";
+
 export interface ForecastSourcePoint {
-  source: "clearpath" | "openweather" | "openmeteo_cams";
+  source: ForecastSource;
   horizon_hours: number;
   forecast_at: string;
   pm25: number;
@@ -38,6 +42,34 @@ export interface ForecastSourcePoint {
   upper: number | null;
   weight: number;
   available: boolean;
+  issued_at: string | null;
+}
+
+export interface ForecastProviderSummary {
+  source: Exclude<ForecastSource, "clearpath">;
+  label: string;
+  attribution: string;
+  attribution_url: string;
+  available: boolean;
+  selected: boolean;
+  latest_issued_at: string | null;
+  freshness_status: "fresh" | "stale" | "unavailable";
+  coverage_hours: number;
+  maximum_horizon_hours: number;
+  stale_after_hours: number;
+  usage_note: string;
+}
+
+export interface ForecastCommunityContext {
+  mode: "not_used" | "context_only" | "shadow" | "served";
+  affects_recommendation: boolean;
+  eligible_report_count: number;
+  nearby_report_count: number;
+  effective_sample_size: number;
+  residual_pm25: number;
+  trust_threshold: number;
+  radius_km: number;
+  policy: string;
 }
 
 export interface ForecastResponse {
@@ -58,11 +90,16 @@ export interface ForecastResponse {
   warnings: string[];
   points: ForecastPoint[];
   forecast_status: "available" | "limited" | "unavailable";
+  limitation_reason_codes: string[];
   unavailable_reason_codes: string[];
   agreement: "high" | "medium" | "low" | null;
   provider_count: number;
   sources: ForecastSourcePoint[];
   provenance: Record<string, unknown>;
+  forecast_mode: "external_provider" | "local_fallback" | "unavailable";
+  recommended_source: ForecastSource | null;
+  providers: ForecastProviderSummary[];
+  community_context: ForecastCommunityContext;
 }
 
 export interface ForecastSurfaceCell {

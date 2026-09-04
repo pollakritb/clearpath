@@ -17,11 +17,17 @@ class Settings(BaseSettings):
     air4thai_url: str = "http://air4thai.pcd.go.th/services/getNewAQI_JSON.php"
     openweather_air_enabled: bool = True
     openmeteo_air_enabled: bool = True
+    # GISTDA metadata currently states no explicit data licence. Keep the
+    # adapter fail-closed until written permission/terms are recorded.
+    gistda_air_enabled: bool = False
+    gistda_license_approved: bool = False
     # Community forecast correction remains shadow-only until field/backtest gates pass.
     community_forecast_shadow_enabled: bool = False
     forecast_provider_max_batch_size: int = 50
     forecast_station_min_history_points: int = 24
     forecast_station_max_age_minutes: int = 90
+    forecast_provider_snapshot_retention_days: int = 7
+    forecast_provider_run_retention_days: int = 30
 
     # OCR ภาพหน้าจอเครื่องวัด (OpenAI Responses API, server only)
     openai_api_key: str = ""

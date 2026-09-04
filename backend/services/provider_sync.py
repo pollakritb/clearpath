@@ -6,7 +6,7 @@ import asyncio
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from . import openmeteo_air, openweather_air, supabase_client
+from . import gistda_air, openmeteo_air, openweather_air, supabase_client
 
 
 def _valid_stations() -> list[dict]:
@@ -114,6 +114,74 @@ async def sync_openweather() -> dict:
         "ok": status != "failed",
         "run_id": run_id,
         "provider": "openweather",
+        "status": status,
+        "stations": len(stations),
+        "snapshots": count,
+        "errors": len(errors),
+    }
+
+
+async def sync_gistda() -> dict:
+    """Sync GISTDA only after both feature and legal gates are enabled."""
+
+    stations = _valid_stations()
+    run_id = str(uuid4())
+    issued_at = datetime.now(UTC).replace(microsecond=0)
+    supabase_client.create_provider_sync_run(
+        {
+            "id": run_id,
+            "provider": "gistda",
+            "status": "running",
+            "station_count": len(stations),
+            "started_at": issued_at.isoformat(),
+            "metadata": {"licence_gate": "approved"},
+        }
+    )
+    semaphore = asyncio.Semaphore(4)
+
+    async def fetch(station: dict) -> tuple[str, list[dict], str | None]:
+        async with semaphore:
+            try:
+                rows = await gistda_air.get_forecast(station["lat"], station["lon"])
+                return station["id"], rows, None
+            except Exception as exc:
+                return station["id"], [], str(exc)[:200]
+
+    fetched = await asyncio.gather(*(fetch(station) for station in stations))
+    snapshots = []
+    errors = []
+    for station_id, rows, error in fetched:
+        if error:
+            errors.append({"station_id": station_id, "error": error})
+        snapshots.extend(
+            _snapshots(
+                provider="gistda",
+                run_id=run_id,
+                issued_at=issued_at,
+                station_id=station_id,
+                rows=rows,
+            )
+        )
+    count = supabase_client.upsert_provider_snapshots(snapshots)
+    status = "success" if not errors else "partial" if count else "failed"
+    supabase_client.update_provider_sync_run(
+        run_id,
+        {
+            "status": status,
+            "snapshot_count": count,
+            "error_count": len(errors),
+            "error_message": errors[0]["error"] if errors else None,
+            "completed_at": datetime.now(UTC).isoformat(),
+            "metadata": {
+                "licence_gate": "approved",
+                "failed_station_ids": [row["station_id"] for row in errors[:100]],
+            },
+        },
+    )
+    return {
+        "ok": status != "failed",
+        "run_id": run_id,
+        "provider": "gistda",
         "status": status,
         "stations": len(stations),
         "snapshots": count,

@@ -38,9 +38,9 @@ ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถ
 | แผนที่                | Leaflet + React Leaflet, OpenStreetMap tiles และ IDW surface ที่เขียนเอง                             |
 | Backend API           | Python 3.12, FastAPI, Pydantic v2 และ HTTPX                                                          |
 | Database/Auth/Storage | Supabase PostgreSQL, Supabase Auth, private Storage bucket และ Realtime invalidation events          |
-| External data         | Air4Thai, NASA FIRMS และ OpenWeather                                                                 |
+| External data         | Air4Thai, NASA FIRMS, CAMS/Open-Meteo, OpenWeather และ GISTDA แบบ legal-gated                        |
 | OCR/AI                | OpenAI Responses API แบบ optional; fail-closed automatic review + Admin exception queue              |
-| Forecast              | XGBoost offline artifacts พร้อม quality activation gate และ statistical fallback                     |
+| Forecast              | External-first 3 แหล่ง, raw comparison, uncertainty envelope และ gated local/community fallback      |
 | Notification          | In-App inbox, Web Push/VAPID, LINE Messaging API, signed webhook และ retryable outbox                |
 | Testing/quality       | Pytest, Ruff, ESLint, TypeScript strict checks, Prettier และ Next production build                   |
 | Deployment            | Vercel Hobby: Next.js + Python FastAPI และ GitHub Actions scheduler รายชั่วโมง                       |
@@ -91,6 +91,8 @@ docs/assets/ui-archive/       ภาพ QA เก่า ไม่ถูกโห
 ```text
 GitHub Actions รายชั่วโมง → protected /api/cron/* บน Vercel Hobby
                           └─ Air4Thai → Supabase stations + pm25_readings
+                              ├─ CAMS/Open-Meteo + OpenWeather provider snapshots
+                              ├─ GISTDA 1–3 ชม. เมื่อ legal gate ผ่าน
                               ├─ OpenWeather/FIRMS feature snapshots
                               ├─ current map + history
                               ├─ gated forecast inputs

@@ -134,7 +134,11 @@ export default function AdminOperationsPanel({
             {(providerHealth?.providers ?? []).map((provider) => (
               <div key={provider.provider} className="cp-admin-model-row">
                 <span className="cp-admin-model-row__horizon">
-                  {provider.provider === "openmeteo_cams" ? "CAMS" : "OWM"}
+                  {provider.provider === "openmeteo_cams"
+                    ? "CAMS"
+                    : provider.provider === "gistda"
+                      ? "GISTDA"
+                      : "OWM"}
                 </span>
                 <span>
                   <strong>{provider.snapshot_count} snapshots</strong>
@@ -169,7 +173,8 @@ export default function AdminOperationsPanel({
           </div>
           {!providerHealth?.providers.length && (
             <div className="cp-admin-empty cp-admin-empty--compact">
-              ยังไม่มี provider sync run — ตรวจ migration, env และ Vercel Cron
+              ยังไม่มี provider sync run — ตรวจ migration, env และ GitHub
+              Actions
             </div>
           )}
         </article>

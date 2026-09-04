@@ -145,3 +145,16 @@ async def cron_openweather_air(authorization: str | None = Header(default=None))
 async def cron_openmeteo_air(authorization: str | None = Header(default=None)):
     _verify_cron(authorization)
     return await provider_sync.sync_openmeteo()
+
+
+@router.get("/cron/forecast-providers/gistda")
+async def cron_gistda_air(authorization: str | None = Header(default=None)):
+    _verify_cron(authorization)
+    if not settings.gistda_air_enabled or not settings.gistda_license_approved:
+        return {
+            "ok": True,
+            "provider": "gistda",
+            "status": "disabled",
+            "reason": "licence_or_feature_gate_disabled",
+        }
+    return await provider_sync.sync_gistda()

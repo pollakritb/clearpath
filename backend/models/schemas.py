@@ -37,7 +37,9 @@ from .community import (
 )
 from .environment import FirePoint, FirmsResponse, Weather
 from .forecast import (
+    ForecastCommunityContext,
     ForecastPoint,
+    ForecastProviderSummary,
     ForecastQuality,
     ForecastResponse,
     ForecastSourcePoint,
@@ -80,6 +82,8 @@ __all__ = [
     "FirePoint",
     "FirmsResponse",
     "ForecastPoint",
+    "ForecastProviderSummary",
+    "ForecastCommunityContext",
     "ForecastQuality",
     "ForecastResponse",
     "ForecastSourcePoint",

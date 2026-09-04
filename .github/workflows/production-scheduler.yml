@@ -87,5 +87,8 @@ jobs:
           if (( 10#$utc_hour % 12 == 0 )); then
             invoke "/api/cron/forecast-providers/openmeteo" || failures=1
           fi
+          if (( 10#$utc_hour % 3 == 0 )); then
+            invoke "/api/cron/forecast-providers/gistda" || failures=1
+          fi
 
           exit "$failures"

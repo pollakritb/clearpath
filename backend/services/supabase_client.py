@@ -191,6 +191,34 @@ def get_provider_snapshots(station_id: str) -> list[dict]:
     )
 
 
+def delete_provider_history_before(
+    snapshot_cutoff_at: str, run_cutoff_at: str
+) -> tuple[int, int]:
+    if settings.local_demo_mode:
+        return local_store.delete_provider_history_before(
+            snapshot_cutoff_at, run_cutoff_at
+        )
+    snapshot_rows = (
+        get_client()
+        .table("forecast_provider_snapshots")
+        .delete()
+        .lt("issued_at", snapshot_cutoff_at)
+        .execute()
+        .data
+        or []
+    )
+    run_rows = (
+        get_client()
+        .table("forecast_provider_sync_runs")
+        .delete()
+        .lt("completed_at", run_cutoff_at)
+        .execute()
+        .data
+        or []
+    )
+    return len(snapshot_rows), len(run_rows)
+
+
 def upsert_forecast_consensus(
     row: dict, sources: list[dict], feature: dict | None = None
 ) -> None:
@@ -275,6 +303,7 @@ def forecast_provider_health() -> dict:
         "feature_flags": {
             "openweather": settings.openweather_air_enabled,
             "openmeteo_cams": settings.openmeteo_air_enabled,
+            "gistda": settings.gistda_air_enabled and settings.gistda_license_approved,
             "community_forecast_shadow": settings.community_forecast_shadow_enabled,
         },
     }

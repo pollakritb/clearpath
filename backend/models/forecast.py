@@ -2,7 +2,9 @@
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+ForecastSource = Literal["clearpath", "gistda", "openmeteo_cams", "openweather"]
 
 
 class ForecastQuality(BaseModel):
@@ -34,10 +36,11 @@ class ForecastPoint(BaseModel):
     calibration_version: str
     agreement: Literal["high", "medium", "low"] | None = None
     provider_count: int = 1
+    source: ForecastSource = "clearpath"
 
 
 class ForecastSourcePoint(BaseModel):
-    source: Literal["clearpath", "openweather", "openmeteo_cams"]
+    source: ForecastSource
     horizon_hours: int
     forecast_at: str
     pm25: float
@@ -45,6 +48,34 @@ class ForecastSourcePoint(BaseModel):
     upper: float | None = None
     weight: float = 1.0
     available: bool = True
+    issued_at: str | None = None
+
+
+class ForecastProviderSummary(BaseModel):
+    source: Literal["gistda", "openmeteo_cams", "openweather"]
+    label: str
+    attribution: str
+    attribution_url: str
+    available: bool
+    selected: bool
+    latest_issued_at: str | None
+    freshness_status: Literal["fresh", "stale", "unavailable"]
+    coverage_hours: int
+    maximum_horizon_hours: int
+    stale_after_hours: int
+    usage_note: str
+
+
+class ForecastCommunityContext(BaseModel):
+    mode: Literal["not_used", "context_only", "shadow", "served"]
+    affects_recommendation: bool
+    eligible_report_count: int
+    nearby_report_count: int
+    effective_sample_size: float
+    residual_pm25: float
+    trust_threshold: int = 60
+    radius_km: float = 5.0
+    policy: str = "approved-fresh-trust-corroborated-v1"
 
 
 class ForecastResponse(BaseModel):
@@ -65,11 +96,16 @@ class ForecastResponse(BaseModel):
     warnings: list[str]
     points: list[ForecastPoint]
     forecast_status: Literal["available", "limited", "unavailable"] = "limited"
-    unavailable_reason_codes: list[str] = []
+    limitation_reason_codes: list[str] = Field(default_factory=list)
+    unavailable_reason_codes: list[str] = Field(default_factory=list)
     agreement: Literal["high", "medium", "low"] | None = None
     provider_count: int = 1
-    sources: list[ForecastSourcePoint] = []
-    provenance: dict = {}
+    sources: list[ForecastSourcePoint] = Field(default_factory=list)
+    provenance: dict = Field(default_factory=dict)
+    forecast_mode: Literal["external_provider", "local_fallback", "unavailable"]
+    recommended_source: ForecastSource | None = None
+    providers: list[ForecastProviderSummary] = Field(default_factory=list)
+    community_context: ForecastCommunityContext
 
 
 class ForecastSurfaceCell(BaseModel):
