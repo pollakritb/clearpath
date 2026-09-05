@@ -1,5 +1,10 @@
+from datetime import UTC, datetime, timedelta
+
+import pytest
+
 from backend.algorithms.forecast_selection import (
     forecast_availability,
+    provider_sync_due,
     select_external_forecast,
 )
 
@@ -84,3 +89,40 @@ def test_availability_fails_closed_without_external_or_usable_local_data():
         "unavailable",
         ["external_provider_unavailable", "local_inputs_unusable"],
     )
+
+
+def test_provider_sync_is_due_without_a_previous_completed_run():
+    assert provider_sync_due(None, 8)
+    assert provider_sync_due({"status": "failed"}, 8)
+    assert provider_sync_due({"status": "running"}, 8)
+    assert provider_sync_due({"status": "success", "completed_at": "invalid"}, 8)
+
+
+def test_provider_sync_uses_elapsed_time_instead_of_wall_clock_slot():
+    now = datetime(2026, 9, 5, 12, tzinfo=UTC)
+    recent = {
+        "status": "success",
+        "completed_at": (now - timedelta(hours=7, minutes=59)).isoformat(),
+    }
+    stale = {
+        "status": "success",
+        "completed_at": (now - timedelta(hours=8)).isoformat(),
+    }
+
+    assert not provider_sync_due(recent, 8, now=now)
+    assert provider_sync_due(stale, 8, now=now)
+
+
+def test_provider_sync_accepts_recent_partial_run_to_avoid_quota_storm():
+    now = datetime(2026, 9, 5, 12, tzinfo=UTC)
+    latest = {
+        "status": "partial",
+        "started_at": (now - timedelta(hours=1)).isoformat(),
+    }
+
+    assert not provider_sync_due(latest, 8, now=now)
+
+
+def test_provider_sync_rejects_non_positive_interval():
+    with pytest.raises(ValueError, match="provider_sync_interval_must_be_positive"):
+        provider_sync_due(None, 0)

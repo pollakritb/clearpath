@@ -80,15 +80,10 @@ jobs:
           invoke "/api/cron/alerts" || failures=1
           invoke "/api/cron/forecast-evaluation" || failures=1
 
-          utc_hour="$(date -u +%H)"
-          if (( 10#$utc_hour % 8 == 0 )); then
-            invoke "/api/cron/forecast-providers/openweather" || failures=1
-          fi
-          if (( 10#$utc_hour % 12 == 0 )); then
-            invoke "/api/cron/forecast-providers/openmeteo" || failures=1
-          fi
-          if (( 10#$utc_hour % 3 == 0 )); then
-            invoke "/api/cron/forecast-providers/gistda" || failures=1
-          fi
+          # GitHub scheduled runs may start hours late. The API checks the last
+          # completed provider run, so delayed jobs cannot skip an 8h/12h slot.
+          invoke "/api/cron/forecast-providers/openweather?only_if_due=true" || failures=1
+          invoke "/api/cron/forecast-providers/openmeteo?only_if_due=true" || failures=1
+          invoke "/api/cron/forecast-providers/gistda?only_if_due=true" || failures=1
 
           exit "$failures"

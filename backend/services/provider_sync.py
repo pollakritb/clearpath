@@ -3,10 +3,54 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from ..algorithms.forecast_selection import provider_sync_due
+from ..core.config import settings
 from . import gistda_air, openmeteo_air, openweather_air, supabase_client
+
+PROVIDER_SYNC_INTERVAL_HOURS = {
+    "gistda": 3,
+    "openweather": 8,
+    "openmeteo_cams": 12,
+}
+
+
+async def _sync_if_due(
+    provider: str,
+    sync: Callable[[], Awaitable[dict]],
+) -> dict:
+    latest = supabase_client.get_latest_provider_sync_run(provider)
+    interval = PROVIDER_SYNC_INTERVAL_HOURS[provider]
+    if not provider_sync_due(latest, interval):
+        return {
+            "ok": True,
+            "provider": provider,
+            "status": "not_due",
+            "interval_hours": interval,
+            "latest_completed_at": latest.get("completed_at") if latest else None,
+        }
+    return await sync()
+
+
+async def sync_openweather_if_due() -> dict:
+    if not settings.openweather_air_enabled:
+        return {"ok": True, "provider": "openweather", "status": "disabled"}
+    return await _sync_if_due("openweather", sync_openweather)
+
+
+async def sync_openmeteo_if_due() -> dict:
+    if not settings.openmeteo_air_enabled:
+        return {"ok": True, "provider": "openmeteo_cams", "status": "disabled"}
+    return await _sync_if_due("openmeteo_cams", sync_openmeteo)
+
+
+async def sync_gistda_if_due() -> dict:
+    if not settings.gistda_air_enabled or not settings.gistda_license_approved:
+        return {"ok": True, "provider": "gistda", "status": "disabled"}
+    return await _sync_if_due("gistda", sync_gistda)
 
 
 def _valid_stations() -> list[dict]:

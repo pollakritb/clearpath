@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from .forecast_consensus import agreement_level
 
@@ -11,6 +12,31 @@ EXTERNAL_PROVIDERS = ("gistda", "openmeteo_cams", "openweather")
 PROVIDER_PRIORITY = {
     provider: index for index, provider in enumerate(EXTERNAL_PROVIDERS)
 }
+
+
+def provider_sync_due(
+    latest_run: dict | None,
+    interval_hours: int,
+    *,
+    now: datetime | None = None,
+) -> bool:
+    """Return whether a provider needs sync, independent of delayed cron start time."""
+
+    if interval_hours <= 0:
+        raise ValueError("provider_sync_interval_must_be_positive")
+    if not latest_run or latest_run.get("status") not in {"success", "partial"}:
+        return True
+    value = latest_run.get("completed_at") or latest_run.get("started_at")
+    try:
+        latest = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return True
+    if latest.tzinfo is None:
+        latest = latest.replace(tzinfo=UTC)
+    checked_at = now or datetime.now(UTC)
+    if checked_at.tzinfo is None:
+        checked_at = checked_at.replace(tzinfo=UTC)
+    return (checked_at - latest).total_seconds() >= interval_hours * 3600
 
 
 def _finite_pm25(point: dict) -> float | None:

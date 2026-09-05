@@ -49,8 +49,11 @@ protected backend routes. Configure only these repository values:
 4. Leave both GISTDA flags false until the permission evidence below exists.
 
 Run the workflow manually once. Air4Thai sync, alerts and forecast evaluation
-must return 2xx. Provider routes are intentionally idempotent through snapshot
-upsert keys.
+must return 2xx. Every hourly invocation also calls each provider route with
+`only_if_due=true`; the backend compares the last completed provider run with
+its 3/8/12-hour interval. This is deliberately independent of the wall-clock
+hour because GitHub scheduled workflows can start late. Provider routes are
+also idempotent through snapshot upsert keys.
 
 ## GISTDA legal gate
 

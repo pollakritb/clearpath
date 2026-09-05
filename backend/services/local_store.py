@@ -163,6 +163,19 @@ def list_provider_sync_runs(limit: int = 20) -> list[dict]:
         return [dict(row) for row in rows[:limit]]
 
 
+def get_latest_provider_sync_run(provider: str) -> dict | None:
+    with _LOCK:
+        rows = [
+            row
+            for row in _FORECAST_PROVIDER_SYNC_RUNS.values()
+            if str(row.get("provider")) == provider
+        ]
+        if not rows:
+            return None
+        latest = max(rows, key=lambda row: str(row.get("started_at") or ""))
+        return dict(latest)
+
+
 _ANNOUNCEMENTS = [
     {
         "id": "00000000-0000-0000-0000-000000000001",

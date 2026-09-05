@@ -202,6 +202,26 @@ def update_provider_sync_run(run_id: str, values: dict) -> dict:
     return rows[0] if rows else {"id": run_id, **values}
 
 
+def get_latest_provider_sync_run(provider: str) -> dict | None:
+    if settings.local_demo_mode:
+        return local_store.get_latest_provider_sync_run(provider)
+    rows = (
+        _execute_read(
+            lambda: (
+                get_client()
+                .table("forecast_provider_sync_runs")
+                .select("*")
+                .eq("provider", provider)
+                .order("started_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+        ).data
+        or []
+    )
+    return rows[0] if rows else None
+
+
 def upsert_provider_snapshots(rows: list[dict]) -> int:
     if not rows:
         return 0
