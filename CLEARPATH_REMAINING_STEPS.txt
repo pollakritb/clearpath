@@ -1,5 +1,5 @@
 CLEARPATH — สถานะระบบพยากรณ์และงานที่เจ้าของระบบต้องทำต่อ
-อัปเดต: 4 กันยายน 2026 (Asia/Bangkok)
+อัปเดต: 5 กันยายน 2026 (Asia/Bangkok)
 Workspace: C:\Users\smfga\Documents\ClearPath
 Production: https://clearpath-gray.vercel.app
 
@@ -10,8 +10,9 @@ Production: https://clearpath-gray.vercel.app
 [เสร็จ] Source code อยู่ branch main และ worktree ตรงกับ origin/main
 [เสร็จ] Forecast release commit: 1b39dfb
 [เสร็จ] Deployment-support commit: a9a7dab
-[เสร็จ] Vercel production deployment: dpl_GynUg4hTvGJ4LxvqHRhoAVx49jRq
-[เสร็จ] Production release SHA: a9a7dabf61d15acb2e24a80741b938b8b49dfc62
+[เสร็จ] Forecast reliability commit: 499d06e
+[เสร็จ] Vercel reliability deployment: dpl_GrCuFkkXyEqZtZvjQW1MGFNmYWdW
+[เสร็จ] Production release SHA หลัง reliability fix: 499d06ee9f8f49ec66b94186aa4a636374fb6884
 [เสร็จ] /api/ready = 200 หลังรัน scheduler
 [เสร็จ] Supabase ClearPath มีสถานี 177 แห่ง และมีสถานีข้อมูลสด 171 แห่งในการตรวจรับรอบนี้
 [เสร็จ] GitHub Actions Production hourly scheduler รัน manual และ scheduled สำเร็จบน main
@@ -69,6 +70,9 @@ Production: https://clearpath-gray.vercel.app
 [ผ่าน] GitHub scheduler run #438 และ #439
 [ผ่าน] Local production-data runtime sample หลัง reliability hardening: 30/30 ตอบ 200,
        fallback rate 0%, median 598.81 ms, p95 793.29 ms และไม่มี ledger write error
+[ผ่าน] Production runtime sample หลัง deploy reliability fix: 30/30 ตอบ 200,
+       fallback rate 0%, median 383.18 ms, p95 711.59 ms และไม่พบ HTTP 502
+[ผ่าน] npm audit หลัง pin browserslist 4.28.8 และ nanoid 3.3.18: 0 vulnerabilities
 
 หมายเหตุ: GitHub scheduled workflows เป็นบริการแบบ best-effort และอาจเริ่มช้ากว่า
 เวลาที่กำหนด จึงต้องตรวจ SLO ต่อเนื่องตามขั้นที่ 5 ห้ามใช้ผลสำเร็จครั้งเดียวแทน

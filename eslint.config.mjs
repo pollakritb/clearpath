@@ -16,6 +16,7 @@ const eslintConfig = defineConfig([
     "node_modules/**",
     ".venv/**",
     ".pytest_cache/**",
+    ".pytest-tmp-*/**",
     ".playwright-mcp/**",
     "playwright-report/**",
     "test-results/**",

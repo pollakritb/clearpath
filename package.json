@@ -14,6 +14,7 @@
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "audit:ci": "node scripts/npm-audit-ci.mjs",
     "format": "prettier --write app frontend *.json *.mjs *.ts *.md docs/**/*.md",
     "format:check": "prettier --check app frontend e2e *.json *.mjs *.ts *.md docs/**/*.md"
   },
@@ -44,6 +45,8 @@
     "vitest": "^3.2.4"
   },
   "overrides": {
+    "browserslist": "4.28.8",
+    "nanoid": "3.3.18",
     "next": {
       "postcss": "8.5.25"
     },
