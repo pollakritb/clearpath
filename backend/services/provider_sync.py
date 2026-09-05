@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from ..algorithms.forecast_selection import provider_sync_due
 from ..core.config import settings
+from ..core.errors import UpstreamError
 from . import gistda_air, openmeteo_air, openweather_air, supabase_client
 
 PROVIDER_SYNC_INTERVAL_HOURS = {
@@ -32,7 +33,10 @@ async def _sync_if_due(
             "interval_hours": interval,
             "latest_completed_at": latest.get("completed_at") if latest else None,
         }
-    return await sync()
+    result = await sync()
+    if result.get("ok") is False:
+        raise UpstreamError(f"{provider} forecast sync failed")
+    return result
 
 
 async def sync_openweather_if_due() -> dict:

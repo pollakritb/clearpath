@@ -1,6 +1,9 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
+from backend.core.errors import UpstreamError
 from backend.services import provider_sync
 
 
@@ -77,3 +80,19 @@ def test_disabled_provider_does_not_read_database(monkeypatch):
         "provider": "openweather",
         "status": "disabled",
     }
+
+
+def test_due_wrapper_raises_upstream_error_when_sync_returns_failed(monkeypatch):
+    async def failed_sync():
+        return {"ok": False, "provider": "openweather", "status": "failed"}
+
+    monkeypatch.setattr(provider_sync.settings, "openweather_air_enabled", True)
+    monkeypatch.setattr(
+        provider_sync.supabase_client,
+        "get_latest_provider_sync_run",
+        lambda _provider: None,
+    )
+    monkeypatch.setattr(provider_sync, "sync_openweather", failed_sync)
+
+    with pytest.raises(UpstreamError, match="openweather forecast sync failed"):
+        asyncio.run(provider_sync.sync_openweather_if_due())

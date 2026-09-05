@@ -53,7 +53,9 @@ must return 2xx. Every hourly invocation also calls each provider route with
 `only_if_due=true`; the backend compares the last completed provider run with
 its 3/8/12-hour interval. This is deliberately independent of the wall-clock
 hour because GitHub scheduled workflows can start late. Provider routes are
-also idempotent through snapshot upsert keys.
+also idempotent through snapshot upsert keys. A due, enabled provider that
+produces no usable snapshots returns a non-2xx response so the workflow cannot
+report a false success.
 
 ## GISTDA legal gate
 
