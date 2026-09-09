@@ -50,3 +50,23 @@ def test_parse_stations_audits_every_rejected_row():
         "coordinates_out_of_range": 1,
         "missing_station_id": 1,
     }
+
+
+def test_parse_stations_treats_negative_air4thai_sentinel_as_missing():
+    rows, diagnostics = parse_stations(
+        {
+            "stations": [
+                {
+                    "stationID": "missing-reading",
+                    "lat": "13.7",
+                    "long": "100.5",
+                    "AQILast": {"PM25": {"value": "-1", "aqi": "-1"}},
+                }
+            ]
+        }
+    )
+
+    assert diagnostics["accepted_count"] == 1
+    assert rows[0]["pm25"] is None
+    assert rows[0]["aqi"] is None
+    assert rows[0]["level"] is None

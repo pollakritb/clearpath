@@ -43,6 +43,16 @@ def _to_int(v) -> int | None:
     return int(f) if f is not None else None
 
 
+def _nonnegative_float(v) -> float | None:
+    value = _to_float(v)
+    return value if value is not None and value >= 0 else None
+
+
+def _nonnegative_int(v) -> int | None:
+    value = _to_int(v)
+    return value if value is not None and value >= 0 else None
+
+
 def _recorded_at(aqi_last: dict) -> str | None:
     """ประกอบ ISO timestamp (เวลาไทย +07:00) จาก field date/time ของ air4thai"""
     d = aqi_last.get("date")
@@ -111,8 +121,10 @@ def parse_stations(data: dict) -> tuple[list[dict], dict]:
 
         aqi_last = s.get("AQILast") or {}
         pm_block = aqi_last.get("PM25") or {}
-        pm25 = _to_float(pm_block.get("value"))
-        aqi = _to_int(pm_block.get("aqi"))
+        # Air4Thai occasionally uses -1 as a missing-value sentinel. It must
+        # never be presented as exceptionally clean air or enter calculations.
+        pm25 = _nonnegative_float(pm_block.get("value"))
+        aqi = _nonnegative_int(pm_block.get("aqi"))
         cls = classify_pm25(pm25)
 
         out.append(
