@@ -26,15 +26,20 @@ def test_verified_token_uses_server_side_profile_role(monkeypatch):
         lambda token: {
             "id": "verified-user",
             "email": "user@example.test",
-            "user_metadata": {"display_name": "Browser Name"},
+            "app_metadata": {"provider": "google"},
+            "user_metadata": {
+                "display_name": "Browser Name",
+                "picture": "https://lh3.googleusercontent.com/a/example",
+            },
         },
     )
     monkeypatch.setattr(
         auth.supabase_client,
         "ensure_profile",
-        lambda user_id, display_name: {
+        lambda user_id, display_name, **identity: {
             "id": user_id,
             "display_name": display_name,
+            **identity,
             "role": "moderator",
         },
     )
@@ -42,6 +47,52 @@ def test_verified_token_uses_server_side_profile_role(monkeypatch):
     assert user.id == "verified-user"
     assert user.role == "moderator"
     assert user.display_name == "Browser Name"
+    assert user.avatar_url == "https://lh3.googleusercontent.com/a/example"
+    assert user.identity_provider == "google"
+
+
+def test_non_google_session_cannot_reuse_stale_google_identity(monkeypatch):
+    monkeypatch.setattr(auth.settings, "local_demo_mode", False)
+    monkeypatch.setattr(
+        auth.supabase_client,
+        "get_auth_user",
+        lambda token: {
+            "id": "verified-user",
+            "email": "user@example.test",
+            "app_metadata": {"provider": "email"},
+            "user_metadata": {},
+        },
+    )
+    monkeypatch.setattr(
+        auth.supabase_client,
+        "ensure_profile",
+        lambda user_id, display_name, **identity: {
+            "id": user_id,
+            "display_name": "Old Google Name",
+            "avatar_url": "https://lh3.googleusercontent.com/a/old",
+            "identity_provider": "google",
+            "role": "user",
+        },
+    )
+
+    user = auth.require_user("Bearer verified-token")
+
+    assert user.display_name == "Old Google Name"
+    assert user.avatar_url is None
+    assert user.identity_provider is None
+
+
+@pytest.mark.parametrize(
+    ("value", "provider"),
+    [
+        ("http://lh3.googleusercontent.com/a/example", "google"),
+        ("https://example.com/avatar.png", "google"),
+        ("https://lh3.googleusercontent.com/a/example", "email"),
+        (None, "google"),
+    ],
+)
+def test_google_avatar_url_fails_closed(value, provider):
+    assert auth._safe_google_avatar_url(value, provider) is None
 
 
 def test_invalid_supabase_token_is_rejected(monkeypatch):

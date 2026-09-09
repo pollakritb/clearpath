@@ -144,7 +144,13 @@ async def create_draft(
     }
 
 
-async def submit_draft(*, draft_id: str, user_id: str, values: dict) -> dict:
+async def submit_draft(
+    *,
+    draft_id: str,
+    user_id: str,
+    values: dict,
+    reporter_identity: dict | None = None,
+) -> dict:
     draft = await run_in_threadpool(supabase_client.get_report_draft, draft_id, user_id)
     if not draft:
         raise KeyError(draft_id)
@@ -167,9 +173,7 @@ async def submit_draft(*, draft_id: str, user_id: str, values: dict) -> dict:
     if supabase_client.count_user_reports_since(user_id, since) >= DAILY_REPORT_LIMIT:
         raise ValueError("ส่งรายงานได้ไม่เกิน 6 ครั้งต่อ 24 ชั่วโมง")
 
-    profile = await run_in_threadpool(
-        supabase_client.ensure_profile, user_id, values.get("display_name")
-    )
+    profile = await run_in_threadpool(supabase_client.ensure_profile, user_id)
     official, _source = await get_current_stations()
     nearest_location = min(
         official,
@@ -222,10 +226,20 @@ async def submit_draft(*, draft_id: str, user_id: str, values: dict) -> dict:
         5.0, claimed_pm25 * 0.2
     )
     now = datetime.now(UTC)
+    verified_identity = reporter_identity or {}
+    show_reporter_profile = (
+        not bool(values.get("hide_identity", True))
+        and verified_identity.get("identity_provider") == "google"
+        and bool(
+            verified_identity.get("display_name") or verified_identity.get("avatar_url")
+        )
+    )
     report_row = {
         "id": report_id,
         "user_id": user_id,
-        "display_name": profile.get("display_name"),
+        "display_name": verified_identity.get("display_name"),
+        "reporter_avatar_url": verified_identity.get("avatar_url"),
+        "show_reporter_profile": show_reporter_profile,
         "lat": draft["exact_lat"],
         "lon": draft["exact_lon"],
         "public_lat": public_lat,

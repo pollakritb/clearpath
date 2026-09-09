@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
+import { AQI_LEGEND } from "@/frontend/lib/aqi";
 import { api } from "@/frontend/lib/api-client";
 import type { LocationSuggestion, Station } from "@/frontend/types";
 
@@ -164,6 +165,15 @@ export default function MapChrome({
           </i>
           บุคคลรายงาน
         </span>
+      </div>
+
+      <div className="cp-map-aqi-legend" aria-label="สีระดับ PM2.5 ห้าระดับ">
+        {AQI_LEGEND.map((item) => (
+          <span key={item.range} aria-label={`${item.level} ${item.range}`}>
+            <i aria-hidden style={{ background: item.color }} />
+            <b aria-hidden>{item.range}</b>
+          </span>
+        ))}
       </div>
 
       {openPanel === "search" && (
@@ -393,7 +403,7 @@ export default function MapChrome({
             </button>
           </div>
           <p className="cp-map-layer-note">
-            สีหลักและรูปทรงบอกเจ้าของข้อมูล · จุดเล็กบอกระดับ PM2.5
+            สีหมุดบอกระดับ PM2.5 ทั้ง 5 ระดับ · รูปทรงและไอคอนบอกเจ้าของข้อมูล
           </p>
         </section>
       )}

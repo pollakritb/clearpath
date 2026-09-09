@@ -348,13 +348,19 @@ def upsert_forecast_false_safe_review(row: dict) -> dict:
 
 
 def ensure_profile(
-    user_id: str, display_name: str | None = None, role: str | None = None
+    user_id: str,
+    display_name: str | None = None,
+    role: str | None = None,
+    avatar_url: str | None = None,
+    identity_provider: str | None = None,
 ) -> dict:
     with _LOCK:
         if user_id not in _PROFILES:
             _PROFILES[user_id] = {
                 "id": user_id,
                 "display_name": display_name or f"สมาชิก-{user_id[-6:]}",
+                "avatar_url": avatar_url,
+                "identity_provider": identity_provider,
                 "reputation_score": 0,
                 "approved_reports": 0,
                 "helpful_reviews": 0,
@@ -363,6 +369,10 @@ def ensure_profile(
             }
         elif display_name:
             _PROFILES[user_id]["display_name"] = display_name
+        if avatar_url:
+            _PROFILES[user_id]["avatar_url"] = avatar_url
+        if identity_provider:
+            _PROFILES[user_id]["identity_provider"] = identity_provider
         if role:
             _PROFILES[user_id]["role"] = role
         return dict(_PROFILES[user_id])

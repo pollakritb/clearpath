@@ -33,6 +33,8 @@ export interface CommunityReport {
   id: string;
   user_id: string;
   display_name: string | null;
+  reporter_avatar_url: string | null;
+  show_reporter_profile: boolean;
   lat: number;
   lon: number;
   pm25: number | null;
@@ -153,7 +155,7 @@ export interface ReportDraftResponse {
 
 export interface ReportDraftSubmit {
   user_claimed_pm25: number;
-  display_name?: string | null;
+  hide_identity?: boolean;
   device_model?: string | null;
   device_calibrated?: boolean;
   calibrated_at?: string | null;

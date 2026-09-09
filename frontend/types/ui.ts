@@ -8,7 +8,7 @@ export interface ReportLocation {
 }
 
 export interface ReportDetails {
-  displayName: string;
+  hideIdentity: boolean;
   deviceModel: string;
   deviceCalibrated: boolean;
   calibratedAt: string;
@@ -20,7 +20,7 @@ export interface ReportDetails {
 }
 
 export const EMPTY_REPORT_DETAILS: ReportDetails = {
-  displayName: "",
+  hideIdentity: true,
   deviceModel: "",
   deviceCalibrated: false,
   calibratedAt: "",

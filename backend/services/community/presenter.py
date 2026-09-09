@@ -81,6 +81,14 @@ def present_report(
         gps_accuracy_m=gps_accuracy,
         duplicate_detected=bool(row.get("duplicate_of_report_id")),
     )
+    source_type = row.get("source_type") or "individual"
+    show_reporter_profile = bool(row.get("show_reporter_profile")) and (
+        source_type == "individual"
+    )
+    expose_reporter_identity = show_reporter_profile or (
+        source_type == "individual"
+        and (include_exact_location or include_private_metadata)
+    )
 
     location_precision = 0
     lat, lon = exact_lat, exact_lon
@@ -100,7 +108,11 @@ def present_report(
     return {
         "id": str(row["id"]),
         "user_id": str(row["user_id"]),
-        "display_name": row.get("display_name"),
+        "display_name": row.get("display_name") if expose_reporter_identity else None,
+        "reporter_avatar_url": (
+            row.get("reporter_avatar_url") if expose_reporter_identity else None
+        ),
+        "show_reporter_profile": show_reporter_profile,
         "lat": lat,
         "lon": lon,
         "pm25": float(row["pm25"]) if evidence_verified else None,
@@ -147,7 +159,7 @@ def present_report(
         "age_minutes": round(age, 1) if age is not None else None,
         "location_precision_m": location_precision,
         "device_model": row.get("device_model"),
-        "source_type": row.get("source_type") or "individual",
+        "source_type": source_type,
         "device_calibrated": bool(row.get("device_calibrated")),
         "calibrated_at": (
             str(row["calibrated_at"]) if row.get("calibrated_at") else None

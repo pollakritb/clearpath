@@ -4,6 +4,7 @@ import AppIcon from "@/frontend/components/ui/AppIcon";
 import CalibrationBadge from "@/frontend/components/ui/CalibrationBadge";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
+import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
 import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
 import type { CommunityReport, Station } from "@/frontend/types";
 
@@ -97,6 +98,10 @@ export default function MapStatusCard({
   const source = report ? communitySourceKind(report) : "official";
   const value = isCommunity ? report.pm25 : station?.pm25;
   const classification = classifyPm25(value);
+  const reporterAvatar = report ? publicReporterAvatar(report) : null;
+  const showReporterProfile = Boolean(
+    report?.source_type === "individual" && report.show_reporter_profile,
+  );
   const stationName = station
     ? (station.name_th ?? station.name_en ?? station.id)
     : "";
@@ -145,13 +150,53 @@ export default function MapStatusCard({
           {report
             ? source === "sensor"
               ? `${report.device_model ?? "ไม่ระบุรุ่นอุปกรณ์"} · อุปกรณ์ประจำจุดที่ลงทะเบียน`
-              : `${report.device_model ?? "ไม่ระบุรุ่นเครื่องวัด"} · ผู้รายงาน ${report.display_name ?? "สมาชิกชุมชน"}`
+              : `${report.device_model ?? "ไม่ระบุรุ่นเครื่องวัด"} · ${
+                  showReporterProfile
+                    ? `ผู้รายงาน ${report.display_name ?? "สมาชิกชุมชน"}`
+                    : "ผู้รายงานไม่เปิดเผยตัวตน"
+                }`
             : `Air4Thai · กรมควบคุมมลพิษ${station?.province ? ` · ${station.province}` : ""}`}
         </p>
         {report?.device_calibrated && (
           <CalibrationBadge date={report.calibrated_at} />
         )}
       </header>
+
+      {source === "individual" && report && (
+        <div
+          className="cp-map-reporter-profile"
+          data-hidden={!showReporterProfile}
+        >
+          {reporterAvatar ? (
+            // The backend and frontend both restrict this to Google HTTPS avatars.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={reporterAvatar}
+              alt=""
+              width={46}
+              height={46}
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <span aria-hidden>
+              <AppIcon name="user" size={22} />
+            </span>
+          )}
+          <div>
+            <small>ผู้แบ่งปันข้อมูล</small>
+            <strong>
+              {showReporterProfile
+                ? (report.display_name ?? "สมาชิกชุมชน")
+                : "ไม่เปิดเผยตัวตน"}
+            </strong>
+            <p>
+              {showReporterProfile
+                ? "โปรไฟล์ Google ที่เจ้าของอนุญาตให้แสดงในรายงานนี้"
+                : "เจ้าของรายงานเลือกซ่อนชื่อและรูปโปรไฟล์"}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="cp-map-selection-reading">
         <div>

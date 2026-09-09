@@ -20,7 +20,7 @@ function stationIcon(
   const label = expired ? "×" : value == null ? "—" : Math.round(value);
   return L.divIcon({
     className: "cp-marker cp-marker--station",
-    html: `<div class="cp-station-marker${selected ? " is-selected" : ""}" style="--marker-aqi:${aqiColor};--marker-size:${size}px"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 20h8M10 20l2-9 2 9M9.5 8.5a3.5 3.5 0 0 1 5 0M7 6a7 7 0 0 1 10 0"></path></svg><b>${label}</b></span><i aria-hidden="true"></i></div>`,
+    html: `<div class="cp-station-marker${selected ? " is-selected" : ""}" style="--marker-aqi:${aqiColor};--marker-text:#07130f;--marker-size:${size}px"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 20h8M10 20l2-9 2 9M9.5 8.5a3.5 3.5 0 0 1 5 0M7 6a7 7 0 0 1 10 0"></path></svg><b>${label}</b></span></div>`,
     iconSize: [touchSize, touchSize],
     iconAnchor: [touchSize / 2, touchSize / 2],
   });
@@ -29,7 +29,7 @@ function stationIcon(
 function clusterIcon(count: number, aqiColor: string) {
   return L.divIcon({
     className: "cp-marker cp-marker--cluster",
-    html: `<div class="cp-official-cluster" style="--marker-aqi:${aqiColor}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 20h8M10 20l2-9 2 9M9.5 8.5a3.5 3.5 0 0 1 5 0M7 6a7 7 0 0 1 10 0"></path></svg><b>${count}</b></div>`,
+    html: `<div class="cp-official-cluster" style="--marker-aqi:${aqiColor};--marker-text:#07130f"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 20h8M10 20l2-9 2 9M9.5 8.5a3.5 3.5 0 0 1 5 0M7 6a7 7 0 0 1 10 0"></path></svg><b>${count}</b></div>`,
     iconSize: [48, 48],
     iconAnchor: [24, 24],
   });

@@ -192,6 +192,9 @@ test("map separates official stations from community reports", async ({
 test("community marker opens a distinct privacy-safe report card", async ({
   page,
 }) => {
+  await page.route("https://lh3.googleusercontent.com/**", (route) =>
+    route.abort(),
+  );
   await page.route("**/api/community/reports", async (route) => {
     await route.fulfill({
       contentType: "application/json",
@@ -201,6 +204,9 @@ test("community marker opens a distinct privacy-safe report card", async ({
           {
             id: "community-map-demo",
             display_name: "สมาชิกชุมชน",
+            reporter_avatar_url:
+              "https://lh3.googleusercontent.com/a/clearpath-e2e-reporter",
+            show_reporter_profile: true,
             lat: 13.7367,
             lon: 100.5231,
             pm25: 42,
@@ -224,6 +230,12 @@ test("community marker opens a distinct privacy-safe report card", async ({
   await page.goto("/");
   const marker = page.locator('[title^="รายงานจากบุคคล"]');
   await expect(marker).toHaveCount(1);
+  await expect(
+    marker.locator('.cp-community-marker[data-profile="true"] img'),
+  ).toHaveAttribute(
+    "src",
+    "https://lh3.googleusercontent.com/a/clearpath-e2e-reporter",
+  );
   await marker.click();
 
   const card = page.getByRole("region", {

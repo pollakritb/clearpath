@@ -34,6 +34,8 @@ class CommunityReport(BaseModel):
     id: str
     user_id: str
     display_name: str | None = None
+    reporter_avatar_url: str | None = None
+    show_reporter_profile: bool = False
     lat: float
     lon: float
     # Public PM2.5 is present only after automatic or administrator verification.
@@ -154,7 +156,7 @@ class ReportDraftResponse(BaseModel):
 
 class ReportDraftSubmit(BaseModel):
     user_claimed_pm25: float = Field(ge=0, le=1000)
-    display_name: str | None = Field(default=None, max_length=80)
+    hide_identity: bool = True
     device_model: str | None = Field(default=None, max_length=80)
     device_calibrated: bool = False
     calibrated_at: str | None = Field(default=None, max_length=10)

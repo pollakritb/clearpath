@@ -8,6 +8,7 @@ import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { T } from "@/frontend/lib/ui";
+import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
 import {
   EMPTY_REPORT_DETAILS,
   type ReportDetails,
@@ -54,6 +55,7 @@ export default function ReportForm({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const auth = useAuth();
+  const googleProfile = googleReporterProfile(auth.user);
 
   const hasGps = location?.source === "gps";
   const canAnalyze = Boolean(
@@ -116,7 +118,7 @@ export default function ReportForm({
       if (!canSubmit) return;
       const result = await api.submitReportDraft(draft.id, {
         user_claimed_pm25: Number(claimedPm25),
-        display_name: details.displayName.trim() || null,
+        hide_identity: !googleProfile || details.hideIdentity,
         device_model: details.deviceModel.trim(),
         device_calibrated: details.deviceCalibrated,
         calibrated_at: details.deviceCalibrated ? details.calibratedAt : null,
@@ -138,7 +140,7 @@ export default function ReportForm({
       setEvidence(null);
       setDraft(null);
       setClaimedPm25("");
-      updateDetails({ measurementStable: false });
+      updateDetails({ measurementStable: false, hideIdentity: true });
       onSubmitted();
     } catch (cause) {
       setError(apiErrorMessage(cause, "ส่งรายงานไม่สำเร็จ"));
@@ -266,6 +268,53 @@ export default function ReportForm({
                 />
                 <small>ตรวจให้ตรงกับตัวเลขในภาพก่อนส่ง</small>
               </label>
+              <div
+                className="cp-report-identity-choice"
+                data-hidden={!googleProfile || details.hideIdentity}
+              >
+                <div className="cp-report-identity-choice__preview">
+                  {googleProfile?.avatarUrl && !details.hideIdentity ? (
+                    // The URL is restricted to HTTPS googleusercontent.com.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={googleProfile.avatarUrl}
+                      alt=""
+                      width={44}
+                      height={44}
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span aria-hidden>
+                      <AppIcon name="user" size={21} />
+                    </span>
+                  )}
+                  <div>
+                    <strong>
+                      {googleProfile && !details.hideIdentity
+                        ? (googleProfile.displayName ?? "โปรไฟล์ Google")
+                        : "ไม่เปิดเผยตัวตน"}
+                    </strong>
+                    <small>
+                      {googleProfile
+                        ? details.hideIdentity
+                          ? "ชื่อและรูป Google จะไม่แสดงบนแผนที่"
+                          : "ชื่อและรูป Google จะแสดงเฉพาะรายงานนี้"
+                        : "เข้าสู่ระบบด้วย Google หากต้องการแสดงโปรไฟล์"}
+                    </small>
+                  </div>
+                </div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={!googleProfile || details.hideIdentity}
+                    disabled={!googleProfile}
+                    onChange={(event) =>
+                      updateDetails({ hideIdentity: event.target.checked })
+                    }
+                  />
+                  <span>ปิดบังตัวตนในรายงานนี้</span>
+                </label>
+              </div>
               <DeviceFields details={details} onChange={updateDetails} />
             </div>
           </div>

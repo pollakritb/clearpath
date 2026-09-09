@@ -190,7 +190,14 @@ async def submit_report_draft(
         if not allowed:
             raise HTTPException(429, detail="ส่งรายงานได้ไม่เกิน 6 ครั้งต่อ 24 ชั่วโมง")
         report = await community_service.submit_draft(
-            draft_id=draft_id, user_id=user.id, values=body.model_dump()
+            draft_id=draft_id,
+            user_id=user.id,
+            values=body.model_dump(),
+            reporter_identity={
+                "display_name": user.display_name,
+                "avatar_url": user.avatar_url,
+                "identity_provider": user.identity_provider,
+            },
         )
     except KeyError as exc:
         raise HTTPException(404, detail="ไม่พบ draft") from exc

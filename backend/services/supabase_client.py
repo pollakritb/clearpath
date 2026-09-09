@@ -86,6 +86,7 @@ def get_auth_user(access_token: str) -> dict:
     return {
         "id": str(user.id),
         "email": user.email,
+        "app_metadata": user.app_metadata or {},
         "user_metadata": user.user_metadata or {},
     }
 
@@ -372,18 +373,49 @@ def forecast_provider_health() -> dict:
 
 # ── Community platform ─────────────────────────────────────
 def ensure_profile(
-    user_id: str, display_name: str | None = None, role: str | None = None
+    user_id: str,
+    display_name: str | None = None,
+    role: str | None = None,
+    avatar_url: str | None = None,
+    identity_provider: str | None = None,
 ) -> dict:
     if settings.local_demo_mode:
-        return local_store.ensure_profile(user_id, display_name, role)
+        return local_store.ensure_profile(
+            user_id,
+            display_name,
+            role,
+            avatar_url=avatar_url,
+            identity_provider=identity_provider,
+        )
     existing = (
         get_client().table("profiles").select("*").eq("id", user_id).limit(1).execute()
     ).data or []
     if existing:
-        return existing[0]
+        current = existing[0]
+        updates = {}
+        if display_name and display_name != current.get("display_name"):
+            updates["display_name"] = display_name
+        if avatar_url and avatar_url != current.get("avatar_url"):
+            updates["avatar_url"] = avatar_url
+        if identity_provider and identity_provider != current.get("identity_provider"):
+            updates["identity_provider"] = identity_provider
+        if not updates:
+            return current
+        rows = (
+            get_client()
+            .table("profiles")
+            .update(updates)
+            .eq("id", user_id)
+            .execute()
+            .data
+            or []
+        )
+        return rows[0] if rows else {**current, **updates}
     row = {
         "id": user_id,
         "display_name": display_name or f"สมาชิก-{user_id[-6:]}",
+        "avatar_url": avatar_url,
+        "identity_provider": identity_provider,
         "reputation_score": 0,
         "approved_reports": 0,
         "helpful_reviews": 0,

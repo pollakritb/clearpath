@@ -63,6 +63,8 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
       id: `demo-individual-${index + 1}`,
       user_id: `demo-user-${index + 1}`,
       display_name: DISPLAY_NAMES[index],
+      reporter_avatar_url: null,
+      show_reporter_profile: index % 3 !== 0,
       lat: baseLat + (seeded(index, 3) - 0.5) * 0.002,
       lon: baseLon + (seeded(index, 4) - 0.5) * 0.002,
       pm25,

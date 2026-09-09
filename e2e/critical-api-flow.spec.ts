@@ -75,7 +75,7 @@ test("uncertain report remains private and enters the exception queue", async ({
     {
       data: {
         user_claimed_pm25: 42.5,
-        display_name: "E2E Tester",
+        hide_identity: true,
         device_model: "Acceptance Meter",
         device_calibrated: true,
         calibrated_at: "2026-07-01",

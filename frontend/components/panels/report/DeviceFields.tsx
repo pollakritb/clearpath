@@ -13,16 +13,6 @@ const CHECKBOX_STYLE = { marginTop: ".22em", width: "18px", height: "18px" };
 export default function DeviceFields({ details, onChange }: DeviceFieldsProps) {
   return (
     <>
-      <label style={{ fontSize: ".76em", fontWeight: 600 }}>
-        ชื่อที่แสดงในชุมชน
-        <input
-          value={details.displayName}
-          onChange={(event) => onChange({ displayName: event.target.value })}
-          maxLength={80}
-          placeholder="ไม่บังคับ"
-          style={{ ...FORM_CONTROL_STYLE, marginTop: ".3em" }}
-        />
-      </label>
       <div className="cp-form-grid">
         <label style={{ fontSize: ".74em", fontWeight: 600 }}>
           ค่าบนเครื่องเป็น

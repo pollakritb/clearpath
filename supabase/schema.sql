@@ -44,6 +44,8 @@ CREATE INDEX IF NOT EXISTS idx_readings_station_time
 CREATE TABLE IF NOT EXISTS profiles (
   id                TEXT PRIMARY KEY,
   display_name      TEXT,
+  avatar_url        TEXT,
+  identity_provider TEXT,
   reputation_score  INTEGER NOT NULL DEFAULT 0 CHECK (reputation_score >= 0),
   approved_reports  INTEGER NOT NULL DEFAULT 0,
   helpful_reviews   INTEGER NOT NULL DEFAULT 0,
@@ -55,6 +57,8 @@ CREATE TABLE IF NOT EXISTS community_reports (
   id                 UUID PRIMARY KEY,
   user_id            TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   display_name       TEXT,
+  show_reporter_profile BOOLEAN NOT NULL DEFAULT FALSE,
+  reporter_avatar_url TEXT,
   lat                DOUBLE PRECISION NOT NULL,
   lon                DOUBLE PRECISION NOT NULL,
   -- ระหว่าง pending เป็น internal placeholder; เมื่อ approved จะเป็นค่าที่ Admin อ่านจากภาพ
@@ -115,6 +119,10 @@ ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS measurement_stable BOOLEA
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS near_emission_source BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS measurement_note TEXT;
 ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS gps_accuracy_m DOUBLE PRECISION;
+ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS show_reporter_profile BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS reporter_avatar_url TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS identity_provider TEXT;
 
 DO $$
 BEGIN
