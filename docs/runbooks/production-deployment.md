@@ -7,10 +7,12 @@ from being mistaken for a healthy data pipeline.
 
 1. Use separate Supabase projects for staging and production.
 2. Vercel Hobby is supported. `vercel.json` intentionally contains no Vercel
-   cron entries because Hobby permits each cron only once per day. The
-   `.github/workflows/production-scheduler.yml` workflow invokes the protected
-   production endpoints hourly instead. Monitor GitHub Actions usage when the
-   repository is private; public repositories use standard runners for free.
+   cron entries because Hobby permits each cron only once per day. Supabase Cron
+   invokes Air4Thai sync every 15 minutes; the
+   `.github/workflows/production-scheduler.yml` workflow invokes all protected
+   production jobs hourly as an independent backup. Monitor GitHub Actions
+   usage when the repository is private; public repositories use standard
+   runners for free.
 3. Give production access only to named owners. Enable MFA on GitHub, Vercel,
    Supabase, OpenAI and the email provider.
 
@@ -91,6 +93,7 @@ Required in both Vercel Preview and Production unless marked optional:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | Publishable/anon browser key                              |
 | `REPORT_IMAGE_BUCKET`               | `report-images`                                           |
 | `CRON_SECRET`                       | Independent random secret, at least 32 characters         |
+| `SUPABASE_CRON_SECRET`              | Separate token matching the ClearPath Supabase Vault      |
 | `CAPTURE_SESSION_SECRET`            | Different independent random secret                       |
 | `CORS_ALLOWED_ORIGINS`              | Exact HTTPS origin, no `*`                                |
 | `OPENWEATHER_API_KEY`               | Server only; required while its provider flag is enabled  |
@@ -186,17 +189,30 @@ vercel deploy --prod
 vercel logs --environment production --level error --since 5m
 ```
 
-Then configure GitHub → repository Settings → Secrets and variables → Actions:
+First configure the primary observation scheduler in the ClearPath Supabase
+project only:
+
+1. Install Vault, Cron (`pg_cron`) and `pg_net`.
+2. Store the production origin as Vault secret `clearpath_production_url`.
+3. Store a different random bearer token as
+   `clearpath_supabase_cron_secret`, and put the same value in Vercel Production
+   as `SUPABASE_CRON_SECRET`.
+4. Apply `20260910_supabase_air4thai_cron.sql`. Confirm the active job
+   `clearpath-air4thai-sync-15m` has schedule `2,17,32,47 * * * *` and inspect
+   its run history.
+
+Then configure GitHub → repository Settings → Secrets and variables → Actions
+as the hourly backup:
 
 1. Add repository variable `CLEARPATH_PRODUCTION_URL` with the exact HTTPS
    production origin and no trailing slash.
 2. Add repository secret `CRON_SECRET` with exactly the same value as the
    Vercel Production environment variable. Never store it as a plain variable.
-3. Open Actions → Production hourly scheduler → Run workflow once. The run must
+3. Open Actions → Production hourly backup scheduler → Run workflow once. The run must
    complete sync, alerts and evaluation with 2xx responses. Provider endpoints
    also run every 3 hours for GISTDA (safe no-op while disabled), every 8 hours
    for OpenWeather and every 12 hours for CAMS/Open-Meteo.
-4. Confirm the scheduled workflow is enabled on the default branch and runs at
+4. Confirm the backup workflow is enabled on the default branch and runs at
    minute 7 each hour. GitHub schedules may be delayed under load, so monitor
    the last successful run rather than expecting exact-to-the-minute execution.
 5. Confirm Vercel Settings → Cron Jobs is empty; this is intentional for Hobby.

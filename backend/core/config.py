@@ -59,6 +59,9 @@ class Settings(BaseSettings):
 
     # Cron auth
     cron_secret: str = ""
+    # Independent token used by Supabase Cron. Keeping this separate lets the
+    # GitHub Actions backup retain its own credential and rotation lifecycle.
+    supabase_cron_secret: str = ""
 
     # PWA Web Push (VAPID). The public key is intentionally exposed through a
     # read-only API; the private key never leaves the backend.

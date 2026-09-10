@@ -35,11 +35,25 @@ provider value. Serving a correction requires the field-validation and rolling
 backtest gates in `forecast-field-validation.md`; there is intentionally no
 browser or environment switch that bypasses those gates.
 
-## Free-tier scheduler
+## Free-tier schedulers
 
-Vercel Hobby has no hourly cron dependency in this project. GitHub Actions runs
-`.github/workflows/production-scheduler.yml` at minute 7 every hour and calls
-protected backend routes. Configure only these repository values:
+Vercel Hobby has no sub-hourly cron dependency in this project. Supabase Cron
+is the primary Air4Thai observation scheduler and invokes `/api/cron/sync` at
+minutes 2, 17, 32 and 47 of every hour. GitHub Actions remains an independent
+hourly backup at minute 7 and also runs alerts, evaluation and due forecast
+providers.
+
+Supabase configuration:
+
+1. In the ClearPath project Vault, add `clearpath_production_url` with the
+   production HTTPS origin and no path.
+2. Add `clearpath_supabase_cron_secret` with an independent random value of at
+   least 32 characters.
+3. Add the same value to Vercel Production as `SUPABASE_CRON_SECRET`.
+4. Apply `supabase/migrations/20260910_supabase_air4thai_cron.sql` to the
+   ClearPath project only, then redeploy Vercel.
+
+GitHub backup configuration:
 
 1. Actions variable `CLEARPATH_PRODUCTION_URL` = the production HTTPS origin,
    without a trailing slash.
@@ -48,8 +62,9 @@ protected backend routes. Configure only these repository values:
 3. Vercel `OPENWEATHER_API_KEY` when OpenWeather is enabled.
 4. Leave both GISTDA flags false until the permission evidence below exists.
 
-Run the workflow manually once. Air4Thai sync, alerts and forecast evaluation
-must return 2xx. Every hourly invocation also calls each provider route with
+Run the backup workflow manually once. Air4Thai sync, alerts and forecast
+evaluation must return 2xx. Every hourly backup invocation also calls each
+provider route with
 `only_if_due=true`; the backend compares the last completed provider run with
 its 3/8/12-hour interval. This is deliberately independent of the wall-clock
 hour because GitHub scheduled workflows can start late. Provider routes are
@@ -88,5 +103,5 @@ providers and shows GISTDA as unavailable without making external requests.
   times, attribution links, agreement and limitations.
 - Community evidence states explicitly whether it affects the recommendation.
 - Admin provider health shows sync count, failures and last completion time.
-- Hourly evaluation removes provider snapshots older than 7 days and completed
+- Hourly backup evaluation removes provider snapshots older than 7 days and completed
   sync runs older than 30 days to protect the Supabase free-tier database.

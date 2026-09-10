@@ -1,8 +1,9 @@
-"""GET /api/cron/sync — Vercel Cron รายชั่วโมง: air4thai → Supabase
+"""Protected scheduled jobs, including the Air4Thai-to-Supabase sync.
 
-ยืนยันตัวตนด้วย Authorization: Bearer <CRON_SECRET> (Vercel ส่งให้อัตโนมัติถ้าตั้ง env)
+GitHub Actions and Supabase Cron use independent server-only bearer tokens.
 """
 
+import hmac
 import logging
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -29,9 +30,26 @@ logger = logging.getLogger("clearpath.forecast-monitoring")
 
 
 def _verify_cron(authorization: str | None) -> None:
-    if not settings.local_demo_mode and not settings.cron_secret:
-        raise ConfigurationError("production ต้องตั้งค่า CRON_SECRET")
-    if settings.cron_secret and authorization != f"Bearer {settings.cron_secret}":
+    configured_tokens = tuple(
+        token
+        for token in (settings.cron_secret, settings.supabase_cron_secret)
+        if token
+    )
+    if not settings.local_demo_mode and not configured_tokens:
+        raise ConfigurationError(
+            "production must configure CRON_SECRET or SUPABASE_CRON_SECRET"
+        )
+    if not configured_tokens:
+        return
+
+    supplied = (
+        authorization.removeprefix("Bearer ").strip()
+        if authorization and authorization.startswith("Bearer ")
+        else ""
+    )
+    if not supplied or not any(
+        hmac.compare_digest(supplied, expected) for expected in configured_tokens
+    ):
         raise HTTPException(401, detail="unauthorized")
 
 

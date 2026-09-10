@@ -43,7 +43,7 @@ ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถ
 | Forecast              | External-first 3 แหล่ง, raw comparison, uncertainty envelope และ gated local/community fallback      |
 | Notification          | In-App inbox, Web Push/VAPID, LINE Messaging API, signed webhook และ retryable outbox                |
 | Testing/quality       | Pytest, Ruff, ESLint, TypeScript strict checks, Prettier และ Next production build                   |
-| Deployment            | Vercel Hobby: Next.js + Python FastAPI และ GitHub Actions scheduler รายชั่วโมง                       |
+| Deployment            | Vercel Hobby + Supabase Cron ทุก 15 นาที และ GitHub Actions สำรองรายชั่วโมง                          |
 
 ## Architecture
 
@@ -89,8 +89,9 @@ docs/assets/ui-archive/       ภาพ QA เก่า ไม่ถูกโห
 ### Official data
 
 ```text
-GitHub Actions รายชั่วโมง → protected /api/cron/* บน Vercel Hobby
-                          └─ Air4Thai → Supabase stations + pm25_readings
+Supabase Cron ทุก 15 นาที → protected /api/cron/sync บน Vercel Hobby
+                            └─ Air4Thai → Supabase stations + pm25_readings
+GitHub Actions รายชั่วโมง → sync + alerts + evaluation เป็นระบบสำรอง
                               ├─ CAMS/Open-Meteo + OpenWeather provider snapshots
                               ├─ GISTDA 1–3 ชม. เมื่อ legal gate ผ่าน
                               ├─ OpenWeather/FIRMS feature snapshots

@@ -1,4 +1,4 @@
-name: Production hourly scheduler
+name: Production hourly backup scheduler
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: clearpath-production-hourly
+  group: clearpath-production-hourly-backup
   cancel-in-progress: false
 
 jobs:
