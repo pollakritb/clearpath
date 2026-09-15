@@ -1,0 +1,40 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "02:00"
+      timezone: Asia/Bangkok
+    open-pull-requests-limit: 5
+    groups:
+      next-runtime:
+        patterns:
+          - next
+          - eslint-config-next
+          - sharp
+      frontend-testing:
+        dependency-type: development
+        patterns:
+          - "@playwright/*"
+          - "@vitest/*"
+          - vitest
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "02:15"
+      timezone: Asia/Bangkok
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      time: "02:30"
+      timezone: Asia/Bangkok
+    open-pull-requests-limit: 3

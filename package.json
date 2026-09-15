@@ -21,7 +21,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
     "leaflet": "^1.9.4",
-    "next": "16.2.11",
+    "next": "16.3.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
@@ -37,17 +37,18 @@
     "@vitest/coverage-v8": "^3.2.4",
     "cross-env": "^10.1.0",
     "eslint": "^9",
-    "eslint-config-next": "16.2.11",
+    "eslint-config-next": "16.3.5",
     "prettier": "^3.9.5",
     "typescript": "^5",
     "vitest": "^3.2.4"
   },
   "overrides": {
     "browserslist": "4.28.8",
+    "js-yaml": "4.3.2",
     "nanoid": "3.3.18",
     "next": {
       "postcss": "8.5.25"
     },
-    "sharp": "0.35.3"
+    "sharp": "0.35.4"
   }
 }

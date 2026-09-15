@@ -191,8 +191,12 @@ test("air summary automatically uses the current GPS position", async ({
   context,
   page,
 }) => {
+  const baseURL = test.info().project.use.baseURL;
+  if (typeof baseURL !== "string") {
+    throw new Error("Playwright baseURL is required for geolocation tests");
+  }
   await context.grantPermissions(["geolocation"], {
-    origin: "http://127.0.0.1:3117",
+    origin: new URL(baseURL).origin,
   });
   await context.setGeolocation({ latitude: 13.75, longitude: 100.5 });
   await page.route("**/api/pm25/current", async (route) => {
