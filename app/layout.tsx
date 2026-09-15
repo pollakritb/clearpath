@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/frontend/components/auth/AuthProvider";
 import PwaRegistrar from "@/frontend/components/app/PwaRegistrar";
+import { DisplayPreferencesProvider } from "@/frontend/components/settings/DisplayPreferencesProvider";
 
 // UI font — variable font, all weights 400–800 available
 const notoThai = Noto_Sans_Thai({
@@ -40,7 +41,9 @@ export default function RootLayout({
   return (
     <html lang="th" className={`${notoThai.variable} ${plexMono.variable}`}>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <DisplayPreferencesProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </DisplayPreferencesProvider>
         <PwaRegistrar />
       </body>
     </html>

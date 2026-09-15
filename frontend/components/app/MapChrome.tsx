@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -99,6 +100,14 @@ export default function MapChrome({
           active={openPanel === "layers"}
           onClick={() => togglePanel("layers")}
         />
+        <Link
+          href="/settings"
+          className="cp-map-action cp-focus"
+          aria-label="เปิดการตั้งค่า"
+          title="การตั้งค่า"
+        >
+          <AppIcon name="settings" size={22} />
+        </Link>
       </div>
 
       <div className="cp-map-aqi-legend" aria-label="สีระดับ PM2.5 ห้าระดับ">

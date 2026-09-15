@@ -12,7 +12,12 @@ import ForecastPanel from "@/frontend/components/panels/ForecastPanel";
 import Header from "@/frontend/components/panels/Header";
 import ListView from "@/frontend/components/panels/ListView";
 import ReportForm from "@/frontend/components/panels/ReportForm";
+import SettingsPanel, {
+  type SettingsSection,
+} from "@/frontend/components/panels/SettingsPanel";
+import { useDisplayPreferences } from "@/frontend/components/settings/DisplayPreferencesProvider";
 import { useCommunity } from "@/frontend/hooks/useCommunity";
+import { useCurrentLocation } from "@/frontend/hooks/useCurrentLocation";
 import { useFirms } from "@/frontend/hooks/useFirms";
 import { useForecast } from "@/frontend/hooks/useForecast";
 import { useForecastSurface } from "@/frontend/hooks/useForecastSurface";
@@ -54,9 +59,11 @@ const MapView = dynamic(() => import("@/frontend/components/map/MapView"), {
 export default function ClearPathApp({
   page,
   stationId,
+  settingsSection = "overview",
 }: {
   page: DashboardTab;
   stationId?: string;
+  settingsSection?: SettingsSection;
 }) {
   const router = useRouter();
   const auth = useAuth();
@@ -67,6 +74,8 @@ export default function ClearPathApp({
   const forecast = useForecast();
   const forecastSurface = useForecastSurface();
   const community = useCommunity();
+  const currentLocation = useCurrentLocation(page === "overview");
+  const display = useDisplayPreferences();
 
   const [manuallySelectedStation, setSelectedStation] =
     useState<Station | null>(null);
@@ -75,8 +84,6 @@ export default function ClearPathApp({
   );
   const [showHistory, setShowHistory] = useState(false);
   const [reportPin, setReportPin] = useState<ReportLocation | null>(null);
-  const [bigText, setBigText] = useState(false);
-  const [contrast, setContrast] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showStations, setShowStations] = useState(true);
   const [showCommunitySensors, setShowCommunitySensors] = useState(true);
@@ -145,6 +152,34 @@ export default function ClearPathApp({
     });
   }, [selectedStation, history]);
 
+  const refreshDashboard = useCallback(() => {
+    if (activeTab === "overview") currentLocation.request();
+    const tasks: Promise<unknown>[] = [
+      pm25.refresh(),
+      community.refresh(),
+      firms.load(1),
+    ];
+    if (selectedStation) {
+      tasks.push(
+        weather.load(selectedStation.lat, selectedStation.lon),
+        forecast.load(selectedStation.id, 24),
+      );
+      if (showHistory) tasks.push(history.load(selectedStation.id, 24));
+    }
+    void Promise.allSettled(tasks);
+  }, [
+    activeTab,
+    community,
+    currentLocation,
+    firms,
+    forecast,
+    history,
+    pm25,
+    selectedStation,
+    showHistory,
+    weather,
+  ]);
+
   const locateForReport = useCallback(() => {
     navigator.geolocation?.getCurrentPosition((position) => {
       setReportPin({
@@ -191,17 +226,17 @@ export default function ClearPathApp({
     mapHorizon === 0 ? currentSurfaceStations : forecastSurfaceStations;
 
   const rootStyle = {
-    fontSize: bigText ? "18px" : "15px",
+    fontSize: display.bigText ? "18px" : "15px",
     lineHeight: 1.45,
     fontFamily: "var(--font-noto-thai), system-ui, sans-serif",
-    "--cp-aside-w": bigText ? "460px" : "420px",
+    "--cp-aside-w": display.bigText ? "460px" : "420px",
     "--cp-sheet-y": SHEET_Y[snap],
   } as React.CSSProperties;
 
   return (
     <div
       className="cp-app"
-      data-contrast={contrast}
+      data-contrast={display.contrast}
       data-tab={activeTab}
       data-sheet-snap={snap}
       style={rootStyle}
@@ -220,7 +255,9 @@ export default function ClearPathApp({
                   ? "activity"
                   : activeTab === "report"
                     ? "camera"
-                    : "community"
+                    : activeTab === "community"
+                      ? "megaphone"
+                      : "settings"
             }
             theme={activeTab}
             title={sectionCopy.title}
@@ -231,10 +268,9 @@ export default function ClearPathApp({
             delayedCount={pm25.counts.delayed}
             expiredCount={pm25.counts.expired}
             error={pm25.error}
-            bigText={bigText}
-            contrast={contrast}
-            onToggleBigText={() => setBigText((value) => !value)}
-            onToggleContrast={() => setContrast((value) => !value)}
+            onRefresh={activeTab === "settings" ? undefined : refreshDashboard}
+            showDataStatus={activeTab !== "settings"}
+            showAuth={activeTab !== "settings"}
           />
         }
       >
@@ -242,8 +278,12 @@ export default function ClearPathApp({
           <div className="cp-overview-stack">
             <MobileAirSummary
               stations={serviceAreaStations}
+              communityPoints={community.mapPoints}
               updatedAt={pm25.updatedAt}
               loading={pm25.loading}
+              location={currentLocation.location}
+              locationStatus={currentLocation.status}
+              onRequestLocation={currentLocation.request}
               onOpenMap={() => router.push("/")}
               onOpenReport={() => router.push("/report")}
             />
@@ -291,7 +331,10 @@ export default function ClearPathApp({
             showAdmin={canModerate}
           />
         )}
-        {community.error && (
+        {activeTab === "settings" && (
+          <SettingsPanel section={settingsSection} />
+        )}
+        {activeTab !== "settings" && community.error && (
           <p
             role="alert"
             style={{ fontSize: ".7em", color: "#c2433a", marginTop: "1em" }}
@@ -334,14 +377,14 @@ export default function ClearPathApp({
           fireAvailable={!firms.error}
           demoMode={community.demoMode}
           stations={serviceAreaStations}
-          bigText={bigText}
+          bigText={display.bigText}
           showHeatmap={showHeatmap}
           showStations={showStations}
           showCommunitySensors={showCommunitySensors}
           showIndividualReports={showIndividualReports}
           showFires={showFires}
           onViewModeChange={setViewMode}
-          onToggleBigText={() => setBigText((value) => !value)}
+          onToggleBigText={() => display.setBigText(!display.bigText)}
           onToggleHeatmap={() => setShowHeatmap((value) => !value)}
           onToggleStations={() => setShowStations((value) => !value)}
           onToggleCommunitySensors={() =>

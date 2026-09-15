@@ -33,8 +33,12 @@ export const DASHBOARD_COPY: Record<DashboardTab, DashboardCopy> = {
     description: "ถ่ายภาพสดพร้อม GPS แล้วให้ระบบตรวจหลักฐานอัตโนมัติ",
   },
   community: {
-    title: "ชุมชนอากาศสะอาด",
-    description: "ติดตามประกาศ ขอบคุณผู้แบ่งปันข้อมูล และร่วมกิจกรรมสะสมคะแนน",
+    title: "ข่าวสารและประกาศ",
+    description: "ประกาศสำคัญ การแจ้งเตือน และข้อมูลที่คุณร่วมแบ่งปัน",
+  },
+  settings: {
+    title: "การตั้งค่า",
+    description: "ปรับการแสดงผล การแจ้งเตือน และบัญชีของคุณ",
   },
 };
 

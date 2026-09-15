@@ -1,12 +1,21 @@
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
-import type { Station } from "@/frontend/types";
+import { estimateLocalAir, type LocalAirPoint } from "@/frontend/lib/local-air";
+import type { CommunityMapPoint, Station } from "@/frontend/types";
+import type {
+  CurrentLocation,
+  CurrentLocationStatus,
+} from "@/frontend/hooks/useCurrentLocation";
 
 interface MobileAirSummaryProps {
   stations: Station[];
+  communityPoints: CommunityMapPoint[];
   updatedAt: string | null;
   loading: boolean;
+  location: CurrentLocation | null;
+  locationStatus: CurrentLocationStatus;
+  onRequestLocation: () => void;
   onOpenMap: () => void;
   onOpenReport: () => void;
 }
@@ -23,25 +32,56 @@ function formatTime(value: string | null) {
 
 export default function MobileAirSummary({
   stations,
+  communityPoints,
   updatedAt,
   loading,
+  location,
+  locationStatus,
+  onRequestLocation,
   onOpenMap,
   onOpenReport,
 }: MobileAirSummaryProps) {
-  const currentValues = stations.flatMap((station) =>
-    station.pm25 == null || !station.eligible_for_surface ? [] : [station.pm25],
-  );
-  const latestValues = stations.flatMap((station) =>
-    station.pm25 == null ? [] : [station.pm25],
-  );
-  const referenceOnly = !currentValues.length && latestValues.length > 0;
-  const values = currentValues.length ? currentValues : latestValues;
-  const average = values.length
-    ? Math.round(
-        (values.reduce((sum, value) => sum + value, 0) / values.length) * 10,
-      ) / 10
+  const points: LocalAirPoint[] = [
+    ...stations.flatMap((station): LocalAirPoint[] =>
+      station.pm25 == null || !station.eligible_for_surface
+        ? []
+        : [
+            {
+              lat: station.lat,
+              lon: station.lon,
+              pm25: station.pm25,
+              source: "official",
+              name: station.name_th || station.name_en || station.id,
+            },
+          ],
+    ),
+    ...communityPoints.map((point): LocalAirPoint => ({
+      lat: point.lat,
+      lon: point.lon,
+      pm25: point.pm25,
+      source: "community",
+      name: "จุดข้อมูลชุมชนที่ผ่านเกณฑ์",
+    })),
+  ];
+  const estimate = location
+    ? estimateLocalAir(location.lat, location.lon, points)
     : null;
-  const classification = classifyPm25(average);
+  const classification = classifyPm25(estimate?.pm25);
+  const isLocating = locationStatus === "idle" || locationStatus === "locating";
+  const needsLocation =
+    locationStatus === "denied" || locationStatus === "unavailable";
+
+  const statusCopy = isLocating
+    ? "กำลังหาตำแหน่ง GPS…"
+    : needsLocation
+      ? "ต้องใช้ตำแหน่งเพื่อแสดงค่าฝุ่นใกล้คุณ"
+      : loading
+        ? "กำลังโหลดจุดวัดใกล้ตำแหน่งคุณ…"
+        : estimate
+          ? estimate.basis === "idw"
+            ? `ประมาณจาก ${estimate.contributorCount} จุดวัดใกล้เคียง`
+            : `อ้างอิงจุดวัดใกล้สุด ${estimate.nearestDistanceKm} กม.`
+          : "ยังไม่มีจุดวัดที่พร้อมใช้ภายใน 30 กม.";
 
   return (
     <section className="cp-mobile-home" aria-label="ภาพรวมอากาศวันนี้">
@@ -57,16 +97,14 @@ export default function MobileAirSummary({
         <div className="cp-mobile-air-card__topline">
           <span>
             <AppIcon name="activity" size={18} />
-            {referenceOnly
-              ? "ค่าเฉลี่ยจากข้อมูลล่าสุด"
-              : "ภาพรวมสถานีทั่วประเทศ"}
+            ฝุ่นใกล้ตำแหน่งคุณ
           </span>
           <small>{loading ? "กำลังอัปเดต…" : formatTime(updatedAt)}</small>
         </div>
 
         <div className="cp-mobile-air-card__reading">
           <div className="cp-mobile-air-card__number">
-            <strong>{average ?? "—"}</strong>
+            <strong>{estimate?.pm25 ?? "—"}</strong>
             <span>µg/m³</span>
           </div>
           <div className="cp-mobile-air-card__level">
@@ -78,20 +116,58 @@ export default function MobileAirSummary({
           </div>
         </div>
 
-        <p>
-          {referenceOnly
-            ? "ข้อมูลเกิน 1 ชั่วโมง แสดงเพื่ออ้างอิงและไม่นำไปสร้างพื้นผิวค่าฝุ่น"
-            : classification.advice}
+        <p aria-live="polite">
+          {estimate ? classification.advice : statusCopy}
         </p>
-        <div className="cp-mobile-air-card__source">
-          <SourceBadge kind="official" compact />
-          <span>
-            Air4Thai · {values.length} สถานี
-            {referenceOnly ? " · ยังไม่มีสถานีสดใหม่" : "ที่พร้อมใช้งาน"}
-          </span>
-        </div>
+
+        {estimate && location ? (
+          <div className="cp-mobile-air-card__location">
+            <span>
+              <AppIcon name="location" size={16} />
+              GPS คลาดเคลื่อนประมาณ {Math.round(location.accuracy)} ม.
+            </span>
+            <button
+              type="button"
+              className="cp-focus"
+              onClick={onRequestLocation}
+            >
+              อัปเดต
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="cp-mobile-air-card__locate cp-focus"
+            onClick={onRequestLocation}
+            disabled={isLocating}
+          >
+            <AppIcon name="location" size={17} />
+            {isLocating ? "กำลังค้นหา GPS…" : "ใช้ตำแหน่งปัจจุบัน"}
+          </button>
+        )}
+
+        {estimate && (
+          <div className="cp-mobile-air-card__source">
+            {estimate.officialCount > 0 && (
+              <span className="cp-mobile-air-card__source-group">
+                <SourceBadge kind="official" compact />
+                <small>{estimate.officialCount} จุด</small>
+              </span>
+            )}
+            {estimate.communityCount > 0 && (
+              <span className="cp-mobile-air-card__community-source">
+                <AppIcon name="community" size={14} />
+                ชุมชนผ่านเกณฑ์ {estimate.communityCount} จุด
+              </span>
+            )}
+          </div>
+        )}
         <small className="cp-mobile-air-card__scope">
-          ค่าเฉลี่ยภาพรวม ไม่ใช่ค่าฝุ่น ณ ตำแหน่งของคุณ
+          {estimate
+            ? estimate.basis === "idw"
+              ? `คำนวณบนอุปกรณ์ · ${statusCopy} · จุดใกล้สุด ${estimate.nearestDistanceKm} กม.`
+              : `คำนวณบนอุปกรณ์ · ${statusCopy} (${estimate.nearestName})`
+            : "GPS ใช้คำนวณบนอุปกรณ์ และไม่ใช้ค่าเฉลี่ยทั้งประเทศแทนตำแหน่งของคุณ"}
         </small>
       </div>
 

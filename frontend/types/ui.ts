@@ -211,7 +211,8 @@ export interface ViewportBounds {
   max_lon: number;
 }
 
-export type DashboardTab = "map" | "overview" | "report" | "community";
+export type DashboardTab =
+  "map" | "overview" | "report" | "community" | "settings";
 export type SheetSnap = "peek" | "half" | "full";
 export type ViewMode = "map" | "list";
 

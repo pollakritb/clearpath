@@ -28,6 +28,7 @@ export type AppIconName =
   | "sensor"
   | "station"
   | "report"
+  | "refresh"
   | "settings"
   | "shield"
   | "sparkles"
@@ -141,6 +142,12 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
         <>
           <circle cx="11" cy="11" r="6.5" />
           <path d="m16 16 4.5 4.5" />
+        </>
+      )}
+      {name === "refresh" && (
+        <>
+          <path d="M20 6v5h-5" />
+          <path d="M18.2 15.4A7.5 7.5 0 1 1 18.7 8L20 11" />
         </>
       )}
       {name === "layers" && (

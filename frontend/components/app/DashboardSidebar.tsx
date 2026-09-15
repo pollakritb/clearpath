@@ -38,9 +38,9 @@ const TABS: Array<{
   {
     id: "community",
     href: "/community",
-    label: "ชุมชน",
-    description: "ข่าวสารและคำขอบคุณ",
-    icon: "community",
+    label: "ข่าวสาร",
+    description: "ประกาศและการแจ้งเตือน",
+    icon: "megaphone",
   },
 ];
 

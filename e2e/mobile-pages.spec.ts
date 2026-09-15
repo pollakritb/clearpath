@@ -5,7 +5,8 @@ const pages = [
   { path: "/", text: "คุณภาพอากาศทั่วไทย" },
   { path: "/air", text: "อากาศวันนี้" },
   { path: "/report", text: "ส่งข้อมูลจากเครื่องวัด" },
-  { path: "/community", text: "ข้อมูลของคุณช่วยทุกคนได้" },
+  { path: "/community", text: "ประกาศสำคัญ" },
+  { path: "/settings", text: "การแสดงผล" },
   { path: "/admin", text: "ศูนย์ควบคุม ClearPath" },
   { path: "/offline", text: "ขณะนี้ไม่ได้เชื่อมต่ออินเทอร์เน็ต" },
 ];
@@ -56,6 +57,121 @@ test("mobile primary navigation targets are at least 44px", async ({
     expect(size.width).toBeGreaterThanOrEqual(44);
     expect(size.height).toBeGreaterThanOrEqual(44);
   }
+});
+
+test("header actions expose refresh and a dedicated settings page", async ({
+  page,
+}) => {
+  await page.goto("/air");
+  await expect(
+    page.getByRole("button", { name: "รีเฟรชข้อมูลล่าสุด" }),
+  ).toBeVisible();
+
+  const settings = page.getByRole("link", { name: "เปิดการตั้งค่า" });
+  await expect(settings).toHaveAttribute("href", "/settings");
+  await settings.click();
+  await expect(page.getByRole("heading", { name: "การแสดงผล" })).toBeVisible();
+  await expect(
+    page.getByRole("switch", { name: /ตัวอักษรใหญ่/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("switch", { name: /คอนทราสต์สูง/ }),
+  ).toBeVisible();
+});
+
+test("community page prioritizes announcements and keeps secondary tools collapsed", async ({
+  page,
+}) => {
+  await page.goto("/community");
+
+  await expect(
+    page.getByRole("heading", { name: "ประกาศสำคัญ" }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: /การแจ้งเตือน/ })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /ส่งข้อมูลค่าฝุ่น/ }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("navigation", { name: "เมนูหลักบนมือถือ" })
+      .getByRole("link", { name: "ข่าวสาร" }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(page.getByText("ภาพรวม", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText("แจ้งข้อมูลผิดพลาด", { exact: true }),
+  ).toBeHidden();
+
+  await page.getByText("เพิ่มเติม", { exact: true }).click();
+  await expect(
+    page.getByText("แจ้งข้อมูลผิดพลาด", { exact: true }),
+  ).toBeVisible();
+});
+
+test("air summary automatically uses the current GPS position", async ({
+  context,
+  page,
+}) => {
+  await context.grantPermissions(["geolocation"], {
+    origin: "http://127.0.0.1:3117",
+  });
+  await context.setGeolocation({ latitude: 13.75, longitude: 100.5 });
+  await page.route("**/api/pm25/current", async (route) => {
+    await route.fulfill({
+      json: {
+        count: 2,
+        updated_at: "2026-09-16T00:30:00+07:00",
+        fresh_count: 2,
+        delayed_count: 0,
+        expired_count: 0,
+        stations: [
+          {
+            id: "gps-station",
+            name_th: "สถานีใกล้ตำแหน่งทดสอบ",
+            name_en: null,
+            lat: 13.75,
+            lon: 100.5,
+            province: "กรุงเทพมหานคร",
+            pm25: 22.4,
+            aqi: null,
+            color: null,
+            level: null,
+            recorded_at: "2026-09-16T00:30:00+07:00",
+            data_status: "fresh",
+            age_minutes: 5,
+            eligible_for_surface: true,
+            in_service_area: true,
+          },
+          {
+            id: "nearby-station",
+            name_th: "สถานีรอบข้าง",
+            name_en: null,
+            lat: 13.8,
+            lon: 100.55,
+            province: "กรุงเทพมหานคร",
+            pm25: 35,
+            aqi: null,
+            color: null,
+            level: null,
+            recorded_at: "2026-09-16T00:30:00+07:00",
+            data_status: "fresh",
+            age_minutes: 5,
+            eligible_for_surface: true,
+            in_service_area: true,
+          },
+        ],
+      },
+    });
+  });
+
+  await page.goto("/air");
+  const summary = page.getByRole("region", {
+    name: "ภาพรวมอากาศวันนี้",
+  });
+  await expect(summary.getByText("ฝุ่นใกล้ตำแหน่งคุณ")).toBeVisible();
+  await expect(summary.getByText("22.4", { exact: true })).toBeVisible();
+  await expect(summary.getByText(/GPS คลาดเคลื่อนประมาณ/)).toBeVisible();
+  await expect(summary.getByRole("button", { name: "อัปเดต" })).toBeVisible();
+  await expect(summary.getByText(/ค่าเฉลี่ยทั้งประเทศ/)).toHaveCount(0);
 });
 
 test("LINE notification card explains production setup state on mobile", async ({
@@ -251,27 +367,27 @@ test("community marker opens a distinct privacy-safe report card", async ({
 });
 
 test("large text and high contrast remain mobile-safe", async ({ page }) => {
-  await page.goto("/air?station=81t");
-  const largeText = page.getByRole("button", {
-    name: "สลับขนาดตัวอักษรใหญ่",
-  });
-  const contrast = page.getByRole("button", {
-    name: "สลับโหมดคอนทราสต์สูง",
-  });
+  await page.goto("/settings");
+  const largeText = page.getByRole("switch", { name: /ตัวอักษรใหญ่/ });
+  const contrast = page.getByRole("switch", { name: /คอนทราสต์สูง/ });
   await largeText.click();
   await contrast.click();
-  await expect(largeText).toHaveAttribute("aria-pressed", "true");
-  await expect(contrast).toHaveAttribute("aria-pressed", "true");
+  await expect(largeText).toHaveAttribute("aria-checked", "true");
+  await expect(contrast).toHaveAttribute("aria-checked", "true");
+  await page
+    .getByRole("navigation", { name: "เมนูหลักบนมือถือ" })
+    .getByRole("link", { name: "วันนี้" })
+    .click();
+  await expect(page).toHaveURL(/\/air$/);
   await expect(page.locator(".cp-app")).toHaveAttribute(
     "data-contrast",
     "true",
   );
+  await expect(page.locator(".cp-app")).toHaveCSS("font-size", "18px");
   const state = await page.locator(".cp-app").evaluate((root) => ({
-    fontSize: getComputedStyle(root).fontSize,
-    viewport: window.innerWidth,
-    document: document.documentElement.scrollWidth,
+    viewport: root.ownerDocument.defaultView?.innerWidth ?? 0,
+    document: root.ownerDocument.documentElement.scrollWidth,
   }));
-  expect(state.fontSize).toBe("18px");
   expect(state.document).toBeLessThanOrEqual(state.viewport);
 });
 

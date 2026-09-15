@@ -244,6 +244,7 @@
   color: var(--cp-ink);
   font: 700 11px var(--font-sans);
   cursor: pointer;
+  text-decoration: none;
 }
 .cp-icon-button[data-active="true"] {
   border-color: var(--cp-teal);
@@ -3359,6 +3360,7 @@
   box-shadow: 0 8px 24px rgba(14, 43, 39, 0.15);
   cursor: pointer;
   backdrop-filter: blur(16px);
+  text-decoration: none;
 }
 
 .cp-map-action[data-active="true"] {
@@ -4005,8 +4007,7 @@
   }
 
   .cp-map-topbar__count {
-    padding-left: 8px;
-    font-size: 0.7rem;
+    display: none;
   }
 
   .cp-map-actions {

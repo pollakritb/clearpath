@@ -1,54 +1,82 @@
-import { T } from "@/frontend/lib/ui";
+import Image from "next/image";
+
+import AppIcon from "@/frontend/components/ui/AppIcon";
 import type { Announcement } from "@/frontend/types";
+
+const KIND_LABEL = {
+  alert: "สำคัญ",
+  news: "ข่าว",
+  community: "ชุมชน",
+} as const;
+
+function formatPublishedAt(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "short",
+  });
+}
 
 export default function AnnouncementsSection({
   announcements,
 }: {
   announcements: Announcement[];
 }) {
+  const visible = announcements.slice(0, 3);
+
   return (
-    <div>
-      <h2 style={{ margin: "0 0 .5em", fontSize: "1em" }}>ข่าวและประกาศ</h2>
-      {announcements.length === 0 && (
-        <p style={{ fontSize: ".76em", color: T.subInk }}>ยังไม่มีประกาศ</p>
+    <section
+      className="cp-community-announcements"
+      aria-labelledby="community-announcements-title"
+    >
+      <header className="cp-community-announcements__heading">
+        <span aria-hidden="true">
+          <AppIcon name="alert" size={21} />
+        </span>
+        <span>
+          <small>อัปเดตจาก ClearPath</small>
+          <h2 id="community-announcements-title">ประกาศสำคัญ</h2>
+        </span>
+        {visible.length > 0 && <b>{visible.length}</b>}
+      </header>
+
+      {visible.length === 0 ? (
+        <div className="cp-community-announcements__empty">
+          <span aria-hidden="true">
+            <AppIcon name="check" size={20} />
+          </span>
+          <span>
+            <strong>ยังไม่มีประกาศใหม่</strong>
+            <small>เมื่อมีข่าวสำคัญในพื้นที่ จะแสดงที่นี่ก่อน</small>
+          </span>
+        </div>
+      ) : (
+        <div className="cp-community-announcements__list">
+          {visible.map((item) => (
+            <article key={item.id} data-kind={item.kind}>
+              {item.image_url && (
+                <Image
+                  unoptimized
+                  src={item.image_url}
+                  alt="ภาพประกอบประกาศ"
+                  width={800}
+                  height={450}
+                />
+              )}
+              <div className="cp-community-announcements__meta">
+                <b>{KIND_LABEL[item.kind]}</b>
+                {item.area && <span>{item.area}</span>}
+                <time dateTime={item.published_at}>
+                  {formatPublishedAt(item.published_at)}
+                </time>
+              </div>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </article>
+          ))}
+        </div>
       )}
-      {announcements.slice(0, 4).map((item) => (
-        <article
-          key={item.id}
-          style={{
-            border: `1px solid ${T.line}`,
-            borderLeft: `4px solid ${item.kind === "alert" ? T.red : T.teal}`,
-            borderRadius: "10px",
-            padding: ".7em",
-            marginBottom: ".5em",
-          }}
-        >
-          {item.image_url && (
-            <Image
-              unoptimized
-              src={item.image_url}
-              alt="ภาพประกอบประกาศ"
-              width={800}
-              height={450}
-              style={{
-                width: "100%",
-                height: "auto",
-                maxHeight: "180px",
-                objectFit: "cover",
-                borderRadius: "8px",
-                marginBottom: ".5em",
-              }}
-            />
-          )}
-          <b style={{ fontSize: ".82em" }}>{item.title}</b>
-          <p
-            style={{ margin: ".25em 0 0", fontSize: ".72em", color: T.subInk }}
-          >
-            {item.body}
-          </p>
-        </article>
-      ))}
-    </div>
+    </section>
   );
 }
-import Image from "next/image";
