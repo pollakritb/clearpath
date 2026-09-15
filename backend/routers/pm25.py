@@ -19,6 +19,11 @@ async def current_pm25():
     prepared = []
     for row in rows:
         freshness = station_freshness(row.get("recorded_at"))
+        quality_flags = []
+        if row.get("pm25") is None:
+            quality_flags.append("missing_pm25")
+        if freshness["data_status"] != "fresh":
+            quality_flags.append(f"data_{freshness['data_status']}")
         prepared.append(
             {
                 **row,
@@ -26,6 +31,7 @@ async def current_pm25():
                 "eligible_for_surface": freshness["eligible_for_surface"]
                 and row.get("pm25") is not None,
                 "in_service_area": is_thailand(float(row["lat"]), float(row["lon"])),
+                "quality_flags": quality_flags,
             }
         )
     stations = [

@@ -13,5 +13,9 @@ class ReadinessResponse(BaseModel):
     checks: dict[str, bool]
     station_count: int
     fresh_station_count: int
+    delayed_station_count: int
+    expired_station_count: int
+    fresh_max_age_minutes: int
+    surface_max_age_minutes: int
     latest_recorded_at: str | None = None
     reason: str | None = None

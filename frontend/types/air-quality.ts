@@ -14,9 +14,11 @@ export interface Station {
   age_minutes: number | null;
   eligible_for_surface: boolean;
   in_service_area: boolean;
+  quality_flags: string[];
 }
 
 export interface StationsResponse {
+  source: "air4thai";
   stations: Station[];
   count: number;
   updated_at: string | null;

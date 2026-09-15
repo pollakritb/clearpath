@@ -44,7 +44,6 @@ class Settings(BaseSettings):
     vercel_git_commit_sha: str = ""
     log_level: str = "INFO"
     cors_allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
-    readiness_max_station_age_minutes: int = 90
 
     # Signed camera session (server-issued timestamp; 5-minute freshness window)
     capture_session_secret: str = ""

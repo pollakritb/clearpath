@@ -19,6 +19,7 @@ const station = (id: string, lat: number, lon: number): Station => ({
   age_minutes: 10,
   eligible_for_surface: true,
   in_service_area: true,
+  quality_flags: [],
 });
 
 describe("clusterStations", () => {

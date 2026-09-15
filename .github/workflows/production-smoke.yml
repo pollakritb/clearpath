@@ -1,0 +1,86 @@
+name: Production smoke
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Quality]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clearpath-production-smoke
+  cancel-in-progress: true
+
+jobs:
+  verify-production:
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        (github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'main')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLEARPATH_PRODUCTION_URL: ${{ vars.CLEARPATH_PRODUCTION_URL }}
+      EXPECTED_RELEASE: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Validate smoke-test configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLEARPATH_PRODUCTION_URL:-}" || {
+            echo "::error::Missing repository variable CLEARPATH_PRODUCTION_URL"
+            exit 1
+          }
+          case "$CLEARPATH_PRODUCTION_URL" in
+            https://*) ;;
+            *)
+              echo "::error::CLEARPATH_PRODUCTION_URL must use https://"
+              exit 1
+              ;;
+          esac
+
+      - name: Wait for the matching Vercel release and verify data freshness
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_url="${CLEARPATH_PRODUCTION_URL%/}"
+
+          for attempt in $(seq 1 18); do
+            health="$(curl --fail --silent --show-error --max-time 20 "${base_url}/api/health" || true)"
+            ready="$(curl --fail --silent --show-error --max-time 30 "${base_url}/api/ready" || true)"
+
+            health_ok=false
+            readiness_ok=false
+            release_ok=false
+
+            jq -e '.status == "ok"' <<<"$health" >/dev/null 2>&1 && health_ok=true
+            jq -e '
+              .status == "ready" and
+              .station_count > 0 and
+              .fresh_station_count > 0 and
+              .fresh_max_age_minutes == 60 and
+              .surface_max_age_minutes == 90
+            ' <<<"$ready" >/dev/null 2>&1 && readiness_ok=true
+
+            if [ -z "${EXPECTED_RELEASE:-}" ]; then
+              release_ok=true
+            elif jq -e --arg sha "$EXPECTED_RELEASE" '.release == $sha' <<<"$ready" >/dev/null 2>&1; then
+              release_ok=true
+            fi
+
+            if [ "$health_ok" = true ] && [ "$readiness_ok" = true ] && [ "$release_ok" = true ]; then
+              jq '{status, environment, release, station_count, fresh_station_count, delayed_station_count, expired_station_count, latest_recorded_at}' <<<"$ready"
+              exit 0
+            fi
+
+            echo "Attempt ${attempt}/18: waiting for production release/fresh data"
+            sleep 15
+          done
+
+          echo "::error::Production did not reach the expected release and freshness contract"
+          jq '{status, environment, release, reason, station_count, fresh_station_count, delayed_station_count, expired_station_count, latest_recorded_at}' <<<"${ready:-{}}" || true
+          exit 1

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from ..algorithms.freshness import station_freshness
+from ..algorithms.freshness import (
+    DELAYED_MAX_AGE_MINUTES,
+    FRESH_MAX_AGE_MINUTES,
+    station_freshness,
+)
 from ..core.config import settings
 from . import supabase_client
 
@@ -24,11 +28,9 @@ def check_readiness() -> dict:
     ages = [
         station_freshness(row.get("recorded_at"), now=datetime.now(UTC)) for row in rows
     ]
-    fresh_count = sum(
-        item["age_minutes"] is not None
-        and item["age_minutes"] <= settings.readiness_max_station_age_minutes
-        for item in ages
-    )
+    fresh_count = sum(item["data_status"] == "fresh" for item in ages)
+    delayed_count = sum(item["data_status"] == "delayed" for item in ages)
+    expired_count = sum(item["data_status"] == "expired" for item in ages)
     latest = max(
         (str(row["recorded_at"]) for row in rows if row.get("recorded_at")),
         default=None,
@@ -45,6 +47,8 @@ def check_readiness() -> dict:
         checks={"source_of_truth": True, "station_data": has_fresh_data},
         station_count=len(rows),
         fresh_station_count=fresh_count,
+        delayed_station_count=delayed_count,
+        expired_station_count=expired_count,
         latest_recorded_at=latest,
         reason=reason,
     )
@@ -56,6 +60,8 @@ def _result(
     checks: dict[str, bool],
     station_count: int = 0,
     fresh_station_count: int = 0,
+    delayed_station_count: int = 0,
+    expired_station_count: int = 0,
     latest_recorded_at: str | None = None,
     reason: str | None = None,
 ) -> dict:
@@ -67,6 +73,10 @@ def _result(
         "checks": checks,
         "station_count": station_count,
         "fresh_station_count": fresh_station_count,
+        "delayed_station_count": delayed_station_count,
+        "expired_station_count": expired_station_count,
+        "fresh_max_age_minutes": int(FRESH_MAX_AGE_MINUTES),
+        "surface_max_age_minutes": int(DELAYED_MAX_AGE_MINUTES),
         "latest_recorded_at": latest_recorded_at,
         "reason": reason,
     }

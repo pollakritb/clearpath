@@ -176,7 +176,7 @@
 - [x] `CP-SEC-004` ตรวจ lockfile diff และห้ามเพิ่ม package ที่ไม่จำเป็น
 - [x] `CP-CI-001` แก้ E2E geolocation origin ให้คำนวณจาก Playwright `baseURL`/runtime port ไม่ hard-code 3117
 - [x] `CP-CI-002` รัน audit, format, lint, typecheck, unit, backend tests, build และ E2E ครบ
-- [ ] `CP-CI-003` push branch/commit แล้วตรวจ GitHub Quality workflow จนทุก job เขียว
+- [x] `CP-CI-003` push commit `11a75ea` และยืนยัน GitHub Quality run `35027864270` เขียวทุก job
 - [x] `CP-SEC-005` เพิ่ม Dependabot/Renovate policy หรือ scheduled audit ถ้ายังไม่มี
 
 ### การทดสอบบังคับ
@@ -209,14 +209,14 @@ npm run test:e2e
 
 ### งาน
 
-- [ ] `CP-DATA-001` กำหนด canonical thresholds แห่งเดียว เช่น fresh ≤60 นาที, delayed 60–180 นาที, expired >180 นาที
-- [ ] `CP-DATA-002` เปลี่ยน readiness field จากชื่อที่ทำให้เข้าใจผิด หรือทำให้ใช้ threshold เดียวกับ current API
-- [ ] `CP-DATA-003` เพิ่ม `observed_at`, `age_minutes`, `freshness_status`, `source`, `quality_flags` ใน contract ที่จำเป็น
-- [ ] `CP-DATA-004` ให้ frontend types mirror backend schemas และเพิ่ม contract tests
-- [ ] `CP-DATA-005` แสดง last updated/fallback state ด้วยภาษาที่ผู้ใช้เข้าใจ ไม่ใช้สีอย่างเดียว
+- [x] `CP-DATA-001` กำหนด canonical thresholds แห่งเดียว: fresh ≤60 นาที, delayed ≤90 นาที, expired >90 นาที
+- [x] `CP-DATA-002` ทำให้ readiness นับ fresh/delayed/expired จาก classifier เดียวกับ current API
+- [x] `CP-DATA-003` เปิดเผย `recorded_at`, `age_minutes`, `data_status`, `source` และ `quality_flags` ใน contract ที่จำเป็น
+- [x] `CP-DATA-004` ให้ frontend types mirror backend schemas และเพิ่ม OpenAPI contract tests
+- [x] `CP-DATA-005` แสดง last updated/fallback state ด้วยภาษาที่ผู้ใช้เข้าใจ ไม่ใช้สีอย่างเดียว
 - [ ] `CP-DATA-006` เพิ่ม monitor สำหรับ station count, latest observation, stale ratio, sync duration และ upstream failure
 - [ ] `CP-DATA-007` ตรวจ Supabase cron ทุก 15 นาทีและ GitHub backup scheduler; alert เมื่อ primary ไม่ทำงาน
-- [ ] `CP-DATA-008` เพิ่ม synthetic production smoke หลัง cron เพื่อยืนยันว่าข้อมูลใหม่ถูกบันทึกจริง
+- [x] `CP-DATA-008` เพิ่ม production smoke หลัง release และหลัง backup cron เพื่อยืนยัน release SHA กับข้อมูล fresh จริง
 
 ### เกณฑ์ผ่าน
 

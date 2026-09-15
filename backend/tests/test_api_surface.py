@@ -57,3 +57,27 @@ def test_public_contract_has_no_legacy_user_entered_pm25_field():
         "community_report_count"
         not in openapi["components"]["schemas"]["ForecastResponse"]["properties"]
     )
+
+
+def test_air_quality_freshness_contract_is_explicit():
+    schemas = create_app().openapi()["components"]["schemas"]
+    station_fields = schemas["Station"]["properties"]
+    current_fields = schemas["StationsResponse"]["properties"]
+    readiness_fields = schemas["ReadinessResponse"]["properties"]
+
+    assert {"recorded_at", "data_status", "age_minutes", "quality_flags"} <= set(
+        station_fields
+    )
+    assert {
+        "source",
+        "fresh_count",
+        "delayed_count",
+        "expired_count",
+    } <= set(current_fields)
+    assert {
+        "fresh_station_count",
+        "delayed_station_count",
+        "expired_station_count",
+        "fresh_max_age_minutes",
+        "surface_max_age_minutes",
+    } <= set(readiness_fields)

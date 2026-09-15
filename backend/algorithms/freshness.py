@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+FRESH_MAX_AGE_MINUTES = 60.0
+DELAYED_MAX_AGE_MINUTES = 90.0
+
 
 def station_freshness(recorded_at: str | None, now: datetime | None = None) -> dict:
     age: float | None = None
@@ -16,9 +19,9 @@ def station_freshness(recorded_at: str | None, now: datetime | None = None) -> d
         pass
     status = (
         "fresh"
-        if age is not None and age <= 60
+        if age is not None and age <= FRESH_MAX_AGE_MINUTES
         else "delayed"
-        if age is not None and age <= 90
+        if age is not None and age <= DELAYED_MAX_AGE_MINUTES
         else "expired"
     )
     return {

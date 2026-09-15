@@ -75,8 +75,36 @@ jobs:
             echo "Completed ${path}"
           }
 
+          verify_readiness() {
+            local body
+            if ! body="$(curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 30 \
+              --retry 2 \
+              --retry-all-errors \
+              --retry-delay 5 \
+              "${base_url}/api/ready")"; then
+              echo "::error::Readiness request failed after sync"
+              return 1
+            fi
+            if ! jq -e '
+              .status == "ready" and
+              .fresh_station_count > 0 and
+              .fresh_max_age_minutes == 60 and
+              .surface_max_age_minutes == 90
+            ' <<<"$body" >/dev/null; then
+              echo "::error::Production remained stale or returned an unexpected freshness contract after sync"
+              jq '{status, reason, station_count, fresh_station_count, delayed_station_count, expired_station_count, latest_recorded_at}' <<<"$body"
+              return 1
+            fi
+            jq '{status, station_count, fresh_station_count, delayed_station_count, expired_station_count, latest_recorded_at}' <<<"$body"
+          }
+
           failures=0
           invoke "/api/cron/sync" || failures=1
+          verify_readiness || failures=1
           invoke "/api/cron/alerts" || failures=1
           invoke "/api/cron/forecast-evaluation" || failures=1
 

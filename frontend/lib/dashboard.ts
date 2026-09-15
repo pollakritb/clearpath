@@ -77,6 +77,7 @@ export function buildCurrentSurfaceStations(
     age_minutes: null,
     eligible_for_surface: true,
     in_service_area: true,
+    quality_flags: ["community_gap_fill"],
   }));
   return [...officialStations, ...communityStations];
 }
@@ -105,6 +106,10 @@ export function buildForecastSurfaceStations(
         age_minutes: null,
         eligible_for_surface: true,
         in_service_area: true,
+        quality_flags:
+          cell.coverage === "covered"
+            ? ["forecast_surface"]
+            : ["forecast_surface", "sparse_coverage"],
       },
     ];
   });

@@ -1,6 +1,8 @@
 """Air-quality station and historical reading contracts."""
 
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class Station(BaseModel):
@@ -19,9 +21,11 @@ class Station(BaseModel):
     age_minutes: float | None = None
     eligible_for_surface: bool = False
     in_service_area: bool = False
+    quality_flags: list[str] = Field(default_factory=list)
 
 
 class StationsResponse(BaseModel):
+    source: Literal["air4thai"] = "air4thai"
     stations: list[Station]
     count: int
     updated_at: str | None = None

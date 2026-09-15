@@ -29,6 +29,7 @@ const station = (overrides: Partial<Station> = {}): Station => ({
   age_minutes: 10,
   eligible_for_surface: true,
   in_service_area: true,
+  quality_flags: [],
   ...overrides,
 });
 
