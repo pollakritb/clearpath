@@ -38,7 +38,7 @@ jobs:
         run: python -m scripts.train_forecast data/forecast_training.csv --output backend/model_artifacts
       - name: Verify registry payload without writing
         run: python -m scripts.register_forecast_models --directory backend/model_artifacts --environment staging
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: forecast-candidate-${{ github.run_id }}
