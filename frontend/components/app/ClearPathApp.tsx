@@ -19,18 +19,28 @@ import { useForecastSurface } from "@/frontend/hooks/useForecastSurface";
 import { useHistory } from "@/frontend/hooks/useHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { useWeather } from "@/frontend/hooks/useWeather";
-import { communitySourceKind } from "@/frontend/lib/source-kind";
 import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
+import {
+  buildCurrentSurfaceStations,
+  buildForecastSurfaceStations,
+  countCommunitySources,
+  DASHBOARD_COPY,
+} from "@/frontend/lib/dashboard";
 import type {
   CommunityReport,
   LocationSuggestion,
   Station,
 } from "@/frontend/types";
-import type { ReportLocation, ViewportBounds } from "@/frontend/types/ui";
+import type {
+  DashboardTab,
+  ReportLocation,
+  SheetSnap,
+  ViewMode,
+  ViewportBounds,
+} from "@/frontend/types/ui";
 
 import DashboardSidebar from "./DashboardSidebar";
-import type { DashboardTab, SheetSnap, ViewMode } from "./dashboard-types";
-import { SHEET_Y } from "./dashboard-types";
+import { SHEET_Y } from "@/frontend/lib/dashboard";
 import MapChrome from "./MapChrome";
 import MapStatusCard from "./MapStatusCard";
 import MobileAirSummary from "./MobileAirSummary";
@@ -38,11 +48,7 @@ import NationalSummary from "./NationalSummary";
 
 const MapView = dynamic(() => import("@/frontend/components/map/MapView"), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-full items-center justify-center">
-      กำลังโหลดแผนที่…
-    </div>
-  ),
+  loading: () => <div className="cp-centered-status">กำลังโหลดแผนที่…</div>,
 });
 
 export default function ClearPathApp({
@@ -107,36 +113,11 @@ export default function ClearPathApp({
     [pm25.stations],
   );
   const communitySourceCounts = useMemo(
-    () =>
-      community.reports.reduce(
-        (counts, report) => {
-          counts[communitySourceKind(report)] += 1;
-          return counts;
-        },
-        { sensor: 0, individual: 0 },
-      ),
+    () => countCommunitySources(community.reports),
     [community.reports],
   );
 
-  const sectionCopy = {
-    map: {
-      title: "แผนที่คุณภาพอากาศ",
-      description: "ค้นหาสถานีและดูค่าฝุ่นในพื้นที่ใกล้คุณ",
-    },
-    overview: {
-      title: "อากาศวันนี้",
-      description: "ค่าปัจจุบัน คำแนะนำ พยากรณ์ และประวัติรายสถานี",
-    },
-    report: {
-      title: "ส่งข้อมูลจากเครื่องวัด",
-      description: "ถ่ายภาพสดพร้อม GPS แล้วให้ระบบตรวจหลักฐานอัตโนมัติ",
-    },
-    community: {
-      title: "ชุมชนอากาศสะอาด",
-      description:
-        "ติดตามประกาศ ขอบคุณผู้แบ่งปันข้อมูล และร่วมกิจกรรมสะสมคะแนน",
-    },
-  }[activeTab];
+  const sectionCopy = DASHBOARD_COPY[activeTab];
 
   const selectStation = useCallback(
     (station: Station) => {
@@ -184,30 +165,7 @@ export default function ClearPathApp({
   }, [forecastLoad, routeStation, weatherLoad]);
 
   const currentSurfaceStations = useMemo<Station[]>(() => {
-    const gapReports = community.mapPoints.map(
-      (point) =>
-        ({
-          id: point.id,
-          name_th: "รายงานชุมชนที่ผ่านเกณฑ์",
-          name_en: "Verified community gap-fill",
-          lat: point.lat,
-          lon: point.lon,
-          province: null,
-          pm25: point.pm25,
-          aqi: null,
-          color: null,
-          level: null,
-          recorded_at: null,
-          data_status: "fresh" as const,
-          age_minutes: null,
-          eligible_for_surface: true,
-          in_service_area: true,
-        }) satisfies Station,
-    );
-    return [
-      ...pm25.stations.filter((station) => station.eligible_for_surface),
-      ...gapReports,
-    ];
+    return buildCurrentSurfaceStations(pm25.stations, community.mapPoints);
   }, [pm25.stations, community.mapPoints]);
 
   const forecastSurfaceLoad = forecastSurface.load;
@@ -227,31 +185,7 @@ export default function ClearPathApp({
   ]);
 
   const forecastSurfaceStations = useMemo<Station[]>(() => {
-    const surface = forecastSurface.data;
-    if (!surface) return [];
-    return surface.cells.flatMap((cell, index) =>
-      cell.pm25 == null
-        ? []
-        : [
-            {
-              id: `forecast-${mapHorizon}-${index}`,
-              name_th: `พื้นผิวพยากรณ์ ${mapHorizon} ชั่วโมง`,
-              name_en: "Forecast surface",
-              lat: cell.lat,
-              lon: cell.lon,
-              province: null,
-              pm25: cell.pm25,
-              aqi: null,
-              color: null,
-              level: null,
-              recorded_at: surface.generated_at,
-              data_status: cell.coverage === "covered" ? "fresh" : "delayed",
-              age_minutes: null,
-              eligible_for_surface: true,
-              in_service_area: true,
-            } satisfies Station,
-          ],
-    );
+    return buildForecastSurfaceStations(forecastSurface.data, mapHorizon);
   }, [forecastSurface.data, mapHorizon]);
   const surfaceStations =
     mapHorizon === 0 ? currentSurfaceStations : forecastSurfaceStations;

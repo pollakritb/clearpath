@@ -1,15 +1,10 @@
-@theme inline {
-  --color-background: var(--cp-appbg);
-  --color-foreground: var(--cp-ink);
-  --font-sans: var(--font-noto-thai), system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
-}
-
 /* ============================================================
    ClearPath design tokens (civic-tech teal + warm sand)
    theme-swappable via CSS vars so high-contrast just remaps them
    ============================================================ */
 :root {
+  --font-sans: var(--font-noto-thai), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
   --cp-ink: #172522;
   --cp-subink: #5d6c68;
   --cp-line: #dde5e1;
@@ -62,6 +57,7 @@
 html,
 body {
   height: 100%;
+  min-height: 100%;
   overscroll-behavior: none;
 }
 
@@ -73,6 +69,20 @@ body {
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.cp-fill-container {
+  width: 100%;
+  height: 100%;
+}
+
+.cp-centered-status {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
 }
 
 button,
@@ -85,22 +95,6 @@ textarea {
 /* ============================================================
    motion — all respect prefers-reduced-motion
    ============================================================ */
-@keyframes cp-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes cp-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.12);
-  }
-}
 @keyframes cp-rise {
   from {
     opacity: 0;
@@ -111,34 +105,12 @@ textarea {
     transform: translateY(0);
   }
 }
-@keyframes cp-sound {
-  0%,
-  100% {
-    transform: scaleY(0.4);
-  }
-  50% {
-    transform: scaleY(1);
-  }
-}
-
-.cp-anim-spin {
-  animation: cp-spin 0.7s linear infinite;
-}
-.cp-anim-pulse {
-  animation: cp-pulse 2.4s ease-in-out infinite;
-}
 .cp-anim-rise {
   animation: cp-rise 0.32s ease;
 }
-.cp-anim-sound {
-  animation: cp-sound 0.6s ease-in-out infinite;
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .cp-anim-spin,
-  .cp-anim-pulse,
-  .cp-anim-rise,
-  .cp-anim-sound {
+  .cp-anim-rise {
     animation: none !important;
   }
 }
@@ -158,10 +130,4 @@ textarea {
 .cp-scroll::-webkit-scrollbar-thumb {
   background: rgba(20, 60, 58, 0.18);
   border-radius: 8px;
-}
-.cp-noscroll::-webkit-scrollbar {
-  display: none;
-}
-.cp-noscroll {
-  scrollbar-width: none;
 }

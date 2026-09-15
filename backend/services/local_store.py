@@ -53,6 +53,9 @@ _FORECAST_PREDICTION_SOURCES: list[dict] = []
 _COMMUNITY_FORECAST_FEATURES: list[dict] = []
 
 
+# External forecast provider snapshots and consensus
+
+
 def create_provider_sync_run(row: dict) -> dict:
     with _LOCK:
         _FORECAST_PROVIDER_SYNC_RUNS[str(row["id"])] = dict(row)
@@ -202,6 +205,9 @@ _ACTIVITIES = [
 ]
 
 
+# Official monitoring stations and time-series readings
+
+
 def _seed_stations() -> None:
     if _STATIONS:
         return
@@ -291,6 +297,9 @@ def get_history(station_id: str, hours: int) -> list[dict]:
         ]
 
 
+# Forecast evaluation and retention
+
+
 def insert_forecast_ledger(run: dict, predictions: list[dict]) -> None:
     """Keep local demo observability without requiring a production database."""
 
@@ -345,6 +354,9 @@ def upsert_forecast_false_safe_review(row: dict) -> dict:
     with _LOCK:
         _FORECAST_FALSE_SAFE_REVIEWS[key] = dict(row)
         return dict(_FORECAST_FALSE_SAFE_REVIEWS[key])
+
+
+# User profiles, private evidence, and report drafts
 
 
 def ensure_profile(
@@ -482,6 +494,9 @@ def take_rate_limit(
         count = _RATE_WINDOWS.get(key, 0) + 1
         _RATE_WINDOWS[key] = count
         return count <= limit
+
+
+# Operations, notifications, and delivery outbox
 
 
 def create_sync_run(row: dict) -> dict:
@@ -762,6 +777,9 @@ def notification_outbox_summary() -> dict:
     }
 
 
+# Forecast feature inputs
+
+
 def upsert_weather_observation(row: dict) -> None:
     with _LOCK:
         _WEATHER_OBSERVATIONS.append(dict(row))
@@ -806,6 +824,9 @@ def get_latest_forecast_features(station_id: str) -> dict:
         for horizon in (1, 3, 6, 12, 24):
             result[f"forecast_weather_status_h{horizon}"] = "unavailable"
         return result
+
+
+# Community reports, moderation, and reputation
 
 
 def image_token(path: str) -> str:
@@ -1007,6 +1028,9 @@ def leaderboard(limit: int, weekly: bool = False) -> list[dict]:
         )
         rows.sort(key=key, reverse=True)
         return [dict(row) for row in rows[:limit]]
+
+
+# Community announcements and activities
 
 
 def announcements() -> list[dict]:

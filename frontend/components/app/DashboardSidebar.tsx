@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useRef } from "react";
 
 import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
 
-import type { DashboardTab, SheetSnap } from "./dashboard-types";
+import type { DashboardTab, SheetSnap } from "@/frontend/types/ui";
 
 const TABS: Array<{
   id: DashboardTab;

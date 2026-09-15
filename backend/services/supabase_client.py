@@ -91,6 +91,9 @@ def get_auth_user(access_token: str) -> dict:
     }
 
 
+# Official monitoring stations and time-series readings
+
+
 def upsert_stations(stations: list[dict]) -> int:
     """upsert ค่าล่าสุดของแต่ละสถานี (ตาราง stations)"""
     if settings.local_demo_mode:
@@ -176,6 +179,9 @@ def get_history(station_id: str, hours: int = 24) -> list[dict]:
         )
     )
     return res.data or []
+
+
+# External forecast provider snapshots and consensus
 
 
 def create_provider_sync_run(row: dict) -> dict:
@@ -372,6 +378,9 @@ def forecast_provider_health() -> dict:
 
 
 # ── Community platform ─────────────────────────────────────
+# User profiles, capture sessions, and report drafts
+
+
 def ensure_profile(
     user_id: str,
     display_name: str | None = None,
@@ -596,6 +605,9 @@ def get_report_evidence(report_id: str) -> dict | None:
     return rows[0] if rows else None
 
 
+# Operations, audit, and abuse protection
+
+
 def take_rate_limit(
     actor_key: str, action: str, window_seconds: int, limit: int
 ) -> bool:
@@ -679,6 +691,9 @@ def list_sync_runs(limit: int = 50) -> list[dict]:
         .limit(limit)
         .execute()
     ).data or []
+
+
+# Notification channels, preferences, and delivery outbox
 
 
 def upsert_push_subscription(row: dict) -> dict:
@@ -1019,6 +1034,9 @@ def notification_outbox_summary() -> dict:
         "oldest_waiting_at": waiting[0].get("created_at") if waiting else None,
         "latest_error": failed[0].get("last_error") if failed else None,
     }
+
+
+# Forecast features, model registry, evaluation, and retention
 
 
 def upsert_weather_observation(row: dict) -> None:
@@ -1481,6 +1499,9 @@ def get_forecast_data_quality_summary(days: int = 7) -> list[dict]:
     ).data or []
 
 
+# Community reports, moderation, reputation, and private evidence
+
+
 def signed_report_image_url(path: str | None, expires_in: int = 3600) -> str | None:
     if not path:
         return None
@@ -1922,6 +1943,9 @@ def get_weekly_leaderboard(limit: int = 20) -> list[dict]:
         reverse=True,
     )
     return rows[:limit]
+
+
+# Community announcements and activities
 
 
 def get_announcements(limit: int = 20) -> list[dict]:

@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { AQI_LEGEND } from "@/frontend/lib/aqi";
-import { api } from "@/frontend/lib/api-client";
 import type { LocationSuggestion, Station } from "@/frontend/types";
-
-import type { ViewMode } from "./dashboard-types";
+import type { ViewMode } from "@/frontend/types/ui";
+import MapLayersPanel from "./MapLayersPanel";
+import MapSearchPanel from "./MapSearchPanel";
 
 interface MapChromeProps {
   viewMode: ViewMode;
@@ -63,39 +63,9 @@ export default function MapChrome({
   onStationSelect,
 }: MapChromeProps) {
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
-  const [query, setQuery] = useState("");
-  const [locations, setLocations] = useState<LocationSuggestion[]>([]);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const stationMatches =
-    query.trim().length < 2
-      ? []
-      : stations
-          .filter((station) =>
-            `${station.id} ${station.name_th ?? ""} ${station.name_en ?? ""} ${station.province ?? ""}`
-              .toLocaleLowerCase("th")
-              .includes(query.trim().toLocaleLowerCase("th")),
-          )
-          .slice(0, 6);
-  const visibleLocations = query.trim().length < 2 ? [] : locations;
-
-  useEffect(() => {
-    if (openPanel === "search") searchRef.current?.focus();
-  }, [openPanel]);
-
-  useEffect(() => {
-    if (query.trim().length < 2) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      void api
-        .searchLocations(query.trim())
-        .then((result) => setLocations(result.locations))
-        .catch(() => setLocations([]));
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [query]);
-
   const closePanel = () => setOpenPanel(null);
+  const togglePanel = (panel: Exclude<OpenPanel, null>) =>
+    setOpenPanel((current) => (current === panel ? null : panel));
 
   return (
     <>
@@ -115,32 +85,20 @@ export default function MapChrome({
       </div>
 
       <div className="cp-map-actions" aria-label="เครื่องมือแผนที่">
-        <button
-          type="button"
-          className="cp-map-action cp-focus"
-          aria-label="ค้นหาสถานีหรือพื้นที่"
-          aria-expanded={openPanel === "search"}
-          aria-controls="cp-map-search-panel"
-          data-active={openPanel === "search"}
-          onClick={() =>
-            setOpenPanel((current) => (current === "search" ? null : "search"))
-          }
-        >
-          <AppIcon name="search" size={22} />
-        </button>
-        <button
-          type="button"
-          className="cp-map-action cp-focus"
-          aria-label="เลือกข้อมูลที่แสดงบนแผนที่"
-          aria-expanded={openPanel === "layers"}
-          aria-controls="cp-map-layers-panel"
-          data-active={openPanel === "layers"}
-          onClick={() =>
-            setOpenPanel((current) => (current === "layers" ? null : "layers"))
-          }
-        >
-          <AppIcon name="layers" size={22} />
-        </button>
+        <MapAction
+          icon="search"
+          label="ค้นหาสถานีหรือพื้นที่"
+          panelId="cp-map-search-panel"
+          active={openPanel === "search"}
+          onClick={() => togglePanel("search")}
+        />
+        <MapAction
+          icon="layers"
+          label="เลือกข้อมูลที่แสดงบนแผนที่"
+          panelId="cp-map-layers-panel"
+          active={openPanel === "layers"}
+          onClick={() => togglePanel("layers")}
+        />
       </div>
 
       <div className="cp-map-aqi-legend" aria-label="สีระดับ PM2.5 ห้าระดับ">
@@ -157,236 +115,65 @@ export default function MapChrome({
       </div>
 
       {openPanel === "search" && (
-        <section
-          id="cp-map-search-panel"
-          className="cp-map-flyout cp-map-search-panel"
-          aria-label="ค้นหาสถานีหรือพื้นที่"
-        >
-          <div className="cp-map-flyout__heading">
-            <div>
-              <strong>ค้นหาบนแผนที่</strong>
-              <small>สถานี จังหวัด อำเภอ หรือตำบล</small>
-            </div>
-            <button
-              type="button"
-              className="cp-map-flyout__close cp-focus"
-              onClick={closePanel}
-              aria-label="ปิดการค้นหา"
-            >
-              <AppIcon name="close" size={20} />
-            </button>
-          </div>
-          <label className="cp-map-search-field">
-            <AppIcon name="search" size={19} />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="ค้นหาสถานีหรือพื้นที่"
-              aria-label="คำค้นหา"
-            />
-          </label>
-          {query.trim().length > 0 && query.trim().length < 2 && (
-            <p className="cp-map-search-panel__hint">
-              พิมพ์อย่างน้อย 2 ตัวอักษร
-            </p>
-          )}
-          {(stationMatches.length > 0 || visibleLocations.length > 0) && (
-            <div className="cp-map-search-results">
-              {stationMatches.map((station) => (
-                <button
-                  key={`station:${station.id}`}
-                  type="button"
-                  className="cp-map-search-option cp-focus"
-                  onClick={() => {
-                    onStationSelect(station);
-                    setQuery(station.name_th ?? station.name_en ?? station.id);
-                    closePanel();
-                  }}
-                >
-                  <span
-                    className="cp-map-search-option__icon"
-                    data-kind="station"
-                  >
-                    <AppIcon name="station" size={18} />
-                  </span>
-                  <span>
-                    <strong>
-                      {station.name_th ?? station.name_en ?? station.id}
-                    </strong>
-                    <small>
-                      สถานีตรวจวัด Air4Thai
-                      {station.province ? ` · ${station.province}` : ""}
-                    </small>
-                  </span>
-                </button>
-              ))}
-              {visibleLocations.map((location) => (
-                <button
-                  key={location.id}
-                  type="button"
-                  className="cp-map-search-option cp-focus"
-                  onClick={() => {
-                    onLocationSelect(location);
-                    setQuery(`${location.name}, ${location.district}`);
-                    closePanel();
-                  }}
-                >
-                  <span
-                    className="cp-map-search-option__icon"
-                    data-kind="location"
-                  >
-                    <AppIcon name="location" size={18} />
-                  </span>
-                  <span>
-                    <strong>{location.name}</strong>
-                    <small>
-                      อ.{location.district} ·{" "}
-                      {location.kind === "subdistrict" ? "ตำบล" : "อำเภอ"}
-                    </small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+        <MapSearchPanel
+          stations={stations}
+          onClose={closePanel}
+          onLocationSelect={onLocationSelect}
+          onStationSelect={onStationSelect}
+        />
       )}
-
       {openPanel === "layers" && (
-        <section
-          id="cp-map-layers-panel"
-          className="cp-map-flyout cp-map-layers-panel"
-          aria-label="เลือกข้อมูลที่แสดงบนแผนที่"
-        >
-          <div className="cp-map-flyout__heading">
-            <div>
-              <strong>ข้อมูลบนแผนที่</strong>
-              <small>สัญลักษณ์แต่ละแบบมาจากคนละแหล่ง</small>
-            </div>
-            <button
-              type="button"
-              className="cp-map-flyout__close cp-focus"
-              onClick={closePanel}
-              aria-label="ปิดตัวเลือกข้อมูล"
-            >
-              <AppIcon name="close" size={20} />
-            </button>
-          </div>
-
-          <div className="cp-map-layer-list">
-            <button
-              type="button"
-              className="cp-map-layer cp-focus"
-              data-active={showStations}
-              aria-pressed={showStations}
-              onClick={onToggleStations}
-            >
-              <span className="cp-layer-symbol cp-layer-symbol--station">
-                <AppIcon name="station" size={18} />
-              </span>
-              <span>
-                <strong>สถานีตรวจวัดทางการ</strong>
-                <small>Air4Thai · {stationCount} สถานี</small>
-              </span>
-              <span className="cp-layer-switch" aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="cp-map-layer cp-focus"
-              data-active={showFires}
-              aria-pressed={showFires}
-              onClick={onToggleFires}
-            >
-              <span className="cp-layer-symbol cp-layer-symbol--fire">
-                <AppIcon name="fire" size={18} />
-              </span>
-              <span>
-                <strong>จุดต้องสงสัยการเผาไหม้</strong>
-                <small>
-                  NASA FIRMS ·{" "}
-                  {fireAvailable ? `${fireCount} จุด` : "ยังไม่มีข้อมูล"}
-                </small>
-              </span>
-              <span className="cp-layer-switch" aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="cp-map-layer cp-focus"
-              data-active={showCommunitySensors}
-              aria-pressed={showCommunitySensors}
-              onClick={onToggleCommunitySensors}
-            >
-              <span className="cp-layer-symbol cp-layer-symbol--sensor">
-                <AppIcon name="community-station" size={17} />
-              </span>
-              <span>
-                <strong>สถานีเซนเซอร์ชุมชน</strong>
-                <small>อุปกรณ์ประจำจุดที่ลงทะเบียน · {sensorCount} สถานี</small>
-              </span>
-              <span className="cp-layer-switch" aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="cp-map-layer cp-focus"
-              data-active={showIndividualReports}
-              aria-pressed={showIndividualReports}
-              onClick={onToggleIndividualReports}
-            >
-              <span className="cp-layer-symbol cp-layer-symbol--individual">
-                <AppIcon name="user" size={15} />
-              </span>
-              <span>
-                <strong>รายงานจากบุคคล</strong>
-                <small>
-                  ภาพเครื่องวัดพร้อม GPS · {individualReportCount} รายงาน
-                </small>
-              </span>
-              <span className="cp-layer-switch" aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="cp-map-layer cp-focus"
-              data-active={showHeatmap}
-              aria-pressed={showHeatmap}
-              onClick={onToggleHeatmap}
-            >
-              <span className="cp-layer-symbol cp-layer-symbol--surface" />
-              <span>
-                <strong>พื้นผิวค่าฝุ่น</strong>
-                <small>คำนวณจากข้อมูลที่ผ่านเกณฑ์</small>
-              </span>
-              <span className="cp-layer-switch" aria-hidden />
-            </button>
-          </div>
-
-          <div className="cp-map-layer-actions">
-            <button
-              type="button"
-              className="cp-focus"
-              onClick={() => {
-                onViewModeChange(viewMode === "map" ? "list" : "map");
-                closePanel();
-              }}
-            >
-              <AppIcon name={viewMode === "map" ? "menu" : "map"} size={19} />
-              {viewMode === "map" ? "ดูรายการสถานี" : "กลับไปแผนที่"}
-            </button>
-            <button
-              type="button"
-              className="cp-focus"
-              data-active={bigText}
-              aria-pressed={bigText}
-              onClick={onToggleBigText}
-            >
-              <span aria-hidden>ก</span>
-              ตัวอักษรใหญ่
-            </button>
-          </div>
-          <p className="cp-map-layer-note">
-            สีหมุดบอกระดับ PM2.5 ทั้ง 5 ระดับ · รูปทรงและไอคอนบอกเจ้าของข้อมูล
-          </p>
-        </section>
+        <MapLayersPanel
+          viewMode={viewMode}
+          stationCount={stationCount}
+          sensorCount={sensorCount}
+          individualReportCount={individualReportCount}
+          fireCount={fireCount}
+          fireAvailable={fireAvailable}
+          bigText={bigText}
+          showHeatmap={showHeatmap}
+          showStations={showStations}
+          showCommunitySensors={showCommunitySensors}
+          showIndividualReports={showIndividualReports}
+          showFires={showFires}
+          onClose={closePanel}
+          onViewModeChange={onViewModeChange}
+          onToggleBigText={onToggleBigText}
+          onToggleHeatmap={onToggleHeatmap}
+          onToggleStations={onToggleStations}
+          onToggleCommunitySensors={onToggleCommunitySensors}
+          onToggleIndividualReports={onToggleIndividualReports}
+          onToggleFires={onToggleFires}
+        />
       )}
     </>
+  );
+}
+
+function MapAction({
+  icon,
+  label,
+  panelId,
+  active,
+  onClick,
+}: {
+  icon: "search" | "layers";
+  label: string;
+  panelId: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="cp-map-action cp-focus"
+      aria-label={label}
+      aria-expanded={active}
+      aria-controls={panelId}
+      data-active={active}
+      onClick={onClick}
+    >
+      <AppIcon name={icon} size={22} />
+    </button>
   );
 }

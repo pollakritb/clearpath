@@ -73,7 +73,7 @@ export default function MapView({
       center={THAILAND_CENTER}
       zoom={DEFAULT_ZOOM}
       zoomControl={false}
-      className="h-full w-full"
+      className="cp-fill-container"
       scrollWheelZoom
     >
       <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />

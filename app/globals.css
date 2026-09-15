@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import "../frontend/styles/foundation.css";
+@import "../frontend/styles/legal.css";
 @import "../frontend/styles/user-app.css";
 @import "../frontend/styles/mobile-redesign.css";
 @import "../frontend/styles/admin-app.css";

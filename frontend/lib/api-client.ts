@@ -33,7 +33,6 @@ import type {
   ModerationRequest,
   LocationSearchResponse,
   StationsResponse,
-  ValidationResponse,
   Weather,
 } from "@/frontend/types";
 import type {
@@ -105,9 +104,6 @@ export const api = {
     http<HistoryResponse>(
       `/api/history?station_id=${encodeURIComponent(stationId)}&hours=${hours}`,
     ),
-
-  validate: (method: "idw" | "kriging" | "both" = "both") =>
-    http<ValidationResponse>(`/api/validate?method=${method}`),
 
   forecast: (stationId: string, hours = 12) =>
     http<ForecastResponse>(

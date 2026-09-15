@@ -1,0 +1,180 @@
+import AppIcon from "@/frontend/components/ui/AppIcon";
+
+import type { ViewMode } from "@/frontend/types/ui";
+
+interface MapLayersPanelProps {
+  viewMode: ViewMode;
+  stationCount: number;
+  sensorCount: number;
+  individualReportCount: number;
+  fireCount: number;
+  fireAvailable: boolean;
+  bigText: boolean;
+  showHeatmap: boolean;
+  showStations: boolean;
+  showCommunitySensors: boolean;
+  showIndividualReports: boolean;
+  showFires: boolean;
+  onClose: () => void;
+  onViewModeChange: (mode: ViewMode) => void;
+  onToggleBigText: () => void;
+  onToggleHeatmap: () => void;
+  onToggleStations: () => void;
+  onToggleCommunitySensors: () => void;
+  onToggleIndividualReports: () => void;
+  onToggleFires: () => void;
+}
+
+export default function MapLayersPanel({
+  viewMode,
+  stationCount,
+  sensorCount,
+  individualReportCount,
+  fireCount,
+  fireAvailable,
+  bigText,
+  showHeatmap,
+  showStations,
+  showCommunitySensors,
+  showIndividualReports,
+  showFires,
+  onClose,
+  onViewModeChange,
+  onToggleBigText,
+  onToggleHeatmap,
+  onToggleStations,
+  onToggleCommunitySensors,
+  onToggleIndividualReports,
+  onToggleFires,
+}: MapLayersPanelProps) {
+  return (
+    <section
+      id="cp-map-layers-panel"
+      className="cp-map-flyout cp-map-layers-panel"
+      aria-label="เลือกข้อมูลที่แสดงบนแผนที่"
+    >
+      <div className="cp-map-flyout__heading">
+        <div>
+          <strong>ข้อมูลบนแผนที่</strong>
+          <small>สัญลักษณ์แต่ละแบบมาจากคนละแหล่ง</small>
+        </div>
+        <button
+          type="button"
+          className="cp-map-flyout__close cp-focus"
+          onClick={onClose}
+          aria-label="ปิดตัวเลือกข้อมูล"
+        >
+          <AppIcon name="close" size={20} />
+        </button>
+      </div>
+
+      <div className="cp-map-layer-list">
+        <LayerButton
+          active={showStations}
+          icon="station"
+          symbolClass="cp-layer-symbol--station"
+          title="สถานีตรวจวัดทางการ"
+          description={`Air4Thai · ${stationCount} สถานี`}
+          onClick={onToggleStations}
+        />
+        <LayerButton
+          active={showFires}
+          icon="fire"
+          symbolClass="cp-layer-symbol--fire"
+          title="จุดความร้อนจากดาวเทียม"
+          description={`NASA FIRMS · ${fireAvailable ? `${fireCount} จุด` : "ยังไม่มีข้อมูล"}`}
+          onClick={onToggleFires}
+        />
+        <LayerButton
+          active={showCommunitySensors}
+          icon="community-station"
+          iconSize={17}
+          symbolClass="cp-layer-symbol--sensor"
+          title="สถานีเซนเซอร์ชุมชน"
+          description={`อุปกรณ์ประจำจุดที่ลงทะเบียน · ${sensorCount} สถานี`}
+          onClick={onToggleCommunitySensors}
+        />
+        <LayerButton
+          active={showIndividualReports}
+          icon="user"
+          iconSize={15}
+          symbolClass="cp-layer-symbol--individual"
+          title="รายงานจากบุคคล"
+          description={`ภาพเครื่องวัดพร้อม GPS · ${individualReportCount} รายงาน`}
+          onClick={onToggleIndividualReports}
+        />
+        <LayerButton
+          active={showHeatmap}
+          symbolClass="cp-layer-symbol--surface"
+          title="พื้นผิวค่าฝุ่น"
+          description="คำนวณจากข้อมูลที่ผ่านเกณฑ์"
+          onClick={onToggleHeatmap}
+        />
+      </div>
+
+      <div className="cp-map-layer-actions">
+        <button
+          type="button"
+          className="cp-focus"
+          onClick={() => {
+            onViewModeChange(viewMode === "map" ? "list" : "map");
+            onClose();
+          }}
+        >
+          <AppIcon name={viewMode === "map" ? "menu" : "map"} size={19} />
+          {viewMode === "map" ? "ดูรายการสถานี" : "กลับไปแผนที่"}
+        </button>
+        <button
+          type="button"
+          className="cp-focus"
+          data-active={bigText}
+          aria-pressed={bigText}
+          onClick={onToggleBigText}
+        >
+          <span aria-hidden>ก</span>
+          ตัวอักษรใหญ่
+        </button>
+      </div>
+      <p className="cp-map-layer-note">
+        สีหมุดบอกระดับ PM2.5 ทั้ง 5 ระดับ · รูปทรงและไอคอนบอกเจ้าของข้อมูล
+      </p>
+    </section>
+  );
+}
+
+function LayerButton({
+  active,
+  icon,
+  iconSize = 18,
+  symbolClass,
+  title,
+  description,
+  onClick,
+}: {
+  active: boolean;
+  icon?: Parameters<typeof AppIcon>[0]["name"];
+  iconSize?: number;
+  symbolClass: string;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="cp-map-layer cp-focus"
+      data-active={active}
+      aria-pressed={active}
+      onClick={onClick}
+    >
+      <span className={`cp-layer-symbol ${symbolClass}`}>
+        {icon && <AppIcon name={icon} size={iconSize} />}
+      </span>
+      <span>
+        <strong>{title}</strong>
+        <small>{description}</small>
+      </span>
+      <span className="cp-layer-switch" aria-hidden />
+    </button>
+  );
+}

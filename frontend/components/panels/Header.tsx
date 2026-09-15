@@ -2,7 +2,7 @@
 
 import AuthControl from "@/frontend/components/auth/AuthControl";
 import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
-import type { DashboardTab } from "@/frontend/components/app/dashboard-types";
+import type { DashboardTab } from "@/frontend/types/ui";
 
 interface HeaderProps {
   icon: AppIconName;

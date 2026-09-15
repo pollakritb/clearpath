@@ -38,11 +38,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="th"
-      className={`${notoThai.variable} ${plexMono.variable} h-full`}
-    >
-      <body className="h-full min-h-full font-sans antialiased">
+    <html lang="th" className={`${notoThai.variable} ${plexMono.variable}`}>
+      <body>
         <AuthProvider>{children}</AuthProvider>
         <PwaRegistrar />
       </body>

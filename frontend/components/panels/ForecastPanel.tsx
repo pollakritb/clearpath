@@ -4,21 +4,23 @@ import { useMemo, useState } from "react";
 
 import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
 import { classifyPm25 } from "@/frontend/lib/aqi";
+import {
+  agreementLabel,
+  FORECAST_LIMITATION_LABELS,
+  forecastIntervalHint,
+  forecastMethodLabel,
+  FORECAST_SOURCE_LABELS,
+  FORECAST_SOURCE_ORDER,
+  forecastStatus,
+  formatForecastTime,
+  formatProviderTime,
+  PRODUCT_HORIZONS,
+} from "@/frontend/lib/forecast-presentation";
 import type {
-  ForecastPoint,
   ForecastResponse,
   ForecastSource,
   Station,
 } from "@/frontend/types";
-
-const PRODUCT_HORIZONS = [1, 3, 6, 12, 24] as const;
-
-const SOURCE_LABELS: Record<ForecastSource, string> = {
-  clearpath: "ClearPath",
-  gistda: "GISTDA เช็คฝุ่น",
-  openmeteo_cams: "CAMS / Open-Meteo",
-  openweather: "OpenWeather",
-};
 
 const SOURCE_ICONS: Record<ForecastSource, AppIconName> = {
   clearpath: "activity",
@@ -26,82 +28,6 @@ const SOURCE_ICONS: Record<ForecastSource, AppIconName> = {
   openmeteo_cams: "model",
   openweather: "database",
 };
-
-const SOURCE_ORDER: ForecastSource[] = [
-  "gistda",
-  "openmeteo_cams",
-  "openweather",
-  "clearpath",
-];
-
-const LIMITATION_LABELS: Record<string, string> = {
-  external_provider_partial_horizon: "แหล่งภายนอกครอบคลุมไม่ครบทุกชั่วโมง",
-  single_external_provider:
-    "ช่วงนี้มีข้อมูลจากผู้ให้บริการภายนอกเพียงแหล่งเดียว",
-  external_provider_unavailable: "ยังไม่มีข้อมูลพยากรณ์ภายนอกที่สด",
-  external_provider_disagreement: "ผู้ให้บริการให้ค่าต่างกันมาก",
-  local_fallback_only: "กำลังใช้แนวโน้มสำรองจากข้อมูลสถานี",
-  local_inputs_unusable: "ข้อมูลสถานีไม่เพียงพอสำหรับวิธีสำรอง",
-};
-
-function formatTime(value: string | null): string {
-  if (!value) return "ไม่พบเวลา";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "ไม่พบเวลา";
-  return date.toLocaleString("th-TH", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatForecastTime(value: string | null): string {
-  if (!value) return "ไม่พบเวลา";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "ไม่พบเวลา";
-  const now = new Date();
-  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dayOffset = Math.round(
-    (target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000),
-  );
-  const day =
-    dayOffset === 0
-      ? "วันนี้"
-      : dayOffset === 1
-        ? "พรุ่งนี้"
-        : formatTime(value);
-  if (dayOffset < 0 || dayOffset > 1) return day;
-  return `${day} ${date.toLocaleTimeString("th-TH", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })} น.`;
-}
-
-function agreementLabel(data: ForecastResponse): string {
-  if (data.provider_count < 2) return "ยังเปรียบเทียบไม่ได้";
-  if (data.agreement === "high") return "ใกล้เคียงกัน";
-  if (data.agreement === "medium") return "ต่างกันปานกลาง";
-  return "ต่างกันมาก";
-}
-
-function forecastStatus(data: ForecastResponse): string {
-  if (data.forecast_status === "available" && data.agreement !== "low")
-    return "ใช้วางแผนได้";
-  if (data.forecast_status === "limited" || data.agreement === "low")
-    return "ความมั่นใจต่ำ";
-  return "ยังไม่มีพยากรณ์ที่เชื่อถือได้";
-}
-
-function methodLabel(point: ForecastPoint, source: ForecastSource): string {
-  if (source !== "clearpath") {
-    return `ค่าดิบจาก ${SOURCE_LABELS[source]}`;
-  }
-  return point.model_version
-    ? "โมเดล ClearPath ที่ผ่าน release gate"
-    : "แนวโน้มสำรองจากข้อมูลสถานีล่าสุด";
-}
 
 export default function ForecastPanel({
   station,
@@ -141,7 +67,8 @@ export default function ForecastPanel({
         if (left.source === selected?.source) return -1;
         if (right.source === selected?.source) return 1;
         return (
-          SOURCE_ORDER.indexOf(left.source) - SOURCE_ORDER.indexOf(right.source)
+          FORECAST_SOURCE_ORDER.indexOf(left.source) -
+          FORECAST_SOURCE_ORDER.indexOf(right.source)
         );
       })
       .slice(0, 3) ?? [];
@@ -196,7 +123,7 @@ export default function ForecastPanel({
           <strong>ยังไม่แสดงตัวเลขเพื่อป้องกันความเข้าใจผิด</strong>
           <ul>
             {data.unavailable_reason_codes.map((code) => (
-              <li key={code}>{LIMITATION_LABELS[code] ?? code}</li>
+              <li key={code}>{FORECAST_LIMITATION_LABELS[code] ?? code}</li>
             ))}
           </ul>
         </div>
@@ -246,7 +173,9 @@ export default function ForecastPanel({
                   ? `อีก ${selected.horizon_hours} ชม. · ${formatForecastTime(selected.forecast_at)}`
                   : "กำลังดูค่าจากแหล่งนี้"}
               </span>
-              <small>{SOURCE_LABELS[activeSource ?? "clearpath"]}</small>
+              <small>
+                {FORECAST_SOURCE_LABELS[activeSource ?? "clearpath"]}
+              </small>
               <strong>{displayPm25}</strong>
               <small>µg/m³ PM2.5 · {classification.level}</small>
             </div>
@@ -256,9 +185,7 @@ export default function ForecastPanel({
                 <strong>
                   {selected.lower}–{selected.upper} µg/m³
                 </strong>
-                <small>
-                  ยิ่งหลายแหล่งให้ค่าใกล้กัน ยิ่งใช้วางแผนได้มั่นใจขึ้น
-                </small>
+                <small>{forecastIntervalHint(data)}</small>
               </div>
             ) : (
               <div className="cp-forecast-interval">
@@ -326,10 +253,12 @@ export default function ForecastPanel({
                 >
                   <span>
                     <AppIcon name={SOURCE_ICONS[source.source]} size={18} />
-                    {SOURCE_LABELS[source.source]}
+                    {FORECAST_SOURCE_LABELS[source.source]}
                   </span>
                   <strong>{Math.round(source.pm25 * 10) / 10}</strong>
-                  <small>µg/m³ · ออกเมื่อ {formatTime(source.issued_at)}</small>
+                  <small>
+                    µg/m³ · ออกเมื่อ {formatProviderTime(source.issued_at)}
+                  </small>
                 </button>
               ))}
               {!selectedSources.length && (
@@ -363,7 +292,7 @@ export default function ForecastPanel({
             <div className="cp-forecast-details__body">
               <div className="cp-forecast-method">
                 <strong>
-                  {methodLabel(selected, activeSource ?? "clearpath")}
+                  {forecastMethodLabel(selected, activeSource ?? "clearpath")}
                 </strong>
                 <span>
                   {data.forecast_mode === "external_provider"
@@ -395,17 +324,17 @@ export default function ForecastPanel({
               <dl className="cp-forecast-times">
                 <div>
                   <dt>พยากรณ์สำหรับ</dt>
-                  <dd>{formatTime(selected.forecast_at)}</dd>
+                  <dd>{formatProviderTime(selected.forecast_at)}</dd>
                 </div>
                 <div>
                   <dt>ประมวลผลล่าสุด</dt>
-                  <dd>{formatTime(data.generated_at)}</dd>
+                  <dd>{formatProviderTime(data.generated_at)}</dd>
                 </div>
               </dl>
               {!!data.limitation_reason_codes.length && (
                 <div className="cp-forecast-notice">
                   {data.limitation_reason_codes
-                    .map((code) => LIMITATION_LABELS[code] ?? code)
+                    .map((code) => FORECAST_LIMITATION_LABELS[code] ?? code)
                     .join(" · ")}
                 </div>
               )}
@@ -430,7 +359,7 @@ export default function ForecastPanel({
                           <td>
                             {point.lower}–{point.upper}
                           </td>
-                          <td>{SOURCE_LABELS[point.source]}</td>
+                          <td>{FORECAST_SOURCE_LABELS[point.source]}</td>
                         </tr>
                       ))}
                     </tbody>
