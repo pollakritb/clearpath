@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import AppIcon from "@/frontend/components/ui/AppIcon";
+import { AQI_LEGEND } from "@/frontend/lib/aqi";
 
 import type { ViewMode } from "@/frontend/types/ui";
 
@@ -78,14 +81,6 @@ export default function MapLayersPanel({
           onClick={onToggleStations}
         />
         <LayerButton
-          active={showFires}
-          icon="fire"
-          symbolClass="cp-layer-symbol--fire"
-          title="จุดความร้อนจากดาวเทียม"
-          description={`NASA FIRMS · ${fireAvailable ? `${fireCount} จุด` : "ยังไม่มีข้อมูล"}`}
-          onClick={onToggleFires}
-        />
-        <LayerButton
           active={showCommunitySensors}
           icon="community-station"
           iconSize={17}
@@ -110,6 +105,27 @@ export default function MapLayersPanel({
           description="คำนวณจากข้อมูลที่ผ่านเกณฑ์"
           onClick={onToggleHeatmap}
         />
+        <LayerButton
+          active={showFires}
+          icon="fire"
+          symbolClass="cp-layer-symbol--fire"
+          title="จุดความร้อนจากดาวเทียม"
+          description={`NASA FIRMS · ${fireAvailable ? `${fireCount} จุด` : "ยังไม่มีข้อมูล"}`}
+          onClick={onToggleFires}
+        />
+      </div>
+
+      <div className="cp-map-aqi-legend" aria-label="สีระดับ PM2.5 ห้าระดับ">
+        {AQI_LEGEND.map((item) => (
+          <span
+            key={item.range}
+            role="img"
+            aria-label={`${item.level} ${item.range}`}
+          >
+            <i aria-hidden style={{ background: item.color }} />
+            <b aria-hidden>{item.range}</b>
+          </span>
+        ))}
       </div>
 
       <div className="cp-map-layer-actions">
@@ -134,6 +150,10 @@ export default function MapLayersPanel({
           <span aria-hidden>ก</span>
           ตัวอักษรใหญ่
         </button>
+        <Link href="/settings" className="cp-focus">
+          <AppIcon name="settings" size={19} />
+          การตั้งค่า
+        </Link>
       </div>
       <p className="cp-map-layer-note">
         สีหมุดบอกระดับ PM2.5 ทั้ง 5 ระดับ · รูปทรงและไอคอนบอกเจ้าของข้อมูล

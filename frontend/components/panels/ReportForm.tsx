@@ -14,7 +14,10 @@ import {
   type ReportDetails,
   type ReportLocation,
 } from "@/frontend/types/ui";
-import type { ReportDraftResponse } from "@/frontend/types";
+import type {
+  ReportCreateResponse,
+  ReportDraftResponse,
+} from "@/frontend/types";
 
 import CameraCapture, { type CameraEvidence } from "./CameraCapture";
 import DeviceFields from "./report/DeviceFields";
@@ -54,6 +57,7 @@ export default function ReportForm({
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [completed, setCompleted] = useState<ReportCreateResponse | null>(null);
   const auth = useAuth();
   const googleProfile = googleReporterProfile(auth.user);
   const activeStep = draft ? 3 : evidence ? 2 : 1;
@@ -138,6 +142,7 @@ export default function ReportForm({
               ? " · Admin จะตรวจเฉพาะเคสที่ระบบยังไม่มั่นใจ"
               : " · ระบบอ่านภาพไม่ได้ จึงส่งให้ Admin ตรวจแทน"),
       );
+      setCompleted(result);
       setEvidence(null);
       setDraft(null);
       setClaimedPm25("");
@@ -148,6 +153,57 @@ export default function ReportForm({
     } finally {
       setSending(false);
     }
+  }
+
+  if (completed) {
+    const approved = completed.review_outcome === "automatic_approved";
+    return (
+      <section
+        aria-label="ส่งรายงานสำเร็จ"
+        className="cp-report-flow cp-report-complete"
+      >
+        <div className="cp-report-success cp-section-enter" role="status">
+          <span className="cp-report-success__icon" aria-hidden="true">
+            <AppIcon name="check" size={30} />
+          </span>
+          <span className="cp-eyebrow">ระบบได้รับข้อมูลแล้ว</span>
+          <h2>{approved ? "รายงานผ่านการตรวจอัตโนมัติ" : "ส่งรายงานแล้ว"}</h2>
+          <p>
+            {approved
+              ? "ข้อมูลที่ผ่านเกณฑ์ถูกเผยแพร่ตามนโยบายของ ClearPath แล้ว"
+              : "ระบบยังไม่มั่นใจเพียงพอ รายงานจึงอยู่ระหว่างรอผู้ดูแลตรวจ"}
+          </p>
+          <div className="cp-report-success__reading">
+            <strong>
+              {completed.report.verified_pm25 ??
+                completed.report.user_claimed_pm25}
+            </strong>
+            <span>µg/m³ PM2.5</span>
+          </div>
+          <dl className="cp-report-success__meta">
+            <div>
+              <dt>สถานะ</dt>
+              <dd>{approved ? "เผยแพร่แล้ว" : "รอตรวจสอบ"}</dd>
+            </div>
+            <div>
+              <dt>Trust เบื้องต้น</dt>
+              <dd>{completed.report.trust_score}/100</dd>
+            </div>
+          </dl>
+          <button
+            type="button"
+            className="cp-report-submit cp-focus"
+            onClick={() => {
+              setCompleted(null);
+              setMessage(null);
+              setError(null);
+            }}
+          >
+            ส่งรายงานใหม่
+          </button>
+        </div>
+      </section>
+    );
   }
 
   return (

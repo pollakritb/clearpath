@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import { AQI_LEGEND } from "@/frontend/lib/aqi";
 import type { LocationSuggestion, Station } from "@/frontend/types";
 import type { ViewMode } from "@/frontend/types/ui";
 import MapLayersPanel from "./MapLayersPanel";
@@ -100,27 +98,6 @@ export default function MapChrome({
           active={openPanel === "layers"}
           onClick={() => togglePanel("layers")}
         />
-        <Link
-          href="/settings"
-          className="cp-map-action cp-focus"
-          aria-label="เปิดการตั้งค่า"
-          title="การตั้งค่า"
-        >
-          <AppIcon name="settings" size={22} />
-        </Link>
-      </div>
-
-      <div className="cp-map-aqi-legend" aria-label="สีระดับ PM2.5 ห้าระดับ">
-        {AQI_LEGEND.map((item) => (
-          <span
-            key={item.range}
-            role="img"
-            aria-label={`${item.level} ${item.range}`}
-          >
-            <i aria-hidden style={{ background: item.color }} />
-            <b aria-hidden>{item.range}</b>
-          </span>
-        ))}
       </div>
 
       {openPanel === "search" && (

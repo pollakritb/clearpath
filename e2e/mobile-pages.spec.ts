@@ -7,6 +7,7 @@ const pages = [
   { path: "/report", text: "ส่งข้อมูลจากเครื่องวัด" },
   { path: "/community", text: "ประกาศสำคัญ" },
   { path: "/settings", text: "การแสดงผล" },
+  { path: "/profile", text: "โปรไฟล์ของฉัน" },
   { path: "/admin", text: "ศูนย์ควบคุม ClearPath" },
   { path: "/offline", text: "ขณะนี้ไม่ได้เชื่อมต่ออินเทอร์เน็ต" },
 ];
@@ -77,9 +78,12 @@ test("header actions expose refresh and a dedicated settings page", async ({
   await expect(
     page.getByRole("switch", { name: /คอนทราสต์สูง/ }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("switch", { name: /ลดการเคลื่อนไหว/ }),
+  ).toBeVisible();
 });
 
-test("community page prioritizes announcements and keeps secondary tools collapsed", async ({
+test("news page prioritizes announcements and moves settings elsewhere", async ({
   page,
 }) => {
   await page.goto("/community");
@@ -87,24 +91,100 @@ test("community page prioritizes announcements and keeps secondary tools collaps
   await expect(
     page.getByRole("heading", { name: "ประกาศสำคัญ" }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: /การแจ้งเตือน/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /การแจ้งเตือน/ })).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: /ส่งข้อมูลค่าฝุ่น/ }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page
       .getByRole("navigation", { name: "เมนูหลักบนมือถือ" })
       .getByRole("link", { name: "ข่าวสาร" }),
   ).toHaveAttribute("aria-current", "page");
   await expect(page.getByText("ภาพรวม", { exact: true })).toHaveCount(0);
-  await expect(
-    page.getByText("แจ้งข้อมูลผิดพลาด", { exact: true }),
-  ).toBeHidden();
+  await expect(page.getByText("เพิ่มเติม", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("กิจกรรมและอันดับ", { exact: true })).toHaveCount(
+    0,
+  );
+});
 
-  await page.getByText("เพิ่มเติม", { exact: true }).click();
+test("non-map pages do not load map-only data", async ({ page }) => {
+  const requestedPaths = new Set<string>();
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname.startsWith("/api/")) requestedPaths.add(url.pathname);
+  });
+
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "การแสดงผล" })).toBeVisible();
+  await page.waitForTimeout(250);
+
+  for (const path of [
+    "/api/pm25/current",
+    "/api/firms",
+    "/api/community/map-points",
+    "/api/community/reports",
+  ]) {
+    expect(requestedPaths.has(path), `${path} should stay map-scoped`).toBe(
+      false,
+    );
+  }
+});
+
+test("map defers satellite hotspot data until its layer is enabled", async ({
+  page,
+}) => {
+  const requestedPaths = new Set<string>();
+  page.on("request", (request) => {
+    requestedPaths.add(new URL(request.url()).pathname);
+  });
+
+  await page.goto("/");
   await expect(
-    page.getByText("แจ้งข้อมูลผิดพลาด", { exact: true }),
+    page.getByRole("button", {
+      name: "เลือกข้อมูลที่แสดงบนแผนที่",
+    }),
   ).toBeVisible();
+  await page.waitForTimeout(250);
+  expect(requestedPaths.has("/api/firms")).toBe(false);
+
+  await page
+    .getByRole("button", { name: "เลือกข้อมูลที่แสดงบนแผนที่" })
+    .click();
+  const hotspotRequest = page.waitForRequest(
+    (request) => new URL(request.url()).pathname === "/api/firms",
+  );
+  await page.getByRole("button", { name: /จุดความร้อนจากดาวเทียม/ }).click();
+  await hotspotRequest;
+});
+
+test("news page loads no map, rewards, or leaderboard data by default", async ({
+  page,
+}) => {
+  const requestedPaths = new Set<string>();
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname.startsWith("/api/")) requestedPaths.add(url.pathname);
+  });
+
+  await page.goto("/community");
+  await expect(
+    page.getByRole("heading", { name: "ประกาศสำคัญ" }),
+  ).toBeVisible();
+  await page.waitForTimeout(250);
+
+  for (const path of [
+    "/api/pm25/current",
+    "/api/firms",
+    "/api/community/map-points",
+    "/api/community/reports",
+    "/api/community/activities",
+    "/api/community/leaderboard",
+  ]) {
+    expect(
+      requestedPaths.has(path),
+      `${path} should be lazy or map-scoped`,
+    ).toBe(false);
+  }
 });
 
 test("air summary automatically uses the current GPS position", async ({
@@ -177,8 +257,7 @@ test("air summary automatically uses the current GPS position", async ({
 test("LINE notification card explains production setup state on mobile", async ({
   page,
 }) => {
-  await page.goto("/community");
-  await page.getByText("การแจ้งเตือน", { exact: true }).click();
+  await page.goto("/settings/notifications");
   await expect(
     page.getByRole("heading", { name: "แจ้งเตือนผ่าน LINE" }),
   ).toBeVisible();
@@ -193,8 +272,7 @@ test("LINE notification card explains production setup state on mobile", async (
 test("notification settings separate channels from conditions on mobile", async ({
   page,
 }) => {
-  await page.goto("/community");
-  await page.getByText("การแจ้งเตือน", { exact: true }).click();
+  await page.goto("/settings/notifications");
 
   await expect(
     page.getByRole("heading", { name: "ช่องทางรับแจ้งเตือน" }),
@@ -247,8 +325,7 @@ test("LINE linking flow creates a one-time code on mobile", async ({
     });
   });
 
-  await page.goto("/community");
-  await page.getByText("การแจ้งเตือน", { exact: true }).click();
+  await page.goto("/settings/notifications");
   await page.getByRole("button", { name: "สร้างรหัสเชื่อมบัญชี" }).click();
   await expect(page.getByText("CP-ABCD2345", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "คัดลอกรหัส" })).toBeVisible();

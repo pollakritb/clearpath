@@ -3613,7 +3613,8 @@
   margin-top: 10px;
 }
 
-.cp-map-layer-actions button {
+.cp-map-layer-actions button,
+.cp-map-layer-actions a {
   min-height: 46px;
   display: flex;
   align-items: center;
@@ -4305,6 +4306,21 @@
   font: 750 0.52rem/1 var(--font-mono);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cp-map-layers-panel .cp-map-aqi-legend {
+  position: static;
+  width: 100%;
+  margin-top: 10px;
+  border-color: var(--cp-line);
+  background: var(--cp-surface-muted);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.cp-map-layer-actions a:last-child {
+  grid-column: 1 / -1;
+  text-decoration: none;
 }
 
 .cp-layer-symbol--station {

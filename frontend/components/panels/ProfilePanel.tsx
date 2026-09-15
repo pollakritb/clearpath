@@ -1,0 +1,102 @@
+"use client";
+
+import { useState } from "react";
+
+import AuthControl from "@/frontend/components/auth/AuthControl";
+import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import AppIcon from "@/frontend/components/ui/AppIcon";
+import { useCommunityRewards } from "@/frontend/hooks/useCommunity";
+
+import MyContribution from "./community/MyContribution";
+import ReviewQueue from "./community/ReviewQueue";
+import RewardsSection from "./community/RewardsSection";
+
+export default function ProfilePanel() {
+  const auth = useAuth();
+  const signedIn = Boolean(auth.user || auth.localDemo);
+  const [gratitudeOpen, setGratitudeOpen] = useState(false);
+  const [rewardsOpen, setRewardsOpen] = useState(false);
+
+  return (
+    <section className="cp-profile-page cp-section-enter">
+      <div className="cp-settings-card cp-profile-account">
+        <header className="cp-settings-card__heading">
+          <span aria-hidden="true">
+            <AppIcon name="user" size={20} />
+          </span>
+          <span>
+            <h2>บัญชีของฉัน</h2>
+            <p>ข้อมูลบัญชีและผลงานที่คุณร่วมกับ ClearPath</p>
+          </span>
+        </header>
+        <AuthControl compact />
+      </div>
+
+      {signedIn && (
+        <div className="cp-settings-card">
+          <MyContribution />
+        </div>
+      )}
+
+      {signedIn && (
+        <details
+          className="cp-community-disclosure"
+          onToggle={(event) => setGratitudeOpen(event.currentTarget.open)}
+        >
+          <summary className="cp-focus">
+            <span className="cp-community-disclosure__icon">
+              <AppIcon name="community" size={20} />
+            </span>
+            <span>
+              <strong>ขอบคุณข้อมูลใกล้คุณ</strong>
+              <small>ให้ดาวแก่ข้อมูลที่ตรงกับสภาพพื้นที่</small>
+            </span>
+            <AppIcon name="chevron" size={18} />
+          </summary>
+          {gratitudeOpen && (
+            <div className="cp-community-disclosure__body">
+              <ReviewQueue onRefresh={() => undefined} />
+            </div>
+          )}
+        </details>
+      )}
+
+      {signedIn && (
+        <details
+          className="cp-community-disclosure"
+          onToggle={(event) => setRewardsOpen(event.currentTarget.open)}
+        >
+          <summary className="cp-focus">
+            <span className="cp-community-disclosure__icon">
+              <AppIcon name="activity" size={20} />
+            </span>
+            <span>
+              <strong>กิจกรรมและอันดับ</strong>
+              <small>ดูภารกิจและผู้ช่วยชุมชนในช่วง 7 วัน</small>
+            </span>
+            <AppIcon name="chevron" size={18} />
+          </summary>
+          {rewardsOpen && (
+            <div className="cp-community-disclosure__body">
+              <ProfileRewards />
+            </div>
+          )}
+        </details>
+      )}
+    </section>
+  );
+}
+
+function ProfileRewards() {
+  const rewards = useCommunityRewards();
+  if (rewards.loading) {
+    return (
+      <p className="cp-muted-status" role="status">
+        กำลังโหลดกิจกรรม…
+      </p>
+    );
+  }
+  return (
+    <RewardsSection activities={rewards.activities} leaders={rewards.leaders} />
+  );
+}

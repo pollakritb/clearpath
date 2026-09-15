@@ -11,16 +11,22 @@ import {
 interface DisplayPreferences {
   bigText: boolean;
   contrast: boolean;
+  reduceMotion: boolean;
 }
 
 interface DisplayPreferencesContextValue extends DisplayPreferences {
   setBigText: (enabled: boolean) => void;
   setContrast: (enabled: boolean) => void;
+  setReduceMotion: (enabled: boolean) => void;
 }
 
 const STORAGE_KEY = "clearpath-display-preferences-v1";
 const CHANGE_EVENT = "clearpath-display-preferences-change";
-const DEFAULT_SNAPSHOT = JSON.stringify({ bigText: false, contrast: false });
+const DEFAULT_SNAPSHOT = JSON.stringify({
+  bigText: false,
+  contrast: false,
+  reduceMotion: false,
+});
 let memorySnapshot = DEFAULT_SNAPSHOT;
 
 const DisplayPreferencesContext =
@@ -56,9 +62,10 @@ function parseSnapshot(snapshot: string): DisplayPreferences {
     return {
       bigText: parsed.bigText === true,
       contrast: parsed.contrast === true,
+      reduceMotion: parsed.reduceMotion === true,
     };
   } catch {
-    return { bigText: false, contrast: false };
+    return { bigText: false, contrast: false, reduceMotion: false };
   }
 }
 
@@ -90,6 +97,7 @@ export function DisplayPreferencesProvider({
       ...preferences,
       setBigText: (enabled) => update({ bigText: enabled }),
       setContrast: (enabled) => update({ contrast: enabled }),
+      setReduceMotion: (enabled) => update({ reduceMotion: enabled }),
     }),
     [preferences, update],
   );

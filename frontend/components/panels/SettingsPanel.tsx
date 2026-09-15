@@ -3,19 +3,24 @@
 import Link from "next/link";
 
 import AuthControl from "@/frontend/components/auth/AuthControl";
+import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useDisplayPreferences } from "@/frontend/components/settings/DisplayPreferencesProvider";
 import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
 
 import NotificationSettings from "./community/NotificationSettings";
+import DataIssueForm from "./community/DataIssueForm";
 
-export type SettingsSection = "overview" | "notifications";
+export type SettingsSection = "overview" | "notifications" | "data-issue";
 
 export default function SettingsPanel({
   section,
+  showAdmin = false,
 }: {
   section: SettingsSection;
+  showAdmin?: boolean;
 }) {
   const display = useDisplayPreferences();
+  const auth = useAuth();
 
   if (section === "notifications") {
     return (
@@ -34,6 +39,29 @@ export default function SettingsPanel({
           </span>
         </div>
         <NotificationSettings />
+      </section>
+    );
+  }
+
+  if (section === "data-issue") {
+    return (
+      <section className="cp-settings-page cp-section-enter">
+        <Link href="/settings" className="cp-settings-back cp-focus">
+          <AppIcon name="back" size={18} />
+          กลับไปการตั้งค่า
+        </Link>
+        <div className="cp-settings-page__heading">
+          <span aria-hidden="true">
+            <AppIcon name="alert" size={22} />
+          </span>
+          <span>
+            <h2>แจ้งข้อมูลผิดพลาด</h2>
+            <p>ส่งรายละเอียดให้ผู้ดูแลตรวจสถานี พยากรณ์ หรือแผนที่</p>
+          </span>
+        </div>
+        <section className="cp-settings-card">
+          <DataIssueForm />
+        </section>
       </section>
     );
   }
@@ -64,6 +92,13 @@ export default function SettingsPanel({
             symbol={<span className="cp-contrast-icon" />}
             checked={display.contrast}
             onChange={() => display.setContrast(!display.contrast)}
+          />
+          <PreferenceSwitch
+            label="ลดการเคลื่อนไหว"
+            description="ลด Animation และการเปลี่ยนหน้าที่เคลื่อนไหว"
+            symbol="นิ่ง"
+            checked={display.reduceMotion}
+            onChange={() => display.setReduceMotion(!display.reduceMotion)}
           />
         </div>
       </section>
@@ -107,6 +142,18 @@ export default function SettingsPanel({
           <AuthControl compact />
         </div>
         <div className="cp-settings-links">
+          {(auth.user || auth.localDemo) && (
+            <Link href="/profile" className="cp-settings-row cp-focus">
+              <span className="cp-settings-row__icon" aria-hidden="true">
+                <AppIcon name="user" size={20} />
+              </span>
+              <span>
+                <strong>โปรไฟล์และผลงาน</strong>
+                <small>Trust รายงาน คำขอบคุณ และกิจกรรม</small>
+              </span>
+              <AppIcon name="chevron" size={18} />
+            </Link>
+          )}
           <Link href="/privacy" className="cp-settings-row cp-focus">
             <span className="cp-settings-row__icon" aria-hidden="true">
               <AppIcon name="shield" size={20} />
@@ -127,6 +174,18 @@ export default function SettingsPanel({
             </span>
             <AppIcon name="chevron" size={18} />
           </Link>
+          {showAdmin && (
+            <Link href="/admin" className="cp-settings-row cp-focus">
+              <span className="cp-settings-row__icon" aria-hidden="true">
+                <AppIcon name="admin" size={20} />
+              </span>
+              <span>
+                <strong>ศูนย์ควบคุมผู้ดูแล</strong>
+                <small>ตรวจรายงาน ประกาศ และสถานะระบบ</small>
+              </span>
+              <AppIcon name="chevron" size={18} />
+            </Link>
+          )}
         </div>
       </section>
 
@@ -141,6 +200,28 @@ export default function SettingsPanel({
             เปลี่ยนสิทธิ์ได้จากการตั้งค่าเบราว์เซอร์หรืออุปกรณ์
           </small>
         </span>
+      </section>
+
+      <section className="cp-settings-card" aria-labelledby="support-title">
+        <SettingsHeading
+          icon="info"
+          title="ช่วยเหลือ"
+          description="แจ้งข้อมูลที่ควรให้ผู้ดูแลตรวจสอบ"
+          id="support-title"
+        />
+        <Link
+          href="/settings/report-problem"
+          className="cp-settings-row cp-focus"
+        >
+          <span className="cp-settings-row__icon" aria-hidden="true">
+            <AppIcon name="alert" size={20} />
+          </span>
+          <span>
+            <strong>แจ้งข้อมูลผิดพลาด</strong>
+            <small>สถานี พยากรณ์ แผนที่ หรือข้อมูลชุมชน</small>
+          </span>
+          <AppIcon name="chevron" size={18} />
+        </Link>
       </section>
     </section>
   );

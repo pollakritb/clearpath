@@ -1,5 +1,10 @@
-import ClearPathApp from "@/frontend/components/app/ClearPathApp";
+import MapPageClient from "@/frontend/components/pages/MapPageClient";
 
-export default function HomePage() {
-  return <ClearPathApp page="map" />;
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ layer?: string | string[] }>;
+}) {
+  const { layer } = await searchParams;
+  return <MapPageClient showFiresInitially={layer === "fires"} />;
 }

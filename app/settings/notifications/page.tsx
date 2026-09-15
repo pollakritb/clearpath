@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import ClearPathApp from "@/frontend/components/app/ClearPathApp";
+import SettingsPageClient from "@/frontend/components/pages/SettingsPageClient";
 
 export const metadata: Metadata = {
   title: "การแจ้งเตือน — ClearPath",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function NotificationSettingsPage() {
-  return <ClearPathApp page="settings" settingsSection="notifications" />;
+  return <SettingsPageClient section="notifications" />;
 }

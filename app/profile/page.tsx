@@ -1,0 +1,12 @@
+import type { Metadata } from "next";
+
+import ProfilePageClient from "@/frontend/components/pages/ProfilePageClient";
+
+export const metadata: Metadata = {
+  title: "โปรไฟล์ของฉัน — ClearPath",
+  description: "ดูรายงาน คะแนนความน่าเชื่อถือ และกิจกรรมของคุณ",
+};
+
+export default function ProfilePage() {
+  return <ProfilePageClient />;
+}

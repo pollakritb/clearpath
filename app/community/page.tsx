@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import ClearPathApp from "@/frontend/components/app/ClearPathApp";
+import NewsPageClient from "@/frontend/components/pages/NewsPageClient";
 
 export const metadata: Metadata = {
   title: "ข่าวสาร — ClearPath",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function CommunityPage() {
-  return <ClearPathApp page="community" />;
+  return <NewsPageClient />;
 }

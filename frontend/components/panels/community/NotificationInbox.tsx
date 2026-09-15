@@ -15,22 +15,37 @@ export default function NotificationInbox() {
   useEffect(() => {
     if (!auth.user && !auth.localDemo) return;
     let cancelled = false;
-    const load = () =>
+    const load = () => {
+      if (document.visibilityState === "hidden") return;
       void api
         .notifications()
         .then((result) => {
           if (!cancelled) setItems(result.notifications);
         })
         .catch(() => undefined);
+    };
     load();
-    const timer = window.setInterval(load, 60_000);
+    const timer = window.setInterval(load, 5 * 60_000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [auth.user, auth.localDemo]);
 
-  if ((!auth.user && !auth.localDemo) || items.length === 0) return null;
+  if (!auth.user && !auth.localDemo) return null;
+  if (items.length === 0) {
+    return (
+      <section className="cp-notification-empty" aria-label="กล่องแจ้งเตือน">
+        <strong>ยังไม่มีการแจ้งเตือนใหม่</strong>
+        <span>เหตุสำคัญในพื้นที่และสถานะรายงานจะแสดงที่นี่</span>
+      </section>
+    );
+  }
   const unread = items.filter((item) => !item.read_at).length;
   return (
     <section style={{ borderTop: `1px solid ${T.line}`, paddingTop: ".9em" }}>

@@ -38,8 +38,8 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
       },
       {
-        name: "ชุมชน ClearPath",
-        short_name: "ชุมชน",
+        name: "ข่าวสาร ClearPath",
+        short_name: "ข่าวสาร",
         url: "/community",
         icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
       },

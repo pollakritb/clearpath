@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import ClearPathApp from "@/frontend/components/app/ClearPathApp";
+import ReportPageClient from "@/frontend/components/pages/ReportPageClient";
 
 export const metadata: Metadata = {
   title: "ส่งข้อมูล — ClearPath",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function ReportPage() {
-  return <ClearPathApp page="report" />;
+  return <ReportPageClient />;
 }
