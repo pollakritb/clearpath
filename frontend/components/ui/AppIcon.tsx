@@ -15,6 +15,7 @@ export type AppIconName =
   | "database"
   | "fire"
   | "home"
+  | "info"
   | "map"
   | "megaphone"
   | "menu"
@@ -206,6 +207,12 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
         <>
           <path d="M12 3 2.7 20h18.6Z" />
           <path d="M12 9v5M12 17.5h.01" />
+        </>
+      )}
+      {name === "info" && (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v6M12 7.5h.01" />
         </>
       )}
       {name === "check" && <path d="m5 12 4 4L19 6" />}

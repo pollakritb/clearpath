@@ -41,24 +41,31 @@ export default function AuthControl({
 
     return (
       <div className="cp-auth-session" data-compact={compact}>
-        {!compact && (
-          <span className="cp-auth-session__identity">
-            <span aria-hidden className="cp-auth-google__mark">
-              {isGoogle ? "G" : "✓"}
-            </span>
-            <span>
-              <strong>
-                {isGoogle ? "เข้าสู่ระบบด้วย Google แล้ว" : "เข้าสู่ระบบแล้ว"}
-              </strong>
-              <small>
-                {displayName || auth.user.email}
-                {displayName && auth.user.email
-                  ? ` · ${auth.user.email}`
-                  : ` · ${auth.role}`}
-              </small>
-            </span>
+        <span className="cp-auth-session__identity">
+          <span aria-hidden className="cp-auth-google__mark">
+            {isGoogle ? "G" : "✓"}
           </span>
-        )}
+          <span>
+            <strong>
+              {compact
+                ? displayName || auth.user.email
+                : isGoogle
+                  ? "เข้าสู่ระบบด้วย Google แล้ว"
+                  : "เข้าสู่ระบบแล้ว"}
+            </strong>
+            <small>
+              {compact
+                ? isGoogle
+                  ? "บัญชี Google"
+                  : auth.role
+                : `${displayName || auth.user.email}${
+                    displayName && auth.user.email
+                      ? ` · ${auth.user.email}`
+                      : ` · ${auth.role}`
+                  }`}
+            </small>
+          </span>
+        </span>
         <button
           type="button"
           onClick={() => void auth.signOut()}
@@ -71,7 +78,7 @@ export default function AuthControl({
   }
 
   return (
-    <div className="cp-auth-form">
+    <div className="cp-auth-form" data-compact={compact}>
       {!compact && (
         <b style={{ fontSize: ".76em" }}>เข้าสู่ระบบก่อนร่วมรายงาน</b>
       )}
@@ -102,9 +109,11 @@ export default function AuthControl({
           {googleSending ? "กำลังเชื่อมต่อ…" : "เข้าสู่ระบบด้วย Google"}
         </span>
       </button>
-      <div className="cp-auth-divider" aria-hidden>
-        <span>หรือรับลิงก์ทางอีเมล</span>
-      </div>
+      {!compact && (
+        <div className="cp-auth-divider" aria-hidden>
+          <span>หรือรับลิงก์ทางอีเมล</span>
+        </div>
+      )}
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -122,6 +131,7 @@ export default function AuthControl({
             .finally(() => setSending(false));
         }}
         className="cp-auth-form__row"
+        hidden={compact}
       >
         <input
           type="email"

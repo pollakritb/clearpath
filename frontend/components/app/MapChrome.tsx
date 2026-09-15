@@ -143,33 +143,13 @@ export default function MapChrome({
         </button>
       </div>
 
-      <div
-        className="cp-map-source-legend"
-        aria-label="คำอธิบายประเภทจุดข้อมูล"
-      >
-        <span data-source="official">
-          <i>
-            <AppIcon name="station" size={15} />
-          </i>
-          สถานีรัฐ
-        </span>
-        <span data-source="sensor">
-          <i>
-            <AppIcon name="community-station" size={15} />
-          </i>
-          สถานีชุมชน
-        </span>
-        <span data-source="individual">
-          <i>
-            <AppIcon name="user" size={15} />
-          </i>
-          บุคคลรายงาน
-        </span>
-      </div>
-
       <div className="cp-map-aqi-legend" aria-label="สีระดับ PM2.5 ห้าระดับ">
         {AQI_LEGEND.map((item) => (
-          <span key={item.range} aria-label={`${item.level} ${item.range}`}>
+          <span
+            key={item.range}
+            role="img"
+            aria-label={`${item.level} ${item.range}`}
+          >
             <i aria-hidden style={{ background: item.color }} />
             <b aria-hidden>{item.range}</b>
           </span>

@@ -172,8 +172,9 @@ test("forecast card exposes all horizons, uncertainty and accessible table", asy
   await selector.getByRole("button", { name: "24 ชม." }).click();
   await page.getByText("เปรียบเทียบแหล่งข้อมูล").click();
   await expect(page.getByText("GISTDA เช็คฝุ่น")).toBeVisible();
+  await page.getByText("รายละเอียดและวิธีคำนวณ").click();
   await expect(page.getByText("ข้อมูลยืนยันจากชุมชน")).toBeVisible();
-  await page.getByText("ดูค่าที่แนะนำทุกช่วงเวลา").click();
+  await page.getByText("ดูค่าทุกช่วงเวลา").click();
   await expect(page.getByRole("table", { name: /พยากรณ์/ })).toBeVisible();
   await expect(page.getByText(/ไม่ใช่คำแนะนำทางการแพทย์/)).toBeVisible();
 
@@ -210,16 +211,15 @@ test("external provider comparison keeps raw values separate on mobile", async (
     await route.fulfill({ json: externalForecastFixture() });
   });
   await page.goto("/air?station=81t");
-  await expect(
-    page.getByText("ค่าที่ระบบแนะนำ", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText(/อีก 12 ชม./, { exact: false })).toBeVisible();
   await page.getByText("เปรียบเทียบแหล่งข้อมูล").click();
   await expect(
     page.getByRole("button", { name: /CAMS \/ Open-Meteo/ }),
   ).toBeVisible();
   await page.getByRole("button", { name: /OpenWeather/ }).click();
-  await expect(page.getByText("กำลังดูแหล่งนี้")).toBeVisible();
+  await expect(page.getByText("กำลังดูค่าจากแหล่งนี้")).toBeVisible();
   await expect(page.getByText("ไม่ได้เฉลี่ยกับแหล่งอื่น")).toBeVisible();
+  await page.getByText("รายละเอียดและวิธีคำนวณ").click();
   await expect(page.getByText(/พบ 2 รายงานที่ผ่านเกณฑ์/)).toBeVisible();
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerWidth,

@@ -56,6 +56,7 @@ export default function ReportForm({
   const [error, setError] = useState<string | null>(null);
   const auth = useAuth();
   const googleProfile = googleReporterProfile(auth.user);
+  const activeStep = draft ? 3 : evidence ? 2 : 1;
 
   const hasGps = location?.source === "gps";
   const canAnalyze = Boolean(
@@ -150,32 +151,55 @@ export default function ReportForm({
   }
 
   return (
-    <section aria-label="ส่งรายงาน PM2.5 จากชุมชน" className="cp-report-flow">
+    <section
+      aria-label="ส่งรายงาน PM2.5 จากชุมชน"
+      className="cp-report-flow"
+      data-step={activeStep}
+    >
       <div className="cp-report-intro">
         <span className="cp-report-intro__eyebrow">
           <AppIcon name="camera" size={16} />
           ใช้เวลาประมาณ 2 นาที
         </span>
-        <h2>เริ่มจากถ่ายภาพหน้าจอเครื่องวัด</h2>
-        <p>เตรียมเครื่องวัดให้นิ่ง แล้วทำตาม 3 ขั้นตอนด้านล่าง</p>
+        <h2>
+          {draft
+            ? "ตรวจข้อมูลก่อนส่ง"
+            : evidence
+              ? "ยืนยันตำแหน่งของรายงาน"
+              : "ถ่ายภาพหน้าจอเครื่องวัด"}
+        </h2>
+        <p>
+          {draft
+            ? "ตรวจค่าฝุ่นและข้อมูลเครื่องวัดให้ตรงกับภาพ"
+            : evidence
+              ? "เปิด GPS เพื่อยืนยันว่าข้อมูลมาจากพื้นที่จริง"
+              : "เตรียมเครื่องวัดให้นิ่งและให้ตัวเลขอยู่กลางภาพ"}
+        </p>
       </div>
-      <div
-        className="cp-report-source-guide"
-        aria-label="ประเภทข้อมูลที่จะเผยแพร่"
-      >
-        <div data-source="individual">
+      <details className="cp-report-source-help">
+        <summary className="cp-focus">
           <SourceBadge kind="individual" />
-          <small>ข้อมูลจากหน้านี้เผยแพร่เป็นรายงานของบุคคลเสมอ</small>
+          <span>รายงานนี้จะแสดงบนแผนที่อย่างไร</span>
+          <AppIcon name="chevron" size={17} />
+        </summary>
+        <div
+          className="cp-report-source-guide"
+          aria-label="ประเภทข้อมูลที่จะเผยแพร่"
+        >
+          <div data-source="individual">
+            <SourceBadge kind="individual" />
+            <small>ข้อมูลจากหน้านี้เผยแพร่เป็นรายงานของบุคคลเสมอ</small>
+          </div>
+          <div data-source="calibration">
+            <span className="cp-report-calibration-icon">
+              <AppIcon name="calibration" size={17} />
+            </span>
+            <small>
+              การสอบเทียบช่วยเพิ่มความน่าเชื่อถือ แต่ยังเป็นรายงานบุคคล
+            </small>
+          </div>
         </div>
-        <div data-source="calibration">
-          <span className="cp-report-calibration-icon">
-            <AppIcon name="calibration" size={17} />
-          </span>
-          <small>
-            การสอบเทียบเพิ่มความน่าเชื่อถือ แต่ไม่เปลี่ยนรายงานเป็นสถานีชุมชน
-          </small>
-        </div>
-      </div>
+      </details>
       <ol className="cp-report-progress" aria-label="ขั้นตอนส่งข้อมูล">
         <li data-complete={Boolean(evidence)}>
           <b>
@@ -196,51 +220,56 @@ export default function ReportForm({
           <span>ตรวจและส่ง</span>
         </li>
       </ol>
-      <AuthControl />
+      <AuthControl compact />
       <form onSubmit={submit} className="cp-report-form">
-        <div className="cp-report-step-card" data-complete={Boolean(evidence)}>
-          <div className="cp-report-step-card__heading">
-            <b>
-              <AppIcon name="camera" size={19} />
-            </b>
-            <span>
-              <strong>ถ่ายหน้าจอเครื่องวัด</strong>
-              <small>ใช้กล้องสดให้เห็นตัวเลขชัดเจน</small>
-            </span>
+        {!draft && (
+          <div
+            className="cp-report-step-card"
+            data-complete={Boolean(evidence)}
+          >
+            <div className="cp-report-step-card__heading">
+              <b>
+                <AppIcon name="camera" size={19} />
+              </b>
+              <span>
+                <strong>ถ่ายหน้าจอเครื่องวัด</strong>
+                <small>ใช้กล้องสดให้เห็นตัวเลขชัดเจน</small>
+              </span>
+            </div>
+            <CameraCapture
+              onCaptured={(nextEvidence) => {
+                setDraft(null);
+                setClaimedPm25("");
+                setEvidence(nextEvidence);
+                setMessage(null);
+                onRequestLocation();
+              }}
+              onCleared={() => {
+                setDraft(null);
+                setClaimedPm25("");
+                setEvidence(null);
+              }}
+            />
           </div>
-          <CameraCapture
-            onCaptured={(nextEvidence) => {
-              if (draft) void api.deleteReportDraft(draft.id);
-              setDraft(null);
-              setClaimedPm25("");
-              setEvidence(nextEvidence);
-              setMessage(null);
-              onRequestLocation();
-            }}
-            onCleared={() => {
-              if (draft) void api.deleteReportDraft(draft.id);
-              setDraft(null);
-              setClaimedPm25("");
-              setEvidence(null);
-            }}
-          />
-        </div>
+        )}
 
-        <div className="cp-report-step-card" data-complete={hasGps}>
-          <div className="cp-report-step-card__heading">
-            <b>
-              <AppIcon name="location" size={19} />
-            </b>
-            <span>
-              <strong>ยืนยันตำแหน่ง</strong>
-              <small>ใช้ GPS เพื่อยืนยันว่าข้อมูลมาจากพื้นที่จริง</small>
-            </span>
+        {evidence && !draft && (
+          <div className="cp-report-step-card" data-complete={hasGps}>
+            <div className="cp-report-step-card__heading">
+              <b>
+                <AppIcon name="location" size={19} />
+              </b>
+              <span>
+                <strong>ยืนยันตำแหน่ง</strong>
+                <small>ใช้ GPS เพื่อยืนยันว่าข้อมูลมาจากพื้นที่จริง</small>
+              </span>
+            </div>
+            <LocationCard
+              location={location}
+              onRequestLocation={onRequestLocation}
+            />
           </div>
-          <LocationCard
-            location={location}
-            onRequestLocation={onRequestLocation}
-          />
-        </div>
+        )}
 
         {draft && (
           <div className="cp-report-step-card">
@@ -319,31 +348,35 @@ export default function ReportForm({
             </div>
           </div>
         )}
-        <button
-          type="submit"
-          disabled={draft ? !canSubmit : !canAnalyze}
-          className="cp-report-submit cp-focus"
-          style={{
-            minHeight: "48px",
-            border: "none",
-            borderRadius: "11px",
-            background: (draft ? canSubmit : canAnalyze)
-              ? T.brandGrad
-              : "#bcc7c4",
-            color: "#fff",
-            fontFamily: "inherit",
-            fontWeight: 800,
-            cursor: sending ? "wait" : "pointer",
-          }}
-        >
-          {sending
-            ? draft
-              ? "กำลังส่งเข้าคิว…"
-              : "กำลังอ่านค่าจากภาพ…"
-            : draft
-              ? "ส่งข้อมูลให้ระบบตรวจ"
-              : "ตรวจภาพและไปต่อ"}
-        </button>
+        {(evidence || draft) && (
+          <button
+            type="submit"
+            disabled={draft ? !canSubmit : !canAnalyze}
+            className="cp-report-submit cp-focus"
+            style={{
+              minHeight: "48px",
+              border: "none",
+              borderRadius: "11px",
+              background: (draft ? canSubmit : canAnalyze)
+                ? T.brandGrad
+                : "#bcc7c4",
+              color: "#fff",
+              fontFamily: "inherit",
+              fontWeight: 800,
+              cursor: sending ? "wait" : "pointer",
+            }}
+          >
+            {sending
+              ? draft
+                ? "กำลังส่งเข้าคิว…"
+                : "กำลังอ่านค่าจากภาพ…"
+              : draft
+                ? "ยืนยันและส่งข้อมูล"
+                : hasGps
+                  ? "อ่านค่าจากภาพ"
+                  : "รอตำแหน่ง GPS…"}
+          </button>
+        )}
       </form>
 
       {message && (

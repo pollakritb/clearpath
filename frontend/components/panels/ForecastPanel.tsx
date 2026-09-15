@@ -56,6 +56,29 @@ function formatTime(value: string | null): string {
   });
 }
 
+function formatForecastTime(value: string | null): string {
+  if (!value) return "ไม่พบเวลา";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "ไม่พบเวลา";
+  const now = new Date();
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dayOffset = Math.round(
+    (target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  const day =
+    dayOffset === 0
+      ? "วันนี้"
+      : dayOffset === 1
+        ? "พรุ่งนี้"
+        : formatTime(value);
+  if (dayOffset < 0 || dayOffset > 1) return day;
+  return `${day} ${date.toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })} น.`;
+}
+
 function agreementLabel(data: ForecastResponse): string {
   if (data.provider_count < 2) return "ยังเปรียบเทียบไม่ได้";
   if (data.agreement === "high") return "ใกล้เคียงกัน";
@@ -64,8 +87,10 @@ function agreementLabel(data: ForecastResponse): string {
 }
 
 function forecastStatus(data: ForecastResponse): string {
-  if (data.forecast_status === "available") return "พร้อมใช้งาน";
-  if (data.forecast_status === "limited") return "ข้อมูลจำกัด";
+  if (data.forecast_status === "available" && data.agreement !== "low")
+    return "ใช้วางแผนได้";
+  if (data.forecast_status === "limited" || data.agreement === "low")
+    return "ความมั่นใจต่ำ";
   return "ยังไม่มีพยากรณ์ที่เชื่อถือได้";
 }
 
@@ -127,6 +152,8 @@ export default function ForecastPanel({
   const displayPm25 = activeSourcePoint?.pm25 ?? selected?.pm25;
   const classification = classifyPm25(displayPm25);
   const showingRecommendation = !activeSourcePoint;
+  const lowConfidence =
+    data?.forecast_status === "limited" || data?.agreement === "low";
 
   return (
     <section className="cp-forecast-card" aria-labelledby="forecast-title">
@@ -215,7 +242,9 @@ export default function ForecastPanel({
                   name={SOURCE_ICONS[activeSource ?? "clearpath"]}
                   size={16}
                 />
-                {showingRecommendation ? "ค่าที่ระบบแนะนำ" : "กำลังดูแหล่งนี้"}
+                {showingRecommendation
+                  ? `อีก ${selected.horizon_hours} ชม. · ${formatForecastTime(selected.forecast_at)}`
+                  : "กำลังดูค่าจากแหล่งนี้"}
               </span>
               <small>{SOURCE_LABELS[activeSource ?? "clearpath"]}</small>
               <strong>{displayPm25}</strong>
@@ -240,6 +269,27 @@ export default function ForecastPanel({
             )}
           </div>
 
+          <div
+            className="cp-forecast-decision"
+            data-confidence={lowConfidence ? "low" : "ready"}
+          >
+            <span className="cp-forecast-decision__icon">
+              <AppIcon name={lowConfidence ? "alert" : "check"} size={18} />
+            </span>
+            <span>
+              <strong>
+                {lowConfidence
+                  ? "ใช้ประกอบการตัดสินใจด้วยความระมัดระวัง"
+                  : classification.advice}
+              </strong>
+              <small>
+                {lowConfidence
+                  ? `${agreementLabel(data)} ควรตรวจค่าปัจจุบันก่อนทำกิจกรรมกลางแจ้ง`
+                  : `${data.provider_count} แหล่งข้อมูล · ${agreementLabel(data)}`}
+              </small>
+            </span>
+          </div>
+
           <button
             type="button"
             className="cp-forecast-reset cp-focus"
@@ -249,17 +299,6 @@ export default function ForecastPanel({
             <AppIcon name="back" size={16} />
             กลับไปค่าที่ระบบแนะนำ
           </button>
-
-          <div className="cp-forecast-method">
-            <strong>
-              {methodLabel(selected, activeSource ?? "clearpath")}
-            </strong>
-            <span>
-              {data.forecast_mode === "external_provider"
-                ? "ClearPath เลือกแหล่งตามนโยบายที่เปิดเผย และไม่แก้ค่าดิบของผู้ให้บริการ"
-                : "ใช้เฉพาะเมื่อยังไม่มีพยากรณ์ภายนอกที่สด"}
-            </span>
-          </div>
 
           <details className="cp-forecast-sources">
             <summary className="cp-focus">
@@ -299,104 +338,111 @@ export default function ForecastPanel({
                 </div>
               )}
             </div>
-            <div className="cp-forecast-provider-notes">
+            <p className="cp-forecast-source-links">
               {data.providers.slice(0, 3).map((provider) => (
-                <div
+                <a
                   key={provider.source}
-                  data-state={provider.freshness_status}
+                  href={provider.attribution_url}
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  <AppIcon name={SOURCE_ICONS[provider.source]} size={17} />
-                  <span>
-                    <strong>{provider.label}</strong>
-                    <small>{provider.usage_note}</small>
-                  </span>
-                  <a
-                    href={provider.attribution_url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    ที่มา
-                  </a>
-                </div>
+                  ที่มา {provider.label}
+                </a>
               ))}
-            </div>
+            </p>
           </details>
 
-          <section
-            className="cp-forecast-community"
-            aria-label="ข้อมูลจากชุมชน"
-          >
-            <span className="cp-forecast-community__icon">
-              <AppIcon name="community" size={20} />
-            </span>
-            <div>
-              <strong>ข้อมูลยืนยันจากชุมชน</strong>
-              <p>
-                {data.community_context.nearby_report_count
-                  ? `พบ ${data.community_context.nearby_report_count} รายงานที่ผ่านเกณฑ์ภายใน ${data.community_context.radius_km} กม.`
-                  : "ยังไม่มีรายงานใกล้เคียงที่ผ่านเกณฑ์ Trust และหลักฐานครบ"}
+          <details className="cp-forecast-details">
+            <summary className="cp-focus">
+              <span>
+                <AppIcon name="info" size={18} />
+                รายละเอียดและวิธีคำนวณ
+              </span>
+              <AppIcon name="chevron" size={17} />
+            </summary>
+            <div className="cp-forecast-details__body">
+              <div className="cp-forecast-method">
+                <strong>
+                  {methodLabel(selected, activeSource ?? "clearpath")}
+                </strong>
+                <span>
+                  {data.forecast_mode === "external_provider"
+                    ? "ClearPath เลือกแหล่งตามนโยบายที่เปิดเผย และไม่แก้ค่าดิบของผู้ให้บริการ"
+                    : "ใช้เฉพาะเมื่อยังไม่มีพยากรณ์ภายนอกที่สด"}
+                </span>
+              </div>
+              <section
+                className="cp-forecast-community"
+                aria-label="ข้อมูลจากชุมชน"
+              >
+                <span className="cp-forecast-community__icon">
+                  <AppIcon name="community" size={20} />
+                </span>
+                <div>
+                  <strong>ข้อมูลยืนยันจากชุมชน</strong>
+                  <p>
+                    {data.community_context.nearby_report_count
+                      ? `พบ ${data.community_context.nearby_report_count} รายงานที่ผ่านเกณฑ์ภายใน ${data.community_context.radius_km} กม.`
+                      : "ยังไม่มีรายงานใกล้เคียงที่ผ่านเกณฑ์"}
+                  </p>
+                  <small>
+                    {data.community_context.affects_recommendation
+                      ? "ข้อมูลชุมชนมีผลต่อค่าที่แนะนำในรอบนี้"
+                      : "ใช้เป็นหลักฐานประกอบ ยังไม่แก้ค่าพยากรณ์หลัก"}
+                  </small>
+                </div>
+              </section>
+              <dl className="cp-forecast-times">
+                <div>
+                  <dt>พยากรณ์สำหรับ</dt>
+                  <dd>{formatTime(selected.forecast_at)}</dd>
+                </div>
+                <div>
+                  <dt>ประมวลผลล่าสุด</dt>
+                  <dd>{formatTime(data.generated_at)}</dd>
+                </div>
+              </dl>
+              {!!data.limitation_reason_codes.length && (
+                <div className="cp-forecast-notice">
+                  {data.limitation_reason_codes
+                    .map((code) => LIMITATION_LABELS[code] ?? code)
+                    .join(" · ")}
+                </div>
+              )}
+              <details className="cp-forecast-table">
+                <summary className="cp-focus">ดูค่าทุกช่วงเวลา</summary>
+                <div>
+                  <table>
+                    <caption>ค่าพยากรณ์ PM2.5 และแหล่งที่เลือก</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">อีก</th>
+                        <th scope="col">PM2.5</th>
+                        <th scope="col">ช่วงประมาณ</th>
+                        <th scope="col">แหล่ง</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {horizonPoints.map((point) => (
+                        <tr key={point.horizon_hours}>
+                          <th scope="row">{point.horizon_hours} ชม.</th>
+                          <td>{point.pm25}</td>
+                          <td>
+                            {point.lower}–{point.upper}
+                          </td>
+                          <td>{SOURCE_LABELS[point.source]}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+              <p className="cp-forecast-disclaimer">
+                พยากรณ์เป็นแนวโน้ม
+                ไม่ใช่ค่าตรวจวัดจริงและไม่ใช่คำแนะนำทางการแพทย์
               </p>
-              <small>
-                {data.community_context.affects_recommendation
-                  ? "ข้อมูลชุมชนมีผลต่อค่าที่แนะนำในรอบนี้"
-                  : "ขณะนี้แสดงเป็นหลักฐานประกอบ ยังไม่แก้ค่าพยากรณ์หลัก"}
-              </small>
-            </div>
-          </section>
-
-          <dl className="cp-forecast-times">
-            <div>
-              <dt>พยากรณ์สำหรับ</dt>
-              <dd>{formatTime(selected.forecast_at)}</dd>
-            </div>
-            <div>
-              <dt>ClearPath ประมวลผล</dt>
-              <dd>{formatTime(data.generated_at)}</dd>
-            </div>
-          </dl>
-
-          {!!data.limitation_reason_codes.length && (
-            <div className="cp-forecast-notice">
-              {data.limitation_reason_codes
-                .map((code) => LIMITATION_LABELS[code] ?? code)
-                .join(" · ")}
-            </div>
-          )}
-
-          <details className="cp-forecast-table">
-            <summary className="cp-focus">ดูค่าที่แนะนำทุกช่วงเวลา</summary>
-            <div>
-              <table>
-                <caption>ค่าพยากรณ์ PM2.5 และแหล่งที่เลือก</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">อีก</th>
-                    <th scope="col">PM2.5</th>
-                    <th scope="col">ช่วงประมาณ</th>
-                    <th scope="col">แหล่ง</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {horizonPoints.map((point) => (
-                    <tr key={point.horizon_hours}>
-                      <th scope="row">{point.horizon_hours} ชม.</th>
-                      <td>{point.pm25}</td>
-                      <td>
-                        {point.lower}–{point.upper}
-                      </td>
-                      <td>{SOURCE_LABELS[point.source]}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </details>
-
-          <p className="cp-forecast-disclaimer">
-            พยากรณ์เป็นแนวโน้ม ไม่ใช่ค่าตรวจวัดจริงและไม่ใช่คำแนะนำทางการแพทย์
-            หากแหล่งข้อมูลต่างกันมาก
-            ควรลดกิจกรรมกลางแจ้งและตรวจค่าปัจจุบันร่วมด้วย
-          </p>
         </div>
       )}
     </section>

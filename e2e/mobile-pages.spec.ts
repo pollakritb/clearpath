@@ -5,7 +5,7 @@ const pages = [
   { path: "/", text: "คุณภาพอากาศทั่วไทย" },
   { path: "/air", text: "อากาศวันนี้" },
   { path: "/report", text: "ส่งข้อมูลจากเครื่องวัด" },
-  { path: "/community", text: "ช่วยกันทำให้ข้อมูลอากาศดีขึ้น" },
+  { path: "/community", text: "ข้อมูลของคุณช่วยทุกคนได้" },
   { path: "/admin", text: "ศูนย์ควบคุม ClearPath" },
   { path: "/offline", text: "ขณะนี้ไม่ได้เชื่อมต่ออินเทอร์เน็ต" },
 ];
@@ -186,7 +186,9 @@ test("map separates official stations from community reports", async ({
   await expect(official).toHaveAttribute("aria-pressed", "true");
   await expect(sensors).toHaveAttribute("aria-pressed", "true");
   await expect(community).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText(/สีหลักและรูปทรงบอกเจ้าของข้อมูล/)).toBeVisible();
+  await expect(
+    page.getByText(/สีหมุดบอกระดับ PM2.5.*ไอคอนบอกเจ้าของข้อมูล/),
+  ).toBeVisible();
 });
 
 test("community marker opens a distinct privacy-safe report card", async ({

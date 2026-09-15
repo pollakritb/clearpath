@@ -59,7 +59,7 @@ export default function MobileAirSummary({
             <AppIcon name="activity" size={18} />
             {referenceOnly
               ? "ค่าเฉลี่ยจากข้อมูลล่าสุด"
-              : "ค่าเฉลี่ย PM2.5 ทั่วประเทศ"}
+              : "ภาพรวมสถานีทั่วประเทศ"}
           </span>
           <small>{loading ? "กำลังอัปเดต…" : formatTime(updatedAt)}</small>
         </div>
@@ -90,6 +90,9 @@ export default function MobileAirSummary({
             {referenceOnly ? " · ยังไม่มีสถานีสดใหม่" : "ที่พร้อมใช้งาน"}
           </span>
         </div>
+        <small className="cp-mobile-air-card__scope">
+          ค่าเฉลี่ยภาพรวม ไม่ใช่ค่าฝุ่น ณ ตำแหน่งของคุณ
+        </small>
       </div>
 
       <div className="cp-mobile-quick-actions" aria-label="ทางลัด">

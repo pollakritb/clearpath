@@ -10,9 +10,7 @@ import CommunityPanel from "@/frontend/components/panels/CommunityPanel";
 import FireAlertPanel from "@/frontend/components/panels/FireAlertPanel";
 import ForecastPanel from "@/frontend/components/panels/ForecastPanel";
 import Header from "@/frontend/components/panels/Header";
-import LayerToggles from "@/frontend/components/panels/LayerToggles";
 import ListView from "@/frontend/components/panels/ListView";
-import ModelAccuracy from "@/frontend/components/panels/ModelAccuracy";
 import ReportForm from "@/frontend/components/panels/ReportForm";
 import { useCommunity } from "@/frontend/hooks/useCommunity";
 import { useFirms } from "@/frontend/hooks/useFirms";
@@ -20,9 +18,7 @@ import { useForecast } from "@/frontend/hooks/useForecast";
 import { useForecastSurface } from "@/frontend/hooks/useForecastSurface";
 import { useHistory } from "@/frontend/hooks/useHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
-import { useValidation } from "@/frontend/hooks/useValidation";
 import { useWeather } from "@/frontend/hooks/useWeather";
-import { T } from "@/frontend/lib/ui";
 import { communitySourceKind } from "@/frontend/lib/source-kind";
 import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
 import type {
@@ -61,7 +57,6 @@ export default function ClearPathApp({
   const pm25 = usePm25();
   const weather = useWeather();
   const history = useHistory();
-  const validation = useValidation();
   const firms = useFirms();
   const forecast = useForecast();
   const forecastSurface = useForecastSurface();
@@ -261,45 +256,6 @@ export default function ClearPathApp({
   const surfaceStations =
     mapHorizon === 0 ? currentSurfaceStations : forecastSurfaceStations;
 
-  const layerItems = [
-    {
-      key: "heat",
-      label: "พื้นผิว PM2.5 (IDW)",
-      dot: "linear-gradient(90deg,#3b82f6,#22c55e,#eab308,#f97316,#ef4444)",
-      on: showHeatmap,
-      onToggle: () => setShowHeatmap((value) => !value),
-    },
-    {
-      key: "stations",
-      label: "สถานี Air4Thai",
-      dot: T.teal,
-      on: showStations,
-      onToggle: () => setShowStations((value) => !value),
-    },
-    {
-      key: "community-sensors",
-      label: `สถานีชุมชน · ${communitySourceCounts.sensor}`,
-      dot: "#0b8f83",
-      on: showCommunitySensors,
-      onToggle: () => setShowCommunitySensors((value) => !value),
-    },
-    {
-      key: "individual-reports",
-      label: `รายงานจากบุคคล · ${communitySourceCounts.individual}`,
-      dot: "#e77b28",
-      on: showIndividualReports,
-      onToggle: () => setShowIndividualReports((value) => !value),
-    },
-    {
-      key: "fires",
-      label: `จุดต้องสงสัยการเผาไหม้${firms.loaded ? ` · ${firms.fires.length}` : ""}`,
-      dot: "#ff5722",
-      on: showFires,
-      onToggle: () => setShowFires((value) => !value),
-      note: firms.error,
-    },
-  ];
-
   const rootStyle = {
     fontSize: bigText ? "18px" : "15px",
     lineHeight: 1.45,
@@ -382,27 +338,6 @@ export default function ClearPathApp({
               loading={forecast.loading}
               error={forecast.error}
             />
-            <div className="cp-overview-tools cp-overview-tools--desktop">
-              <LayerToggles items={layerItems} />
-              <ModelAccuracy
-                data={validation.data}
-                loading={validation.loading}
-                error={validation.error}
-                onLoad={validation.load}
-              />
-            </div>
-            <details className="cp-overview-tools cp-overview-tools--mobile">
-              <summary>เครื่องมือแผนที่และข้อมูลเพิ่มเติม</summary>
-              <div>
-                <LayerToggles items={layerItems} />
-                <ModelAccuracy
-                  data={validation.data}
-                  loading={validation.loading}
-                  error={validation.error}
-                  onLoad={validation.load}
-                />
-              </div>
-            </details>
           </div>
         )}
 

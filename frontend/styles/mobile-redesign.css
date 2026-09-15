@@ -1,0 +1,534 @@
+/* ClearPath mobile refinement layer.
+   Scoped to the consumer app so the admin interface keeps its own system. */
+
+@keyframes cp-section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cp-flyout-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cp-app button,
+.cp-app a,
+.cp-app summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cp-app button,
+.cp-app a {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.cp-app button:active:not(:disabled),
+.cp-app a:active {
+  transform: scale(0.98);
+}
+
+.cp-app .cp-map-flyout,
+.cp-app .cp-map-selection-card,
+.cp-app .cp-map-time-dock,
+.cp-app .cp-section-enter,
+.cp-app .cp-report-step-card {
+  animation: cp-section-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.cp-app .cp-map-flyout {
+  animation-name: cp-flyout-enter;
+  transform-origin: top right;
+}
+
+/* Forecast: decision first, provenance on demand. */
+.cp-app .cp-forecast-card__body {
+  display: grid;
+  gap: 12px;
+}
+
+.cp-app .cp-forecast-reading,
+.cp-app .cp-forecast-sources,
+.cp-app .cp-forecast-details {
+  margin-top: 0;
+}
+
+.cp-app .cp-forecast-decision {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #cde6df;
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: #eff8f5;
+  color: #175b54;
+}
+
+.cp-app .cp-forecast-decision[data-confidence="low"] {
+  border-color: #ead59c;
+  background: #fff8e5;
+  color: #725000;
+}
+
+.cp-app .cp-forecast-decision__icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.cp-app .cp-forecast-decision > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cp-app .cp-forecast-decision strong {
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.cp-app .cp-forecast-decision small {
+  color: currentColor;
+  font-size: 0.67rem;
+  line-height: 1.4;
+  opacity: 0.82;
+}
+
+.cp-app .cp-forecast-source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.cp-app .cp-forecast-source-links a {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--cp-teal);
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+
+.cp-app .cp-mobile-air-card__scope {
+  display: block;
+  margin-top: 7px;
+  color: var(--cp-subink);
+  font-size: 0.64rem;
+}
+
+.cp-app .cp-forecast-details {
+  overflow: hidden;
+  border: 1px solid var(--cp-line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.cp-app .cp-forecast-details > summary {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  list-style: none;
+  color: var(--cp-ink);
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cp-app .cp-forecast-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.cp-app .cp-forecast-details > summary > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cp-app .cp-forecast-details > summary > svg {
+  transition: transform 180ms ease;
+}
+
+.cp-app .cp-forecast-details[open] > summary > svg {
+  transform: rotate(90deg);
+}
+
+.cp-app .cp-forecast-details__body {
+  border-top: 1px solid var(--cp-line);
+  padding: 0 12px 12px;
+  animation: cp-section-enter 180ms ease both;
+}
+
+/* Report: reveal only the step the person can act on. */
+.cp-app .cp-report-source-help {
+  overflow: hidden;
+  border: 1px solid var(--cp-line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.cp-app .cp-report-source-help > summary {
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 11px;
+  list-style: none;
+  color: var(--cp-ink);
+  font-size: 0.75rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.cp-app .cp-report-source-help > summary::-webkit-details-marker {
+  display: none;
+}
+
+.cp-app .cp-report-source-help > summary > svg {
+  transition: transform 180ms ease;
+}
+
+.cp-app .cp-report-source-help[open] > summary > svg {
+  transform: rotate(90deg);
+}
+
+.cp-app .cp-report-source-help .cp-report-source-guide {
+  border-top: 1px solid var(--cp-line);
+  padding: 10px;
+  background: #f8faf9;
+}
+
+.cp-app .cp-report-source-help .cp-report-source-guide > div {
+  background: #fff;
+}
+
+.cp-app .cp-report-progress li[data-complete="true"] {
+  color: var(--cp-teal);
+}
+
+.cp-app .cp-report-submit:disabled {
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Community: two clear destinations instead of one long mixed feed. */
+.cp-app .cp-community-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid var(--cp-line);
+  border-radius: 14px;
+  padding: 4px;
+  background: #fff;
+}
+
+.cp-app .cp-community-tabs button {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cp-subink);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cp-app .cp-community-tabs button[data-active="true"] {
+  background: #f0eafa;
+  color: #7048bb;
+}
+
+.cp-app .cp-community-overview {
+  display: grid;
+  gap: 14px;
+}
+
+.cp-app .cp-community-card:empty {
+  display: none;
+}
+
+.cp-app .cp-report-flow > .cp-auth-session[data-compact="true"] {
+  min-height: 54px;
+  justify-content: space-between;
+  border: 1px solid var(--cp-line);
+  border-radius: 14px;
+  padding: 8px 11px;
+  background: #fff;
+}
+
+.cp-app .cp-auth-session[data-compact="true"] > button {
+  min-height: 40px;
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--cp-teal);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.cp-app .cp-auth-form[data-compact="true"] {
+  gap: 8px;
+}
+
+.cp-app .cp-community-notification-page {
+  overflow: hidden;
+  border: 1px solid var(--cp-line);
+  border-radius: 18px;
+  padding: 14px;
+  background: #fff;
+}
+
+.cp-app .cp-community-section-heading {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--cp-line);
+  padding-bottom: 12px;
+}
+
+.cp-app .cp-community-section-heading h3,
+.cp-app .cp-community-section-heading p {
+  margin: 0;
+}
+
+.cp-app .cp-community-section-heading h3 {
+  font-size: 0.92rem;
+}
+
+.cp-app .cp-community-section-heading p {
+  margin-top: 2px;
+  color: var(--cp-subink);
+  font-size: 0.7rem;
+}
+
+.cp-app .cp-community-source-help .cp-community-source-key {
+  margin-top: 0;
+}
+
+@media (max-width: 768px) {
+  .cp-app .cp-context-header,
+  .cp-app[data-tab="report"] .cp-context-header,
+  .cp-app[data-tab="community"] .cp-context-header {
+    padding: max(10px, env(safe-area-inset-top)) 14px 10px;
+  }
+
+  .cp-app .cp-context-header__topline,
+  .cp-app[data-tab="report"] .cp-context-header__topline,
+  .cp-app[data-tab="community"] .cp-context-header__topline {
+    min-height: 32px;
+  }
+
+  .cp-app .cp-icon-button,
+  .cp-app[data-tab="report"] .cp-icon-button,
+  .cp-app[data-tab="community"] .cp-icon-button {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .cp-app .cp-context-header__title {
+    align-items: center;
+    gap: 9px;
+    margin-top: 3px;
+  }
+
+  .cp-app .cp-context-header__title-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+  }
+
+  .cp-app .cp-context-header__title h1 {
+    font-size: 1.08rem;
+  }
+
+  .cp-app .cp-context-header__title p {
+    overflow: hidden;
+    font-size: 0.69rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cp-app .cp-aside__body {
+    padding: 12px 12px calc(22px + env(safe-area-inset-bottom));
+  }
+
+  .cp-app .cp-overview-stack,
+  .cp-app .cp-report-flow,
+  .cp-app .cp-community-feed {
+    gap: 12px;
+  }
+
+  .cp-app .cp-mobile-air-card {
+    border-radius: 18px;
+    padding: 15px;
+  }
+
+  .cp-app .cp-mobile-air-card__reading {
+    margin-top: 14px;
+  }
+
+  .cp-app .cp-mobile-air-card__number strong {
+    font-size: clamp(2.6rem, 13vw, 3.5rem);
+  }
+
+  .cp-app .cp-mobile-quick-actions button {
+    min-height: 76px;
+    align-items: center;
+    border-radius: 15px;
+    padding: 11px;
+  }
+
+  .cp-app .cp-mobile-quick-actions small {
+    display: none;
+  }
+
+  .cp-app .cp-map-aqi-legend {
+    top: max(68px, calc(env(safe-area-inset-top) + 59px));
+    right: 74px;
+    left: 10px;
+    width: auto;
+    border-radius: 999px;
+    padding: 4px 6px;
+  }
+
+  .cp-app .cp-map-aqi-legend b {
+    font-size: clamp(0.42rem, 1.7vw, 0.52rem);
+  }
+
+  .cp-app .cp-map-flyout {
+    max-height: min(68vh, 620px);
+    overflow-y: auto;
+  }
+
+  .cp-app .cp-forecast-card {
+    padding: 14px;
+  }
+
+  .cp-app .cp-forecast-card__heading .cp-eyebrow {
+    display: none;
+  }
+
+  .cp-app .cp-forecast-card__heading h2 {
+    margin-top: 0;
+    font-size: 1rem;
+  }
+
+  .cp-app .cp-forecast-horizons button {
+    min-height: 48px;
+  }
+
+  .cp-app .cp-forecast-reading {
+    grid-template-columns: minmax(0, 1fr) minmax(120px, 0.72fr);
+    border-radius: 16px;
+    padding: 13px;
+  }
+
+  .cp-app .cp-forecast-reading__value strong {
+    font-size: 2.2rem;
+  }
+
+  .cp-app .cp-forecast-interval {
+    min-height: auto;
+    padding: 10px;
+  }
+
+  .cp-app .cp-report-intro {
+    padding: 0 2px;
+  }
+
+  .cp-app .cp-report-step-card {
+    border-color: color-mix(
+      in srgb,
+      var(--cp-source-individual) 22%,
+      var(--cp-line)
+    );
+    box-shadow: 0 8px 24px rgba(15, 49, 44, 0.06);
+  }
+
+  .cp-app .cp-report-progress li:not(:last-child)::after {
+    transition: background-color 180ms ease;
+  }
+
+  .cp-app .cp-community-welcome {
+    padding: 14px;
+  }
+
+  .cp-app .cp-community-welcome p {
+    max-width: 30ch;
+  }
+}
+
+@media (max-width: 390px) {
+  .cp-app .cp-mobile-quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cp-app .cp-mobile-quick-actions button {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .cp-app .cp-mobile-quick-actions button > svg {
+    display: none;
+  }
+
+  .cp-app .cp-mobile-quick-actions__icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .cp-app .cp-forecast-reading {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-app .cp-forecast-interval {
+    min-height: 0;
+  }
+
+  .cp-app .cp-report-source-guide,
+  .cp-app .cp-community-source-key {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-app *,
+  .cp-app *::before,
+  .cp-app *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
