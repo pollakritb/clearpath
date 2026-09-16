@@ -412,17 +412,20 @@ npm run test:e2e
 
 ### งาน
 
-- [ ] `CP-FCAST-EXT-001` ยืนยัน provider contract สำหรับ CAMS/Open-Meteo และ OpenWeather: horizon, issued time, units, attribution, license
-- [ ] `CP-FCAST-EXT-002` เก็บ provider snapshot ตาม cron ไม่เรียกทุก provider จาก browser
-- [ ] `CP-FCAST-EXT-003` ทำ stale/timeout/rate-limit/circuit-breaker/cache fallback
-- [ ] `CP-FCAST-EXT-004` reconcile เวลา/timezone/หน่วย/พิกัด ก่อนเปรียบเทียบ
-- [ ] `CP-FCAST-EXT-005` แสดงแนะนำ 1 แหล่งและให้เปรียบเทียบได้ไม่เกิน 3 แหล่ง โดยไม่เฉลี่ยแบบไร้หลักฐาน
-- [ ] `CP-FCAST-EXT-006` แสดง issued time, processed time, uncertainty/limited status และสาเหตุข้อมูลจำกัด
-- [ ] `CP-FCAST-EXT-007` ประเมิน provider ย้อนหลังเทียบ observation แยก horizon/สถานี/ฤดู/ฝุ่นสูง
-- [ ] `CP-FCAST-EXT-008` เลือก recommended source จาก evidence window ไม่ hard-code ยี่ห้อ
+- [x] `CP-FCAST-EXT-001` ยืนยัน provider contract สำหรับ CAMS/Open-Meteo และ OpenWeather: horizon, issued time, units, attribution, license
+- [x] `CP-FCAST-EXT-002` เก็บ provider snapshot ตาม cron ไม่เรียกทุก provider จาก browser
+- [x] `CP-FCAST-EXT-003` ทำ stale/timeout/rate-limit/circuit-breaker/cache fallback
+- [x] `CP-FCAST-EXT-004` reconcile เวลา/timezone/หน่วย/พิกัด ก่อนเปรียบเทียบ
+- [x] `CP-FCAST-EXT-005` แสดงแนะนำ 1 แหล่งและให้เปรียบเทียบได้ไม่เกิน 3 แหล่ง โดยไม่เฉลี่ยแบบไร้หลักฐาน
+- [x] `CP-FCAST-EXT-006` แสดง issued time, processed time, uncertainty/limited status และสาเหตุข้อมูลจำกัด
+- [x] `CP-FCAST-EXT-007` ประเมิน provider ย้อนหลังเทียบ observation แยก horizon/สถานี/ฤดู/ฝุ่นสูง
+- [x] `CP-FCAST-EXT-008` เลือก recommended source จาก evidence window ไม่ hard-code ยี่ห้อ
 - [ ] `CP-FCAST-EXT-009` เปิด GISTDA เฉพาะเมื่อ license/attribution/technical contract ผ่าน owner/legal approval
-- [ ] `CP-FCAST-EXT-010` ทดสอบกรณี provider 0/1/2/3 แหล่ง, ค่าต่างกันมาก และข้อมูลหมดอายุ
-- [ ] `CP-FCAST-SURF-001` ทดสอบ surface 1/3/6/12/24 ชม. และ `sparse_station_coverage`
+- [x] `CP-FCAST-EXT-010` ทดสอบกรณี provider 0/1/2/3 แหล่ง, ค่าต่างกันมาก และข้อมูลหมดอายุ
+- [x] `CP-FCAST-SURF-001` ทดสอบ surface 1/3/6/12/24 ชม. และ `sparse_station_coverage`
+
+`CP-FCAST-EXT-009` ยังปิดแบบ fail-closed ใน production; AI ไม่สามารถอนุมัติ
+สิทธิ์ใช้ข้อมูลแทน owner/legal ได้ และระบบจะไม่เรียก GISTDA จนกว่าจะมีหลักฐานดังกล่าว
 
 ### เกณฑ์ผ่าน
 

@@ -4,6 +4,7 @@ import pytest
 
 from backend.algorithms.forecast_selection import (
     forecast_availability,
+    provider_circuit_open,
     provider_sync_due,
     select_external_forecast,
 )
@@ -40,6 +41,51 @@ def test_external_selection_deduplicates_provider_and_rejects_invalid_values():
     assert result is not None
     assert result["pm25"] == 12
     assert result["provider_count"] == 1
+
+
+def test_external_selection_uses_evidence_rank_and_freshness_fallback():
+    older = "2026-09-16T01:00:00Z"
+    newer = "2026-09-16T02:00:00Z"
+    points = [
+        {"source": "openmeteo_cams", "pm25": 12, "issued_at": older},
+        {"source": "openweather", "pm25": 18, "issued_at": newer},
+    ]
+
+    assert select_external_forecast(points, 3)["source"] == "openweather"
+    assert (
+        select_external_forecast(points, 3, ["openmeteo_cams", "openweather"])["source"]
+        == "openmeteo_cams"
+    )
+
+
+@pytest.mark.parametrize(
+    ("points", "expected_count"),
+    [
+        ([], 0),
+        ([{"source": "openweather", "pm25": 10}], 1),
+        (
+            [
+                {"source": "openweather", "pm25": 10},
+                {"source": "openmeteo_cams", "pm25": 11},
+            ],
+            2,
+        ),
+        (
+            [
+                {"source": "openweather", "pm25": 10},
+                {"source": "openmeteo_cams", "pm25": 11},
+                {"source": "gistda", "pm25": 12},
+            ],
+            3,
+        ),
+    ],
+)
+def test_external_selection_handles_zero_to_three_providers(points, expected_count):
+    result = select_external_forecast(points, 1)
+    if expected_count == 0:
+        assert result is None
+    else:
+        assert result["provider_count"] == expected_count
 
 
 def test_availability_uses_external_data_even_when_local_history_is_unusable():
@@ -126,3 +172,24 @@ def test_provider_sync_accepts_recent_partial_run_to_avoid_quota_storm():
 def test_provider_sync_rejects_non_positive_interval():
     with pytest.raises(ValueError, match="provider_sync_interval_must_be_positive"):
         provider_sync_due(None, 0)
+
+
+def test_provider_circuit_opens_only_for_recent_failures():
+    now = datetime(2026, 9, 16, 12, tzinfo=UTC)
+    assert provider_circuit_open(
+        {
+            "status": "failed",
+            "completed_at": (now - timedelta(minutes=59)).isoformat(),
+        },
+        now=now,
+    )
+    assert not provider_circuit_open(
+        {
+            "status": "failed",
+            "completed_at": (now - timedelta(minutes=60)).isoformat(),
+        },
+        now=now,
+    )
+    assert not provider_circuit_open(
+        {"status": "success", "completed_at": now.isoformat()}, now=now
+    )

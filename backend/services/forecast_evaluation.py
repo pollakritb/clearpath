@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 
+from ..algorithms.forecast_evaluation import settled_slice_metrics
 from ..algorithms.forecast_monitoring import (
     aggregate_settled,
     evaluation_alert_codes,
@@ -130,7 +131,13 @@ def aggregate_recent(days: int = 7) -> dict:
                 },
                 "fallback_rate": fallback_rate,
                 "p95_latency_ms": p95_latency,
-                "metrics": metrics,
+                "metrics": {
+                    **metrics,
+                    "latest_forecast_at": max(
+                        str(member.get("forecast_at") or "") for member in members
+                    ),
+                    "slices": settled_slice_metrics(members),
+                },
                 "computed_at": datetime.now(UTC).isoformat(),
             }
         )
@@ -177,6 +184,7 @@ def weekly_metrics(days: int = 7) -> dict:
                 "station_id": station_id,
                 "district": district,
                 **aggregate_settled(members),
+                "slices": settled_slice_metrics(members),
                 "fallback_rate": fallback_rate,
                 "p95_latency_ms": (
                     latencies[max(0, int(len(latencies) * 0.95) - 1)]

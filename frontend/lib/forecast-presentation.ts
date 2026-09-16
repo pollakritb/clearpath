@@ -14,9 +14,9 @@ export const FORECAST_SOURCE_LABELS: Record<ForecastSource, string> = {
 };
 
 export const FORECAST_SOURCE_ORDER: ForecastSource[] = [
-  "gistda",
   "openmeteo_cams",
   "openweather",
+  "gistda",
   "clearpath",
 ];
 
@@ -28,6 +28,8 @@ export const FORECAST_LIMITATION_LABELS: Record<string, string> = {
   external_provider_disagreement: "ผู้ให้บริการให้ค่าต่างกันมาก",
   local_fallback_only: "กำลังใช้แนวโน้มสำรองจากข้อมูลสถานี",
   local_inputs_unusable: "ข้อมูลสถานีไม่เพียงพอสำหรับวิธีสำรอง",
+  provider_selection_evidence_insufficient:
+    "หลักฐานความแม่นย้อนหลังยังไม่ถึงเกณฑ์ จึงเลือกจากข้อมูลที่ใหม่ที่สุดชั่วคราว",
 };
 
 export function formatProviderTime(value: string | null): string {

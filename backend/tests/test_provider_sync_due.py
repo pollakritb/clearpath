@@ -96,3 +96,30 @@ def test_due_wrapper_raises_upstream_error_when_sync_returns_failed(monkeypatch)
 
     with pytest.raises(UpstreamError, match="openweather forecast sync failed"):
         asyncio.run(provider_sync.sync_openweather_if_due())
+
+
+def test_due_wrapper_opens_circuit_after_recent_failure(monkeypatch):
+    called = False
+
+    async def unexpected_sync():
+        nonlocal called
+        called = True
+        return {"ok": True}
+
+    monkeypatch.setattr(provider_sync.settings, "openweather_air_enabled", True)
+    monkeypatch.setattr(
+        provider_sync.supabase_client,
+        "get_latest_provider_sync_run",
+        lambda provider: {
+            "provider": provider,
+            "status": "failed",
+            "completed_at": datetime.now(UTC).isoformat(),
+        },
+    )
+    monkeypatch.setattr(provider_sync, "sync_openweather", unexpected_sync)
+
+    result = asyncio.run(provider_sync.sync_openweather_if_due())
+
+    assert result["status"] == "circuit_open"
+    assert result["cache_fallback"] is True
+    assert not called

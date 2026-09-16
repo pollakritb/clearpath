@@ -1345,6 +1345,23 @@ def insert_forecast_ledger(run: dict, predictions: list[dict]) -> None:
         get_client().table("forecast_predictions").insert(predictions).execute()
 
 
+def insert_forecast_ledgers(runs: list[dict], predictions: list[dict]) -> None:
+    """Batch provider evidence ledgers to keep nationwide cron writes bounded."""
+
+    if not runs:
+        return
+    if settings.local_demo_mode:
+        by_run: dict[str, list[dict]] = {}
+        for prediction in predictions:
+            by_run.setdefault(str(prediction["run_id"]), []).append(prediction)
+        for run in runs:
+            local_store.insert_forecast_ledger(run, by_run.get(str(run["id"]), []))
+        return
+    get_client().table("forecast_runs").insert(runs).execute()
+    if predictions:
+        get_client().table("forecast_predictions").insert(predictions).execute()
+
+
 def get_unsettled_forecast_predictions(limit: int = 500) -> list[dict]:
     if settings.local_demo_mode:
         return []
@@ -1451,13 +1468,36 @@ def get_forecast_evaluation_summary(days: int = 14) -> list[dict]:
     ).data or []
 
 
+def get_provider_evaluation_summary(days: int = 14) -> list[dict]:
+    """Return only nationwide provider evidence needed by public selection."""
+
+    if settings.local_demo_mode:
+        return []
+    cutoff = (datetime.now(UTC).date() - timedelta(days=days - 1)).isoformat()
+    return (
+        get_client()
+        .table("forecast_evaluation_daily")
+        .select(
+            "evaluation_date,horizon_hours,method,station_id,district,rows,mae,"
+            "bias,false_safe_rate,metrics,computed_at"
+        )
+        .like("method", "provider:%")
+        .eq("station_id", "all")
+        .eq("district", "all")
+        .gte("evaluation_date", cutoff)
+        .order("evaluation_date", desc=True)
+        .limit(500)
+        .execute()
+    ).data or []
+
+
 def list_forecast_false_safe_cases(days: int = 30, limit: int = 100) -> list[dict]:
     """Return settled false-safe events plus any private administrator review."""
 
     if settings.local_demo_mode:
         return []
     cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
-    return (
+    rows = (
         get_client()
         .table("forecast_predictions")
         .select(
@@ -1467,11 +1507,15 @@ def list_forecast_false_safe_cases(days: int = 30, limit: int = 100) -> list[dic
             "forecast_false_safe_reviews(disposition,note,reviewed_at)"
         )
         .eq("false_safe", True)
+        .in_("variant", ["served", "shadow"])
         .gte("settled_at", cutoff)
         .order("settled_at", desc=True)
         .limit(limit)
         .execute()
     ).data or []
+    return [
+        row for row in rows if not str(row.get("method") or "").startswith("provider:")
+    ]
 
 
 def upsert_forecast_false_safe_review(row: dict) -> dict:

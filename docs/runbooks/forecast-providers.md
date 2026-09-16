@@ -13,12 +13,46 @@ silently replace a provider value.
 | CAMS via Open-Meteo       | 1–24 hours displayed | every 12 hours | `OPENMETEO_AIR_ENABLED=true`                                 | Default no-key provider; attribute CAMS and Open-Meteo                |
 | OpenWeather Air Pollution | 1–24 hours displayed |  every 8 hours | `OPENWEATHER_AIR_ENABLED=true` and `OPENWEATHER_API_KEY`     | Optional second provider on the free entitlement                      |
 
-The selection order is GISTDA, CAMS/Open-Meteo, then OpenWeather. This is a
-published deterministic policy, not an accuracy claim. A provider's raw PM2.5
-value is never averaged or overwritten. Agreement and the uncertainty envelope
-are comparison metadata only. A provider is rejected after its source-specific
-freshness window: 5 hours for GISTDA, 14 hours for CAMS/Open-Meteo and 10 hours
-for OpenWeather.
+Contract reviewed against provider documentation on 2026-09-16:
+
+- CAMS Global through Open-Meteo is global, about 45 km, natively 3-hourly,
+  updated every 12 hours and provides five forecast days. ClearPath requests
+  four days and exposes only 1/3/6/12/24 hours. `pm2_5` is an instantaneous
+  concentration in `µg/m³`; timestamps are requested in UTC. The response does
+  not expose the underlying model-run issue time, so ClearPath labels its stored
+  `issued_at` truthfully as retrieval time. Attribution must name both CAMS
+  ENSEMBLE and Open-Meteo. API data is CC BY 4.0, while the free hosted endpoint
+  is restricted to non-commercial use and its published call limits. Sources:
+  <https://open-meteo.com/en/docs/air-quality-api> and
+  <https://open-meteo.com/en/terms>.
+- OpenWeather Air Pollution returns a four-day, hourly forecast by WGS84
+  coordinate and PM2.5 in `µg/m³`. Forecast timestamps are Unix UTC. It does not
+  provide a model-run issue timestamp in this response, so ClearPath also labels
+  retrieval time rather than claiming model issuance. Use is tied to the active
+  OpenWeather subscription/terms; do not infer a Creative Commons licence.
+  Source: <https://openweathermap.org/api/air-pollution>.
+- GISTDA remains disabled. Its horizon and response adapter are not approval to
+  cache or publicly redistribute the result; written permission is still a hard
+  gate.
+
+The recommended source is selected from a rolling 14-day evidence window after
+at least 30 settled comparisons against Air4Thai observations. MAE is primary;
+false-safe rate and absolute bias are bounded safety tie-breakers. Evidence
+expires 36 hours after its latest computation. When no provider has eligible
+evidence, ClearPath selects the freshest usable snapshot without brand priority
+and marks the result limited. A provider's raw PM2.5 value is never averaged or
+overwritten. Agreement and the uncertainty envelope are comparison metadata
+only. A provider is rejected after its source-specific freshness window: 5
+hours for GISTDA, 14 hours for CAMS/Open-Meteo and 10 hours for OpenWeather.
+Provider evidence ledgers are created in batch by the protected provider-sync
+cron for every station and product horizon present in the normalized snapshot.
+They are not created by public forecast requests, so provider ranking is not
+biased toward stations with more ClearPath page views.
+
+Provider requests use bounded timeouts and retry only timeouts, network errors,
+HTTP 429 and HTTP 5xx. A recent failed sync opens a 60-minute circuit; public
+forecast reads continue from still-fresh database snapshots. Browser requests
+never call a provider directly.
 
 ## Community evidence
 

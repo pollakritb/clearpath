@@ -57,7 +57,35 @@ export interface ForecastProviderSummary {
   coverage_hours: number;
   maximum_horizon_hours: number;
   stale_after_hours: number;
+  temporal_resolution_hours: number;
+  spatial_resolution_km: number | null;
+  license: string;
+  license_url: string;
+  issued_time_kind: "provider_issue" | "retrieved_at";
   usage_note: string;
+}
+
+export interface ForecastProviderScore {
+  provider: Exclude<ForecastSource, "clearpath">;
+  eligible: boolean;
+  sample_size: number;
+  mae: number | null;
+  false_safe_rate: number;
+  bias: number | null;
+  score: number | null;
+  evaluated_at: string;
+  expires_at: string;
+}
+
+export interface ForecastSelectionEvidence {
+  basis: "retrospective_accuracy" | "freshness_fallback";
+  horizon_hours: number | null;
+  window_days: number;
+  minimum_rows: number;
+  ranked_sources: string[];
+  scores: ForecastProviderScore[];
+  evaluated_at: string | null;
+  expires_at: string | null;
 }
 
 export interface ForecastCommunityContext {
@@ -99,6 +127,7 @@ export interface ForecastResponse {
   forecast_mode: "external_provider" | "local_fallback" | "unavailable";
   recommended_source: ForecastSource | null;
   providers: ForecastProviderSummary[];
+  selection_evidence: ForecastSelectionEvidence;
   community_context: ForecastCommunityContext;
 }
 

@@ -63,7 +63,35 @@ class ForecastProviderSummary(BaseModel):
     coverage_hours: int
     maximum_horizon_hours: int
     stale_after_hours: int
+    temporal_resolution_hours: int
+    spatial_resolution_km: float | None
+    license: str
+    license_url: str
+    issued_time_kind: Literal["provider_issue", "retrieved_at"]
     usage_note: str
+
+
+class ForecastProviderScore(BaseModel):
+    provider: Literal["gistda", "openmeteo_cams", "openweather"]
+    eligible: bool
+    sample_size: int
+    mae: float | None
+    false_safe_rate: float
+    bias: float | None
+    score: float | None
+    evaluated_at: str
+    expires_at: str
+
+
+class ForecastSelectionEvidence(BaseModel):
+    basis: Literal["retrospective_accuracy", "freshness_fallback"]
+    horizon_hours: int | None
+    window_days: int
+    minimum_rows: int
+    ranked_sources: list[str]
+    scores: list[ForecastProviderScore]
+    evaluated_at: str | None
+    expires_at: str | None
 
 
 class ForecastCommunityContext(BaseModel):
@@ -105,6 +133,7 @@ class ForecastResponse(BaseModel):
     forecast_mode: Literal["external_provider", "local_fallback", "unavailable"]
     recommended_source: ForecastSource | None = None
     providers: list[ForecastProviderSummary] = Field(default_factory=list)
+    selection_evidence: ForecastSelectionEvidence
     community_context: ForecastCommunityContext
 
 

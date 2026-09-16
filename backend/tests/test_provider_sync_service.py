@@ -23,6 +23,7 @@ def _install_store(monkeypatch):
     created: list[dict] = []
     snapshots: list[dict] = []
     updated: list[tuple[str, dict]] = []
+    evidence: list[tuple[list[dict], list[dict]]] = []
     monkeypatch.setattr(provider_sync.supabase_client, "get_stations", _stations)
     monkeypatch.setattr(
         provider_sync.supabase_client,
@@ -39,7 +40,12 @@ def _install_store(monkeypatch):
         "update_provider_sync_run",
         lambda run_id, values: updated.append((run_id, values)),
     )
-    return created, snapshots, updated
+    monkeypatch.setattr(
+        provider_sync.supabase_client,
+        "insert_forecast_ledgers",
+        lambda runs, predictions: evidence.append((runs, predictions)),
+    )
+    return created, snapshots, updated, evidence
 
 
 def _forecast(pm25: float = 20):
@@ -100,17 +106,68 @@ def test_station_and_snapshot_normalization(monkeypatch):
         run_id="run-1",
         issued_at=issued,
         station_id="station-1",
+        station_lat=13.8,
+        station_lon=100.1,
         rows=[
             {"forecast_at": "2026-09-16T03:00:00", "pm25": -5},
             {"forecast_at": "2026-09-16T06:00:00Z", "pm25": 10},
         ],
     )
-    assert [row["horizon_hours"] for row in rows] == [3, 6]
-    assert [row["pm25"] for row in rows] == [0.0, 10.0]
+    assert [row["horizon_hours"] for row in rows] == [6]
+    assert [row["pm25"] for row in rows] == [10.0]
+    assert rows[0]["raw_metadata"]["issued_time_kind"] == "retrieved_at"
+
+    mismatched = provider_sync._snapshots(
+        provider="openweather",
+        run_id="run-2",
+        issued_at=issued,
+        station_id="station-1",
+        station_lat=13.8,
+        station_lon=100.1,
+        rows=[
+            {
+                "forecast_at": "2026-09-16T06:00:00Z",
+                "pm25": 10,
+                "source_lat": 20,
+                "source_lon": 110,
+            }
+        ],
+    )
+    assert mismatched == []
+
+
+def test_provider_evidence_failure_does_not_invalidate_snapshots(monkeypatch):
+    issued = datetime(2026, 9, 16, tzinfo=UTC)
+    snapshots = provider_sync._snapshots(
+        provider="openweather",
+        run_id="sync-run",
+        issued_at=issued,
+        station_id="station-1",
+        station_lat=13.8,
+        station_lon=100.1,
+        rows=[{"forecast_at": "2026-09-16T03:00:00Z", "pm25": 12}],
+    )
+
+    def unavailable(_runs, _predictions):
+        raise RuntimeError("evaluation store unavailable")
+
+    monkeypatch.setattr(
+        provider_sync.supabase_client, "insert_forecast_ledgers", unavailable
+    )
+    result = provider_sync._persist_provider_evidence(
+        provider="openweather",
+        issued_at=issued,
+        stations=[{"id": "station-1", "lat": 13.8, "lon": 100.1}],
+        snapshots=snapshots,
+    )
+
+    assert result["runs"] == 0
+    assert result["predictions"] == 0
+    assert result["error"] == "evaluation store unavailable"
 
 
 def test_openweather_sync_records_partial_success(monkeypatch):
-    created, snapshots, updated = _install_store(monkeypatch)
+    created, snapshots, updated, evidence = _install_store(monkeypatch)
 
     async def get_forecast(lat: float, _lon: float):
         if lat == 14.0:
@@ -127,10 +184,12 @@ def test_openweather_sync_records_partial_success(monkeypatch):
     assert created[0]["provider"] == "openweather"
     assert snapshots[0]["station_id"] == "station-1"
     assert updated[0][1]["metadata"]["failed_station_ids"] == ["station-2"]
+    assert evidence[0][0][0]["method"] == "provider:openweather"
+    assert [row["horizon_hours"] for row in evidence[0][1]] == [3]
 
 
 def test_gistda_sync_records_success_behind_legal_metadata(monkeypatch):
-    created, snapshots, updated = _install_store(monkeypatch)
+    created, snapshots, updated, evidence = _install_store(monkeypatch)
 
     async def get_forecast(_lat: float, _lon: float):
         return _forecast(18)
@@ -143,10 +202,11 @@ def test_gistda_sync_records_success_behind_legal_metadata(monkeypatch):
     assert created[0]["metadata"] == {"licence_gate": "approved"}
     assert all(row["provider"] == "gistda" for row in snapshots)
     assert updated[0][1]["metadata"]["licence_gate"] == "approved"
+    assert len(evidence[0][0]) == 2
 
 
 def test_openmeteo_sync_records_partial_and_failure(monkeypatch):
-    _created, snapshots, updated = _install_store(monkeypatch)
+    _created, snapshots, updated, evidence = _install_store(monkeypatch)
 
     async def partial(_stations):
         return {"station-1": _forecast(16)}
@@ -156,6 +216,7 @@ def test_openmeteo_sync_records_partial_and_failure(monkeypatch):
     assert result["status"] == "partial"
     assert result["errors"] == 1
     assert snapshots[0]["provider"] == "openmeteo_cams"
+    assert evidence[0][1][0]["method"] == "provider:openmeteo_cams"
 
     async def failure(_stations):
         raise RuntimeError("CAMS unavailable")

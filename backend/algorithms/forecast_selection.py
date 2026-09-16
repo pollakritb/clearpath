@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from .forecast_consensus import agreement_level
+from .provider_reliability import source_sort_key
 
 EXTERNAL_PROVIDERS = ("gistda", "openmeteo_cams", "openweather")
 PROVIDER_PRIORITY = {
@@ -47,7 +48,9 @@ def _finite_pm25(point: dict) -> float | None:
     return value if math.isfinite(value) and value >= 0 else None
 
 
-def usable_external_points(points: Sequence[dict]) -> list[dict]:
+def usable_external_points(
+    points: Sequence[dict], evidence_rank: Sequence[str] = ()
+) -> list[dict]:
     """Return one valid point per external provider in deterministic order."""
 
     selected: dict[str, dict] = {}
@@ -61,7 +64,9 @@ def usable_external_points(points: Sequence[dict]) -> list[dict]:
         ):
             continue
         selected.setdefault(source, {**point, "pm25": value})
-    return sorted(selected.values(), key=lambda row: PROVIDER_PRIORITY[row["source"]])
+    return sorted(
+        selected.values(), key=lambda row: source_sort_key(row, evidence_rank)
+    )
 
 
 def provider_uncertainty(
@@ -79,10 +84,14 @@ def provider_uncertainty(
     return round(max(0.0, lower), 1), round(max(0.0, upper), 1)
 
 
-def select_external_forecast(points: Sequence[dict], horizon_hours: int) -> dict | None:
+def select_external_forecast(
+    points: Sequence[dict],
+    horizon_hours: int,
+    evidence_rank: Sequence[str] = (),
+) -> dict | None:
     """Select one raw provider forecast and calculate comparison-only metadata."""
 
-    usable = usable_external_points(points)
+    usable = usable_external_points(points, evidence_rank)
     if not usable:
         return None
     selected = usable[0]
@@ -100,6 +109,29 @@ def select_external_forecast(points: Sequence[dict], horizon_hours: int) -> dict
         "method": "external-provider-selection-v1",
         "calibration_version": "provider-spread-envelope-v1",
     }
+
+
+def provider_circuit_open(
+    latest_run: dict | None,
+    *,
+    now: datetime | None = None,
+    cooldown_minutes: int = 60,
+) -> bool:
+    """Back off a recently failed provider while cached snapshots remain usable."""
+
+    if not latest_run or latest_run.get("status") != "failed":
+        return False
+    value = latest_run.get("completed_at") or latest_run.get("started_at")
+    try:
+        failed_at = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return False
+    if failed_at.tzinfo is None:
+        failed_at = failed_at.replace(tzinfo=UTC)
+    checked_at = now or datetime.now(UTC)
+    if checked_at.tzinfo is None:
+        checked_at = checked_at.replace(tzinfo=UTC)
+    return checked_at - failed_at < timedelta(minutes=max(1, cooldown_minutes))
 
 
 def forecast_availability(

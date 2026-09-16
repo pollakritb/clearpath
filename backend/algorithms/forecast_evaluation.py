@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 
 from .forecast_baselines import BANGKOK, evaluate_predictions
+from .forecast_monitoring import aggregate_settled
 from .forecast_quality import canonical_sha256, parse_timestamp
 
 ROLLING_SPLIT_STRATEGY = "per_station_rolling_origin_with_untouched_holdout"
@@ -168,6 +169,25 @@ def sliced_metrics(
         predicted = [float(predictions[index]) for index in indices]
         result[f"{dimension}:{value}"] = evaluate_predictions(actual, predicted)
     return result
+
+
+def settled_slice_metrics(rows: Sequence[Mapping[str, object]]) -> dict[str, dict]:
+    """Aggregate settled telemetry by season and observed PM2.5 severity."""
+
+    buckets: dict[str, list[Mapping[str, object]]] = defaultdict(list)
+    for row in rows:
+        try:
+            forecast_at = str(row["forecast_at"])
+            observed = float(row["observed_pm25"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        buckets[f"season:{_season(forecast_at)}"].append(row)
+        buckets[f"pm_band:{_pm_band(observed)}"].append(row)
+    return {
+        name: aggregate_settled(members)
+        for name, members in sorted(buckets.items())
+        if members
+    }
 
 
 def model_card(

@@ -8,6 +8,7 @@ import httpx
 
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
+from .provider_http import get_json
 
 URL = "https://pm25.gistda.or.th/rest/pred/getPm25byLocation"
 
@@ -26,9 +27,7 @@ async def get_forecast(lat: float, lon: float) -> list[dict]:
         raise ConfigurationError("GISTDA forecast ถูกปิดจนกว่าจะยืนยันสิทธิ์การใช้และเผยแพร่ข้อมูล")
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.get(URL, params={"lat": lat, "lng": lon})
-            response.raise_for_status()
-            payload = response.json()
+            payload = await get_json(client, URL, params={"lat": lat, "lng": lon})
     except (httpx.HTTPError, TypeError, ValueError) as exc:
         raise UpstreamError("GISTDA เช็คฝุ่นตอบกลับไม่สำเร็จ") from exc
     if int(payload.get("status") or 0) != 200:
@@ -41,7 +40,14 @@ async def get_forecast(lat: float, lon: float) -> list[dict]:
             pm25 = float(value)
             if pm25 < 0:
                 continue
-            rows.append({"forecast_at": _as_utc(forecast_at), "pm25": pm25})
+            rows.append(
+                {
+                    "forecast_at": _as_utc(forecast_at),
+                    "pm25": pm25,
+                    "source_lat": lat,
+                    "source_lon": lon,
+                }
+            )
         except (IndexError, TypeError, ValueError):
             continue
     if not rows:

@@ -10,6 +10,9 @@ from backend.services import gistda_air, openmeteo_air, openweather_air
 class _Response:
     def __init__(self, payload):
         self.payload = payload
+        self.status_code = 200
+        self.headers = {}
+        self.request = httpx.Request("GET", "https://provider.test")
 
     def raise_for_status(self):
         return None
@@ -24,12 +27,17 @@ def test_openweather_air_normalizes_pm25(monkeypatch):
 
     async def fake_get(*_args, **_kwargs):
         return _Response(
-            {"list": [{"dt": 1_800_000_000, "components": {"pm2_5": 12.5}}]}
+            {
+                "coord": [100.5, 13.7],
+                "list": [{"dt": 1_800_000_000, "components": {"pm2_5": 12.5}}],
+            }
         )
 
     monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
     rows = asyncio.run(openweather_air.get_forecast(13.7, 100.5))
     assert rows[0]["pm25"] == 12.5
+    assert rows[0]["source_lat"] == 13.7
+    assert rows[0]["source_lon"] == 100.5
     assert datetime.fromisoformat(rows[0]["forecast_at"]).tzinfo == UTC
 
 
@@ -39,8 +47,16 @@ def test_openmeteo_air_maps_batch_results_to_station_ids(monkeypatch):
     async def fake_get(*_args, **_kwargs):
         return _Response(
             [
-                {"hourly": {"time": ["2026-08-04T01:00"], "pm2_5": [10]}},
-                {"hourly": {"time": ["2026-08-04T01:00"], "pm2_5": [20]}},
+                {
+                    "latitude": 13,
+                    "longitude": 100,
+                    "hourly": {"time": ["2026-08-04T01:00"], "pm2_5": [10]},
+                },
+                {
+                    "latitude": 14,
+                    "longitude": 101,
+                    "hourly": {"time": ["2026-08-04T01:00"], "pm2_5": [20]},
+                },
             ]
         )
 

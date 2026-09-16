@@ -8,6 +8,7 @@ import httpx
 
 from ..core.config import settings
 from ..core.errors import UpstreamError
+from .provider_http import get_json
 
 URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
@@ -30,7 +31,8 @@ async def get_forecasts(
         async with httpx.AsyncClient(timeout=30.0) as client:
             for offset in range(0, len(stations), max_batch):
                 batch = stations[offset : offset + max_batch]
-                response = await client.get(
+                payload = await get_json(
+                    client,
                     URL,
                     params={
                         "latitude": ",".join(str(float(row["lat"])) for row in batch),
@@ -40,8 +42,6 @@ async def get_forecasts(
                         "forecast_days": max(1, min(7, forecast_days)),
                     },
                 )
-                response.raise_for_status()
-                payload = response.json()
                 locations = payload if isinstance(payload, list) else [payload]
                 if len(locations) != len(batch):
                     raise ValueError("openmeteo_location_count_mismatch")
@@ -50,7 +50,12 @@ async def get_forecasts(
                     times = hourly.get("time") or []
                     values = hourly.get("pm2_5") or []
                     result[str(station["id"])] = [
-                        {"forecast_at": _as_utc(str(at)), "pm25": float(value)}
+                        {
+                            "forecast_at": _as_utc(str(at)),
+                            "pm25": float(value),
+                            "source_lat": location.get("latitude"),
+                            "source_lon": location.get("longitude"),
+                        }
                         for at, value in zip(times, values, strict=False)
                         if value is not None
                     ]

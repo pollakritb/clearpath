@@ -1,8 +1,32 @@
 from datetime import UTC, datetime, timedelta
 
 import httpx
+import pytest
 
 from backend.services import forecasting
+
+
+def test_provider_points_reject_stale_snapshots():
+    now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+    target = (now + timedelta(hours=3)).isoformat()
+    snapshots = [
+        {
+            "provider": "openweather",
+            "issued_at": (now - timedelta(hours=11)).isoformat(),
+            "forecast_at": target,
+            "pm25": 12,
+        },
+        {
+            "provider": "openmeteo_cams",
+            "issued_at": now.isoformat(),
+            "forecast_at": target,
+            "pm25": 18,
+        },
+    ]
+
+    assert [
+        row["source"] for row in forecasting._provider_points(snapshots, target)
+    ] == ["openmeteo_cams"]
 
 
 def test_surface_contract_is_hard_gated_to_official_stations(monkeypatch):
@@ -14,6 +38,46 @@ def test_surface_contract_is_hard_gated_to_official_stations(monkeypatch):
     assert response["station_count"] == 0
     assert response["coverage_counts"]["unavailable"] == len(response["cells"])
     assert ledgers == []
+
+
+@pytest.mark.parametrize("horizon", [1, 3, 6, 12, 24])
+def test_surface_supports_product_horizons_and_reports_sparse_coverage(
+    monkeypatch, horizon
+):
+    now = datetime.now(UTC)
+    station = {
+        "id": "station-a",
+        "lat": 13.82,
+        "lon": 100.06,
+        "recorded_at": now.isoformat(),
+    }
+    monkeypatch.setattr(forecasting.supabase_client, "get_stations", lambda: [station])
+
+    def station_result(_station_id, requested, **_kwargs):
+        return (
+            {
+                "generated_at": now.isoformat(),
+                "points": [
+                    {
+                        "pm25": 20,
+                        "lower": 15,
+                        "upper": 25,
+                        "method": "fixture",
+                    }
+                    for _index in range(requested)
+                ],
+            },
+            {"run": {"id": "fixture"}},
+        )
+
+    monkeypatch.setattr(forecasting, "station_forecast", station_result)
+
+    response, ledgers = forecasting.surface_forecast(horizon, 4)
+
+    assert response["horizon_hours"] == horizon
+    assert response["station_count"] == 1
+    assert "sparse_station_coverage" in response["warnings"]
+    assert ledgers
 
 
 def test_station_forecast_serves_external_when_official_history_is_missing(monkeypatch):
@@ -55,7 +119,8 @@ def test_station_forecast_serves_external_when_official_history_is_missing(monke
     assert [point["pm25"] for point in response["points"]] == [21, 22, 23]
     assert all(point["source"] == "openmeteo_cams" for point in response["points"])
     assert "official_observation_stale" not in response["limitation_reason_codes"]
-    assert len(ledger["predictions"]) == 3
+    served = [row for row in ledger["predictions"] if row["variant"] == "served"]
+    assert len(served) == 3
 
 
 def test_station_forecast_keeps_external_result_when_optional_reads_fail(monkeypatch):
@@ -140,3 +205,27 @@ def test_qualified_community_fails_closed_and_accepts_policy_paths(monkeypatch):
     qualified = forecasting._qualified_community([])
 
     assert [row["id"] for row in qualified] == ["corroborated", "calibrated"]
+
+
+def test_persist_ledger_writes_only_the_served_forecast_run(monkeypatch):
+    inserted = []
+    monkeypatch.setattr(
+        forecasting.supabase_client,
+        "insert_forecast_ledger",
+        lambda run, predictions: inserted.append((run, predictions)),
+    )
+    ledger = {
+        "run": {
+            "id": "served-run",
+            "station_id": "81t",
+            "generated_at": "2026-09-16T00:00:00Z",
+        },
+        "predictions": [{"variant": "served"}],
+        "source_details": [],
+        "consensus_rows": [],
+        "community_features": [],
+    }
+
+    forecasting.persist_ledger(ledger)
+
+    assert [row[0]["id"] for row in inserted] == ["served-run"]

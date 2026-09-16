@@ -10,6 +10,7 @@ def _settled_row(station_id: str, *, error: float, horizon: int = 3) -> dict:
         "absolute_error": abs(error),
         "squared_error": error**2,
         "signed_error": error,
+        "observed_pm25": 80,
         "category_correct": True,
         "false_safe": False,
         "interval_covered": True,
@@ -49,6 +50,9 @@ def test_daily_aggregation_emits_station_district_and_global_slices(monkeypatch)
     assert district["mae"] == 3
     # A successful shadow row must not inherit the served baseline fallback.
     assert district["fallback_rate"] == 0
+    assert district["metrics"]["slices"]["season:rainy"]["rows"] == 2
+    assert district["metrics"]["slices"]["pm_band:high"]["mae"] == 3
+    assert district["metrics"]["latest_forecast_at"] == ("2026-08-01T03:00:00+00:00")
     assert any(
         row["station_id"] == "all" and row["district"] == "all" for row in persisted
     )

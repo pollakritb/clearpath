@@ -19,6 +19,7 @@ from ..algorithms.forecast_selection import (
 )
 from ..algorithms.forecast_surface import forecast_surface
 from ..algorithms.freshness import station_freshness
+from ..algorithms.provider_reliability import rank_provider_evidence
 from ..core.config import settings
 from . import supabase_client
 from .community.presenter import present_report
@@ -38,6 +39,26 @@ def _parse_datetime(value: str) -> datetime | None:
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
     except (TypeError, ValueError):
         return None
+
+
+def _selection_evidence(rows: list[dict], horizon_hours: int) -> dict:
+    evidence = rank_provider_evidence(rows, horizon_hours=horizon_hours)
+    evidence["scores"] = [
+        row for row in evidence["scores"] if row["provider"] in EXTERNAL_PROVIDERS
+    ]
+    rank = [
+        source for source in evidence["ranked_sources"] if source in EXTERNAL_PROVIDERS
+    ]
+    evidence["ranked_sources"] = rank
+    if not rank:
+        evidence.update(
+            {
+                "basis": "freshness_fallback",
+                "evaluated_at": None,
+                "expires_at": None,
+            }
+        )
+    return evidence
 
 
 def _provider_points(snapshots: list[dict], forecast_at: str) -> list[dict]:
@@ -167,6 +188,17 @@ def station_forecast(
             "forecast_input_degraded",
             extra={"station_id": station_id, "input": "provider_snapshots"},
         )
+    try:
+        provider_evidence_rows = supabase_client.get_provider_evaluation_summary()
+    except (httpx.HTTPError, RuntimeError):
+        provider_evidence_rows = []
+        read_warnings.append("provider_evidence_temporarily_unavailable")
+    evidence_horizon = (
+        12
+        if hours >= 12
+        else max(horizon for horizon in SUPPORTED_HORIZONS if horizon <= hours)
+    )
+    provider_evidence = _selection_evidence(provider_evidence_rows, evidence_horizon)
     community_reports = []
     if include_community:
         try:
@@ -260,7 +292,11 @@ def station_forecast(
         available_external_sources.update(
             str(source["source"]) for source in external_sources
         )
-        external_selection = select_external_forecast(external_sources, horizon)
+        ranked_horizon = min(SUPPORTED_HORIZONS, key=lambda value: abs(value - horizon))
+        horizon_evidence = _selection_evidence(provider_evidence_rows, ranked_horizon)
+        external_selection = select_external_forecast(
+            external_sources, horizon, horizon_evidence["ranked_sources"]
+        )
         if external_selection:
             point.update(
                 {
@@ -340,12 +376,15 @@ def station_forecast(
     if any(point["upper"] - point["lower"] >= 50 for point in points):
         warnings.append("wide_uncertainty_interval")
     input_age = quality["input_freshness_minutes"]
-    max_provider_count = max(
-        (int(point.get("provider_count") or 0) for point in points), default=0
-    )
+    external_point_counts = [
+        int(point.get("provider_count") or 0)
+        for point in points
+        if str(point.get("source")) in EXTERNAL_PROVIDERS
+    ]
+    comparable_provider_count = min(external_point_counts, default=0)
     forecast_status, limitation_reasons = forecast_availability(
         selected_sources=selected_sources,
-        max_provider_count=max_provider_count,
+        max_provider_count=comparable_provider_count,
         requested_hours=hours,
         low_agreement=any(
             point.get("agreement") == "low"
@@ -358,7 +397,21 @@ def station_forecast(
             and input_age <= settings.forecast_station_max_age_minutes
         ),
     )
-    provider_count = max_provider_count
+    if (
+        available_external_sources
+        and provider_evidence["basis"] == "freshness_fallback"
+    ):
+        limitation_reasons.append("provider_selection_evidence_insufficient")
+        if forecast_status == "available":
+            forecast_status = "limited"
+    provider_count = next(
+        (
+            int(point.get("provider_count") or 0)
+            for point in points
+            if int(point["horizon_hours"]) == 12
+        ),
+        max(external_point_counts, default=0),
+    )
     agreements = [row["agreement"] for row in consensus_rows]
     overall_agreement = (
         (
@@ -371,7 +424,16 @@ def station_forecast(
         if agreements
         else None
     )
-    recommended_source = next(
+    product_source = next(
+        (
+            str(point["source"])
+            for point in points
+            if int(point["horizon_hours"]) == 12
+            and str(point["source"]) in EXTERNAL_PROVIDERS
+        ),
+        None,
+    )
+    recommended_source = product_source or next(
         (source for source in selected_sources if source in EXTERNAL_PROVIDERS),
         "clearpath" if forecast_status != "unavailable" else None,
     )
@@ -432,6 +494,7 @@ def station_forecast(
         "providers": build_provider_summaries(
             provider_snapshots, set(selected_sources), now=generated_at
         ),
+        "selection_evidence": provider_evidence,
         "community_context": {
             "mode": (
                 "shadow"
@@ -456,7 +519,7 @@ def station_forecast(
             "community_shadow_enabled": settings.community_forecast_shadow_enabled,
             "provider_comparison_only": False,
             "raw_provider_values_preserved": True,
-            "selection_policy": "gistda-then-openmeteo-then-openweather-v1",
+            "selection_policy": "retrospective-evidence-then-freshness-v2",
             "consensus_served": False,
             "consensus_status": "shadow",
         },

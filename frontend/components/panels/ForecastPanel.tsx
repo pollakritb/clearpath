@@ -257,7 +257,8 @@ export default function ForecastPanel({
                   </span>
                   <strong>{Math.round(source.pm25 * 10) / 10}</strong>
                   <small>
-                    µg/m³ · ออกเมื่อ {formatProviderTime(source.issued_at)}
+                    µg/m³ · ดึงข้อมูลเมื่อ{" "}
+                    {formatProviderTime(source.issued_at)}
                   </small>
                 </button>
               ))}
@@ -271,11 +272,11 @@ export default function ForecastPanel({
               {data.providers.slice(0, 3).map((provider) => (
                 <a
                   key={provider.source}
-                  href={provider.attribution_url}
+                  href={provider.license_url}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  ที่มา {provider.label}
+                  {provider.label} · {provider.license}
                 </a>
               ))}
             </p>
@@ -296,10 +297,28 @@ export default function ForecastPanel({
                 </strong>
                 <span>
                   {data.forecast_mode === "external_provider"
-                    ? "ClearPath เลือกแหล่งตามนโยบายที่เปิดเผย และไม่แก้ค่าดิบของผู้ให้บริการ"
+                    ? data.selection_evidence.basis === "retrospective_accuracy"
+                      ? `เลือกจากผลเทียบค่าจริงย้อนหลัง ${data.selection_evidence.window_days} วัน และไม่แก้ค่าดิบของผู้ให้บริการ`
+                      : "หลักฐานย้อนหลังยังไม่พอ จึงเลือกข้อมูลที่ดึงมาใหม่ที่สุดชั่วคราว โดยไม่แก้ค่าดิบ"
                     : "ใช้เฉพาะเมื่อยังไม่มีพยากรณ์ภายนอกที่สด"}
                 </span>
               </div>
+              {data.selection_evidence.basis === "retrospective_accuracy" && (
+                <dl className="cp-forecast-times">
+                  <div>
+                    <dt>ประเมินความแม่นล่าสุด</dt>
+                    <dd>
+                      {formatProviderTime(data.selection_evidence.evaluated_at)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>หลักฐานใช้ได้ถึง</dt>
+                    <dd>
+                      {formatProviderTime(data.selection_evidence.expires_at)}
+                    </dd>
+                  </div>
+                </dl>
+              )}
               <section
                 className="cp-forecast-community"
                 aria-label="ข้อมูลจากชุมชน"
