@@ -44,6 +44,12 @@
   --cp-shadow-overlay: 0 12px 32px rgba(10, 42, 38, 0.2);
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* high-contrast: deepen ink + lines, flatten tints */
 [data-contrast="true"] {
   --cp-ink: #06110f;

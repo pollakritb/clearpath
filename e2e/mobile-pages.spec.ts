@@ -14,6 +14,56 @@ const pages = [
   { path: "/offline", text: "ขณะนี้ไม่ได้เชื่อมต่ออินเทอร์เน็ต" },
 ];
 
+async function expectNoHorizontalPageOverflow(
+  page: import("@playwright/test").Page,
+) {
+  const state = await page.evaluate(() => {
+    const viewport = window.innerWidth;
+    const documentWidth = document.documentElement.scrollWidth;
+    const offenders = Array.from(
+      document.body.querySelectorAll<HTMLElement>("*"),
+    )
+      .filter((element) => {
+        const style = window.getComputedStyle(element);
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          element.closest(".leaflet-pane, .leaflet-control-container")
+        ) {
+          return false;
+        }
+        let ancestor = element.parentElement;
+        while (ancestor) {
+          const overflowX = window.getComputedStyle(ancestor).overflowX;
+          if (overflowX === "auto" || overflowX === "scroll") return false;
+          ancestor = ancestor.parentElement;
+        }
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && (rect.left < -1 || rect.right > viewport + 1);
+      })
+      .slice(0, 8)
+      .map((element) => ({
+        tag: element.tagName.toLowerCase(),
+        className: element.className,
+        left: Math.round(element.getBoundingClientRect().left),
+        right: Math.round(element.getBoundingClientRect().right),
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+      }));
+
+    return { viewport, documentWidth, offenders };
+  });
+
+  expect(
+    state.documentWidth,
+    `horizontal overflow: ${JSON.stringify(state.offenders)}`,
+  ).toBeLessThanOrEqual(state.viewport);
+  expect(
+    state.offenders,
+    `elements clipped outside viewport: ${JSON.stringify(state.offenders)}`,
+  ).toEqual([]);
+}
+
 for (const item of pages) {
   test(`${item.path} is mobile-safe and has no serious accessibility violations`, async ({
     page,
@@ -24,11 +74,7 @@ for (const item of pages) {
     ).toBeVisible();
     await expect(page.locator("nextjs-portal")).toHaveCount(0);
 
-    const dimensions = await page.evaluate(() => ({
-      viewport: window.innerWidth,
-      document: document.documentElement.scrollWidth,
-    }));
-    expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
+    await expectNoHorizontalPageOverflow(page);
 
     const violations = await new AxeBuilder({ page })
       .exclude(".leaflet-control-attribution")
@@ -526,11 +572,24 @@ test("large text and high contrast remain mobile-safe", async ({ page }) => {
     "true",
   );
   await expect(page.locator(".cp-app")).toHaveCSS("font-size", "18px");
-  const state = await page.locator(".cp-app").evaluate((root) => ({
-    viewport: root.ownerDocument.defaultView?.innerWidth ?? 0,
-    document: root.ownerDocument.documentElement.scrollWidth,
-  }));
-  expect(state.document).toBeLessThanOrEqual(state.viewport);
+  await expectNoHorizontalPageOverflow(page);
+});
+
+test("core pages reflow at 200 percent text without clipping", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-320");
+  await page.addInitScript(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+
+  for (const item of pages.filter(({ path }) => path !== "/offline")) {
+    await page.goto(item.path);
+    await expect(
+      page.getByText(item.text, { exact: false }).first(),
+    ).toBeVisible();
+    await expectNoHorizontalPageOverflow(page);
+  }
 });
 
 test("installed service worker provides the explicit offline fallback", async ({
