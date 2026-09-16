@@ -116,4 +116,27 @@ describe("dashboard map models", () => {
       }),
     ]);
   });
+
+  it("returns no forecast stations without a surface", () => {
+    expect(buildForecastSurfaceStations(null, 6)).toEqual([]);
+  });
+
+  it("marks covered forecast cells as fresh", () => {
+    const surface = {
+      generated_at: "2026-09-15T00:00:00Z",
+      cells: [
+        {
+          lat: 13.8,
+          lon: 100.3,
+          pm25: 15,
+          coverage: "covered",
+        },
+      ],
+    } as ForecastSurfaceResponse;
+
+    expect(buildForecastSurfaceStations(surface, 6)[0]).toMatchObject({
+      data_status: "fresh",
+      quality_flags: ["forecast_surface"],
+    });
+  });
 });

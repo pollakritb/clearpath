@@ -25,6 +25,7 @@ jobs:
     timeout-minutes: 8
     env:
       CLEARPATH_PRODUCTION_URL: ${{ vars.CLEARPATH_PRODUCTION_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
       EXPECTED_RELEASE: ${{ github.event.workflow_run.head_sha }}
     steps:
       - name: Validate smoke-test configuration
@@ -33,6 +34,10 @@ jobs:
           set -euo pipefail
           test -n "${CLEARPATH_PRODUCTION_URL:-}" || {
             echo "::error::Missing repository variable CLEARPATH_PRODUCTION_URL"
+            exit 1
+          }
+          test -n "${CRON_SECRET:-}" || {
+            echo "::error::Missing repository secret CRON_SECRET"
             exit 1
           }
           case "$CLEARPATH_PRODUCTION_URL" in
@@ -48,10 +53,13 @@ jobs:
         run: |
           set -euo pipefail
           base_url="${CLEARPATH_PRODUCTION_URL%/}"
+          synced=false
 
           for attempt in $(seq 1 18); do
             health="$(curl --fail --silent --show-error --max-time 20 "${base_url}/api/health" || true)"
-            ready="$(curl --fail --silent --show-error --max-time 30 "${base_url}/api/ready" || true)"
+            # Readiness intentionally returns 503 when observations are stale;
+            # retain that JSON body so release matching can still be verified.
+            ready="$(curl --silent --show-error --max-time 30 "${base_url}/api/ready" || true)"
 
             health_ok=false
             readiness_ok=false
@@ -70,6 +78,23 @@ jobs:
               release_ok=true
             elif jq -e --arg sha "$EXPECTED_RELEASE" '.release == $sha' <<<"$ready" >/dev/null 2>&1; then
               release_ok=true
+            fi
+
+            if [ "$release_ok" = true ] && [ "$synced" = false ]; then
+              echo "Matching release is live; refreshing station observations"
+              curl \
+                --fail \
+                --silent \
+                --show-error \
+                --max-time 70 \
+                --retry 2 \
+                --retry-all-errors \
+                --retry-delay 5 \
+                --output /dev/null \
+                --header "Authorization: Bearer ${CRON_SECRET}" \
+                "${base_url}/api/cron/sync"
+              synced=true
+              continue
             fi
 
             if [ "$health_ok" = true ] && [ "$readiness_ok" = true ] && [ "$release_ok" = true ]; then

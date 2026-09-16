@@ -55,6 +55,7 @@ export default defineConfig({
   projects: [
     {
       name: "mobile-360",
+      grepInvert: /@camera-390/,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 360, height: 800 },
@@ -62,6 +63,7 @@ export default defineConfig({
     },
     {
       name: "mobile-390",
+      grepInvert: /@stateful-360/,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 390, height: 844 },
@@ -69,6 +71,7 @@ export default defineConfig({
     },
     {
       name: "mobile-430",
+      grepInvert: /@camera-390|@stateful-360/,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 430, height: 932 },

@@ -336,10 +336,9 @@ test("LINE linking flow creates a one-time code on mobile", async ({
   await expect(page.getByText("หมดอายุใน", { exact: false })).toBeVisible();
 });
 
-test("mobile camera opens, becomes ready and captures a live frame", async ({
+test("mobile camera opens, becomes ready and captures a live frame @camera-390", async ({
   page,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== "mobile-390", "Camera flow runs once.");
+}) => {
   await page.goto("/report");
   await page.getByRole("button", { name: "เปิดกล้องในแอป" }).click();
   await expect(

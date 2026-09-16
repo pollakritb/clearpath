@@ -1,11 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildDemoCommunityReports,
   DEMO_COMMUNITY_CENTER,
+  isCommunityDemoMode,
 } from "./demo-community";
 
 describe("community demo fixtures", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("builds deterministic, fresh individual reports near Nakhon Pathom", () => {
     const now = Date.parse("2026-09-03T12:00:00Z");
     const first = buildDemoCommunityReports(now);
@@ -27,5 +32,15 @@ describe("community demo fixtures", () => {
     expect(first.every((report) => report.policy_version === "demo-v1")).toBe(
       true,
     );
+  });
+
+  it("enables demo data only for the explicit community query", () => {
+    expect(isCommunityDemoMode()).toBe(false);
+
+    vi.stubGlobal("window", { location: { search: "?demo=community" } });
+    expect(isCommunityDemoMode()).toBe(true);
+
+    vi.stubGlobal("window", { location: { search: "?demo=other" } });
+    expect(isCommunityDemoMode()).toBe(false);
   });
 });

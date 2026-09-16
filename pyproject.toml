@@ -30,3 +30,11 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 "backend/routers/*.py" = ["B008"]
 "backend/core/admin.py" = ["B008"]
+
+[tool.coverage.run]
+source = ["backend"]
+omit = ["backend/tests/*"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

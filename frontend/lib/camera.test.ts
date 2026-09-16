@@ -20,6 +20,12 @@ describe("fitCaptureDimensions", () => {
       height: 1920,
     });
   });
+
+  it("rejects invalid capture dimensions and max edges", () => {
+    expect(fitCaptureDimensions(0, 720)).toEqual({ width: 0, height: 0 });
+    expect(fitCaptureDimensions(1280, -1)).toEqual({ width: 0, height: 0 });
+    expect(fitCaptureDimensions(1280, 720, 0)).toEqual({ width: 0, height: 0 });
+  });
 });
 
 describe("cameraErrorMessage", () => {
@@ -27,5 +33,17 @@ describe("cameraErrorMessage", () => {
     expect(cameraErrorMessage("NotAllowedError")).toContain("อนุญาต");
     expect(cameraErrorMessage("NotFoundError")).toContain("ไม่พบกล้อง");
     expect(cameraErrorMessage("NotReadableError")).toContain("แอปอื่น");
+  });
+
+  it.each([
+    "SecurityError",
+    "DevicesNotFoundError",
+    "TrackStartError",
+    "OverconstrainedError",
+    "ConstraintNotSatisfiedError",
+    "AbortError",
+    "UnexpectedError",
+  ])("returns guidance for %s", (name) => {
+    expect(cameraErrorMessage(name).length).toBeGreaterThan(0);
   });
 });

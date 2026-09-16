@@ -216,7 +216,7 @@ npm run test:e2e
 - [x] `CP-DATA-005` แสดง last updated/fallback state ด้วยภาษาที่ผู้ใช้เข้าใจ ไม่ใช้สีอย่างเดียว
 - [ ] `CP-DATA-006` เพิ่ม monitor สำหรับ station count, latest observation, stale ratio, sync duration และ upstream failure
 - [ ] `CP-DATA-007` ตรวจ Supabase cron ทุก 15 นาทีและ GitHub backup scheduler; alert เมื่อ primary ไม่ทำงาน
-- [x] `CP-DATA-008` เพิ่ม production smoke หลัง release และหลัง backup cron เพื่อยืนยัน release SHA กับข้อมูล fresh จริง
+- [ ] `CP-DATA-008` เพิ่ม production smoke หลัง release และหลัง backup cron เพื่อยืนยัน release SHA กับข้อมูล fresh จริง
 
 ### เกณฑ์ผ่าน
 
@@ -233,14 +233,14 @@ npm run test:e2e
 
 ### งาน
 
-- [ ] `CP-TEST-001` ขยาย frontend coverage จาก `aqi/idw` ไปยัง API client, auth/session, hooks และ pure view-model logic
-- [ ] `CP-TEST-002` ตั้ง threshold แบบค่อยเป็นค่อยไปจาก baseline จริง ห้ามลดคุณภาพด้วยการ exclude ไฟล์สำคัญ
-- [ ] `CP-TEST-003` เพิ่ม unit tests สำหรับ loading/error/empty/stale/limited/offline states
-- [ ] `CP-TEST-004` เพิ่ม backend tests ให้ services สำคัญ: alerts, FIRMS, forecast providers, reconciliation, notification, OCR, retention และ Supabase boundary
-- [ ] `CP-TEST-005` เพิ่ม router integration tests สำหรับ cron, forecast, community และ admin authorization
-- [ ] `CP-TEST-006` เพิ่ม API schema snapshot/contract test ระหว่าง FastAPI OpenAPI และ TypeScript types
-- [ ] `CP-TEST-007` แยก test suites เป็น PR-fast, nightly-integration และ production-smoke
-- [ ] `CP-TEST-008` ลด skipped E2E: ระบุเหตุผลทุก skip และย้าย stateful flow ไป isolated test data
+- [x] `CP-TEST-001` ขยาย frontend coverage จาก `aqi/idw` ไปยัง API client, auth/session, hooks และ pure view-model logic
+- [x] `CP-TEST-002` ตั้ง threshold แบบค่อยเป็นค่อยไปจาก baseline จริง ห้ามลดคุณภาพด้วยการ exclude ไฟล์สำคัญ
+- [x] `CP-TEST-003` เพิ่ม unit tests สำหรับ loading/error/empty/stale/limited/offline states
+- [x] `CP-TEST-004` เพิ่ม backend tests ให้ services สำคัญ: alerts, FIRMS, forecast providers, reconciliation, notification, OCR, retention และ Supabase boundary
+- [x] `CP-TEST-005` เพิ่ม router integration tests สำหรับ cron, forecast, community และ admin authorization
+- [x] `CP-TEST-006` เพิ่ม API schema snapshot/contract test ระหว่าง FastAPI OpenAPI และ TypeScript types
+- [x] `CP-TEST-007` แยก test suites เป็น PR-fast, nightly-integration และ production-smoke
+- [x] `CP-TEST-008` ลด skipped E2E: ระบุเหตุผลทุก skip และย้าย stateful flow ไป isolated test data
 
 ### เป้าหมาย coverage
 

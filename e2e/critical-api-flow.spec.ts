@@ -36,13 +36,9 @@ test("readiness verifies a fresh local source of truth", async ({
   expect(body.fresh_station_count).toBeGreaterThan(0);
 });
 
-test("uncertain report remains private and enters the exception queue", async ({
+test("uncertain report remains private and enters the exception queue @stateful-360", async ({
   request,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "mobile-360",
-    "Stateful submission runs once so duplicate-image protection remains enabled.",
-  );
+}) => {
   const sessionResponse = await request.post("/api/community/capture-session");
   expect(sessionResponse.status()).toBe(200);
   const session = await sessionResponse.json();

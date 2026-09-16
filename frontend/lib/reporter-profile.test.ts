@@ -15,6 +15,14 @@ describe("reporter profile privacy", () => {
       safeGoogleAvatarUrl("http://lh3.googleusercontent.com/a/example"),
     ).toBeNull();
     expect(safeGoogleAvatarUrl("https://example.com/avatar.png")).toBeNull();
+    expect(safeGoogleAvatarUrl("https://googleusercontent.com/a/example")).toBe(
+      "https://googleusercontent.com/a/example",
+    );
+    expect(safeGoogleAvatarUrl("not-a-url")).toBeNull();
+    expect(safeGoogleAvatarUrl(null)).toBeNull();
+    expect(
+      safeGoogleAvatarUrl(`https://googleusercontent.com/${"x".repeat(2049)}`),
+    ).toBeNull();
   });
 
   it("reads a profile only for Google identities", () => {
@@ -38,6 +46,22 @@ describe("reporter profile privacy", () => {
     ).toBeNull();
   });
 
+  it("uses metadata fallbacks and suppresses empty Google profiles", () => {
+    expect(
+      googleReporterProfile({
+        app_metadata: { provider: "google" },
+        user_metadata: { name: "  Reporter name  ", avatar_url: "invalid" },
+      }),
+    ).toEqual({ displayName: "Reporter name", avatarUrl: null });
+    expect(
+      googleReporterProfile({
+        app_metadata: { provider: "google" },
+        user_metadata: {},
+      }),
+    ).toBeNull();
+    expect(googleReporterProfile(null)).toBeNull();
+  });
+
   it("returns a marker avatar only after per-report opt-in", () => {
     const report = {
       source_type: "individual" as const,
@@ -48,5 +72,12 @@ describe("reporter profile privacy", () => {
     expect(
       publicReporterAvatar({ ...report, show_reporter_profile: true }),
     ).toBe("https://lh3.googleusercontent.com/a/example");
+    expect(
+      publicReporterAvatar({
+        ...report,
+        source_type: "community_sensor",
+        show_reporter_profile: true,
+      }),
+    ).toBeNull();
   });
 });

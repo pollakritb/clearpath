@@ -42,4 +42,10 @@ describe("clusterStations", () => {
       true,
     );
   });
+
+  it.each([5, 7, 8])("uses the expected grid branch at zoom %s", (zoom) => {
+    const clusters = clusterStations([station("a", 13.7, 100.5)], zoom);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].id).toContain(`cluster:${zoom}:`);
+  });
 });

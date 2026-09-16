@@ -1,16 +1,17 @@
-name: Production hourly backup scheduler
+name: Production backup scheduler
 
 on:
   workflow_dispatch:
   schedule:
-    # Avoid the start of the hour, when GitHub-hosted schedules are more delayed.
-    - cron: "7 * * * *"
+    # GitHub documents that scheduled events may be delayed or dropped. Two
+    # off-peak offsets provide a free-tier backup to the primary Supabase cron.
+    - cron: "7,37 * * * *"
 
 permissions:
   contents: read
 
 concurrency:
-  group: clearpath-production-hourly-backup
+  group: clearpath-production-backup
   cancel-in-progress: false
 
 jobs:
