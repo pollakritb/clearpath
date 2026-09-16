@@ -40,6 +40,12 @@ npx web-push generate-vapid-keys
 Store the private key server-side. `VAPID_PUBLIC_KEY` may be exposed to the
 browser.
 
+Notification delivery uses one independent outbox row per channel. A provider
+failure retries with bounded backoff and becomes `dead` after eight attempts;
+sent/dead rows have their message body removed. Quiet hours use
+`Asia/Bangkok`, including windows that cross midnight. Removing notification
+consent disables every Web Push subscription and the linked LINE channel.
+
 ## 3. Prepare Supabase staging
 
 Synthetic community evidence can be generated for a staging-only field-flow

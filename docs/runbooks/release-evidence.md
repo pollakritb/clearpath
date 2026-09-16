@@ -150,3 +150,33 @@ and [Production smoke run 35063934658](https://github.com/pollakritb/clearpath/a
 both concluded successfully. `/api/ready` returned the exact candidate SHA,
 177 stations, 156 fresh, 0 delayed, 21 expired, and latest observation
 `2026-09-16T13:00:00+07:00`.
+
+### Notification delivery hardening
+
+ClearPath notification verification on 2026-09-16 confirmed:
+
+- The shared preference contract now covers LINE/Web Push channel choices,
+  PM2.5 threshold, area/radius, event types, Bangkok quiet hours, and explicit
+  consent. Revoking consent disables every stored push subscription and the
+  linked LINE delivery channel.
+- Each notification creates an idempotent per-channel outbox item. LINE and
+  Web Push therefore retry independently, provider errors use exponential
+  backoff, rate-limit responses remain retryable, and delivery stops after
+  eight attempts. Sent/terminal rows retain only channel and dedup tag rather
+  than message content.
+- Public alert copy comes from pure tested policy functions covering all five
+  Air4Thai PM2.5 levels. Satellite alerts state source, time, area, and that a
+  NASA FIRMS hotspot is not a confirmed fire.
+- Additive migration `20260916_notification_delivery_hardening.sql` was
+  applied only to Supabase project `ClearPath` (`qnrtryspglioqhdxglzu`). An
+  information-schema query returned all seven preference columns; the outbox
+  status constraint includes terminal `dead`, and `updated_at` was verified as
+  `TIMESTAMPTZ DEFAULT now()`. The committed migration SHA-256 is
+  `64c560ada920e9862bb95c0e1a9207480079c8d33af5029e6ab5514790d2f692`.
+- The final local gate passed 319 backend tests, 74 frontend unit tests, and 80
+  Playwright tests across 360 px, 390 px, and 430 px mobile viewports. Prettier,
+  ESLint, TypeScript, Ruff format/check, and the Next.js production build also
+  passed.
+- Live LINE delivery and real-device Web Push remain gated until their named
+  production/device checks are recorded; neither closed feature gate was
+  silently enabled by this migration.

@@ -9,6 +9,7 @@ export type AppIconName =
   | "calibration"
   | "check"
   | "chevron"
+  | "clock"
   | "copy"
   | "community"
   | "community-station"
@@ -112,6 +113,12 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
         <path d="M13.5 3.5c.7 3-1.3 4.2-2.2 6.1-.7-1.1-.8-2.2-.3-3.5-3 2.2-5 5-5 8.1A6 6 0 0 0 18 14c0-2.4-1.4-5.5-4.5-7.5.2 1.8-.5 3-1.4 4.1" />
       )}
       {name === "activity" && <path d="M3 12h4l2-7 4 14 2-7h6" />}
+      {name === "clock" && (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </>
+      )}
       {name === "megaphone" && (
         <>
           <path d="M4 13v-2l13-5v12Z" />

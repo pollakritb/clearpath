@@ -18,6 +18,8 @@ export interface LineLinkCodeResponse {
 }
 
 export interface NotificationPreferences {
+  line_enabled: boolean;
+  web_push_enabled: boolean;
   district: string | null;
   subdistrict: string | null;
   radius_km: number | null;
@@ -32,6 +34,11 @@ export interface NotificationPreferences {
   reward_alerts: boolean;
   leaderboard_alerts: boolean;
   announcement_alerts: boolean;
+  quiet_hours_start: string | null;
+  quiet_hours_end: string | null;
+  timezone: "Asia/Bangkok";
+  consent_granted: boolean;
+  consent_granted_at: string | null;
 }
 
 export interface UserNotification {

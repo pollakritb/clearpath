@@ -80,8 +80,22 @@ def test_web_push_deactivates_expired_and_malformed_subscriptions(monkeypatch):
     assert notifications.send_to_subscription({"endpoint": "broken"}, {}) is False
     assert deactivated[-1] == "broken"
 
+    monkeypatch.setattr(
+        notifications,
+        "webpush",
+        lambda **_kwargs: (_ for _ in ()).throw(PushFailure(429)),
+    )
+    with pytest.raises(notifications.UpstreamError):
+        notifications.send_to_subscription(_subscription(), {})
+    assert deactivated == ["https://push.example/subscription", "broken"]
+
 
 def test_user_delivery_combines_enabled_channels(monkeypatch):
+    monkeypatch.setattr(
+        notifications.supabase_client,
+        "get_notification_preferences",
+        lambda _user_id: {"consent_granted": True},
+    )
     monkeypatch.setattr(
         notifications.supabase_client,
         "list_push_subscriptions",
@@ -123,7 +137,7 @@ def test_enqueue_respects_preferences_and_persists_idempotent_outbox(monkeypatch
     monkeypatch.setattr(
         notifications.supabase_client,
         "get_notification_preferences",
-        lambda _user_id: {},
+        lambda _user_id: {"consent_granted": True},
     )
     monkeypatch.setattr(
         notifications.supabase_client,
@@ -145,8 +159,11 @@ def test_enqueue_respects_preferences_and_persists_idempotent_outbox(monkeypatch
     )
     assert result["user_id"] == "user-1"
     assert rows[0]["payload"] == {"kind": "news"}
-    assert outbox[0]["event_key"] == "announcement:1"
-    assert outbox[0]["status"] == "pending"
+    assert {row["event_key"] for row in outbox} == {
+        "announcement:1:web_push",
+        "announcement:1:line",
+    }
+    assert all(row["status"] == "pending" for row in outbox)
 
 
 def test_outbox_marks_success_and_schedules_bounded_retry(monkeypatch):
@@ -174,11 +191,98 @@ def test_outbox_marks_success_and_schedules_bounded_retry(monkeypatch):
         "processed": 2,
         "delivered": 2,
         "failed": 1,
+        "deferred": 0,
+        "dead": 1,
     }
     assert updates[0][1]["status"] == "sent"
-    assert updates[1][1]["status"] == "failed"
+    assert updates[0][1]["payload"] == {"channel": None, "tag": None}
+    assert updates[1][1]["status"] == "dead"
     assert updates[1][1]["attempts"] == 9
-    assert "temporary provider failure" in updates[1][1]["last_error"]
+    assert updates[1][1]["last_error"] == "notification_provider_error"
+    assert updates[1][1]["payload"] == {"channel": None, "tag": None}
+
+
+def test_channel_preferences_quiet_hours_and_consent(monkeypatch):
+    _configure_web_push(monkeypatch, True)
+    monkeypatch.setattr(notifications, "send_to_user", lambda *_args: 1)
+    monkeypatch.setattr(notifications.line_messaging, "send_to_user", lambda *_args: 1)
+
+    monkeypatch.setattr(
+        notifications.supabase_client,
+        "get_notification_preferences",
+        lambda _user_id: {
+            "consent_granted": True,
+            "web_push_enabled": False,
+            "line_enabled": True,
+        },
+    )
+    assert notifications.deliver_to_user("user-1", {}) == 1
+
+    monkeypatch.setattr(
+        notifications.supabase_client,
+        "get_notification_preferences",
+        lambda _user_id: {"consent_granted": False},
+    )
+    assert notifications.deliver_to_user("user-1", {}) == 0
+
+    monkeypatch.setattr(notifications, "is_quiet_hour", lambda *_args: True)
+    monkeypatch.setattr(
+        notifications.supabase_client,
+        "get_notification_preferences",
+        lambda _user_id: {"consent_granted": True},
+    )
+    with pytest.raises(notifications.NotificationDeferred):
+        notifications.deliver_to_user("user-1", {})
+
+
+def test_partial_provider_failure_does_not_block_other_channel(monkeypatch):
+    monkeypatch.setattr(
+        notifications.supabase_client,
+        "get_notification_preferences",
+        lambda _user_id: {"consent_granted": True},
+    )
+    monkeypatch.setattr(settings, "push_enabled", True)
+    monkeypatch.setattr(settings, "vapid_public_key", "public")
+    monkeypatch.setattr(settings, "vapid_private_key", "private")
+    monkeypatch.setattr(settings, "vapid_subject", "mailto:test@example.com")
+    monkeypatch.setattr(
+        notifications,
+        "send_to_user",
+        lambda *_args: (_ for _ in ()).throw(
+            notifications.UpstreamError("web push unavailable")
+        ),
+    )
+    monkeypatch.setattr(notifications.line_messaging, "send_to_user", lambda *_args: 1)
+    assert notifications.deliver_to_user("user-1", {}) == 1
+
+
+def test_outbox_defers_without_consuming_attempt(monkeypatch):
+    updates: list[tuple[str, dict]] = []
+    monkeypatch.setattr(
+        notifications.supabase_client,
+        "list_pending_outbox",
+        lambda _limit: [{"id": "quiet", "user_id": "u", "payload": {}, "attempts": 3}],
+    )
+    monkeypatch.setattr(
+        notifications.supabase_client,
+        "update_outbox_event",
+        lambda event_id, values: updates.append((event_id, values)),
+    )
+    monkeypatch.setattr(
+        notifications,
+        "deliver_to_user",
+        lambda *_args: (_ for _ in ()).throw(notifications.NotificationDeferred()),
+    )
+    result = notifications.process_outbox()
+    assert result == {
+        "processed": 1,
+        "delivered": 0,
+        "failed": 0,
+        "deferred": 1,
+        "dead": 0,
+    }
+    assert updates[0][1]["status"] == "pending"
+    assert "attempts" not in updates[0][1]
 
 
 def test_publish_alert_deduplicates_event_and_recipient_list(monkeypatch):

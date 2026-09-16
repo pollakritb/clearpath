@@ -80,7 +80,9 @@ def create_link_code(user_id: str) -> dict:
 
 
 def disconnect(user_id: str) -> bool:
-    return supabase_client.deactivate_line_notification_link(user_id=user_id)
+    changed = supabase_client.deactivate_line_notification_link(user_id=user_id)
+    supabase_client.upsert_notification_preferences(user_id, {"line_enabled": False})
+    return changed
 
 
 def _reply(reply_token: str | None, text: str) -> None:
@@ -114,6 +116,14 @@ def _link(code: str, line_user_id: str) -> bool:
             "link_code_expires_at": None,
             "active": True,
             "linked_at": now,
+        },
+    )
+    supabase_client.upsert_notification_preferences(
+        str(row["user_id"]),
+        {
+            "line_enabled": True,
+            "consent_granted": True,
+            "consent_granted_at": now,
         },
     )
     return True

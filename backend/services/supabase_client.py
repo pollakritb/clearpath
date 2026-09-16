@@ -753,6 +753,22 @@ def deactivate_push_subscription(endpoint: str, user_id: str | None = None) -> N
     query.execute()
 
 
+def deactivate_user_push_subscriptions(user_id: str) -> int:
+    if settings.local_demo_mode:
+        return local_store.deactivate_user_push_subscriptions(user_id)
+    rows = (
+        get_client()
+        .table("push_subscriptions")
+        .update({"active": False, "updated_at": datetime.now(UTC).isoformat()})
+        .eq("user_id", user_id)
+        .eq("active", True)
+        .execute()
+        .data
+        or []
+    )
+    return len(rows)
+
+
 def list_push_subscriptions(user_id: str | None = None) -> list[dict]:
     if settings.local_demo_mode:
         return local_store.list_push_subscriptions(user_id)
@@ -1026,6 +1042,7 @@ def list_pending_outbox(limit: int = 100) -> list[dict]:
 def update_outbox_event(event_id: str, values: dict) -> dict:
     if settings.local_demo_mode:
         return local_store.update_outbox_event(event_id, values)
+    values = {**values, "updated_at": datetime.now(UTC).isoformat()}
     rows = (
         get_client()
         .table("notification_outbox")
@@ -1047,7 +1064,9 @@ def notification_outbox_summary() -> dict:
         .limit(1000)
         .execute()
     ).data or []
-    counts = {status: 0 for status in ("pending", "processing", "sent", "failed")}
+    counts = {
+        status: 0 for status in ("pending", "processing", "sent", "failed", "dead")
+    }
     for row in rows:
         status = str(row.get("status", "pending"))
         counts[status] = counts.get(status, 0) + 1
@@ -1055,7 +1074,7 @@ def notification_outbox_summary() -> dict:
         row for row in rows if row.get("status", "pending") in {"pending", "failed"}
     ]
     waiting.sort(key=lambda row: str(row.get("created_at", "")))
-    failed = [row for row in rows if row.get("status") == "failed"]
+    failed = [row for row in rows if row.get("status") in {"failed", "dead"}]
     failed.sort(key=lambda row: str(row.get("updated_at", "")), reverse=True)
     return {
         **counts,

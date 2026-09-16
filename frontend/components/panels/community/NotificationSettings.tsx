@@ -11,6 +11,8 @@ import type { NotificationPreferences } from "@/frontend/types";
 import LineNotificationCard from "./LineNotificationCard";
 
 const DEFAULTS: NotificationPreferences = {
+  line_enabled: true,
+  web_push_enabled: true,
   district: null,
   subdistrict: null,
   radius_km: 10,
@@ -25,6 +27,11 @@ const DEFAULTS: NotificationPreferences = {
   reward_alerts: true,
   leaderboard_alerts: false,
   announcement_alerts: true,
+  quiet_hours_start: "22:00",
+  quiet_hours_end: "07:00",
+  timezone: "Asia/Bangkok",
+  consent_granted: false,
+  consent_granted_at: null,
 };
 
 const ALERT_OPTIONS = [
@@ -113,6 +120,11 @@ export default function NotificationSettings() {
         }));
       await api.subscribePush(next.toJSON());
       setSubscription(next);
+      setPreferences((current) => ({
+        ...current,
+        web_push_enabled: true,
+        consent_granted: true,
+      }));
       setMessage("เปิด Web Push แล้ว");
     } catch (cause) {
       setError(
@@ -173,6 +185,10 @@ export default function NotificationSettings() {
     await subscription.unsubscribe();
     await api.unsubscribePush(endpoint);
     setSubscription(null);
+    setPreferences((current) => ({
+      ...current,
+      web_push_enabled: false,
+    }));
     setMessage("ปิด Web Push แล้ว");
   }
 
@@ -287,6 +303,19 @@ export default function NotificationSettings() {
         </div>
         <div className="cp-notification-condition-summary">
           <span aria-hidden="true">
+            <AppIcon name="clock" size={19} />
+          </span>
+          <span>
+            <small>ช่วงไม่รบกวน</small>
+            <strong>
+              {preferences.quiet_hours_start && preferences.quiet_hours_end
+                ? `${preferences.quiet_hours_start}–${preferences.quiet_hours_end} น.`
+                : "ไม่ได้กำหนด"}
+            </strong>
+          </span>
+        </div>
+        <div className="cp-notification-condition-summary">
+          <span aria-hidden="true">
             <AppIcon name="location" size={19} />
           </span>
           <span>
@@ -397,6 +426,91 @@ export default function NotificationSettings() {
               ))}
             </fieldset>
 
+            <fieldset className="cp-notification-option-group">
+              <legend>ช่องทางและช่วงไม่รบกวน</legend>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={preferences.line_enabled}
+                  onChange={(event) =>
+                    setPreferences((current) => ({
+                      ...current,
+                      line_enabled: event.target.checked,
+                    }))
+                  }
+                />
+                <span>
+                  <strong>LINE</strong>
+                  <small>ใช้เมื่อเชื่อมบัญชี LINE แล้ว</small>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={preferences.web_push_enabled}
+                  onChange={(event) =>
+                    setPreferences((current) => ({
+                      ...current,
+                      web_push_enabled: event.target.checked,
+                    }))
+                  }
+                />
+                <span>
+                  <strong>Web Push</strong>
+                  <small>ใช้กับอุปกรณ์ที่กดอนุญาตแล้ว</small>
+                </span>
+              </label>
+              <div className="cp-notification-time-grid">
+                <label>
+                  <span>เริ่มไม่รบกวน</span>
+                  <input
+                    type="time"
+                    value={preferences.quiet_hours_start ?? ""}
+                    onChange={(event) =>
+                      setPreferences((current) => ({
+                        ...current,
+                        quiet_hours_start: event.target.value || null,
+                      }))
+                    }
+                  />
+                </label>
+                <label>
+                  <span>กลับมาแจ้งเตือน</span>
+                  <input
+                    type="time"
+                    value={preferences.quiet_hours_end ?? ""}
+                    onChange={(event) =>
+                      setPreferences((current) => ({
+                        ...current,
+                        quiet_hours_end: event.target.value || null,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={preferences.consent_granted}
+                  onChange={(event) =>
+                    setPreferences((current) => ({
+                      ...current,
+                      consent_granted: event.target.checked,
+                      consent_granted_at: event.target.checked
+                        ? current.consent_granted_at
+                        : null,
+                    }))
+                  }
+                />
+                <span>
+                  <strong>ยินยอมรับการแจ้งเตือนตามเงื่อนไขนี้</strong>
+                  <small>
+                    ยกเลิกเมื่อใดก็ได้ ระบบจะปิดช่องทางและลบ token ที่ใช้งาน
+                  </small>
+                </span>
+              </label>
+            </fieldset>
+
             <button
               type="button"
               disabled={saving || preferences.center_lat == null}
@@ -409,6 +523,11 @@ export default function NotificationSettings() {
             {preferences.center_lat == null && (
               <small className="cp-notification-save-hint">
                 เลือกตำแหน่งปัจจุบันก่อนบันทึก เพื่อกำหนดพื้นที่แจ้งเตือน
+              </small>
+            )}
+            {!preferences.consent_granted && (
+              <small className="cp-notification-save-hint">
+                เมื่อบันทึกโดยไม่ยินยอม ระบบจะปิด LINE และ Web Push ของบัญชีนี้
               </small>
             )}
           </div>

@@ -19,6 +19,8 @@ class PushUnsubscribeRequest(BaseModel):
 
 
 class NotificationPreferences(BaseModel):
+    line_enabled: bool = True
+    web_push_enabled: bool = True
     district: str | None = Field(default=None, max_length=100)
     subdistrict: str | None = Field(default=None, max_length=100)
     radius_km: float | None = Field(default=None, ge=1, le=50)
@@ -33,6 +35,15 @@ class NotificationPreferences(BaseModel):
     reward_alerts: bool = True
     leaderboard_alerts: bool = False
     announcement_alerts: bool = True
+    quiet_hours_start: str | None = Field(
+        default="22:00", pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$"
+    )
+    quiet_hours_end: str | None = Field(
+        default="07:00", pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$"
+    )
+    timezone: str = Field(default="Asia/Bangkok", pattern=r"^Asia/Bangkok$")
+    consent_granted: bool = False
+    consent_granted_at: str | None = Field(default=None, max_length=40)
 
 
 class UserNotification(BaseModel):

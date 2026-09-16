@@ -223,6 +223,7 @@ export interface NotificationOutboxSummary {
   processing: number;
   sent: number;
   failed: number;
+  dead: number;
   oldest_waiting_at: string | null;
   latest_error: string | null;
 }

@@ -351,11 +351,11 @@ npm run test:e2e
 
 ### งานร่วม
 
-- [ ] `CP-NOTI-001` ทำ notification preference schema กลาง: channel, threshold, areas, event types, quiet hours, consent
-- [ ] `CP-NOTI-002` ทำ idempotency/dedup key และ delivery log ที่ไม่เก็บ payload อ่อนไหวเกินจำเป็น
-- [ ] `CP-NOTI-003` ทดสอบ retry/backoff, partial provider failure, revoked token และ rate limit
-- [ ] `CP-NOTI-004` เพิ่ม unsubscribe/revoke/delete token ที่ใช้งานได้จริง
-- [ ] `CP-NOTI-005` ทำข้อความ 5 ระดับฝุ่นและ satellite hotspot โดยระบุ source/time/พื้นที่
+- [x] `CP-NOTI-001` ทำ notification preference schema กลาง: channel, threshold, areas, event types, quiet hours, consent
+- [x] `CP-NOTI-002` ทำ idempotency/dedup key และ delivery log ที่ไม่เก็บ payload อ่อนไหวเกินจำเป็น
+- [x] `CP-NOTI-003` ทดสอบ retry/backoff, partial provider failure, revoked token และ rate limit
+- [x] `CP-NOTI-004` เพิ่ม unsubscribe/revoke/delete token ที่ใช้งานได้จริง
+- [x] `CP-NOTI-005` ทำข้อความ 5 ระดับฝุ่นและ satellite hotspot โดยระบุ source/time/พื้นที่
 
 ### LINE
 
@@ -370,7 +370,7 @@ npm run test:e2e
 - [ ] `CP-PUSH-002` ตั้ง `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` และเปิด `PUSH_ENABLED` หลังทดสอบ
 - [ ] `CP-PUSH-003` ทดสอบ service worker/update/subscription rotation
 - [ ] `CP-PUSH-004` ทดสอบ Android installed PWA และ iOS/iPadOS Add to Home Screen
-- [ ] `CP-PUSH-005` ลบ invalid subscriptions หลัง 404/410 และไม่ retry ถาวร
+- [x] `CP-PUSH-005` ลบ invalid subscriptions หลัง 404/410 และไม่ retry ถาวร
 
 ### เกณฑ์ผ่าน
 

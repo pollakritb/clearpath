@@ -295,6 +295,12 @@ test("notification settings separate channels from conditions on mobile", async 
 
   await page.getByRole("button", { name: "แก้ไขเงื่อนไข" }).click();
   await expect(page.getByText("เลือกประเภทเหตุการณ์")).toBeVisible();
+  await expect(page.getByText("ช่องทางและช่วงไม่รบกวน")).toBeVisible();
+  await expect(page.getByLabel("เริ่มไม่รบกวน")).toHaveValue("22:00");
+  await expect(page.getByLabel("กลับมาแจ้งเตือน")).toHaveValue("07:00");
+  await expect(
+    page.getByText("ยินยอมรับการแจ้งเตือนตามเงื่อนไขนี้"),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "บันทึกเงื่อนไข" }),
   ).toBeVisible();

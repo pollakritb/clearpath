@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 
 from ..algorithms.area import is_nakhon_pathom
 from ..algorithms.distance import haversine_km
+from ..algorithms.notification_policy import format_air_alert, format_hotspot_alert
 from ..algorithms.trust import capture_age_minutes
 from ..core.config import settings
 from . import firms, notifications, supabase_client
@@ -58,13 +59,19 @@ async def run_alerts() -> dict:
         ]
         if not targets:
             continue
+        message = format_air_alert(
+            pm25=pm25,
+            station_name=str(station.get("name_th") or station["id"]),
+            recorded_at=str(station["recorded_at"]),
+            area=str(station.get("province") or "ประเทศไทย"),
+        )
         event = notifications.publish_alert(
             deduplication_key=f"pm25:{station['id']}:{station['recorded_at']}",
             source="air4thai",
             kind="pm25_threshold",
-            severity="warning" if pm25 >= 75 else "watch",
-            title=f"PM2.5 สูงที่ {station.get('name_th') or station['id']}",
-            body=f"ค่าล่าสุด {pm25:.1f} µg/m³ กรุณาลดกิจกรรมกลางแจ้งตามความเหมาะสม",
+            severity=message["severity"],
+            title=message["title"],
+            body=message["body"],
             detected_at=str(station["recorded_at"]),
             recipients=targets,
             lat=float(station["lat"]),
@@ -94,13 +101,18 @@ async def run_alerts() -> dict:
         if not targets:
             continue
         location_key = f"{float(fire['lat']):.3f}:{float(fire['lon']):.3f}"
+        message = format_hotspot_alert(
+            acquired_at=str(acquired_at),
+            area="นครปฐม",
+            satellite=str(fire.get("satellite") or "") or None,
+        )
         event = notifications.publish_alert(
             deduplication_key=f"firms:{location_key}:{acquired_at}",
             source="nasa_firms",
             kind="satellite_hotspot",
-            severity="warning" if float(fire.get("frp") or 0) >= 20 else "watch",
-            title="พบจุดความร้อนจากดาวเทียมในพื้นที่",
-            body="เป็น thermal anomaly ที่ยังไม่ใช่การยืนยันเหตุไฟไหม้ โปรดตรวจสอบประกาศทางการ",
+            severity=message["severity"],
+            title=message["title"],
+            body=message["body"],
             detected_at=str(acquired_at),
             recipients=targets,
             lat=float(fire["lat"]),

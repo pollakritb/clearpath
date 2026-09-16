@@ -113,8 +113,11 @@ def test_alerts_publish_fresh_air_and_nakhon_pathom_hotspot(monkeypatch):
         "pm25_threshold",
         "satellite_hotspot",
     ]
-    assert all(item["severity"] == "warning" for item in published)
+    assert [item["severity"] for item in published] == ["danger", "warning"]
     assert all(item["recipients"] == ["near-user"] for item in published)
+    assert "Air4Thai" in published[0]["body"]
+    assert "NASA FIRMS (VIIRS)" in published[1]["body"]
+    assert "ยังไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว" in published[1]["body"]
 
 
 def test_alerts_keep_air_alerts_when_firms_fails_and_ignore_empty_targets(

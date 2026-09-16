@@ -87,6 +87,15 @@ async def subscribe(
             "updated_at": datetime.now(UTC).isoformat(),
         },
     )
+    await run_in_threadpool(
+        supabase_client.upsert_notification_preferences,
+        user.id,
+        {
+            "web_push_enabled": True,
+            "consent_granted": True,
+            "consent_granted_at": datetime.now(UTC).isoformat(),
+        },
+    )
     return OperationResponse(ok=True, message="เปิด Web Push แล้ว")
 
 
@@ -97,6 +106,11 @@ async def unsubscribe(
 ):
     await run_in_threadpool(
         supabase_client.deactivate_push_subscription, body.endpoint, user.id
+    )
+    await run_in_threadpool(
+        supabase_client.upsert_notification_preferences,
+        user.id,
+        {"web_push_enabled": False},
     )
     return OperationResponse(ok=True, message="ปิด Web Push แล้ว")
 
@@ -112,10 +126,21 @@ async def update_preferences(
     body: NotificationPreferences,
     user: AuthenticatedUser = Depends(require_user),
 ):
+    values = body.model_dump()
+    if values["consent_granted"] and not values.get("consent_granted_at"):
+        values["consent_granted_at"] = datetime.now(UTC).isoformat()
+    if not values["consent_granted"]:
+        values["consent_granted_at"] = None
+        values["line_enabled"] = False
+        values["web_push_enabled"] = False
+        await run_in_threadpool(
+            supabase_client.deactivate_user_push_subscriptions, user.id
+        )
+        await run_in_threadpool(line_messaging.disconnect, user.id)
     row = await run_in_threadpool(
         supabase_client.upsert_notification_preferences,
         user.id,
-        body.model_dump(),
+        values,
     )
     return NotificationPreferences(**row)
 
@@ -131,6 +156,7 @@ async def test_notification(user: AuthenticatedUser = Depends(require_user)):
             "url": "/",
             "tag": f"test-{user.id}",
         },
+        force=True,
     )
     if delivered == 0:
         raise HTTPException(422, detail="ไม่พบ Web Push หรือ LINE ที่เชื่อมไว้")

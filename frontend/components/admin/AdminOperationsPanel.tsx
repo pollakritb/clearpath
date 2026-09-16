@@ -600,8 +600,8 @@ export default function AdminOperationsPanel({
         <article className="cp-admin-table-card">
           <div className="cp-admin-card-heading">
             <div>
-              <h3>คิว Web Push</h3>
-              <p>Outbox ที่รอส่งและรายการที่ส่งไม่สำเร็จ</p>
+              <h3>คิวแจ้งเตือน</h3>
+              <p>Outbox ของ LINE และ Web Push พร้อมสถานะส่งซ้ำ</p>
             </div>
             <span>
               {outbox ? `${outbox.pending + outbox.failed} รอส่ง` : "—"}
@@ -616,6 +616,19 @@ export default function AdminOperationsPanel({
               </span>
               <span className="cp-admin-status" data-status="running">
                 pending
+              </span>
+            </div>
+            <div className="cp-admin-model-row">
+              <span className="cp-admin-model-row__horizon">หยุด</span>
+              <span>
+                <strong>{outbox?.dead ?? "—"} รายการ</strong>
+                <small>หยุดส่งซ้ำหลังครบ 8 ครั้ง</small>
+              </span>
+              <span
+                className="cp-admin-status"
+                data-status={outbox?.dead ? "failed" : "success"}
+              >
+                {outbox?.dead ? "needs review" : "healthy"}
               </span>
             </div>
             <div className="cp-admin-model-row">

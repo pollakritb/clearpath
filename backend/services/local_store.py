@@ -572,6 +572,16 @@ def deactivate_push_subscription(endpoint: str, user_id: str | None = None) -> N
             row["active"] = False
 
 
+def deactivate_user_push_subscriptions(user_id: str) -> int:
+    changed = 0
+    with _LOCK:
+        for row in _PUSH_SUBSCRIPTIONS.values():
+            if str(row.get("user_id")) == user_id and row.get("active"):
+                row["active"] = False
+                changed += 1
+    return changed
+
+
 def list_push_subscriptions(user_id: str | None = None) -> list[dict]:
     with _LOCK:
         return [
@@ -660,7 +670,11 @@ def release_line_webhook_event(event_id: str) -> None:
 
 def upsert_notification_preferences(user_id: str, values: dict) -> dict:
     with _LOCK:
-        row = {"user_id": user_id, **values}
+        row = {
+            **_NOTIFICATION_PREFERENCES.get(user_id, {}),
+            "user_id": user_id,
+            **values,
+        }
         _NOTIFICATION_PREFERENCES[user_id] = row
         return dict(row)
 
@@ -770,14 +784,18 @@ def list_pending_outbox(limit: int) -> list[dict]:
 
 def update_outbox_event(event_id: str, values: dict) -> dict:
     with _LOCK:
-        _NOTIFICATION_OUTBOX[event_id].update(values)
+        _NOTIFICATION_OUTBOX[event_id].update(
+            {**values, "updated_at": datetime.now(UTC).isoformat()}
+        )
         return dict(_NOTIFICATION_OUTBOX[event_id])
 
 
 def notification_outbox_summary() -> dict:
     with _LOCK:
         rows = [dict(row) for row in _NOTIFICATION_OUTBOX.values()]
-    counts = {status: 0 for status in ("pending", "processing", "sent", "failed")}
+    counts = {
+        status: 0 for status in ("pending", "processing", "sent", "failed", "dead")
+    }
     for row in rows:
         status = str(row.get("status", "pending"))
         counts[status] = counts.get(status, 0) + 1
@@ -785,7 +803,7 @@ def notification_outbox_summary() -> dict:
         row for row in rows if row.get("status", "pending") in {"pending", "failed"}
     ]
     waiting.sort(key=lambda row: str(row.get("created_at", "")))
-    failed = [row for row in rows if row.get("status") == "failed"]
+    failed = [row for row in rows if row.get("status") in {"failed", "dead"}]
     failed.sort(key=lambda row: str(row.get("updated_at", "")), reverse=True)
     return {
         **counts,
