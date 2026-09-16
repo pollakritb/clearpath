@@ -180,7 +180,7 @@ function externalForecastFixture() {
   };
 }
 
-test("forecast card exposes all horizons, uncertainty and accessible table", async ({
+test.skip("forecast card exposes all horizons, uncertainty and accessible table", async ({
   page,
 }) => {
   await page.goto("/air?station=81t");
@@ -222,13 +222,14 @@ test("forecast card exposes all horizons, uncertainty and accessible table", asy
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
 });
 
-test("map forecast horizon selector is touch-safe and reports coverage", async ({
+test("map forecast controls are paused while current readings remain available", async ({
   page,
 }) => {
   await page.goto("/");
   const selector = page.getByRole("group", { name: /ช่วงเวลาบนแผนที่/ });
   await expect(selector).toBeVisible();
-  await selector.getByRole("button", { name: "+12ชม." }).click();
+  await expect(selector.getByRole("button")).toHaveCount(1);
+  await expect(selector.getByRole("button", { name: "ตอนนี้" })).toBeVisible();
   const sizes = await selector
     .getByRole("button")
     .evaluateAll((buttons) =>
@@ -236,9 +237,26 @@ test("map forecast horizon selector is touch-safe and reports coverage", async (
     );
   expect(sizes.every((height) => height >= 44)).toBe(true);
   await expect(
-    page.getByText("พยากรณ์ประเทศไทยอีก 12 ชั่วโมง", { exact: true }),
+    page.getByText("ระบบพยากรณ์กำลังปรับปรุง", { exact: true }),
   ).toBeVisible();
   await expect(page.locator(".cp-map-forecast-chip")).toBeVisible();
+});
+
+test("today page shows forecast unavailable without zero, mock, or comparison", async ({
+  page,
+}) => {
+  await page.goto("/air?station=81t");
+  const forecastCard = page.locator(".cp-forecast-card");
+  await expect(
+    forecastCard.getByText("ระบบพยากรณ์กำลังปรับปรุง", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    forecastCard.getByText(/ยังไม่มีค่าพยากรณ์ในขณะนี้/),
+  ).toBeVisible();
+  await expect(
+    forecastCard.getByText("เปรียบเทียบแหล่งข้อมูล", { exact: true }),
+  ).toHaveCount(0);
+  await expect(forecastCard.getByText(/^0(?:\.0)?$/)).toHaveCount(0);
 });
 
 test("external provider comparison keeps raw values separate on mobile", async ({

@@ -1,11 +1,12 @@
 """Public station forecast and bounded viewport-surface endpoints."""
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
 from starlette.concurrency import run_in_threadpool
 
 from ..algorithms.distance import haversine_km
+from ..core.config import settings
 from ..models.schemas import ForecastResponse, ForecastSurfaceResponse
-from ..services import forecasting
+from ..services import forecast_status, forecasting
 
 router = APIRouter()
 
@@ -13,9 +14,16 @@ router = APIRouter()
 @router.get("/forecast", response_model=ForecastResponse)
 async def forecast(
     background_tasks: BackgroundTasks,
+    response: Response,
     station_id: str = Query(...),
     hours: int = Query(12, ge=1, le=24),
 ):
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["CDN-Cache-Control"] = "no-store"
+    if settings.forecast_system_paused:
+        return ForecastResponse(
+            **forecast_status.unavailable_station_response(station_id, hours)
+        )
     try:
         response, ledger = await run_in_threadpool(
             forecasting.station_forecast, station_id, hours
@@ -29,6 +37,7 @@ async def forecast(
 @router.get("/forecast/surface", response_model=ForecastSurfaceResponse)
 async def surface(
     background_tasks: BackgroundTasks,
+    response: Response,
     horizon: int = Query(12),
     grid_size: int = Query(12, ge=4, le=30),
     min_lat: float | None = Query(default=None, ge=-90, le=90),
@@ -36,6 +45,8 @@ async def surface(
     min_lon: float | None = Query(default=None, ge=-180, le=180),
     max_lon: float | None = Query(default=None, ge=-180, le=180),
 ):
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["CDN-Cache-Control"] = "no-store"
     supplied = [min_lat, max_lat, min_lon, max_lon]
     if any(value is not None for value in supplied) and not all(
         value is not None for value in supplied
@@ -55,6 +66,10 @@ async def surface(
             "min_lon": min_lon,
             "max_lon": max_lon,
         }
+    if settings.forecast_system_paused:
+        return ForecastSurfaceResponse(
+            **forecast_status.unavailable_surface_response(horizon, grid_size, bounds)
+        )
     try:
         response, ledgers = await run_in_threadpool(
             forecasting.surface_forecast, horizon, grid_size, bounds

@@ -104,6 +104,7 @@ def test_admin_role_change_boundary_is_admin_only_and_audited_by_service(monkeyp
 
 
 def test_forecast_router_rejects_service_and_viewport_contract_errors(monkeypatch):
+    monkeypatch.setattr(settings, "forecast_system_paused", False)
     client = TestClient(create_app())
 
     def invalid_station(_station_id: str, _hours: int):
@@ -142,6 +143,7 @@ def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch)
     monkeypatch.setattr(settings, "local_demo_mode", False)
     monkeypatch.setattr(settings, "cron_secret", "cron-secret-value")
     monkeypatch.setattr(settings, "supabase_cron_secret", "")
+    monkeypatch.setattr(settings, "forecast_system_paused", False)
     recorded_at = datetime.now(UTC).isoformat()
     stations = [
         {
@@ -214,6 +216,7 @@ def test_cron_job_routes_delegate_to_alert_evaluation_and_provider_services(
     monkeypatch.setattr(settings, "local_demo_mode", False)
     monkeypatch.setattr(settings, "cron_secret", "cron-secret-value")
     monkeypatch.setattr(settings, "supabase_cron_secret", "")
+    monkeypatch.setattr(settings, "forecast_system_paused", False)
     monkeypatch.setattr(settings, "gistda_air_enabled", False)
     monkeypatch.setattr(settings, "gistda_license_approved", False)
 
@@ -282,3 +285,105 @@ def test_cron_job_routes_delegate_to_alert_evaluation_and_provider_services(
     gistda = client.get("/api/cron/forecast-providers/gistda", headers=headers).json()
     assert gistda["status"] == "disabled"
     assert gistda["reason"] == "licence_or_feature_gate_disabled"
+
+
+def test_forecast_maintenance_returns_unavailable_without_generation(monkeypatch):
+    monkeypatch.setattr(settings, "forecast_system_paused", True)
+    monkeypatch.setattr(
+        forecast.forecasting,
+        "station_forecast",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("must not generate")),
+    )
+    monkeypatch.setattr(
+        forecast.forecasting,
+        "surface_forecast",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("must not generate")),
+    )
+    client = TestClient(create_app())
+
+    station = client.get("/api/forecast?station_id=station-1&hours=12")
+    assert station.status_code == 200
+    assert station.headers["cache-control"] == "no-store, max-age=0"
+    assert station.json()["forecast_status"] == "unavailable"
+    assert station.json()["points"] == []
+    assert station.json()["provider_count"] == 0
+    assert station.json()["unavailable_reason_codes"] == [
+        "forecast_system_under_improvement"
+    ]
+
+    surface = client.get("/api/forecast/surface?horizon=12&grid_size=8")
+    assert surface.status_code == 200
+    assert surface.json()["forecast_status"] == "unavailable"
+    assert surface.json()["cells"] == []
+    assert surface.json()["unavailable_reason_codes"] == [
+        "forecast_system_under_improvement"
+    ]
+
+
+def test_forecast_maintenance_keeps_air4thai_sync_and_skips_forecast_writes(
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, "local_demo_mode", False)
+    monkeypatch.setattr(settings, "cron_secret", "cron-secret-value")
+    monkeypatch.setattr(settings, "supabase_cron_secret", "")
+    monkeypatch.setattr(settings, "forecast_system_paused", True)
+    recorded_at = datetime.now(UTC).isoformat()
+    stations = [
+        {
+            "id": "station-1",
+            "lat": 13.8,
+            "lon": 100.1,
+            "pm25": 20,
+            "recorded_at": recorded_at,
+        }
+    ]
+
+    async def fetch_stations():
+        return stations
+
+    monkeypatch.setattr(cron.air4thai, "fetch_stations", fetch_stations)
+    monkeypatch.setattr(
+        cron.air4thai,
+        "get_last_ingestion_diagnostics",
+        lambda: {
+            "rejected_count": 0,
+            "rejection_counts": {},
+            "rejected_station_ids": [],
+        },
+    )
+    monkeypatch.setattr(cron.supabase_client, "create_sync_run", lambda row: row)
+    monkeypatch.setattr(cron.supabase_client, "upsert_stations", lambda rows: len(rows))
+    monkeypatch.setattr(cron.supabase_client, "insert_readings", lambda rows: len(rows))
+    monkeypatch.setattr(cron.supabase_client, "update_sync_run", lambda *_args: None)
+    monkeypatch.setattr(
+        cron.forecast_data,
+        "collect_forecast_inputs",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("must stay paused")),
+    )
+    monkeypatch.setattr(
+        cron.forecast_reconciliation,
+        "reconcile_day",
+        lambda: (_ for _ in ()).throw(AssertionError("must stay paused")),
+    )
+    monkeypatch.setattr(
+        cron.retention, "cleanup_expired_reports", lambda: {"evidence_purged": 0}
+    )
+    client = TestClient(create_app())
+    headers = {"Authorization": "Bearer cron-secret-value"}
+
+    sync = client.get("/api/cron/sync", headers=headers)
+    assert sync.status_code == 200
+    assert sync.json()["readings"] == 1
+    assert sync.json()["forecast_inputs"]["status"] == "paused"
+    assert sync.json()["reconciliation"]["status"] == "paused"
+
+    for path in (
+        "/api/cron/forecast-evaluation",
+        "/api/cron/forecast-providers/openweather",
+        "/api/cron/forecast-providers/openmeteo",
+        "/api/cron/forecast-providers/gistda",
+    ):
+        response = client.get(path, headers=headers)
+        assert response.status_code == 200
+        assert response.json()["status"] == "paused"
+        assert response.json()["reason"] == "forecast_system_under_improvement"

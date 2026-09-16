@@ -14,6 +14,9 @@ concurrency:
 
 jobs:
   staging-candidate:
+    # Paused until clearpath-self-forecast-v1 is specified and reviewed. This
+    # also prevents the legacy XGBoost workflow from running manually.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     environment: staging
     timeout-minutes: 60

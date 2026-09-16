@@ -50,6 +50,7 @@ yarn-error.log*
 /field-colocation*.json
 /field-comparison*.csv
 /field-comparison*.json
+/.forecast-reset-backups/
 
 # vercel
 .vercel

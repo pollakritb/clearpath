@@ -1,4 +1,4 @@
-"""NASA FIRMS — จุดความร้อน/ไฟไหม้ป่า (VIIRS NRT) ในกรอบประเทศไทย
+"""NASA FIRMS satellite hotspots (VIIRS NRT) in the Thailand bounding box.
 
 ฟรี · ต้องมี MAP_KEY (สมัครรอ 1-2 วัน) · response เป็น CSV
 มี cache ในหน่วยความจำ ~30 นาที (FIRMS อัปเดตทุก 3-6 ชม. อยู่แล้ว)
@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 
 import httpx
 
+from ..algorithms.hotspot_policy import deduplicate_hotspots
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
 
@@ -77,7 +78,8 @@ async def get_fires(days: int = 1) -> list[dict]:
             for row in reader:
                 lat = _f(row.get("latitude"))
                 lon = _f(row.get("longitude"))
-                if lat is None or lon is None:
+                acquired_at = _acquired_at(row)
+                if lat is None or lon is None or acquired_at is None:
                     continue
                 fires.append(
                     {
@@ -87,7 +89,7 @@ async def get_fires(days: int = 1) -> list[dict]:
                         "bright": _f(row.get("bright_ti4") or row.get("brightness")),
                         "daynight": row.get("daynight"),
                         "acq_date": row.get("acq_date"),
-                        "acquired_at": _acquired_at(row),
+                        "acquired_at": acquired_at,
                         "confidence": row.get("confidence"),
                         "satellite": source,
                     }
@@ -96,21 +98,7 @@ async def get_fires(days: int = 1) -> list[dict]:
     if successful_sources == 0:
         raise UpstreamError("NASA FIRMS ไม่ตอบกลับจากชุดข้อมูลดาวเทียมที่รองรับ")
 
-    # The same thermal anomaly can appear in overlapping products. Keep one
-    # point per ~100 m/time and prefer the observation with the largest FRP.
-    deduplicated: dict[tuple[float, float, str | None], dict] = {}
-    for fire in fires:
-        key = (
-            round(float(fire["lat"]), 3),
-            round(float(fire["lon"]), 3),
-            fire["acquired_at"],
-        )
-        current = deduplicated.get(key)
-        if current is None or float(fire.get("frp") or 0) > float(
-            current.get("frp") or 0
-        ):
-            deduplicated[key] = fire
-    fires = list(deduplicated.values())
+    fires = deduplicate_hotspots(fires)
 
     _CACHE.update({"ts": now, "data": fires, "key": cache_key})
     return fires

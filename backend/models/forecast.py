@@ -159,3 +159,5 @@ class ForecastSurfaceResponse(BaseModel):
     coverage_counts: dict[str, int]
     warnings: list[str]
     cells: list[ForecastSurfaceCell]
+    forecast_status: Literal["available", "limited", "unavailable"] = "available"
+    unavailable_reason_codes: list[str] = Field(default_factory=list)

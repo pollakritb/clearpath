@@ -26,7 +26,7 @@ export const DASHBOARD_COPY: Record<DashboardTab, DashboardCopy> = {
   },
   overview: {
     title: "อากาศวันนี้",
-    description: "ค่าปัจจุบัน คำแนะนำ พยากรณ์ และประวัติรายสถานี",
+    description: "ค่าปัจจุบัน คำแนะนำสุขภาพ และประวัติรายสถานี",
   },
   report: {
     title: "ส่งข้อมูลจากเครื่องวัด",

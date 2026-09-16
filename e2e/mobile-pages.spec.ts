@@ -159,6 +159,59 @@ test("map defers satellite hotspot data until its layer is enabled", async ({
   await hotspotRequest;
 });
 
+test("satellite hotspot fixture is distinct and never presented as a confirmed fire", async ({
+  page,
+}) => {
+  const acquiredAt = new Date(Date.now() - 60 * 60_000).toISOString();
+  await page.route("**/api/firms?*", async (route) => {
+    await route.fulfill({
+      json: {
+        fires: [
+          {
+            id: "firms-positive-fixture",
+            lat: 13.82,
+            lon: 100.06,
+            frp: 25,
+            bright: 330,
+            daynight: "D",
+            acq_date: acquiredAt.slice(0, 10),
+            acquired_at: acquiredAt,
+            confidence: "h",
+            satellite: "VIIRS_NOAA20_NRT",
+            source_products: ["VIIRS_NOAA20_NRT", "VIIRS_SNPP_NRT"],
+          },
+        ],
+        count: 1,
+        available: true,
+        status: "available",
+        checked_at: new Date().toISOString(),
+        latest_acquired_at: acquiredAt,
+        max_age_hours: 12,
+        message: null,
+        source: "nasa_firms",
+      },
+    });
+  });
+
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "เลือกข้อมูลที่แสดงบนแผนที่" })
+    .click();
+  await page.getByRole("button", { name: /จุดความร้อนจากดาวเทียม/ }).click();
+  await page
+    .getByRole("button", { name: /สถานีตรวจวัดทางการ Air4Thai/ })
+    .click();
+  await page.getByRole("button", { name: "ปิดตัวเลือกข้อมูล" }).click();
+
+  const marker = page.locator('[title^="จุดความร้อนจากดาวเทียม"]');
+  await expect(marker).toBeVisible();
+  await marker.click();
+  const popup = page.locator(".leaflet-popup");
+  await expect(popup).toBeVisible();
+  await expect(popup).toContainText("จุดความร้อนจากดาวเทียม");
+  await expect(popup).toContainText("ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว");
+});
+
 test("news page loads no map, rewards, or leaderboard data by default", async ({
   page,
 }) => {

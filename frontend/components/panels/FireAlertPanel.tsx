@@ -1,98 +1,103 @@
 "use client";
 
+import type { FirmsLoadStatus } from "@/frontend/hooks/useFirms";
 import { T } from "@/frontend/lib/ui";
 import type { FirePoint } from "@/frontend/types";
-import { useEffect, useState } from "react";
 
-const MAX_ALERT_AGE_MS = 12 * 60 * 60 * 1000;
-
-function isFresh(fire: FirePoint, now: number) {
-  if (!fire.acquired_at) return false;
-  const acquired = Date.parse(fire.acquired_at);
-  return (
-    Number.isFinite(acquired) &&
-    now - acquired >= 0 &&
-    now - acquired <= MAX_ALERT_AGE_MS
-  );
-}
+import AppIcon from "@/frontend/components/ui/AppIcon";
 
 export default function FireAlertPanel({
   fires,
   loading,
+  status,
+  message,
+  checkedAt,
   error,
   onShowLayer,
 }: {
   fires: FirePoint[];
   loading: boolean;
+  status: FirmsLoadStatus;
+  message: string | null;
+  checkedAt: string | null;
   error: string | null;
   onShowLayer: () => void;
 }) {
-  const [now, setNow] = useState(0);
-  useEffect(() => {
-    const update = () => setNow(Date.now());
-    update();
-    const timer = window.setInterval(update, 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
-  // The backend already applies the province polygon; the browser only owns
-  // the time window used for the current warning state.
-  const nearby = fires.filter((fire) => isFresh(fire, now));
-  const maxFrp = nearby.reduce(
+  // The server owns province, duplicate-pass and 12-hour freshness policy.
+  const maxFrp = fires.reduce(
     (maximum, fire) => Math.max(maximum, fire.frp ?? 0),
     0,
   );
   const severity =
-    nearby.length >= 3 || maxFrp >= 20
+    fires.length >= 3 || maxFrp >= 20
       ? "high"
-      : nearby.length > 0
+      : fires.length > 0
         ? "watch"
         : "clear";
   const active = severity !== "clear";
-  const unavailable = Boolean(error);
+  const unavailable = ["failed", "unavailable", "unconfigured"].includes(
+    status,
+  );
+  const stale = status === "stale";
   const tone =
-    unavailable || severity === "watch"
-      ? "#d97706"
+    unavailable || stale || severity === "watch"
+      ? "#914600"
       : severity === "high"
         ? T.red
         : T.teal;
-  const newest = nearby.reduce<string | null>((latest, fire) => {
+  const newest = fires.reduce<string | null>((latest, fire) => {
     if (!fire.acquired_at) return latest;
     return !latest || fire.acquired_at > latest ? fire.acquired_at : latest;
   }, null);
+  const detailMessage = error ?? (unavailable || stale ? message : null);
 
   return (
     <section
       style={{
-        border: `1px solid ${active || unavailable ? tone : T.line}`,
+        border: `1px solid ${active || unavailable || stale ? tone : T.line}`,
         borderRadius: "11px",
         padding: ".7em",
-        background: active || unavailable ? `${tone}12` : T.chip,
+        background: active || unavailable || stale ? `${tone}12` : T.chip,
       }}
       aria-live="polite"
     >
       <div style={{ display: "flex", alignItems: "center", gap: ".5em" }}>
-        <span aria-hidden style={{ color: tone, fontSize: "1.2em" }}>
-          {loading ? "…" : unavailable ? "!" : active ? "▲" : "✓"}
+        <span aria-hidden style={{ color: tone, display: "inline-flex" }}>
+          {loading ? (
+            "…"
+          ) : unavailable || stale ? (
+            <AppIcon name="alert" size={20} />
+          ) : active ? (
+            <AppIcon name="satellite" size={20} />
+          ) : (
+            <AppIcon name="check" size={20} />
+          )}
         </span>
         <div style={{ flex: 1 }}>
           <b style={{ fontSize: ".78em" }}>
             {loading
-              ? "กำลังตรวจสัญญาณการเผาไหม้จากดาวเทียม…"
+              ? "กำลังตรวจจุดความร้อนจากดาวเทียม…"
               : unavailable
-                ? "ยังตรวจสอบสัญญาณดาวเทียมไม่ได้"
-                : severity === "high"
-                  ? `เฝ้าระวังสูง: ${nearby.length} จุดต้องสงสัยการเผาไหม้ในนครปฐม`
-                  : severity === "watch"
-                    ? `เฝ้าระวัง: พบ ${nearby.length} จุดต้องสงสัยการเผาไหม้ในนครปฐม`
-                    : "ไม่พบสัญญาณการเผาไหม้อายุไม่เกิน 12 ชั่วโมงในพื้นที่"}
+                ? "ยังตรวจสอบจุดความร้อนจากดาวเทียมไม่ได้"
+                : stale
+                  ? "ข้อมูลล่าสุดเกิน 12 ชั่วโมง"
+                  : severity === "high"
+                    ? `เฝ้าระวัง: พบ ${fires.length} จุดความร้อนจากดาวเทียมในนครปฐม`
+                    : severity === "watch"
+                      ? `พบ ${fires.length} จุดความร้อนจากดาวเทียมในนครปฐม`
+                      : status === "checked_no_hotspots"
+                        ? "ตรวจแล้วไม่พบจุดความร้อนในช่วง 12 ชั่วโมง"
+                        : "ยังไม่ได้ตรวจข้อมูลดาวเทียม"}
           </b>
           <div
             style={{ fontSize: ".66em", color: T.subInk, marginTop: ".15em" }}
           >
-            คัดกรองจาก NASA FIRMS · ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว
+            NASA FIRMS · จุดความร้อนจากดาวเทียม ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว
             {newest
               ? ` · ล่าสุด ${new Date(newest).toLocaleString("th-TH")}`
-              : ""}
+              : checkedAt
+                ? ` · ตรวจ ${new Date(checkedAt).toLocaleString("th-TH")}`
+                : ""}
           </div>
         </div>
         {active && (
@@ -115,11 +120,15 @@ export default function FireAlertPanel({
           </button>
         )}
       </div>
-      {error && (
+      {detailMessage && (
         <div
-          style={{ fontSize: ".65em", color: "#b53d35", marginTop: ".35em" }}
+          style={{
+            fontSize: ".65em",
+            color: error || unavailable ? "#8f2f2a" : tone,
+            marginTop: ".35em",
+          }}
         >
-          {error}
+          {detailMessage}
         </div>
       )}
     </section>

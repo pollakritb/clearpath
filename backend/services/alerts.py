@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 from ..algorithms.area import is_nakhon_pathom
 from ..algorithms.distance import haversine_km
+from ..algorithms.hotspot_policy import public_hotspot_state
 from ..algorithms.notification_policy import format_air_alert, format_hotspot_alert
 from ..algorithms.trust import capture_age_minutes
 from ..core.config import settings
+from ..core.errors import ConfigurationError, UpstreamError
 from . import firms, notifications, supabase_client
 from .stations import get_current_stations
 
@@ -35,8 +35,11 @@ async def run_alerts() -> dict:
     preferences = supabase_client.list_notification_preferences()
     stations, _source = await get_current_stations()
     try:
-        fire_points = await firms.get_fires(1)
-    except Exception:
+        fire_points = public_hotspot_state(
+            await firms.get_fires(1),
+            area_contains=is_nakhon_pathom,
+        )["fires"]
+    except (ConfigurationError, UpstreamError):
         # Air-quality alerts remain useful when the independent FIRMS source
         # is temporarily unavailable. The next cron run retries automatically.
         fire_points = []
@@ -82,15 +85,9 @@ async def run_alerts() -> dict:
             events += 1
             recipients += int(event["recipient_count"])
 
-    now = datetime.now(UTC)
     for fire in fire_points:
         acquired_at = fire.get("acquired_at")
-        if not acquired_at or not is_nakhon_pathom(
-            float(fire["lat"]), float(fire["lon"])
-        ):
-            continue
-        age = capture_age_minutes(str(acquired_at), now=now)
-        if age is None or age > 12 * 60:
+        if not acquired_at:
             continue
         targets = [
             str(item["user_id"])
@@ -100,14 +97,13 @@ async def run_alerts() -> dict:
         ]
         if not targets:
             continue
-        location_key = f"{float(fire['lat']):.3f}:{float(fire['lon']):.3f}"
         message = format_hotspot_alert(
             acquired_at=str(acquired_at),
             area="นครปฐม",
             satellite=str(fire.get("satellite") or "") or None,
         )
         event = notifications.publish_alert(
-            deduplication_key=f"firms:{location_key}:{acquired_at}",
+            deduplication_key=str(fire["id"]),
             source="nasa_firms",
             kind="satellite_hotspot",
             severity=message["severity"],
@@ -117,7 +113,12 @@ async def run_alerts() -> dict:
             recipients=targets,
             lat=float(fire["lat"]),
             lon=float(fire["lon"]),
-            payload={"frp": fire.get("frp"), "satellite": fire.get("satellite")},
+            payload={
+                "hotspot_id": fire["id"],
+                "frp": fire.get("frp"),
+                "satellite": fire.get("satellite"),
+                "source_products": fire.get("source_products") or [],
+            },
         )
         if event:
             events += 1

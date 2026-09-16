@@ -36,7 +36,7 @@ const DEFAULTS: NotificationPreferences = {
 
 const ALERT_OPTIONS = [
   ["air_alerts", "PM2.5 จาก Air4Thai", "ข้อมูลหลักจากสถานีทางการ"],
-  ["hotspot_alerts", "จุดความร้อนดาวเทียม", "NASA FIRMS อายุไม่เกิน 12 ชม."],
+  ["hotspot_alerts", "จุดความร้อนจากดาวเทียม", "NASA FIRMS อายุไม่เกิน 12 ชม."],
   ["report_status_alerts", "สถานะรายงานของฉัน", "อนุมัติ ปฏิเสธ หรือรอตรวจ"],
   ["rating_alerts", "คำขอบคุณจากชุมชน", "เมื่อมีคนขอบคุณข้อมูลของฉัน"],
   ["reward_alerts", "คะแนนและเหรียญ", "รางวัลจากการช่วยชุมชน"],

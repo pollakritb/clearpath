@@ -30,6 +30,7 @@ export type AppIconName =
   | "station"
   | "report"
   | "refresh"
+  | "satellite"
   | "settings"
   | "shield"
   | "sparkles"
@@ -111,6 +112,14 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
       )}
       {name === "fire" && (
         <path d="M13.5 3.5c.7 3-1.3 4.2-2.2 6.1-.7-1.1-.8-2.2-.3-3.5-3 2.2-5 5-5 8.1A6 6 0 0 0 18 14c0-2.4-1.4-5.5-4.5-7.5.2 1.8-.5 3-1.4 4.1" />
+      )}
+      {name === "satellite" && (
+        <>
+          <path d="m9 9 6 6M15 9l-6 6" />
+          <rect x="9" y="9" width="6" height="6" rx="1" />
+          <path d="m7.5 7.5-3-3M16.5 16.5l3 3M4 8l4-4M16 20l4-4" />
+          <path d="M16.5 7.5a4 4 0 0 1 0-5.5M19 10a7.5 7.5 0 0 1 0-10" />
+        </>
       )}
       {name === "activity" && <path d="M3 12h4l2-7 4 14 2-7h6" />}
       {name === "clock" && (

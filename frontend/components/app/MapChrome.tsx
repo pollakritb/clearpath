@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
+import type { FirmsLoadStatus } from "@/frontend/hooks/useFirms";
 import type { LocationSuggestion, Station } from "@/frontend/types";
 import type { ViewMode } from "@/frontend/types/ui";
 import MapLayersPanel from "./MapLayersPanel";
@@ -14,7 +15,7 @@ interface MapChromeProps {
   sensorCount: number;
   individualReportCount: number;
   fireCount: number;
-  fireAvailable: boolean;
+  fireStatus: FirmsLoadStatus;
   demoMode: boolean;
   stations: Station[];
   bigText: boolean;
@@ -42,7 +43,7 @@ export default function MapChrome({
   sensorCount,
   individualReportCount,
   fireCount,
-  fireAvailable,
+  fireStatus,
   demoMode,
   stations,
   bigText,
@@ -115,7 +116,7 @@ export default function MapChrome({
           sensorCount={sensorCount}
           individualReportCount={individualReportCount}
           fireCount={fireCount}
-          fireAvailable={fireAvailable}
+          fireStatus={fireStatus}
           bigText={bigText}
           showHeatmap={showHeatmap}
           showStations={showStations}

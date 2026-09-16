@@ -3808,6 +3808,11 @@
   color: #9e302a;
 }
 
+.cp-map-forecast-chip[data-state="paused"] {
+  background: var(--cp-surface-muted);
+  color: var(--cp-text-muted);
+}
+
 .cp-map-forecast-chip > div {
   min-width: 0;
   display: flex;

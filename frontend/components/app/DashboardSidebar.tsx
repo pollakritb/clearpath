@@ -25,7 +25,7 @@ const TABS: Array<{
     id: "overview",
     href: "/air",
     label: "วันนี้",
-    description: "ค่าฝุ่นและพยากรณ์",
+    description: "ค่าฝุ่นและคำแนะนำ",
     icon: "home",
   },
   {

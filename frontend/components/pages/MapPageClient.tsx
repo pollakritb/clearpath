@@ -9,10 +9,11 @@ import UserPageShell from "@/frontend/components/app/UserPageShell";
 import ListView from "@/frontend/components/panels/ListView";
 import { useDisplayPreferences } from "@/frontend/components/settings/DisplayPreferencesProvider";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
-import { useFirms } from "@/frontend/hooks/useFirms";
+import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
 import { useForecastSurface } from "@/frontend/hooks/useForecastSurface";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
+import { FORECAST_SYSTEM_PAUSED } from "@/frontend/lib/forecast-state";
 import {
   buildCurrentSurfaceStations,
   buildForecastSurfaceStations,
@@ -59,7 +60,10 @@ export default function MapPageClient({
 
   const loadFires = firms.load;
   useEffect(() => {
-    if (showFires && !firms.loaded) void loadFires(1);
+    if (!showFires) return;
+    if (!firms.loaded) void loadFires(1);
+    const timer = window.setInterval(() => void loadFires(1), FIRMS_REFRESH_MS);
+    return () => window.clearInterval(timer);
   }, [firms.loaded, loadFires, showFires]);
 
   const serviceAreaStations = useMemo(
@@ -80,6 +84,10 @@ export default function MapPageClient({
   const forecastSurfaceLoad = forecastSurface.load;
   const forecastSurfaceClear = forecastSurface.clear;
   useEffect(() => {
+    if (FORECAST_SYSTEM_PAUSED) {
+      forecastSurfaceClear();
+      return;
+    }
     if (mapHorizon === 0) {
       forecastSurfaceClear();
       return;
@@ -92,7 +100,9 @@ export default function MapPageClient({
     [forecastSurface.data, mapHorizon],
   );
   const surfaceStations =
-    mapHorizon === 0 ? currentSurfaceStations : forecastSurfaceStations;
+    FORECAST_SYSTEM_PAUSED || mapHorizon === 0
+      ? currentSurfaceStations
+      : forecastSurfaceStations;
 
   const refresh = useCallback(() => {
     const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
@@ -143,7 +153,7 @@ export default function MapPageClient({
         sensorCount={communitySourceCounts.sensor}
         individualReportCount={communitySourceCounts.individual}
         fireCount={firms.fires.length}
-        fireAvailable={!firms.error}
+        fireStatus={firms.status}
         demoMode={community.demoMode}
         stations={serviceAreaStations}
         bigText={display.bigText}
@@ -190,6 +200,7 @@ export default function MapPageClient({
         forecastLoading={forecastSurface.loading}
         forecastError={forecastSurface.error}
         forecastWarnings={forecastSurface.data?.warnings ?? []}
+        forecastPaused={FORECAST_SYSTEM_PAUSED}
         onHorizonChange={setMapHorizon}
         onClose={() => {
           setSelectedStation(null);

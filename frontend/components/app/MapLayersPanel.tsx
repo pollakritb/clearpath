@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { AQI_LEGEND } from "@/frontend/lib/aqi";
+import type { FirmsLoadStatus } from "@/frontend/hooks/useFirms";
 
 import type { ViewMode } from "@/frontend/types/ui";
 
@@ -11,7 +12,7 @@ interface MapLayersPanelProps {
   sensorCount: number;
   individualReportCount: number;
   fireCount: number;
-  fireAvailable: boolean;
+  fireStatus: FirmsLoadStatus;
   bigText: boolean;
   showHeatmap: boolean;
   showStations: boolean;
@@ -34,7 +35,7 @@ export default function MapLayersPanel({
   sensorCount,
   individualReportCount,
   fireCount,
-  fireAvailable,
+  fireStatus,
   bigText,
   showHeatmap,
   showStations,
@@ -107,10 +108,10 @@ export default function MapLayersPanel({
         />
         <LayerButton
           active={showFires}
-          icon="fire"
+          icon="satellite"
           symbolClass="cp-layer-symbol--fire"
           title="จุดความร้อนจากดาวเทียม"
-          description={`NASA FIRMS · ${fireAvailable ? `${fireCount} จุด` : "ยังไม่มีข้อมูล"}`}
+          description={`NASA FIRMS · ${fireStatusLabel(fireStatus, fireCount)}`}
           onClick={onToggleFires}
         />
       </div>
@@ -160,6 +161,16 @@ export default function MapLayersPanel({
       </p>
     </section>
   );
+}
+
+function fireStatusLabel(status: FirmsLoadStatus, count: number) {
+  if (status === "available") return `${count} จุด อายุไม่เกิน 12 ชม.`;
+  if (status === "checked_no_hotspots") return "ตรวจแล้วไม่พบใน 12 ชม.";
+  if (status === "stale") return "มีเฉพาะข้อมูลเก่ากว่า 12 ชม.";
+  if (status === "unconfigured") return "ยังไม่ได้เชื่อมแหล่งข้อมูล";
+  if (status === "unavailable") return "แหล่งข้อมูลขัดข้องชั่วคราว";
+  if (status === "failed") return "โหลดข้อมูลไม่สำเร็จ";
+  return "แตะเพื่อเปิดและตรวจข้อมูล";
 }
 
 function LayerButton({

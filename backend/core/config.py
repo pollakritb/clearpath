@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     forecast_station_max_age_minutes: int = 90
     forecast_provider_snapshot_retention_days: int = 7
     forecast_provider_run_retention_days: int = 30
+    # Global maintenance gate. Keep enabled until clearpath-self-forecast-v1
+    # has a reviewed specification, backtest, and release decision.
+    forecast_system_paused: bool = True
 
     # OCR ภาพหน้าจอเครื่องวัด (OpenAI Responses API, server only)
     openai_api_key: str = ""

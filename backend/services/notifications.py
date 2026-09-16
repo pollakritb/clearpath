@@ -318,4 +318,19 @@ def publish_alert(
             "recipient_count": delivered,
         },
     )
+    supabase_client.create_audit_log(
+        {
+            "actor_id": None,
+            "action": "alert_event_created",
+            "entity_type": "alert_event",
+            "entity_id": str(event["id"]),
+            "details": {
+                "source": source,
+                "kind": kind,
+                "severity": severity,
+                "detected_at": detected_at,
+                "recipient_count": delivered,
+            },
+        }
+    )
     return {**event, "recipient_count": delivered}

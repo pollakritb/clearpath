@@ -107,12 +107,9 @@ jobs:
           invoke "/api/cron/sync" || failures=1
           verify_readiness || failures=1
           invoke "/api/cron/alerts" || failures=1
-          invoke "/api/cron/forecast-evaluation" || failures=1
 
-          # GitHub scheduled runs may start hours late. The API checks the last
-          # completed provider run, so delayed jobs cannot skip an 8h/12h slot.
-          invoke "/api/cron/forecast-providers/openweather?only_if_due=true" || failures=1
-          invoke "/api/cron/forecast-providers/openmeteo?only_if_due=true" || failures=1
-          invoke "/api/cron/forecast-providers/gistda?only_if_due=true" || failures=1
+          # Forecast generation, provider sync, and evaluation are intentionally
+          # paused during the ClearPath forecast reset. Air4Thai ingestion and
+          # community/notification jobs remain active.
 
           exit "$failures"

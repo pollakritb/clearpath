@@ -1,5 +1,10 @@
 # ClearPath Community
 
+> **Forecast maintenance (2026-09-16):** Forecast generation and provider
+> synchronization are paused while `clearpath-self-forecast-v1` is designed.
+> Current Air4Thai measurements, the map, and community workflows remain
+> available. See `docs/runbooks/forecast-reset.md`.
+
 > พยากรณ์ PM2.5 และเครือข่ายข้อมูลคุณภาพอากาศที่ชุมชนช่วยกันตรวจสอบ
 
 ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถานีทางการ, NASA FIRMS สำหรับจุดความร้อน

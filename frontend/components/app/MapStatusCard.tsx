@@ -6,6 +6,7 @@ import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
 import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
+import { FORECAST_PAUSED_MESSAGE } from "@/frontend/lib/forecast-state";
 import type { CommunityReport, Station } from "@/frontend/types";
 
 interface MapStatusCardProps {
@@ -16,6 +17,7 @@ interface MapStatusCardProps {
   forecastLoading: boolean;
   forecastError: string | null;
   forecastWarnings: string[];
+  forecastPaused: boolean;
   onHorizonChange: (horizon: 0 | 1 | 3 | 6 | 12 | 24) => void;
   onClose: () => void;
 }
@@ -44,6 +46,7 @@ export default function MapStatusCard({
   forecastLoading,
   forecastError,
   forecastWarnings,
+  forecastPaused,
   onHorizonChange,
   onClose,
 }: MapStatusCardProps) {
@@ -57,7 +60,10 @@ export default function MapStatusCard({
           role="group"
           aria-label="ช่วงเวลาบนแผนที่"
         >
-          {([0, 1, 3, 6, 12, 24] as const).map((item) => (
+          {(forecastPaused
+            ? ([0] as const)
+            : ([0, 1, 3, 6, 12, 24] as const)
+          ).map((item) => (
             <button
               key={item}
               type="button"
@@ -70,6 +76,19 @@ export default function MapStatusCard({
             </button>
           ))}
         </div>
+        {forecastPaused && (
+          <div
+            className="cp-map-forecast-chip"
+            data-state="paused"
+            role="status"
+          >
+            <AppIcon name="info" size={16} />
+            <div>
+              <strong>{FORECAST_PAUSED_MESSAGE}</strong>
+              <small>แผนที่ยังแสดงค่าฝุ่นปัจจุบันตามปกติ</small>
+            </div>
+          </div>
+        )}
         {horizon > 0 && (
           <div
             className="cp-map-forecast-chip"
@@ -260,7 +279,7 @@ export default function MapStatusCard({
       <Link href={href} className="cp-map-selection-card__action cp-focus">
         <span>
           {source === "official"
-            ? "ดูค่าฝุ่นและพยากรณ์สถานีนี้"
+            ? "ดูค่าฝุ่นและรายละเอียดสถานีนี้"
             : source === "sensor"
               ? "ดูสถานีชุมชนในเครือข่าย"
               : "ดูรายงานนี้ในชุมชน"}

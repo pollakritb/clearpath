@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import time
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from uuid import uuid4
 
@@ -23,6 +24,9 @@ from backend.services import ocr as ocr_service
 @pytest.fixture
 def feature_client(monkeypatch):
     monkeypatch.setattr(settings, "local_demo_mode", True)
+    # This broad legacy feature-flow fixture exercises the forecast engine
+    # contract itself. Maintenance-mode behavior has dedicated router tests.
+    monkeypatch.setattr(settings, "forecast_system_paused", False)
     monkeypatch.setattr(
         settings, "capture_session_secret", "test-capture-secret-32-bytes-long"
     )
@@ -40,6 +44,7 @@ def feature_client(monkeypatch):
         }
 
     async def fake_fires(_days: int = 1) -> list[dict]:
+        acquired_at = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
         return [
             {
                 "lat": 13.82,
@@ -47,8 +52,8 @@ def feature_client(monkeypatch):
                 "frp": 4.2,
                 "bright": 320.0,
                 "daynight": "D",
-                "acq_date": "2026-07-23",
-                "acquired_at": "2026-07-23T06:00:00+00:00",
+                "acq_date": acquired_at[:10],
+                "acquired_at": acquired_at,
                 "confidence": "nominal",
                 "satellite": "VIIRS_SNPP_NRT",
             },

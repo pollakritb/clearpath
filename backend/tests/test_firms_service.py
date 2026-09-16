@@ -76,6 +76,11 @@ def test_firms_parses_deduplicates_and_caches_products(monkeypatch):
     assert result[0]["bright"] == 330.0
     assert result[0]["acquired_at"] == "2026-09-16T00:30:00+00:00"
     assert result[0]["satellite"] == "VIIRS_NOAA20_NRT"
+    assert result[0]["id"].startswith("firms-")
+    assert result[0]["source_products"] == [
+        "VIIRS_NOAA20_NRT",
+        "VIIRS_SNPP_NRT",
+    ]
     assert len(calls) == 3
 
     cached = asyncio.run(firms.get_fires(2))

@@ -112,6 +112,7 @@ export const api = {
   forecast: (stationId: string, hours = 12) =>
     http<ForecastResponse>(
       `/api/forecast?station_id=${encodeURIComponent(stationId)}&hours=${hours}`,
+      { cache: "no-store" },
     ),
 
   forecastSurface: (horizon = 12, gridSize = 12, bounds?: ViewportBounds) => {
@@ -124,7 +125,9 @@ export const api = {
         params.set(key, String(value));
       }
     }
-    return http<ForecastSurfaceResponse>(`/api/forecast/surface?${params}`);
+    return http<ForecastSurfaceResponse>(`/api/forecast/surface?${params}`, {
+      cache: "no-store",
+    });
   },
 
   communityReports: () =>

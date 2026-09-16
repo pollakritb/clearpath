@@ -305,6 +305,7 @@ def test_publish_alert_deduplicates_event_and_recipient_list(monkeypatch):
 
     updates: list[dict] = []
     queued: list[str] = []
+    audits: list[dict] = []
     monkeypatch.setattr(
         notifications.supabase_client,
         "create_alert_if_new",
@@ -320,6 +321,11 @@ def test_publish_alert_deduplicates_event_and_recipient_list(monkeypatch):
         "enqueue_user_notification",
         lambda **kwargs: queued.append(kwargs["user_id"]) or {"id": "notification"},
     )
+    monkeypatch.setattr(
+        notifications.supabase_client,
+        "create_audit_log",
+        lambda row: audits.append(row) or row,
+    )
     result = notifications.publish_alert(
         deduplication_key="hotspot-1",
         source="nasa_firms",
@@ -334,3 +340,18 @@ def test_publish_alert_deduplicates_event_and_recipient_list(monkeypatch):
     assert result and result["recipient_count"] == 2
     assert set(queued) == {"user-1", "user-2"}
     assert updates[0]["recipient_count"] == 2
+    assert audits == [
+        {
+            "actor_id": None,
+            "action": "alert_event_created",
+            "entity_type": "alert_event",
+            "entity_id": "event-1",
+            "details": {
+                "source": "nasa_firms",
+                "kind": "satellite_hotspot",
+                "severity": "warning",
+                "detected_at": "2026-09-16T00:00:00Z",
+                "recipient_count": 2,
+            },
+        }
+    ]

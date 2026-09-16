@@ -21,6 +21,7 @@ export const FORECAST_SOURCE_ORDER: ForecastSource[] = [
 ];
 
 export const FORECAST_LIMITATION_LABELS: Record<string, string> = {
+  forecast_system_under_improvement: "ระบบพยากรณ์กำลังปรับปรุง",
   external_provider_partial_horizon: "แหล่งภายนอกครอบคลุมไม่ครบทุกชั่วโมง",
   single_external_provider:
     "ช่วงนี้มีข้อมูลจากผู้ให้บริการภายนอกเพียงแหล่งเดียว",

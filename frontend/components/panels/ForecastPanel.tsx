@@ -16,6 +16,7 @@ import {
   formatProviderTime,
   PRODUCT_HORIZONS,
 } from "@/frontend/lib/forecast-presentation";
+import { FORECAST_PAUSED_MESSAGE } from "@/frontend/lib/forecast-state";
 import type {
   ForecastResponse,
   ForecastSource,
@@ -81,6 +82,7 @@ export default function ForecastPanel({
   const showingRecommendation = !activeSourcePoint;
   const lowConfidence =
     data?.forecast_status === "limited" || data?.agreement === "low";
+  const unavailable = data?.forecast_status === "unavailable";
 
   return (
     <section className="cp-forecast-card" aria-labelledby="forecast-title">
@@ -107,25 +109,24 @@ export default function ForecastPanel({
           แตะหมุดสถานี แล้วเปิดหน้าอากาศเพื่อดูพยากรณ์
         </div>
       )}
-      {loading && (
+      {loading && !unavailable && (
         <div className="cp-forecast-empty" role="status" aria-live="polite">
           กำลังโหลดพยากรณ์จากแหล่งข้อมูลที่พร้อมใช้งาน…
         </div>
       )}
-      {error && (
+      {error && !unavailable && (
         <div className="cp-forecast-alert" role="alert">
           {error}
         </div>
       )}
 
-      {data?.forecast_status === "unavailable" && (
+      {unavailable && (
         <div className="cp-forecast-alert" role="status">
-          <strong>ยังไม่แสดงตัวเลขเพื่อป้องกันความเข้าใจผิด</strong>
-          <ul>
-            {data.unavailable_reason_codes.map((code) => (
-              <li key={code}>{FORECAST_LIMITATION_LABELS[code] ?? code}</li>
-            ))}
-          </ul>
+          <strong>{FORECAST_PAUSED_MESSAGE}</strong>
+          <p>
+            ยังไม่มีค่าพยากรณ์ในขณะนี้
+            กรุณาใช้ค่าฝุ่นปัจจุบันและคำแนะนำสุขภาพก่อน
+          </p>
         </div>
       )}
 

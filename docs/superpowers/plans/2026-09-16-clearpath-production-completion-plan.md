@@ -443,12 +443,18 @@ npm run test:e2e
 ### งาน
 
 - [ ] `CP-FIRE-001` ทดสอบ NASA FIRMS positive fixture และ live positive event เมื่อมีข้อมูล
-- [ ] `CP-FIRE-002` กรองเฉพาะขอบเขตนครปฐมและอายุไม่เกิน 12 ชั่วโมง
-- [ ] `CP-FIRE-003` ตรวจ duplicate satellite passes, timezone และ coordinate boundary
-- [ ] `CP-FIRE-004` แสดงคำว่า “จุดความร้อนจากดาวเทียม” หรือ “satellite hotspot” ทุกจุด
-- [ ] `CP-FIRE-005` แยก marker/icon จากสถานีวัดและรายงานบุคคล แต่ใช้สีระดับฝุ่นกับ marker ที่เป็นค่าฝุ่นเท่านั้น
-- [ ] `CP-FIRE-006` ทดสอบ alert dedup/quiet hours/area preference ด้วย positive fixture
-- [ ] `CP-FIRE-007` เพิ่ม no-data/stale/upstream-unavailable state ที่ไม่เท่ากับ “ไม่มี hotspot”
+- [x] `CP-FIRE-002` กรองเฉพาะขอบเขตนครปฐมและอายุไม่เกิน 12 ชั่วโมง
+- [x] `CP-FIRE-003` ตรวจ duplicate satellite passes, timezone และ coordinate boundary
+- [x] `CP-FIRE-004` แสดงคำว่า “จุดความร้อนจากดาวเทียม” หรือ “satellite hotspot” ทุกจุด
+- [x] `CP-FIRE-005` แยก marker/icon จากสถานีวัดและรายงานบุคคล แต่ใช้สีระดับฝุ่นกับ marker ที่เป็นค่าฝุ่นเท่านั้น
+- [x] `CP-FIRE-006` ทดสอบ alert dedup/quiet hours/area preference ด้วย positive fixture
+- [x] `CP-FIRE-007` เพิ่ม no-data/stale/upstream-unavailable state ที่ไม่เท่ากับ “ไม่มี hotspot”
+
+หลักฐาน fixture ครอบคลุม API → marker/popup บน mobile 3 ขนาด → notification
+dedup/area/quiet-hours → audit log และบันทึกวิธีตรวจซ้ำไว้ที่
+`docs/runbooks/satellite-hotspot-operations.md` ส่วน `CP-FIRE-001` ยังเปิดไว้เฉพาะ
+live positive-event drill ซึ่งต้องรอให้ NASA FIRMS มีจุดที่ผ่านเกณฑ์จริงในนครปฐม;
+ระบบจะไม่สร้างข้อมูล live ปลอมเพื่อปิด gate นี้
 
 ### เกณฑ์ผ่าน
 

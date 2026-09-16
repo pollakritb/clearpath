@@ -11,7 +11,7 @@ import FireAlertPanel from "@/frontend/components/panels/FireAlertPanel";
 import ForecastPanel from "@/frontend/components/panels/ForecastPanel";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
 import { useCurrentLocation } from "@/frontend/hooks/useCurrentLocation";
-import { useFirms } from "@/frontend/hooks/useFirms";
+import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
 import { useForecast } from "@/frontend/hooks/useForecast";
 import { useHistory } from "@/frontend/hooks/useHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
@@ -82,6 +82,8 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
   const loadFires = firms.load;
   useEffect(() => {
     void loadFires(1);
+    const timer = window.setInterval(() => void loadFires(1), FIRMS_REFRESH_MS);
+    return () => window.clearInterval(timer);
   }, [loadFires]);
 
   const weatherLoad = weather.load;
@@ -171,6 +173,9 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
         <FireAlertPanel
           fires={firms.fires}
           loading={firms.loading}
+          status={firms.status}
+          message={firms.message}
+          checkedAt={firms.checkedAt}
           error={firms.error}
           onShowLayer={() => router.push("/?layer=fires")}
         />

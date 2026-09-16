@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from backend.core.config import settings
+from backend.core.errors import UpstreamError
 from backend.services import alerts
 
 
@@ -74,6 +75,13 @@ def test_alerts_publish_fresh_air_and_nakhon_pathom_hotspot(monkeypatch):
             "satellite": "VIIRS",
         },
         {
+            "lat": 13.8205,
+            "lon": 100.0605,
+            "frp": 20,
+            "acquired_at": (now - timedelta(minutes=50)).isoformat(),
+            "satellite": "VIIRS_NOAA20_NRT",
+        },
+        {
             "lat": 18.8,
             "lon": 98.9,
             "frp": 50,
@@ -138,7 +146,7 @@ def test_alerts_keep_air_alerts_when_firms_fails_and_ignore_empty_targets(
         ], "supabase"
 
     async def failed_fires(_days: int):
-        raise RuntimeError("FIRMS failed")
+        raise UpstreamError("FIRMS failed")
 
     monkeypatch.setattr(
         alerts.supabase_client,

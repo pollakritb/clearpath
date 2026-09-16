@@ -84,6 +84,8 @@ describe("dashboard map models", () => {
       bounds: {},
       coverage_counts: { sparse: 1, unavailable: 1 },
       warnings: [],
+      forecast_status: "available",
+      unavailable_reason_codes: [],
       cells: [
         {
           lat: 13.7,

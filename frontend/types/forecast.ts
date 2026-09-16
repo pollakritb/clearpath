@@ -153,4 +153,6 @@ export interface ForecastSurfaceResponse {
   coverage_counts: Record<string, number>;
   warnings: string[];
   cells: ForecastSurfaceCell[];
+  forecast_status: "available" | "limited" | "unavailable";
+  unavailable_reason_codes: string[];
 }

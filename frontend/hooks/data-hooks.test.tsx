@@ -125,24 +125,36 @@ describe("data hooks", () => {
     apiMocks.firms.mockResolvedValueOnce({
       fires: [{ id: "hotspot-1" }],
       available: true,
+      status: "available",
+      checked_at: "2026-09-16T12:00:00Z",
+      latest_acquired_at: "2026-09-16T11:00:00Z",
+      max_age_hours: 12,
       message: null,
     });
     await act(async () => result.current.load(2));
     expect(result.current.fires).toHaveLength(1);
     expect(result.current.loaded).toBe(true);
     expect(result.current.error).toBeNull();
+    expect(result.current.status).toBe("available");
 
     apiMocks.firms.mockResolvedValueOnce({
       fires: [],
       available: false,
+      status: "unavailable",
+      checked_at: "2026-09-16T12:00:00Z",
+      latest_acquired_at: null,
+      max_age_hours: 12,
       message: "provider unavailable",
     });
     await act(async () => result.current.load());
-    expect(result.current.error).toBe("provider unavailable");
+    expect(result.current.error).toBeNull();
+    expect(result.current.status).toBe("unavailable");
+    expect(result.current.message).toBe("provider unavailable");
 
     apiMocks.firms.mockRejectedValueOnce(new Error("satellite failed"));
     await act(async () => result.current.load());
     expect(result.current.error).toBe("satellite failed");
+    expect(result.current.status).toBe("failed");
   });
 
   it("rejects oversized forecast viewports and handles surface lifecycle", async () => {
