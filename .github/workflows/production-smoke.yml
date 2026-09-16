@@ -68,7 +68,7 @@ jobs:
             readiness_ok=false
             release_ok=false
 
-            jq -e '.status == "ok"' <<<"$health" >/dev/null 2>&1 && health_ok=true
+            jq -e '(.ok == true) or (.status == "ok")' <<<"$health" >/dev/null 2>&1 && health_ok=true
             jq -e '
               .status == "ready" and
               .station_count > 0 and

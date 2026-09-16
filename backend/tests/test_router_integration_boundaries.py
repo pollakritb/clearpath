@@ -7,7 +7,38 @@ from fastapi.testclient import TestClient
 from backend.core import auth
 from backend.core.config import settings
 from backend.main import create_app
-from backend.routers import cron, forecast
+from backend.routers import admin, cron, forecast
+
+
+def test_admin_data_health_route_returns_sanitized_operational_summary(monkeypatch):
+    monkeypatch.setattr(settings, "local_demo_mode", True)
+    monkeypatch.setattr(
+        admin.data_health,
+        "get_data_health",
+        lambda: {
+            "status": "healthy",
+            "observed_at": "2026-09-16T05:00:00+00:00",
+            "station_count": 177,
+            "fresh_station_count": 170,
+            "delayed_station_count": 7,
+            "expired_station_count": 0,
+            "stale_station_ratio": 0.0395,
+            "latest_recorded_at": "2026-09-16T04:55:00+00:00",
+            "latest_sync_status": "success",
+            "latest_sync_started_at": "2026-09-16T04:59:00+00:00",
+            "latest_sync_completed_at": "2026-09-16T04:59:02+00:00",
+            "latest_sync_duration_ms": 2000,
+            "consecutive_sync_failures": 0,
+            "upstream_failure": False,
+            "alert_codes": [],
+        },
+    )
+
+    response = TestClient(create_app()).get("/api/admin/data-health")
+
+    assert response.status_code == 200
+    assert response.json()["fresh_station_count"] == 170
+    assert response.json()["upstream_failure"] is False
 
 
 def test_community_and_admin_authorization_are_enforced_by_http_boundary(monkeypatch):

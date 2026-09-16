@@ -2,6 +2,10 @@
 
 - [Production deployment](production-deployment.md) — Supabase, secrets, Vercel,
   cron and acceptance checks.
+- [Release evidence and production baseline](release-evidence.md) — stable
+  project identity, non-secret feature inventory and repeatable evidence record.
+- [Production backlog and dependency map](production-backlog.md) — canonical
+  task ordering, completion authority and human-owned blockers.
 - [Backup and restore](backup-restore.md) — mandatory rehearsal before the
   destructive foundation migration.
 - [Incident response](incident-response.md) — alerts, triage, feature kill

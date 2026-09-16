@@ -37,6 +37,7 @@ import type {
 } from "@/frontend/types";
 import type {
   AdminSyncRunsResponse,
+  DataHealthResponse,
   DataIssuesResponse,
   ForecastDataQualityResponse,
   ForecastEvaluationResponse,
@@ -322,6 +323,9 @@ export const api = {
     http<AdminSyncRunsResponse>(`/api/admin/sync-runs?limit=${limit}`, {
       auth: true,
     }),
+
+  adminDataHealth: () =>
+    http<DataHealthResponse>("/api/admin/data-health", { auth: true }),
 
   adminForecastModels: () =>
     http<ForecastModelStatusesResponse>("/api/admin/forecast-models", {

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from ..core.auth import AuthenticatedUser, require_admin, require_moderator
-from ..models.admin import FalseSafeReviewRequest
+from ..models.admin import DataHealthResponse, FalseSafeReviewRequest
 from ..models.schemas import (
     Activity,
     ActivityCreate,
@@ -20,7 +20,7 @@ from ..models.schemas import (
     ModerationRequest,
 )
 from ..services import community as community_service
-from ..services import notifications, supabase_client
+from ..services import data_health, notifications, supabase_client
 from ..services.forecast_models import artifact_statuses
 
 router = APIRouter()
@@ -239,6 +239,14 @@ async def sync_runs(
 ):
     rows = await run_in_threadpool(supabase_client.list_sync_runs, limit)
     return {"runs": rows, "count": len(rows)}
+
+
+@router.get("/admin/data-health", response_model=DataHealthResponse)
+async def data_health_summary(
+    _user: AuthenticatedUser = Depends(require_moderator),
+):
+    summary = await run_in_threadpool(data_health.get_data_health)
+    return DataHealthResponse(**summary)
 
 
 @router.get("/admin/forecast-models")

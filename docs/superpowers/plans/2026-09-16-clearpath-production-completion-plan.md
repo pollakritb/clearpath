@@ -145,11 +145,11 @@
 ### งาน
 
 - [ ] `CP-BASE-001` บันทึก release SHA, production URL, Supabase project ref และ Vercel project ที่ถูกต้อง
-- [ ] `CP-BASE-002` สร้าง release evidence template: command, commit, timestamp, result, artifact/link
-- [ ] `CP-BASE-003` ทำ inventory feature flags และค่า production โดยเก็บเฉพาะชื่อ/สถานะ ไม่บันทึก secret
+- [x] `CP-BASE-002` สร้าง release evidence template: command, commit, timestamp, result, artifact/link
+- [x] `CP-BASE-003` ทำ inventory feature flags และค่า production โดยเก็บเฉพาะชื่อ/สถานะ ไม่บันทึก secret
 - [ ] `CP-BASE-004` กำหนด owner: product, data, security, privacy/legal, health communication และ incident commander
-- [ ] `CP-BASE-005` เปิด issue/backlog จาก task IDs ในเอกสารนี้และผูก dependency
-- [ ] `CP-BASE-006` งดเปิด ML/GISTDA/Web Push จนกว่า gate ของแต่ละส่วนจะผ่าน
+- [x] `CP-BASE-005` เปิด issue/backlog จาก task IDs ในเอกสารนี้และผูก dependency
+- [x] `CP-BASE-006` งดเปิด ML/GISTDA/Web Push จนกว่า gate ของแต่ละส่วนจะผ่าน
 
 ### ผู้รับผิดชอบ
 
@@ -214,7 +214,7 @@ npm run test:e2e
 - [x] `CP-DATA-003` เปิดเผย `recorded_at`, `age_minutes`, `data_status`, `source` และ `quality_flags` ใน contract ที่จำเป็น
 - [x] `CP-DATA-004` ให้ frontend types mirror backend schemas และเพิ่ม OpenAPI contract tests
 - [x] `CP-DATA-005` แสดง last updated/fallback state ด้วยภาษาที่ผู้ใช้เข้าใจ ไม่ใช้สีอย่างเดียว
-- [ ] `CP-DATA-006` เพิ่ม monitor สำหรับ station count, latest observation, stale ratio, sync duration และ upstream failure
+- [x] `CP-DATA-006` เพิ่ม monitor สำหรับ station count, latest observation, stale ratio, sync duration และ upstream failure
 - [ ] `CP-DATA-007` ตรวจ Supabase cron ทุก 15 นาทีและ GitHub backup scheduler; alert เมื่อ primary ไม่ทำงาน
 - [ ] `CP-DATA-008` เพิ่ม production smoke หลัง release และหลัง backup cron เพื่อยืนยัน release SHA กับข้อมูล fresh จริง
 

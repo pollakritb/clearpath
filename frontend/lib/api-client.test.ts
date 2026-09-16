@@ -86,6 +86,7 @@ describe("api client", () => {
       () => api.uploadAnnouncementImage(new Blob(["image"]) as File),
       () => api.createActivity({} as never),
       () => api.adminSyncRuns(),
+      () => api.adminDataHealth(),
       () => api.adminForecastModels(),
       () => api.adminForecastDataQuality(),
       () => api.adminForecastProviderHealth(),

@@ -1,5 +1,6 @@
 import type {
   AdminSyncRun,
+  DataHealthResponse,
   DataIssueRow,
   ForecastDataQualityRow,
   ForecastEvaluationRow,
@@ -42,6 +43,7 @@ export default function AdminOperationsPanel({
   falseSafeCases,
   releaseDecisions,
   providerHealth,
+  dataHealth,
   loading,
   error,
   onRefresh,
@@ -56,6 +58,7 @@ export default function AdminOperationsPanel({
   falseSafeCases: ForecastFalseSafeCase[];
   releaseDecisions: ForecastReleaseDecision[];
   providerHealth: ForecastProviderHealthResponse | null;
+  dataHealth: DataHealthResponse | null;
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
@@ -120,6 +123,72 @@ export default function AdminOperationsPanel({
       )}
 
       <div className="cp-admin-ops-grid">
+        <article className="cp-admin-table-card cp-admin-table-card--wide">
+          <div className="cp-admin-card-heading">
+            <div>
+              <h3>สุขภาพข้อมูล Air4Thai</h3>
+              <p>ความสดของสถานี งานซิงก์ล่าสุด และสัญญาณ upstream</p>
+            </div>
+            <span
+              className="cp-admin-status"
+              data-status={
+                dataHealth?.status === "healthy" ? "success" : "failed"
+              }
+            >
+              {dataHealth?.status ?? "unknown"}
+            </span>
+          </div>
+          <div className="cp-admin-model-list">
+            <div className="cp-admin-model-row">
+              <span className="cp-admin-model-row__horizon">สด</span>
+              <span>
+                <strong>
+                  {dataHealth?.fresh_station_count ?? "—"}/
+                  {dataHealth?.station_count ?? "—"} สถานี
+                </strong>
+                <small>
+                  ล่าช้า {dataHealth?.delayed_station_count ?? "—"} · หมดอายุ{" "}
+                  {dataHealth?.expired_station_count ?? "—"}
+                </small>
+              </span>
+              <span className="cp-admin-status" data-status="running">
+                {dataHealth
+                  ? `${Math.round(dataHealth.stale_station_ratio * 100)}% stale`
+                  : "—"}
+              </span>
+            </div>
+            <div className="cp-admin-model-row">
+              <span className="cp-admin-model-row__horizon">ซิงก์</span>
+              <span>
+                <strong>
+                  {dataHealth?.latest_sync_status ?? "ยังไม่มีข้อมูล"}
+                </strong>
+                <small>
+                  {dataHealth?.latest_sync_duration_ms == null
+                    ? "ยังไม่มีระยะเวลา"
+                    : `${Math.round(dataHealth.latest_sync_duration_ms)} ms`}{" "}
+                  · {formatDate(dataHealth?.latest_sync_completed_at)}
+                </small>
+              </span>
+              <span
+                className="cp-admin-status"
+                data-status={
+                  dataHealth?.upstream_failure ? "failed" : "success"
+                }
+              >
+                {dataHealth?.upstream_failure ? "upstream fail" : "ปกติ"}
+              </span>
+            </div>
+          </div>
+          {!!dataHealth?.alert_codes.length && (
+            <div
+              className="cp-admin-empty cp-admin-empty--compact"
+              role="status"
+            >
+              ต้องตรวจ: {dataHealth.alert_codes.join(", ")}
+            </div>
+          )}
+        </article>
         <article className="cp-admin-table-card cp-admin-table-card--wide">
           <div className="cp-admin-card-heading">
             <div>

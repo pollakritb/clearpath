@@ -57,6 +57,24 @@ export interface AdminSyncRunsResponse {
   count: number;
 }
 
+export interface DataHealthResponse {
+  status: "healthy" | "degraded" | "critical";
+  observed_at: string;
+  station_count: number;
+  fresh_station_count: number;
+  delayed_station_count: number;
+  expired_station_count: number;
+  stale_station_ratio: number;
+  latest_recorded_at: string | null;
+  latest_sync_status: string | null;
+  latest_sync_started_at: string | null;
+  latest_sync_completed_at: string | null;
+  latest_sync_duration_ms: number | null;
+  consecutive_sync_failures: number;
+  upstream_failure: boolean;
+  alert_codes: string[];
+}
+
 export interface ForecastModelStatusesResponse {
   models: ForecastModelStatus[];
   count: number;

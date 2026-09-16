@@ -10,6 +10,7 @@ import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type {
   AdminSyncRun,
+  DataHealthResponse,
   DataIssueRow,
   ForecastDataQualityRow,
   ForecastEvaluationRow,
@@ -42,6 +43,7 @@ interface OverviewData {
   falseSafeCases: ForecastFalseSafeCase[];
   releaseDecisions: ForecastReleaseDecision[];
   providerHealth: ForecastProviderHealthResponse | null;
+  dataHealth: DataHealthResponse | null;
 }
 
 const EMPTY_OVERVIEW: OverviewData = {
@@ -55,6 +57,7 @@ const EMPTY_OVERVIEW: OverviewData = {
   falseSafeCases: [],
   releaseDecisions: [],
   providerHealth: null,
+  dataHealth: null,
 };
 
 export default function AdminApp() {
@@ -81,6 +84,7 @@ export default function AdminApp() {
       api.adminForecastFalseSafeCases(30, 100),
       api.adminForecastReleaseDecisions(100),
       api.adminForecastProviderHealth(),
+      api.adminDataHealth(),
     ]);
     setOverview((current) => ({
       queueCount:
@@ -121,6 +125,10 @@ export default function AdminApp() {
         results[9].status === "fulfilled"
           ? results[9].value
           : current.providerHealth,
+      dataHealth:
+        results[10].status === "fulfilled"
+          ? results[10].value
+          : current.dataHealth,
     }));
     const failed = results.find((result) => result.status === "rejected");
     if (failed?.status === "rejected") {
@@ -262,6 +270,7 @@ export default function AdminApp() {
               falseSafeCases={overview.falseSafeCases}
               releaseDecisions={overview.releaseDecisions}
               providerHealth={overview.providerHealth}
+              dataHealth={overview.dataHealth}
               loading={loading}
               error={error}
               onRefresh={() => void loadOverview()}
