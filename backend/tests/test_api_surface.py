@@ -32,6 +32,7 @@ def test_new_product_api_surface_and_no_navigation_api():
     assert "/api/cron/forecast-evaluation" in paths
     assert "/api/community/data-issues" in paths
     assert "/api/admin/data-issues" in paths
+    assert "/api/admin/profiles/{user_id}/role" in paths
     assert "/api/admin/reports/{report_id}/moderate" in paths
     assert "/api/admin/announcements/{announcement_id}" in paths
     assert "/api/admin/notification-outbox" in paths

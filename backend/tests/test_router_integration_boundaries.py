@@ -28,6 +28,11 @@ def test_admin_data_health_route_returns_sanitized_operational_summary(monkeypat
             "latest_sync_started_at": "2026-09-16T04:59:00+00:00",
             "latest_sync_completed_at": "2026-09-16T04:59:02+00:00",
             "latest_sync_duration_ms": 2000,
+            "latest_primary_sync_at": "2026-09-16T04:59:00+00:00",
+            "latest_primary_sync_status": "success",
+            "latest_backup_sync_at": None,
+            "latest_backup_sync_status": None,
+            "primary_sync_missed": False,
             "consecutive_sync_failures": 0,
             "upstream_failure": False,
             "alert_codes": [],
@@ -67,6 +72,35 @@ def test_community_and_admin_authorization_are_enforced_by_http_boundary(monkeyp
         "/api/admin/reports", headers={"Authorization": "Bearer valid-user-token"}
     )
     assert response.status_code == 403
+
+
+def test_admin_role_change_boundary_is_admin_only_and_audited_by_service(monkeypatch):
+    monkeypatch.setattr(settings, "local_demo_mode", True)
+    monkeypatch.setattr(
+        admin.roles,
+        "change_user_role",
+        lambda **values: {
+            "user_id": values["target_user_id"],
+            "previous_role": "user",
+            "role": values["new_role"],
+            "changed_at": "2026-09-16T05:00:00+00:00",
+        },
+    )
+    response = TestClient(create_app()).patch(
+        "/api/admin/profiles/user-2/role",
+        json={
+            "role": "moderator",
+            "reason": "Assigned to the exception review queue",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "user_id": "user-2",
+        "previous_role": "user",
+        "role": "moderator",
+        "changed_at": "2026-09-16T05:00:00+00:00",
+    }
 
 
 def test_forecast_router_rejects_service_and_viewport_contract_errors(monkeypatch):
@@ -136,7 +170,12 @@ def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch)
             "rejected_station_ids": [],
         },
     )
-    monkeypatch.setattr(cron.supabase_client, "create_sync_run", lambda row: row)
+    sync_runs: list[dict] = []
+    monkeypatch.setattr(
+        cron.supabase_client,
+        "create_sync_run",
+        lambda row: sync_runs.append(row) or row,
+    )
     monkeypatch.setattr(cron.supabase_client, "upsert_stations", lambda rows: len(rows))
     monkeypatch.setattr(cron.supabase_client, "insert_readings", lambda rows: len(rows))
     monkeypatch.setattr(
@@ -164,6 +203,7 @@ def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch)
     assert response.status_code == 200
     assert response.json()["stations"] == 1
     assert response.json()["forecast_inputs"]["weather"] == 1
+    assert sync_runs[-1]["source"] == "air4thai_github_backup"
     assert sync_updates[-1]["status"] == "success"
     assert sync_updates[-1]["source_recorded_at"] == recorded_at
 

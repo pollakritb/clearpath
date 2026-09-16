@@ -443,6 +443,34 @@ def get_profile(user_id: str) -> dict:
     return rows[0] if rows else ensure_profile(user_id)
 
 
+def get_existing_profile(user_id: str) -> dict:
+    if settings.local_demo_mode:
+        return local_store.get_existing_profile(user_id)
+    rows = (
+        get_client().table("profiles").select("*").eq("id", user_id).limit(1).execute()
+    ).data or []
+    if not rows:
+        raise KeyError(user_id)
+    return rows[0]
+
+
+def update_profile_role(user_id: str, role: str, updated_at: str) -> dict:
+    if settings.local_demo_mode:
+        return local_store.update_profile_role(user_id, role, updated_at)
+    rows = (
+        get_client()
+        .table("profiles")
+        .update({"role": role, "updated_at": updated_at})
+        .eq("id", user_id)
+        .execute()
+        .data
+        or []
+    )
+    if not rows:
+        raise KeyError(user_id)
+    return rows[0]
+
+
 def list_user_ids(limit: int = 2000) -> list[str]:
     if settings.local_demo_mode:
         return local_store.list_user_ids(limit)

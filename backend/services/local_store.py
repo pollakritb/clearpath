@@ -394,6 +394,23 @@ def get_profile(user_id: str) -> dict:
     return ensure_profile(user_id)
 
 
+def get_existing_profile(user_id: str) -> dict:
+    with _LOCK:
+        profile = _PROFILES.get(user_id)
+        if profile is None:
+            raise KeyError(user_id)
+        return dict(profile)
+
+
+def update_profile_role(user_id: str, role: str, updated_at: str) -> dict:
+    with _LOCK:
+        profile = _PROFILES.get(user_id)
+        if profile is None:
+            raise KeyError(user_id)
+        profile.update({"role": role, "updated_at": updated_at})
+        return dict(profile)
+
+
 def list_user_ids(limit: int) -> list[str]:
     with _LOCK:
         return list(_PROFILES)[:limit]

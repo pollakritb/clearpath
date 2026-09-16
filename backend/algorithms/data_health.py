@@ -52,6 +52,22 @@ def summarize_data_health(
         reverse=True,
     )
     latest_run = ordered_runs[0] if ordered_runs else None
+
+    def latest_for_source(source: str) -> dict | None:
+        return next((row for row in ordered_runs if row.get("source") == source), None)
+
+    latest_primary = latest_for_source("air4thai_supabase_primary")
+    latest_backup = latest_for_source("air4thai_github_backup")
+    primary_started_at = (
+        _timestamp(latest_primary.get("started_at")) if latest_primary else None
+    )
+    backup_started_at = (
+        _timestamp(latest_backup.get("started_at")) if latest_backup else None
+    )
+    primary_sync_missed = bool(
+        primary_started_at is None
+        or (observed_at - primary_started_at).total_seconds() > 45 * 60
+    )
     started_at = _timestamp(latest_run.get("started_at")) if latest_run else None
     completed_at = _timestamp(latest_run.get("completed_at")) if latest_run else None
     duration_ms = None
@@ -80,6 +96,8 @@ def summarize_data_health(
         alert_codes.append("stale_ratio_high")
     if not latest_run:
         alert_codes.append("sync_history_missing")
+    if primary_sync_missed:
+        alert_codes.append("primary_cron_missed")
     if upstream_failure:
         alert_codes.append("upstream_sync_failed")
     if sync_stuck:
@@ -106,6 +124,19 @@ def summarize_data_health(
         "latest_sync_started_at": started_at.isoformat() if started_at else None,
         "latest_sync_completed_at": completed_at.isoformat() if completed_at else None,
         "latest_sync_duration_ms": duration_ms,
+        "latest_primary_sync_at": (
+            primary_started_at.isoformat() if primary_started_at else None
+        ),
+        "latest_primary_sync_status": (
+            str(latest_primary.get("status")) if latest_primary else None
+        ),
+        "latest_backup_sync_at": (
+            backup_started_at.isoformat() if backup_started_at else None
+        ),
+        "latest_backup_sync_status": (
+            str(latest_backup.get("status")) if latest_backup else None
+        ),
+        "primary_sync_missed": primary_sync_missed,
         "consecutive_sync_failures": consecutive_failures,
         "upstream_failure": upstream_failure,
         "alert_codes": alert_codes,

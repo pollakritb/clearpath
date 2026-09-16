@@ -144,7 +144,7 @@
 
 ### งาน
 
-- [ ] `CP-BASE-001` บันทึก release SHA, production URL, Supabase project ref และ Vercel project ที่ถูกต้อง
+- [x] `CP-BASE-001` บันทึก release SHA, production URL, Supabase project ref และ Vercel project ที่ถูกต้อง
 - [x] `CP-BASE-002` สร้าง release evidence template: command, commit, timestamp, result, artifact/link
 - [x] `CP-BASE-003` ทำ inventory feature flags และค่า production โดยเก็บเฉพาะชื่อ/สถานะ ไม่บันทึก secret
 - [ ] `CP-BASE-004` กำหนด owner: product, data, security, privacy/legal, health communication และ incident commander
@@ -216,7 +216,7 @@ npm run test:e2e
 - [x] `CP-DATA-005` แสดง last updated/fallback state ด้วยภาษาที่ผู้ใช้เข้าใจ ไม่ใช้สีอย่างเดียว
 - [x] `CP-DATA-006` เพิ่ม monitor สำหรับ station count, latest observation, stale ratio, sync duration และ upstream failure
 - [ ] `CP-DATA-007` ตรวจ Supabase cron ทุก 15 นาทีและ GitHub backup scheduler; alert เมื่อ primary ไม่ทำงาน
-- [ ] `CP-DATA-008` เพิ่ม production smoke หลัง release และหลัง backup cron เพื่อยืนยัน release SHA กับข้อมูล fresh จริง
+- [x] `CP-DATA-008` เพิ่ม production smoke หลัง release และหลัง backup cron เพื่อยืนยัน release SHA กับข้อมูล fresh จริง
 
 ### เกณฑ์ผ่าน
 
@@ -268,9 +268,9 @@ npm run test:e2e
 - [ ] `CP-AUTH-003` ตรวจ consent screen, scopes, authorized domains และ test/published status
 - [ ] `CP-AUTH-004` ทดสอบ login ใหม่, refresh, logout, expired session, blocked popup และ cancelled consent
 - [ ] `CP-AUTH-005` ทดสอบ production account `pollakrit.b@ku.th` และ mapping role ผ่าน server-side authorization
-- [ ] `CP-AUTH-006` ป้องกันการเชื่อ role จาก client/local storage
-- [ ] `CP-AUTH-007` ทดสอบ profile name/avatar visibility ตาม anonymous consent ของแต่ละ report
-- [ ] `CP-AUTH-008` เพิ่ม audit log เมื่อ role เปลี่ยน โดยไม่เก็บ token/PII เกินจำเป็น
+- [x] `CP-AUTH-006` ป้องกันการเชื่อ role จาก client/local storage
+- [x] `CP-AUTH-007` ทดสอบ profile name/avatar visibility ตาม anonymous consent ของแต่ละ report
+- [x] `CP-AUTH-008` เพิ่ม audit log เมื่อ role เปลี่ยน โดยไม่เก็บ token/PII เกินจำเป็น
 
 ### เกณฑ์ผ่าน
 

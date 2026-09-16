@@ -6,6 +6,7 @@ GitHub Actions and Supabase Cron use independent server-only bearer tokens.
 import hmac
 import logging
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Header, HTTPException
@@ -29,7 +30,10 @@ router = APIRouter()
 logger = logging.getLogger("clearpath.forecast-monitoring")
 
 
-def _verify_cron(authorization: str | None) -> None:
+SchedulerSource = Literal["local", "github_backup", "supabase_primary"]
+
+
+def _verify_cron(authorization: str | None) -> SchedulerSource:
     configured_tokens = tuple(
         token
         for token in (settings.cron_secret, settings.supabase_cron_secret)
@@ -40,29 +44,38 @@ def _verify_cron(authorization: str | None) -> None:
             "production must configure CRON_SECRET or SUPABASE_CRON_SECRET"
         )
     if not configured_tokens:
-        return
+        return "local"
 
     supplied = (
         authorization.removeprefix("Bearer ").strip()
         if authorization and authorization.startswith("Bearer ")
         else ""
     )
-    if not supplied or not any(
-        hmac.compare_digest(supplied, expected) for expected in configured_tokens
+    if (
+        supplied
+        and settings.supabase_cron_secret
+        and hmac.compare_digest(supplied, settings.supabase_cron_secret)
     ):
-        raise HTTPException(401, detail="unauthorized")
+        return "supabase_primary"
+    if (
+        supplied
+        and settings.cron_secret
+        and hmac.compare_digest(supplied, settings.cron_secret)
+    ):
+        return "github_backup"
+    raise HTTPException(401, detail="unauthorized")
 
 
 @router.get("/cron/sync")
 async def cron_sync(authorization: str | None = Header(default=None)):
-    _verify_cron(authorization)
+    scheduler = _verify_cron(authorization)
     run_id = str(uuid4())
     started_at = datetime.now(UTC).isoformat()
     await run_in_threadpool(
         supabase_client.create_sync_run,
         {
             "id": run_id,
-            "source": "air4thai",
+            "source": f"air4thai_{scheduler}",
             "status": "running",
             "started_at": started_at,
         },

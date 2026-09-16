@@ -7,7 +7,12 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from ..core.auth import AuthenticatedUser, require_admin, require_moderator
-from ..models.admin import DataHealthResponse, FalseSafeReviewRequest
+from ..models.admin import (
+    DataHealthResponse,
+    FalseSafeReviewRequest,
+    RoleChangeRequest,
+    RoleChangeResponse,
+)
 from ..models.schemas import (
     Activity,
     ActivityCreate,
@@ -20,10 +25,31 @@ from ..models.schemas import (
     ModerationRequest,
 )
 from ..services import community as community_service
-from ..services import data_health, notifications, supabase_client
+from ..services import data_health, notifications, roles, supabase_client
 from ..services.forecast_models import artifact_statuses
 
 router = APIRouter()
+
+
+@router.patch("/admin/profiles/{user_id}/role", response_model=RoleChangeResponse)
+async def change_profile_role(
+    user_id: str,
+    body: RoleChangeRequest,
+    user: AuthenticatedUser = Depends(require_admin),
+):
+    try:
+        result = await run_in_threadpool(
+            roles.change_user_role,
+            target_user_id=user_id,
+            new_role=body.role,
+            actor_id=user.id,
+            reason=body.reason,
+        )
+    except KeyError as exc:
+        raise HTTPException(404, detail="profile_not_found") from exc
+    except ValueError as exc:
+        raise HTTPException(409, detail=str(exc)) from exc
+    return RoleChangeResponse(**result)
 
 
 @router.get("/admin/data-issues")

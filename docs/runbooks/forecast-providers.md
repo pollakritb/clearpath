@@ -40,8 +40,8 @@ browser or environment switch that bypasses those gates.
 Vercel Hobby has no sub-hourly cron dependency in this project. Supabase Cron
 is the primary Air4Thai observation scheduler and invokes `/api/cron/sync` at
 minutes 2, 17, 32 and 47 of every hour. GitHub Actions remains an independent
-hourly backup at minute 7 and also runs alerts, evaluation and due forecast
-providers.
+twice-hourly backup at minutes 7 and 37 and also runs alerts, evaluation and
+due forecast providers.
 
 Supabase configuration:
 
@@ -63,7 +63,7 @@ GitHub backup configuration:
 4. Leave both GISTDA flags false until the permission evidence below exists.
 
 Run the backup workflow manually once. Air4Thai sync, alerts and forecast
-evaluation must return 2xx. Every hourly backup invocation also calls each
+evaluation must return 2xx. Every backup invocation also calls each
 provider route with
 `only_if_due=true`; the backend compares the last completed provider run with
 its 3/8/12-hour interval. This is deliberately independent of the wall-clock
@@ -71,6 +71,13 @@ hour because GitHub scheduled workflows can start late. Provider routes are
 also idempotent through snapshot upsert keys. A due, enabled provider that
 produces no usable snapshots returns a non-2xx response so the workflow cannot
 report a false success.
+
+The backend records scheduler identity without storing either bearer token:
+`air4thai_supabase_primary` for Supabase Cron and
+`air4thai_github_backup` for GitHub Actions. Admin data health raises
+`primary_cron_missed` when no primary invocation is observed for 45 minutes,
+even when the backup keeps station data fresh. This prevents a working backup
+from hiding a failed primary scheduler.
 
 ## GISTDA legal gate
 

@@ -18,6 +18,7 @@ def test_summary_reports_station_freshness_and_sync_duration():
         [station(10), station(70), station(120)],
         [
             {
+                "source": "air4thai_supabase_primary",
                 "status": "success",
                 "started_at": (NOW - timedelta(seconds=3)).isoformat(),
                 "completed_at": (NOW - timedelta(seconds=1)).isoformat(),
@@ -32,6 +33,7 @@ def test_summary_reports_station_freshness_and_sync_duration():
     assert result["expired_station_count"] == 1
     assert result["stale_station_ratio"] == pytest.approx(0.6667)
     assert result["latest_sync_duration_ms"] == 2000
+    assert result["primary_sync_missed"] is False
     assert result["alert_codes"] == ["stale_ratio_high"]
 
 
@@ -40,12 +42,14 @@ def test_summary_fails_closed_for_stale_data_and_failed_upstream():
         [station(120)],
         [
             {
+                "source": "air4thai_supabase_primary",
                 "status": "failed",
                 "started_at": (NOW - timedelta(minutes=2)).isoformat(),
                 "completed_at": (NOW - timedelta(minutes=1)).isoformat(),
                 "error_message": "must never be returned",
             },
             {
+                "source": "air4thai_github_backup",
                 "status": "failed",
                 "started_at": (NOW - timedelta(minutes=20)).isoformat(),
             },
@@ -63,12 +67,17 @@ def test_summary_fails_closed_for_stale_data_and_failed_upstream():
 def test_summary_detects_missing_history_and_stuck_sync():
     missing = summarize_data_health([], [], now=NOW)
     assert missing["status"] == "critical"
-    assert missing["alert_codes"] == ["station_data_missing", "sync_history_missing"]
+    assert missing["alert_codes"] == [
+        "station_data_missing",
+        "sync_history_missing",
+        "primary_cron_missed",
+    ]
 
     stuck = summarize_data_health(
         [station(5)],
         [
             {
+                "source": "air4thai_supabase_primary",
                 "status": "running",
                 "started_at": (NOW - timedelta(minutes=16)).isoformat(),
             }
@@ -77,6 +86,33 @@ def test_summary_detects_missing_history_and_stuck_sync():
     )
     assert stuck["status"] == "degraded"
     assert stuck["alert_codes"] == ["sync_run_stuck"]
+
+
+def test_summary_distinguishes_primary_and_backup_scheduler_health():
+    result = summarize_data_health(
+        [station(5)],
+        [
+            {
+                "source": "air4thai_github_backup",
+                "status": "success",
+                "started_at": (NOW - timedelta(minutes=2)).isoformat(),
+                "completed_at": (NOW - timedelta(minutes=1)).isoformat(),
+            },
+            {
+                "source": "air4thai_supabase_primary",
+                "status": "success",
+                "started_at": (NOW - timedelta(minutes=50)).isoformat(),
+                "completed_at": (NOW - timedelta(minutes=49)).isoformat(),
+            },
+        ],
+        now=NOW,
+    )
+
+    assert result["status"] == "degraded"
+    assert result["primary_sync_missed"] is True
+    assert result["latest_primary_sync_status"] == "success"
+    assert result["latest_backup_sync_status"] == "success"
+    assert result["alert_codes"] == ["primary_cron_missed"]
 
 
 def test_service_returns_safe_upstream_error(monkeypatch):

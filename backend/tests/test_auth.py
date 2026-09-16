@@ -26,10 +26,11 @@ def test_verified_token_uses_server_side_profile_role(monkeypatch):
         lambda token: {
             "id": "verified-user",
             "email": "user@example.test",
-            "app_metadata": {"provider": "google"},
+            "app_metadata": {"provider": "google", "role": "admin"},
             "user_metadata": {
                 "display_name": "Browser Name",
                 "picture": "https://lh3.googleusercontent.com/a/example",
+                "role": "admin",
             },
         },
     )

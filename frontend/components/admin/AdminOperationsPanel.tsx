@@ -179,6 +179,27 @@ export default function AdminOperationsPanel({
                 {dataHealth?.upstream_failure ? "upstream fail" : "ปกติ"}
               </span>
             </div>
+            <div className="cp-admin-model-row">
+              <span className="cp-admin-model-row__horizon">Cron</span>
+              <span>
+                <strong>
+                  Supabase{" "}
+                  {dataHealth?.latest_primary_sync_status ?? "ยังไม่พบ"}
+                </strong>
+                <small>
+                  หลัก {formatDate(dataHealth?.latest_primary_sync_at)} · สำรอง{" "}
+                  {formatDate(dataHealth?.latest_backup_sync_at)}
+                </small>
+              </span>
+              <span
+                className="cp-admin-status"
+                data-status={
+                  dataHealth?.primary_sync_missed ? "failed" : "success"
+                }
+              >
+                {dataHealth?.primary_sync_missed ? "primary missed" : "ตรงเวลา"}
+              </span>
+            </div>
           </div>
           {!!dataHealth?.alert_codes.length && (
             <div

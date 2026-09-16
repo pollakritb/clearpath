@@ -202,7 +202,7 @@ project only:
    its run history.
 
 Then configure GitHub → repository Settings → Secrets and variables → Actions
-as the hourly backup:
+as the twice-hourly backup:
 
 1. Add repository variable `CLEARPATH_PRODUCTION_URL` with the exact HTTPS
    production origin and no trailing slash.
@@ -217,7 +217,8 @@ as the hourly backup:
    the last successful run rather than expecting exact-to-the-minute execution.
 5. Confirm Vercel Settings → Cron Jobs is empty; this is intentional for Hobby.
 6. Confirm Admin shows a successful sync run, at least one fresh station in the
-   service area, and `/api/ready` returns 200.
+   service area, `/api/ready` returns 200, and the data-health panel does not
+   show `primary_cron_missed` after the next Supabase schedule window.
 7. Confirm `APP_ENVIRONMENT=production`, Admin without a token returns 401, and
    `LOCAL_DEMO_MODE` is absent or false.
 

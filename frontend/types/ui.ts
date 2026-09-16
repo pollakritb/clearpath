@@ -70,6 +70,11 @@ export interface DataHealthResponse {
   latest_sync_started_at: string | null;
   latest_sync_completed_at: string | null;
   latest_sync_duration_ms: number | null;
+  latest_primary_sync_at: string | null;
+  latest_primary_sync_status: string | null;
+  latest_backup_sync_at: string | null;
+  latest_backup_sync_status: string | null;
+  primary_sync_missed: boolean;
   consecutive_sync_failures: number;
   upstream_failure: boolean;
   alert_codes: string[];

@@ -86,3 +86,24 @@ fields and fail-closed behavior.
 The closed gates above are deliberate release controls, not missing features.
 They may change only after the corresponding task IDs in the master plan have
 machine-verifiable evidence and the named human owner has approved the change.
+
+## Verified baseline — 2026-09-16
+
+| Field            | Evidence                                                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Candidate SHA    | `75166c8c2a5f1a3a0e8cf0d37c18d5a8bf91eed1`                                                                                                             |
+| Verified at      | `2026-09-16T05:58:33Z`                                                                                                                                 |
+| Operator         | `Codex`                                                                                                                                                |
+| Environment      | Production — `https://clearpath-gray.vercel.app`                                                                                                       |
+| Change summary   | Canonical data-health monitor, Admin health summary, production evidence/backlog runbooks, and corrected production-smoke health contract              |
+| Local result     | Frontend 74 passed; backend 290 passed with 81.68% coverage; Playwright 80/80 passed at 360/390/430 px; format, lint, typecheck, Ruff and build passed |
+| GitHub Quality   | [Run 35059363023](https://github.com/pollakritb/clearpath/actions/runs/35059363023) — success                                                          |
+| Vercel release   | `/api/ready.release=75166c8c2a5f1a3a0e8cf0d37c18d5a8bf91eed1`                                                                                          |
+| Data freshness   | 177 total; 117 fresh; 46 delayed; 14 expired; latest observation `2026-09-16T12:00:00+07:00`                                                           |
+| Production smoke | [Run 35059566395](https://github.com/pollakritb/clearpath/actions/runs/35059566395) — success                                                          |
+| Closed gates     | ML, ML shadow/canary, GISTDA, community forecast shadow, and Web Push remain closed                                                                    |
+| Previous good    | `cbdda81`                                                                                                                                              |
+
+The production smoke exercised the protected sync path, waited for the exact
+release SHA, and required at least one canonically fresh station. This record
+does not approve the closed feature gates or replace human device/legal review.

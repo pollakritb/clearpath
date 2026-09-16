@@ -15,7 +15,8 @@ def restore_cron_settings(monkeypatch):
 
 @pytest.mark.parametrize("token", ["github-token", "supabase-token"])
 def test_verify_cron_accepts_each_independent_scheduler_token(token):
-    _verify_cron(f"Bearer {token}")
+    expected = "github_backup" if token == "github-token" else "supabase_primary"
+    assert _verify_cron(f"Bearer {token}") == expected
 
 
 @pytest.mark.parametrize(
@@ -41,4 +42,4 @@ def test_verify_cron_allows_unconfigured_local_demo(monkeypatch):
     monkeypatch.setattr(settings, "cron_secret", "")
     monkeypatch.setattr(settings, "supabase_cron_secret", "")
 
-    _verify_cron(None)
+    assert _verify_cron(None) == "local"
