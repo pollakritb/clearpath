@@ -387,13 +387,13 @@ npm run test:e2e
 
 ### งาน
 
-- [ ] `CP-ADMIN-001` E2E queue: filter pending, open evidence, approve, reject, correct OCR และ reason required
-- [ ] `CP-ADMIN-002` E2E announcements: create/edit/publish/unpublish/delete พร้อม image/privacy check
-- [ ] `CP-ADMIN-003` E2E data issue: report, triage, resolve, audit trail
-- [ ] `CP-ADMIN-004` แสดง cron/provider/notification outbox health แบบอ่านง่าย
-- [ ] `CP-ADMIN-005` ทดสอบ forecast candidate/release/rollback permission และ confirmation
-- [ ] `CP-ADMIN-006` ทำ pagination/search/loading/error/empty state สำหรับข้อมูลจำนวนมาก
-- [ ] `CP-ADMIN-007` ป้องกัน double action และ stale record ด้วย optimistic concurrency/idempotency
+- [x] `CP-ADMIN-001` E2E queue: filter pending, open evidence, approve, reject, correct OCR และ reason required
+- [x] `CP-ADMIN-002` E2E announcements: create/edit/publish/unpublish/archive พร้อม image metadata sanitization/privacy check (ใช้ archive แทน hard delete เพื่อคง audit trail)
+- [x] `CP-ADMIN-003` E2E data issue: report, triage, resolve, audit trail
+- [x] `CP-ADMIN-004` แสดง cron/provider/notification outbox health แบบอ่านง่าย
+- [x] `CP-ADMIN-005` ทดสอบ forecast candidate/release/rollback permission และ exact-ID confirmation; mutation RPC ให้เฉพาะ service role
+- [x] `CP-ADMIN-006` ทำ pagination/search/loading/error/empty state สำหรับคิวตรวจ ประกาศ ปัญหาข้อมูล และ audit log จำนวนมาก
+- [x] `CP-ADMIN-007` ป้องกัน double action และ stale record ด้วย optimistic concurrency/idempotency
 - [ ] `CP-ADMIN-008` ตรวจ admin action log, retention และ export สำหรับ incident review
 - [ ] `CP-ADMIN-009` ทำ least-privilege role แยก moderator/operator/admin ถ้าการใช้งานจริงมีหลายคน
 

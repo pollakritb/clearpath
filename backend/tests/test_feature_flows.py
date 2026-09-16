@@ -252,9 +252,29 @@ def test_complete_report_moderation_rating_reward_and_privacy_flow(feature_clien
     assert queue.status_code == 200
     assert any(item["id"] == report_id for item in queue.json()["reports"])
 
+    missing_note = client.post(
+        f"/api/admin/reports/{report_id}/moderate",
+        json={
+            "decision": "approve",
+            "verified_pm25": 44,
+            "checks": {
+                "image_clear": True,
+                "value_matches_display": True,
+                "location_plausible": True,
+                "no_screen_recapture_signs": True,
+            },
+        },
+    )
+    assert missing_note.status_code == 422
+
     incomplete = client.post(
         f"/api/admin/reports/{report_id}/moderate",
-        json={"decision": "approve", "verified_pm25": 44, "checks": {}},
+        json={
+            "decision": "approve",
+            "verified_pm25": 44,
+            "checks": {},
+            "note": "checklist incomplete",
+        },
     )
     assert incomplete.status_code == 400
 
@@ -274,6 +294,16 @@ def test_complete_report_moderation_rating_reward_and_privacy_flow(feature_clien
     )
     assert approved_response.status_code == 200, approved_response.text
     assert approved_response.json()["pm25"] == 44
+    audit = client.get(
+        "/api/admin/audit-logs?action=report_approved&entity_type=community_report"
+    )
+    assert audit.status_code == 200
+    entry = next(
+        item for item in audit.json()["logs"] if item["entity_id"] == report_id
+    )
+    assert entry["details"]["before"]["status"] == "pending"
+    assert entry["details"]["after"]["status"] == "approved"
+    assert entry["details"]["reason"] == "evidence verified"
 
     public_reports = client.get("/api/community/reports").json()["reports"]
     public = next(item for item in public_reports if item["id"] == report_id)
@@ -564,13 +594,27 @@ def test_announcement_activity_notification_preferences_and_push_contract(
 
     published = client.patch(
         f"/api/admin/announcements/{announcement_id}",
-        json={"status": "published", "image_path": image_upload.json()["path"]},
+        json={
+            "status": "published",
+            "image_path": image_upload.json()["path"],
+            "expected_updated_at": draft.json()["updated_at"],
+            "reason": "ตรวจเนื้อหาและภาพเรียบร้อยแล้วจึงเผยแพร่",
+        },
     )
     assert published.status_code == 200
     assert published.json()["status"] == "published"
     assert published.json()["image_url"]
     public_after = client.get("/api/community/announcements").json()["announcements"]
     assert any(item["id"] == announcement_id for item in public_after)
+    stale_announcement = client.patch(
+        f"/api/admin/announcements/{announcement_id}",
+        json={
+            "status": "draft",
+            "expected_updated_at": draft.json()["updated_at"],
+            "reason": "คำสั่งจากหน้าจอเก่าต้องไม่เขียนทับข้อมูลใหม่",
+        },
+    )
+    assert stale_announcement.status_code == 409
 
     become("user", user_id=member.id)
     assert client.get("/api/notifications").json()["unread_count"] == 0
@@ -804,8 +848,52 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
     assert reviewed.json()["disposition"] == "model_issue"
     issues = client.get("/api/admin/data-issues")
     assert issues.status_code == 200
-    assert any(row["reference_id"] == station_id for row in issues.json()["issues"])
+    issue = next(
+        row for row in issues.json()["issues"] if row["reference_id"] == station_id
+    )
+    transitioned = client.patch(
+        f"/api/admin/data-issues/{issue['id']}",
+        json={
+            "status": "reviewing",
+            "reason": "กำลังตรวจสอบเวลาจากข้อมูลสถานีต้นทาง",
+            "expected_updated_at": issue["updated_at"],
+        },
+    )
+    assert transitioned.status_code == 200
+    assert transitioned.json()["status"] == "reviewing"
+    stale = client.patch(
+        f"/api/admin/data-issues/{issue['id']}",
+        json={
+            "status": "resolved",
+            "reason": "บันทึกจากหน้าจอเวอร์ชันเก่าจึงต้องถูกปฏิเสธ",
+            "expected_updated_at": issue["updated_at"],
+        },
+    )
+    assert stale.status_code == 409
+    audit = client.get("/api/admin/audit-logs")
+    assert audit.status_code == 200
+    assert any(
+        row["entity_id"] == issue["id"] and row["action"] == "data_issue_transitioned"
+        for row in audit.json()["logs"]
+    )
+    exported = client.get("/api/admin/audit-logs/export")
+    assert exported.status_code == 200
+    assert "data_issue_transitioned" in exported.text
     assert client.get("/api/admin/notification-outbox").status_code == 200
+
+    become("user")
+    assert client.get("/api/admin/audit-logs").status_code == 403
+    assert (
+        client.patch(
+            f"/api/admin/data-issues/{issue['id']}",
+            json={
+                "status": "resolved",
+                "reason": "ผู้ใช้ทั่วไปต้องแก้สถานะรายการไม่ได้",
+                "expected_updated_at": transitioned.json()["updated_at"],
+            },
+        ).status_code
+        == 403
+    )
 
 
 def test_forecast_local_load_budget_and_contract(feature_client):

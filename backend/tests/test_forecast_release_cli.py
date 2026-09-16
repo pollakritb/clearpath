@@ -1,9 +1,14 @@
 import json
+from pathlib import Path
 from uuid import UUID
 
 import pytest
 
-from scripts.promote_forecast_model import load_evidence, rpc_request
+from scripts.promote_forecast_model import (
+    load_evidence,
+    rpc_request,
+    validate_apply_confirmation,
+)
 
 REGISTRY_ID = UUID("00000000-0000-0000-0000-000000000001")
 ACTOR_ID = UUID("00000000-0000-0000-0000-000000000002")
@@ -34,3 +39,26 @@ def test_release_evidence_must_be_json_object(tmp_path):
     path.write_text("[]", encoding="utf-8")
     with pytest.raises(ValueError, match="json_object"):
         load_evidence(path)
+
+
+def test_apply_requires_exact_registry_confirmation():
+    validate_apply_confirmation(REGISTRY_ID, False, None)
+    validate_apply_confirmation(REGISTRY_ID, True, str(REGISTRY_ID))
+    with pytest.raises(ValueError, match="confirmation_registry_id_mismatch"):
+        validate_apply_confirmation(REGISTRY_ID, True, str(ACTOR_ID))
+
+
+def test_release_rpcs_are_service_role_only():
+    migration = (
+        Path("supabase/migrations/20260803_forecast_production_hardening.sql")
+        .read_text(encoding="utf-8")
+        .replace("\n", " ")
+    )
+    for function in (
+        "promote_forecast_model(UUID, UUID, TEXT)",
+        "rollback_forecast_model(UUID, UUID, TEXT)",
+        "transition_forecast_model(UUID, UUID, TEXT, TEXT, JSONB)",
+    ):
+        assert f"REVOKE ALL ON FUNCTION {function}" in migration
+        assert f"GRANT EXECUTE ON FUNCTION {function}" in migration
+    assert "TO service_role" in migration

@@ -524,8 +524,28 @@ def create_sync_run(row: dict) -> dict:
 
 def create_audit_log(row: dict) -> dict:
     with _LOCK:
-        _AUDIT_LOGS.append(dict(row))
-        return dict(row)
+        stored = {
+            "id": len(_AUDIT_LOGS) + 1,
+            **row,
+            "created_at": row.get("created_at") or datetime.now(UTC).isoformat(),
+        }
+        _AUDIT_LOGS.append(stored)
+        return dict(stored)
+
+
+def list_audit_logs(
+    limit: int,
+    offset: int = 0,
+    action: str | None = None,
+    entity_type: str | None = None,
+) -> list[dict]:
+    with _LOCK:
+        rows = [dict(row) for row in reversed(_AUDIT_LOGS)]
+    if action:
+        rows = [row for row in rows if row.get("action") == action]
+    if entity_type:
+        rows = [row for row in rows if row.get("entity_type") == entity_type]
+    return rows[offset : offset + limit]
 
 
 def create_data_issue(row: dict) -> dict:
@@ -537,6 +557,28 @@ def create_data_issue(row: dict) -> dict:
 def list_data_issues(limit: int) -> list[dict]:
     with _LOCK:
         return [dict(row) for row in _DATA_ISSUES[:limit]]
+
+
+def get_data_issue(issue_id: str) -> dict | None:
+    with _LOCK:
+        return next(
+            (dict(row) for row in _DATA_ISSUES if str(row.get("id")) == issue_id),
+            None,
+        )
+
+
+def update_data_issue_if_current(
+    issue_id: str, expected_updated_at: str, values: dict
+) -> dict | None:
+    with _LOCK:
+        for row in _DATA_ISSUES:
+            if str(row.get("id")) != issue_id:
+                continue
+            if str(row.get("updated_at")) != expected_updated_at:
+                return None
+            row.update(values)
+            return dict(row)
+    return None
 
 
 def create_public_map_event(row: dict) -> dict:
@@ -1088,10 +1130,29 @@ def create_announcement(row: dict) -> dict:
     return dict(row)
 
 
-def update_announcement(announcement_id: str, values: dict) -> dict:
+def get_announcement(announcement_id: str) -> dict | None:
+    with _LOCK:
+        return next(
+            (
+                dict(row)
+                for row in _ANNOUNCEMENTS
+                if str(row.get("id")) == announcement_id
+            ),
+            None,
+        )
+
+
+def update_announcement(
+    announcement_id: str, values: dict, expected_updated_at: str | None = None
+) -> dict:
     with _LOCK:
         for row in _ANNOUNCEMENTS:
             if str(row.get("id")) == announcement_id:
+                if (
+                    expected_updated_at
+                    and str(row.get("updated_at")) != expected_updated_at
+                ):
+                    raise ValueError("announcement_stale")
                 row.update(values)
                 return dict(row)
     raise KeyError(announcement_id)

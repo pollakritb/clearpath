@@ -196,7 +196,7 @@ class ModerationRequest(BaseModel):
     verified_pm25: float | None = Field(default=None, ge=0, le=1000)
     rejection_reason_code: RejectionReason | None = None
     checks: ModerationChecks = Field(default_factory=ModerationChecks)
-    note: str | None = Field(default=None, max_length=500)
+    note: str = Field(min_length=10, max_length=500)
 
 
 class UserReputation(BaseModel):
@@ -255,6 +255,8 @@ class AnnouncementUpdate(BaseModel):
     expires_at: str | None = None
     status: AnnouncementStatus | None = None
     image_path: str | None = None
+    reason: str | None = Field(default=None, min_length=10, max_length=500)
+    expected_updated_at: str | None = Field(default=None, min_length=10, max_length=40)
 
 
 class Activity(BaseModel):

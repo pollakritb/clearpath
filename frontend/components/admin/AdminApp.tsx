@@ -10,8 +10,10 @@ import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type {
   AdminSyncRun,
+  AuditLogRow,
   DataHealthResponse,
   DataIssueRow,
+  DataIssueUpdateRequest,
   ForecastDataQualityRow,
   ForecastEvaluationRow,
   ForecastFalseSafeCase,
@@ -40,6 +42,8 @@ interface OverviewData {
   dataQuality: ForecastDataQualityRow[];
   evaluation: ForecastEvaluationRow[];
   dataIssues: DataIssueRow[];
+  auditLogs: AuditLogRow[];
+  auditHasMore: boolean;
   falseSafeCases: ForecastFalseSafeCase[];
   releaseDecisions: ForecastReleaseDecision[];
   providerHealth: ForecastProviderHealthResponse | null;
@@ -54,6 +58,8 @@ const EMPTY_OVERVIEW: OverviewData = {
   dataQuality: [],
   evaluation: [],
   dataIssues: [],
+  auditLogs: [],
+  auditHasMore: false,
   falseSafeCases: [],
   releaseDecisions: [],
   providerHealth: null,
@@ -66,6 +72,7 @@ export default function AdminApp() {
   const [overview, setOverview] = useState<OverviewData>(EMPTY_OVERVIEW);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [auditLoadingMore, setAuditLoadingMore] = useState(false);
   const canModerate = ["moderator", "admin"].includes(auth.role);
   const isAdmin = auth.role === "admin";
 
@@ -81,6 +88,15 @@ export default function AdminApp() {
       api.adminForecastDataQuality(7),
       api.adminForecastEvaluation(14),
       api.adminDataIssues(100),
+      isAdmin
+        ? api.adminAuditLogs(100, 0)
+        : Promise.resolve({
+            logs: [],
+            count: 0,
+            limit: 100,
+            offset: 0,
+            has_more: false,
+          }),
       api.adminForecastFalseSafeCases(30, 100),
       api.adminForecastReleaseDecisions(100),
       api.adminForecastProviderHealth(),
@@ -113,21 +129,29 @@ export default function AdminApp() {
         results[6].status === "fulfilled"
           ? results[6].value.issues
           : current.dataIssues,
-      falseSafeCases:
+      auditLogs:
         results[7].status === "fulfilled"
-          ? results[7].value.cases
+          ? results[7].value.logs
+          : current.auditLogs,
+      auditHasMore:
+        results[7].status === "fulfilled"
+          ? results[7].value.has_more
+          : current.auditHasMore,
+      falseSafeCases:
+        results[8].status === "fulfilled"
+          ? results[8].value.cases
           : current.falseSafeCases,
       releaseDecisions:
-        results[8].status === "fulfilled"
-          ? results[8].value.decisions
+        results[9].status === "fulfilled"
+          ? results[9].value.decisions
           : current.releaseDecisions,
       providerHealth:
-        results[9].status === "fulfilled"
-          ? results[9].value
-          : current.providerHealth,
-      dataHealth:
         results[10].status === "fulfilled"
           ? results[10].value
+          : current.providerHealth,
+      dataHealth:
+        results[11].status === "fulfilled"
+          ? results[11].value
           : current.dataHealth,
     }));
     const failed = results.find((result) => result.status === "rejected");
@@ -137,7 +161,7 @@ export default function AdminApp() {
       );
     }
     setLoading(false);
-  }, [canModerate]);
+  }, [canModerate, isAdmin]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadOverview(), 0);
@@ -267,6 +291,10 @@ export default function AdminApp() {
               dataQuality={overview.dataQuality}
               evaluation={overview.evaluation}
               dataIssues={overview.dataIssues}
+              auditLogs={overview.auditLogs}
+              auditHasMore={overview.auditHasMore}
+              auditLoadingMore={auditLoadingMore}
+              isAdmin={isAdmin}
               falseSafeCases={overview.falseSafeCases}
               releaseDecisions={overview.releaseDecisions}
               providerHealth={overview.providerHealth}
@@ -274,6 +302,43 @@ export default function AdminApp() {
               loading={loading}
               error={error}
               onRefresh={() => void loadOverview()}
+              onTransitionDataIssue={async (
+                issue: DataIssueRow,
+                body: DataIssueUpdateRequest,
+              ) => {
+                await api.updateAdminDataIssue(issue.id, body);
+                await loadOverview();
+              }}
+              onLoadMoreAuditLogs={async () => {
+                if (!isAdmin || auditLoadingMore || !overview.auditHasMore)
+                  return;
+                setAuditLoadingMore(true);
+                try {
+                  const result = await api.adminAuditLogs(
+                    100,
+                    overview.auditLogs.length,
+                  );
+                  setOverview((current) => ({
+                    ...current,
+                    auditLogs: [
+                      ...current.auditLogs,
+                      ...result.logs.filter(
+                        (row) =>
+                          !current.auditLogs.some(
+                            (existing) => existing.id === row.id,
+                          ),
+                      ),
+                    ],
+                    auditHasMore: result.has_more,
+                  }));
+                } catch (cause) {
+                  setError(
+                    apiErrorMessage(cause, "โหลด audit log เพิ่มไม่สำเร็จ"),
+                  );
+                } finally {
+                  setAuditLoadingMore(false);
+                }
+              }}
               onReviewFalseSafe={async (
                 row: ForecastFalseSafeCase,
                 body: ForecastFalseSafeReviewRequest,

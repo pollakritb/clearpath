@@ -200,6 +200,9 @@ def moderate_report(
         raise ValueError("กรุณาตรวจ checklist ให้ครบก่อนอนุมัติ")
     if decision == "reject" and not rejection_reason_code:
         raise ValueError("กรุณาระบุเหตุผลที่ปฏิเสธ")
+    if not note or len(note.strip()) < 10:
+        raise ValueError("กรุณาระบุผลตรวจอย่างน้อย 10 ตัวอักษร")
+    note = note.strip()
 
     status = "approved" if decision == "approve" else "rejected"
     trust_score = float(report.get("trust_score") or 0)

@@ -48,3 +48,9 @@ class RoleChangeResponse(BaseModel):
     previous_role: Literal["user", "moderator", "admin"]
     role: Literal["user", "moderator", "admin"]
     changed_at: str
+
+
+class DataIssueUpdateRequest(BaseModel):
+    status: Literal["reviewing", "resolved", "dismissed"]
+    reason: str = Field(min_length=10, max_length=1000)
+    expected_updated_at: str = Field(min_length=10, max_length=40)

@@ -29,6 +29,11 @@ export default function AdminPublishingPanel({
     status: "published" as "draft" | "published",
   });
   const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState<Announcement | null>(null);
+  const [announcementActionId, setAnnouncementActionId] = useState<
+    string | null
+  >(null);
   const [existingAnnouncements, setExistingAnnouncements] = useState<
     Announcement[]
   >([]);
@@ -90,15 +95,27 @@ export default function AdminPublishingPanel({
       const uploaded = announcementImage
         ? await api.uploadAnnouncementImage(announcementImage)
         : null;
-      await api.createAnnouncement({
+      const values = {
         title: announcement.title.trim(),
         body: announcement.body.trim(),
         kind: announcement.kind,
         area: announcement.area.trim() || null,
         expires_at: isoOrNull(announcement.expiresAt),
         status: announcement.status,
-        image_path: uploaded?.path ?? null,
-      });
+        ...(uploaded ? { image_path: uploaded.path } : {}),
+      };
+      if (editingAnnouncement) {
+        await api.updateAnnouncement(editingAnnouncement.id, {
+          ...values,
+          expected_updated_at: editingAnnouncement.updated_at,
+          reason: "แก้ไขเนื้อหาประกาศจากศูนย์ผู้ดูแล",
+        });
+      } else {
+        await api.createAnnouncement({
+          ...values,
+          image_path: uploaded?.path ?? null,
+        });
+      }
       setAnnouncement((current) => ({
         ...current,
         title: "",
@@ -106,10 +123,13 @@ export default function AdminPublishingPanel({
         expiresAt: "",
       }));
       setAnnouncementImage(null);
+      setEditingAnnouncement(null);
       setMessage(
-        announcement.status === "draft"
-          ? "บันทึกฉบับร่างแล้ว"
-          : "เผยแพร่ประกาศแล้ว",
+        editingAnnouncement
+          ? "บันทึกการแก้ไขประกาศแล้ว"
+          : announcement.status === "draft"
+            ? "บันทึกฉบับร่างแล้ว"
+            : "เผยแพร่ประกาศแล้ว",
       );
       await loadAnnouncements();
       onPublished();
@@ -149,23 +169,61 @@ export default function AdminPublishingPanel({
     }
   }
 
-  async function publishAnnouncement(announcementId: string) {
+  function editAnnouncement(item: Announcement) {
+    setEditingAnnouncement(item);
+    setAnnouncement({
+      title: item.title,
+      body: item.body,
+      kind: item.kind,
+      area: item.area ?? "",
+      expiresAt: item.expires_at
+        ? new Date(item.expires_at).toISOString().slice(0, 16)
+        : "",
+      status: item.status === "published" ? "published" : "draft",
+    });
+    setAnnouncementImage(null);
+    setMessage(null);
     setError(null);
-    try {
-      await api.updateAnnouncement(announcementId, { status: "published" });
-      await loadAnnouncements();
-    } catch (cause) {
-      setError(apiErrorMessage(cause, "เผยแพร่ประกาศไม่สำเร็จ"));
-    }
   }
 
-  async function archiveAnnouncement(announcementId: string) {
+  async function changeAnnouncementStatus(
+    item: Announcement,
+    status: "draft" | "published" | "archived",
+  ) {
+    if (
+      status === "archived" &&
+      !window.confirm(`ยืนยันเก็บประกาศ “${item.title}” ออกจากรายการใช้งาน?`)
+    ) {
+      return;
+    }
     setError(null);
+    setMessage(null);
+    setAnnouncementActionId(item.id);
     try {
-      await api.archiveAnnouncement(announcementId);
+      await api.updateAnnouncement(item.id, {
+        status,
+        expected_updated_at: item.updated_at,
+        reason:
+          status === "published"
+            ? "เผยแพร่ประกาศให้ผู้ใช้เห็น"
+            : status === "draft"
+              ? "ยกเลิกเผยแพร่เพื่อกลับไปตรวจแก้"
+              : "เก็บประกาศออกจากรายการใช้งาน",
+      });
       await loadAnnouncements();
+      setMessage(
+        status === "published"
+          ? "เผยแพร่ประกาศแล้ว"
+          : status === "draft"
+            ? "ยกเลิกเผยแพร่และเก็บเป็นฉบับร่างแล้ว"
+            : "เก็บประกาศออกจากรายการใช้งานแล้ว",
+      );
     } catch (cause) {
-      setError(apiErrorMessage(cause, "Archive ประกาศไม่สำเร็จ"));
+      setError(
+        apiErrorMessage(cause, "เปลี่ยนสถานะประกาศไม่สำเร็จ กรุณารีเฟรชรายการ"),
+      );
+    } finally {
+      setAnnouncementActionId(null);
     }
   }
 
@@ -194,7 +252,9 @@ export default function AdminPublishingPanel({
           <div className="cp-admin-form-card__heading">
             <span className="cp-admin-form-icon">ประกาศ</span>
             <div>
-              <h3>สร้างประกาศชุมชน</h3>
+              <h3>
+                {editingAnnouncement ? "แก้ไขประกาศ" : "สร้างประกาศชุมชน"}
+              </h3>
               <p>ข่าวสาร เหตุเฝ้าระวัง หรือข้อมูลสำคัญในพื้นที่</p>
             </div>
           </div>
@@ -299,8 +359,32 @@ export default function AdminPublishingPanel({
             disabled={saving !== null}
             className="cp-admin-button cp-focus"
           >
-            {saving === "announcement" ? "กำลังเผยแพร่…" : "เผยแพร่ประกาศ"}
+            {saving === "announcement"
+              ? "กำลังบันทึก…"
+              : editingAnnouncement
+                ? "บันทึกการแก้ไข"
+                : "บันทึกประกาศ"}
           </button>
+          {editingAnnouncement && (
+            <button
+              type="button"
+              className="cp-admin-button cp-admin-button--secondary cp-focus"
+              disabled={saving !== null}
+              onClick={() => {
+                setEditingAnnouncement(null);
+                setAnnouncement((current) => ({
+                  ...current,
+                  title: "",
+                  body: "",
+                  expiresAt: "",
+                  status: "published",
+                }));
+                setAnnouncementImage(null);
+              }}
+            >
+              ยกเลิกแก้ไข
+            </button>
+          )}
         </form>
 
         <form className="cp-admin-form-card" onSubmit={submitActivity}>
@@ -396,8 +480,9 @@ export default function AdminPublishingPanel({
 
       <AdminAnnouncementList
         announcements={existingAnnouncements}
-        onPublish={publishAnnouncement}
-        onArchive={archiveAnnouncement}
+        busyId={announcementActionId}
+        onEdit={editAnnouncement}
+        onStatusChange={changeAnnouncementStatus}
       />
     </section>
   );

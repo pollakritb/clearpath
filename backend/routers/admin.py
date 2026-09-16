@@ -1,14 +1,18 @@
 """Admin moderation API protected by verified Supabase roles."""
 
+import csv
+import io
+import json
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from ..core.auth import AuthenticatedUser, require_admin, require_moderator
 from ..models.admin import (
     DataHealthResponse,
+    DataIssueUpdateRequest,
     FalseSafeReviewRequest,
     RoleChangeRequest,
     RoleChangeResponse,
@@ -24,8 +28,15 @@ from ..models.schemas import (
     CommunityReportsResponse,
     ModerationRequest,
 )
+from ..services import (
+    admin_operations,
+    announcement_images,
+    data_health,
+    notifications,
+    roles,
+    supabase_client,
+)
 from ..services import community as community_service
-from ..services import data_health, notifications, roles, supabase_client
 from ..services.forecast_models import artifact_statuses
 
 router = APIRouter()
@@ -59,6 +70,95 @@ async def data_issues(
 ):
     rows = await run_in_threadpool(supabase_client.list_data_issues, limit)
     return {"issues": rows, "count": len(rows)}
+
+
+@router.patch("/admin/data-issues/{issue_id}")
+async def update_data_issue(
+    issue_id: str,
+    body: DataIssueUpdateRequest,
+    user: AuthenticatedUser = Depends(require_moderator),
+):
+    try:
+        return await run_in_threadpool(
+            admin_operations.transition_data_issue,
+            issue_id=issue_id,
+            status=body.status,
+            reason=body.reason,
+            expected_updated_at=body.expected_updated_at,
+            actor_id=user.id,
+        )
+    except KeyError as exc:
+        raise HTTPException(404, detail="data_issue_not_found") from exc
+    except admin_operations.StaleRecordError as exc:
+        raise HTTPException(409, detail="data_issue_stale") from exc
+    except ValueError as exc:
+        raise HTTPException(409, detail=str(exc)) from exc
+
+
+@router.get("/admin/audit-logs")
+async def audit_logs(
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0, le=100_000),
+    action: str | None = Query(default=None, max_length=100),
+    entity_type: str | None = Query(default=None, max_length=100),
+    _user: AuthenticatedUser = Depends(require_admin),
+):
+    rows = await run_in_threadpool(
+        supabase_client.list_audit_logs, limit, offset, action, entity_type
+    )
+    return {
+        "logs": rows,
+        "count": len(rows),
+        "limit": limit,
+        "offset": offset,
+        "has_more": len(rows) == limit,
+    }
+
+
+@router.get("/admin/audit-logs/export")
+async def export_audit_logs(
+    limit: int = Query(1000, ge=1, le=5000),
+    action: str | None = Query(default=None, max_length=100),
+    entity_type: str | None = Query(default=None, max_length=100),
+    _user: AuthenticatedUser = Depends(require_admin),
+):
+    rows = await run_in_threadpool(
+        supabase_client.list_audit_logs, limit, 0, action, entity_type
+    )
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "id",
+            "created_at",
+            "actor_id",
+            "action",
+            "entity_type",
+            "entity_id",
+            "details",
+        ]
+    )
+    for row in rows:
+        writer.writerow(
+            [
+                row.get("id"),
+                row.get("created_at"),
+                row.get("actor_id"),
+                row.get("action"),
+                row.get("entity_type"),
+                row.get("entity_id"),
+                json.dumps(
+                    row.get("details") or {}, ensure_ascii=False, sort_keys=True
+                ),
+            ]
+        )
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": "attachment; filename=clearpath-audit-logs.csv"
+        },
+    )
 
 
 @router.get("/admin/reports", response_model=CommunityReportsResponse)
@@ -122,7 +222,15 @@ async def create_announcement(
             "action": "announcement_created",
             "entity_type": "announcement",
             "entity_id": str(row["id"]),
-            "details": {"status": body.status},
+            "details": {
+                "before": None,
+                "after": {
+                    "title": row.get("title"),
+                    "status": row.get("status"),
+                    "updated_at": row.get("updated_at"),
+                },
+                "reason": "สร้างประกาศจากศูนย์ผู้ดูแล",
+            },
         },
     )
     if body.status == "published":
@@ -158,15 +266,27 @@ async def update_announcement(
     user: AuthenticatedUser = Depends(require_admin),
 ):
     values = body.model_dump(exclude_unset=True)
+    reason = str(values.pop("reason", "") or "แก้ไขประกาศจากศูนย์ผู้ดูแล")
+    expected_updated_at = values.pop("expected_updated_at", None)
+    before = await run_in_threadpool(supabase_client.get_announcement, announcement_id)
+    if not before:
+        raise HTTPException(404, detail="ไม่พบประกาศ")
     if "status" in values:
         values["published"] = values["status"] == "published"
+        if values["status"] == "published" and before.get("status") != "published":
+            values["published_at"] = datetime.now(UTC).isoformat()
     values.update({"updated_by": user.id, "updated_at": datetime.now(UTC).isoformat()})
     try:
         row = await run_in_threadpool(
-            supabase_client.update_announcement, announcement_id, values
+            supabase_client.update_announcement,
+            announcement_id,
+            values,
+            expected_updated_at,
         )
     except KeyError as exc:
         raise HTTPException(404, detail="ไม่พบประกาศ") from exc
+    except ValueError as exc:
+        raise HTTPException(409, detail="announcement_stale") from exc
     await run_in_threadpool(
         supabase_client.create_audit_log,
         {
@@ -174,10 +294,22 @@ async def update_announcement(
             "action": "announcement_updated",
             "entity_type": "announcement",
             "entity_id": announcement_id,
-            "details": values,
+            "details": {
+                "before": {
+                    "title": before.get("title"),
+                    "status": before.get("status"),
+                    "updated_at": before.get("updated_at"),
+                },
+                "after": {
+                    "title": row.get("title"),
+                    "status": row.get("status"),
+                    "updated_at": row.get("updated_at"),
+                },
+                "reason": reason,
+            },
         },
     )
-    if values.get("status") == "published":
+    if values.get("status") == "published" and before.get("status") != "published":
         for user_id in await run_in_threadpool(supabase_client.list_user_ids, 2000):
             await run_in_threadpool(
                 notifications.enqueue_user_notification,
@@ -199,6 +331,9 @@ async def archive_announcement(
     announcement_id: str,
     user: AuthenticatedUser = Depends(require_admin),
 ):
+    before = await run_in_threadpool(supabase_client.get_announcement, announcement_id)
+    if not before:
+        raise HTTPException(404, detail="ไม่พบประกาศ")
     try:
         row = await run_in_threadpool(
             supabase_client.update_announcement,
@@ -219,7 +354,19 @@ async def archive_announcement(
             "action": "announcement_archived",
             "entity_type": "announcement",
             "entity_id": announcement_id,
-            "details": {},
+            "details": {
+                "before": {
+                    "title": before.get("title"),
+                    "status": before.get("status"),
+                    "updated_at": before.get("updated_at"),
+                },
+                "after": {
+                    "title": row.get("title"),
+                    "status": row.get("status"),
+                    "updated_at": row.get("updated_at"),
+                },
+                "reason": "เก็บประกาศออกจากรายการใช้งาน",
+            },
         },
     )
     return Announcement(**row)
@@ -236,6 +383,12 @@ async def upload_announcement_image(
     content = await image.read(5 * 1024 * 1024 + 1)
     if not content or len(content) > 5 * 1024 * 1024:
         raise HTTPException(413, detail="ภาพต้องไม่เกิน 5 MB")
+    try:
+        content = await run_in_threadpool(
+            announcement_images.sanitize_public_image, content, content_type
+        )
+    except ValueError as exc:
+        raise HTTPException(422, detail="ไฟล์ภาพไม่ถูกต้องหรือชนิดไฟล์ไม่ตรง") from exc
     extension = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[
         content_type
     ]
@@ -249,11 +402,29 @@ async def upload_announcement_image(
 @router.post("/admin/activities", response_model=Activity, status_code=201)
 async def create_activity(
     body: ActivityCreate,
-    _user: AuthenticatedUser = Depends(require_admin),
+    user: AuthenticatedUser = Depends(require_admin),
 ):
     row = await run_in_threadpool(
         supabase_client.create_activity,
         {"id": str(uuid4()), **body.model_dump(), "active": True},
+    )
+    await run_in_threadpool(
+        supabase_client.create_audit_log,
+        {
+            "actor_id": user.id,
+            "action": "activity_created",
+            "entity_type": "activity",
+            "entity_id": str(row["id"]),
+            "details": {
+                "before": None,
+                "after": {
+                    "title": row.get("title"),
+                    "active": row.get("active"),
+                    "reward_points": row.get("reward_points"),
+                },
+                "reason": "สร้างกิจกรรมจากศูนย์ผู้ดูแล",
+            },
+        },
     )
     return Activity(**row)
 

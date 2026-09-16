@@ -56,6 +56,15 @@ def rpc_request(
     )
 
 
+def validate_apply_confirmation(
+    registry_id: UUID, apply: bool, confirm_registry_id: str | None
+) -> None:
+    """Require an exact model identifier before any release mutation."""
+
+    if apply and confirm_registry_id != str(registry_id):
+        raise ValueError("confirmation_registry_id_mismatch")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -92,8 +101,12 @@ def main() -> int:
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     if not args.apply:
         return 0
-    if args.confirm_registry_id != str(args.registry_id):
-        raise SystemExit("confirmation_registry_id_mismatch")
+    try:
+        validate_apply_confirmation(
+            args.registry_id, args.apply, args.confirm_registry_id
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     rpc, parameters = rpc_request(
         args.action, args.registry_id, args.actor_id, args.reason, evidence
     )

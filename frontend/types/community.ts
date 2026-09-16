@@ -195,7 +195,7 @@ export interface ModerationRequest {
   verified_pm25?: number | null;
   rejection_reason_code?: RejectionReason | null;
   checks?: ModerationChecks;
-  note?: string | null;
+  note: string;
 }
 
 export interface UserReputation {
@@ -250,6 +250,8 @@ export interface AnnouncementUpdate {
   expires_at?: string | null;
   status?: AnnouncementStatus | null;
   image_path?: string | null;
+  reason?: string | null;
+  expected_updated_at?: string | null;
 }
 
 export interface AnnouncementsResponse {

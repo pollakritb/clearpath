@@ -37,7 +37,10 @@ import type {
 } from "@/frontend/types";
 import type {
   AdminSyncRunsResponse,
+  AuditLogsResponse,
   DataHealthResponse,
+  DataIssueRow,
+  DataIssueUpdateRequest,
   DataIssuesResponse,
   ForecastDataQualityResponse,
   ForecastEvaluationResponse,
@@ -384,4 +387,31 @@ export const api = {
     http<DataIssuesResponse>(`/api/admin/data-issues?limit=${limit}`, {
       auth: true,
     }),
+
+  updateAdminDataIssue: (issueId: string, body: DataIssueUpdateRequest) =>
+    http<DataIssueRow>(
+      `/api/admin/data-issues/${encodeURIComponent(issueId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(body),
+        auth: true,
+      },
+    ),
+
+  adminAuditLogs: (limit = 100, offset = 0) =>
+    http<AuditLogsResponse>(
+      `/api/admin/audit-logs?limit=${limit}&offset=${offset}`,
+      { auth: true },
+    ),
+
+  downloadAdminAuditLogs: async () => {
+    const token = await getAccessToken();
+    const headers = new Headers();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    const response = await fetch("/api/admin/audit-logs/export", { headers });
+    if (!response.ok) {
+      throw new ApiError("ส่งออก audit log ไม่สำเร็จ", response.status);
+    }
+    return response.blob();
+  },
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { CommunityReport, ModerationRequest } from "@/frontend/types";
@@ -18,6 +18,16 @@ export default function AdminPanel({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const visibleReports = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return reports;
+    return reports.filter((report) =>
+      [report.id, report.device_model, report.display_name]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(needle)),
+    );
+  }, [query, reports]);
 
   const loadQueue = useCallback(async () => {
     setLoading(true);
@@ -94,8 +104,19 @@ export default function AdminPanel({
           {error}
         </p>
       )}
+      {reports.length > 0 && (
+        <label className="cp-admin-audit-search">
+          ค้นหาคิวตรวจ
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="รหัสรายงาน หรือรุ่นเครื่องวัด"
+          />
+        </label>
+      )}
       <div className="cp-admin-report-grid">
-        {reports.map((report) => (
+        {visibleReports.map((report) => (
           <AdminReportCard
             key={report.id}
             report={report}
@@ -109,6 +130,9 @@ export default function AdminPanel({
           <strong>ไม่มีเคสผิดปกติรอตรวจ</strong>
           <span>รายงานที่ผ่านเกณฑ์สูงจะได้รับการอนุมัติอัตโนมัติ</span>
         </div>
+      )}
+      {!loading && reports.length > 0 && visibleReports.length === 0 && (
+        <div className="cp-admin-empty">ไม่พบรายงานที่ค้นหา</div>
       )}
     </section>
   );

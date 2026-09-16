@@ -671,6 +671,32 @@ def create_audit_log(row: dict) -> dict:
     return rows[0] if rows else row
 
 
+def list_audit_logs(
+    limit: int = 100,
+    offset: int = 0,
+    action: str | None = None,
+    entity_type: str | None = None,
+) -> list[dict]:
+    if settings.local_demo_mode:
+        return local_store.list_audit_logs(limit, offset, action, entity_type)
+    query = (
+        get_client()
+        .table("audit_logs")
+        .select("id,actor_id,action,entity_type,entity_id,details,created_at")
+    )
+    if action:
+        query = query.eq("action", action)
+    if entity_type:
+        query = query.eq("entity_type", entity_type)
+    return (
+        query.order("created_at", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+        .data
+        or []
+    )
+
+
 def create_data_issue(row: dict) -> dict:
     if settings.local_demo_mode:
         return local_store.create_data_issue(row)
@@ -689,6 +715,42 @@ def list_data_issues(limit: int = 100) -> list[dict]:
         .limit(limit)
         .execute()
     ).data or []
+
+
+def get_data_issue(issue_id: str) -> dict | None:
+    if settings.local_demo_mode:
+        return local_store.get_data_issue(issue_id)
+    rows = (
+        get_client()
+        .table("data_issue_reports")
+        .select("id,category,reference_id,message,status,created_at,updated_at")
+        .eq("id", issue_id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else None
+
+
+def update_data_issue_if_current(
+    issue_id: str, expected_updated_at: str, values: dict
+) -> dict | None:
+    if settings.local_demo_mode:
+        return local_store.update_data_issue_if_current(
+            issue_id, expected_updated_at, values
+        )
+    rows = (
+        get_client()
+        .table("data_issue_reports")
+        .update(values)
+        .eq("id", issue_id)
+        .eq("updated_at", expected_updated_at)
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else None
 
 
 def create_public_map_event(row: dict) -> dict:
@@ -1844,6 +1906,9 @@ def moderate_report_transaction(
     checks: dict | None = None,
 ) -> dict:
     if settings.local_demo_mode:
+        before = local_store.get_report(report_id)
+        if not before:
+            raise KeyError(report_id)
         values = {
             "status": "approved" if decision == "approve" else "rejected",
             "pm25": verified_pm25 if decision == "approve" else None,
@@ -1903,6 +1968,28 @@ def moderate_report_transaction(
             local_store.upsert_report_evidence(
                 {**evidence, "retention_until": values["retention_until"]}
             )
+        local_store.create_audit_log(
+            {
+                "actor_id": admin_id,
+                "action": f"report_{values['status']}",
+                "entity_type": "community_report",
+                "entity_id": report_id,
+                "details": {
+                    "before": {
+                        "status": before.get("status"),
+                        "pm25": before.get("pm25"),
+                    },
+                    "after": {
+                        "status": updated.get("status"),
+                        "pm25": updated.get("pm25"),
+                    },
+                    "reason": note,
+                    "rejection_reason_code": rejection_reason_code,
+                    "checks": checks or {},
+                    "policy_version": "trust-v2",
+                },
+            }
+        )
         return updated
     result = (
         get_client()
@@ -2111,19 +2198,40 @@ def create_announcement(row: dict) -> dict:
     return _present_announcement(rows[0] if rows else row)
 
 
-def update_announcement(announcement_id: str, values: dict) -> dict:
+def get_announcement(announcement_id: str) -> dict | None:
+    if settings.local_demo_mode:
+        row = local_store.get_announcement(announcement_id)
+    else:
+        rows = (
+            get_client()
+            .table("announcements")
+            .select("*")
+            .eq("id", announcement_id)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+        row = rows[0] if rows else None
+    return _present_announcement(row) if row else None
+
+
+def update_announcement(
+    announcement_id: str, values: dict, expected_updated_at: str | None = None
+) -> dict:
     if settings.local_demo_mode:
         return _present_announcement(
-            local_store.update_announcement(announcement_id, values)
+            local_store.update_announcement(
+                announcement_id, values, expected_updated_at
+            )
         )
-    rows = (
-        get_client()
-        .table("announcements")
-        .update(values)
-        .eq("id", announcement_id)
-        .execute()
-    ).data or []
+    query = get_client().table("announcements").update(values).eq("id", announcement_id)
+    if expected_updated_at:
+        query = query.eq("updated_at", expected_updated_at)
+    rows = query.execute().data or []
     if not rows:
+        if expected_updated_at and get_announcement(announcement_id):
+            raise ValueError("announcement_stale")
         raise KeyError(announcement_id)
     return _present_announcement(rows[0])
 

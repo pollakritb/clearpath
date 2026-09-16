@@ -14,7 +14,7 @@
 /coverage
 /.coverage
 /.pytest_cache/
-/.pytest-tmp-*/
+/.pytest-*/
 /.ruff_cache/
 /.test-results/
 /test-results/

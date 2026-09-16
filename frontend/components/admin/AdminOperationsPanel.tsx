@@ -1,7 +1,9 @@
 import type {
   AdminSyncRun,
+  AuditLogRow,
   DataHealthResponse,
   DataIssueRow,
+  DataIssueUpdateRequest,
   ForecastDataQualityRow,
   ForecastEvaluationRow,
   ForecastFalseSafeCase,
@@ -12,6 +14,8 @@ import type {
   NotificationOutboxSummary,
 } from "@/frontend/types/ui";
 
+import AdminAuditLogList from "./AdminAuditLogList";
+import DataIssueTriageList from "./DataIssueTriageList";
 import FalseSafeCaseReviewList from "./FalseSafeCaseReviewList";
 
 function formatDate(value?: string | null): string {
@@ -40,6 +44,10 @@ export default function AdminOperationsPanel({
   dataQuality,
   evaluation,
   dataIssues,
+  auditLogs,
+  auditHasMore,
+  auditLoadingMore,
+  isAdmin,
   falseSafeCases,
   releaseDecisions,
   providerHealth,
@@ -47,6 +55,8 @@ export default function AdminOperationsPanel({
   loading,
   error,
   onRefresh,
+  onTransitionDataIssue,
+  onLoadMoreAuditLogs,
   onReviewFalseSafe,
 }: {
   runs: AdminSyncRun[];
@@ -55,6 +65,10 @@ export default function AdminOperationsPanel({
   dataQuality: ForecastDataQualityRow[];
   evaluation: ForecastEvaluationRow[];
   dataIssues: DataIssueRow[];
+  auditLogs: AuditLogRow[];
+  auditHasMore: boolean;
+  auditLoadingMore: boolean;
+  isAdmin: boolean;
   falseSafeCases: ForecastFalseSafeCase[];
   releaseDecisions: ForecastReleaseDecision[];
   providerHealth: ForecastProviderHealthResponse | null;
@@ -62,6 +76,11 @@ export default function AdminOperationsPanel({
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
+  onTransitionDataIssue: (
+    issue: DataIssueRow,
+    body: DataIssueUpdateRequest,
+  ) => Promise<void>;
+  onLoadMoreAuditLogs: () => Promise<void>;
   onReviewFalseSafe: (
     row: ForecastFalseSafeCase,
     body: ForecastFalseSafeReviewRequest,
@@ -278,35 +297,10 @@ export default function AdminOperationsPanel({
               {dataIssues.filter((issue) => issue.status === "new").length} ใหม่
             </span>
           </div>
-          {dataIssues.length ? (
-            <div className="cp-admin-table-wrap">
-              <table>
-                <caption>รายการแจ้งข้อมูลผิดพลาดล่าสุด</caption>
-                <thead>
-                  <tr>
-                    <th>เวลา</th>
-                    <th>ประเภท</th>
-                    <th>อ้างอิง</th>
-                    <th>รายละเอียด</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dataIssues.slice(0, 10).map((issue) => (
-                    <tr key={issue.id}>
-                      <td>{formatDate(issue.created_at)}</td>
-                      <td>{issue.category}</td>
-                      <td>{issue.reference_id ?? "—"}</td>
-                      <td>{issue.message}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="cp-admin-empty cp-admin-empty--compact">
-              ยังไม่มีผู้ใช้แจ้งข้อมูลผิดพลาด
-            </div>
-          )}
+          <DataIssueTriageList
+            issues={dataIssues}
+            onTransition={onTransitionDataIssue}
+          />
         </article>
 
         <article className="cp-admin-table-card cp-admin-table-card--wide">
@@ -646,6 +640,14 @@ export default function AdminOperationsPanel({
             </div>
           </div>
         </article>
+        {isAdmin && (
+          <AdminAuditLogList
+            logs={auditLogs}
+            hasMore={auditHasMore}
+            loadingMore={auditLoadingMore}
+            onLoadMore={onLoadMoreAuditLogs}
+          />
+        )}
       </div>
     </section>
   );

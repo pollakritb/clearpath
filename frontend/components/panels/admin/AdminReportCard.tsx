@@ -58,6 +58,10 @@ export default function AdminReportCard({
       setValidationError("กรุณาเลือกเหตุผลที่ปฏิเสธ");
       return;
     }
+    if (note.trim().length < 10) {
+      setValidationError("กรุณาระบุผลตรวจอย่างน้อย 10 ตัวอักษรก่อนบันทึก");
+      return;
+    }
     setValidationError(null);
     await onDecision(report.id, {
       decision,
@@ -65,7 +69,7 @@ export default function AdminReportCard({
       rejection_reason_code:
         decision === "reject" ? rejectionReason || null : null,
       checks,
-      note: note.trim() || null,
+      note: note.trim(),
     });
   }
 
@@ -215,8 +219,10 @@ export default function AdminReportCard({
           fontWeight: 600,
         }}
       >
-        หมายเหตุการตรวจ
+        ผลตรวจและเหตุผล (อย่างน้อย 10 ตัวอักษร)
         <textarea
+          required
+          minLength={10}
           value={note}
           onChange={(event) => setNote(event.target.value)}
           rows={2}

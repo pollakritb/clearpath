@@ -254,3 +254,27 @@ export interface DataIssuesResponse {
   issues: DataIssueRow[];
   count: number;
 }
+
+export interface DataIssueUpdateRequest {
+  status: "reviewing" | "resolved" | "dismissed";
+  reason: string;
+  expected_updated_at: string;
+}
+
+export interface AuditLogRow {
+  id: number;
+  actor_id: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AuditLogsResponse {
+  logs: AuditLogRow[];
+  count: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}

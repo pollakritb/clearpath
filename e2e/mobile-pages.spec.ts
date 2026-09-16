@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+import { createPendingReport } from "./support/community-report";
+
 const pages = [
   { path: "/", text: "คุณภาพอากาศทั่วไทย" },
   { path: "/air", text: "อากาศวันนี้" },
@@ -373,13 +375,14 @@ test("map separates official stations from community reports", async ({
     .getByRole("button", { name: "เลือกข้อมูลที่แสดงบนแผนที่" })
     .click();
 
-  const official = page.getByRole("button", {
+  const panel = page.locator("#cp-map-layers-panel");
+  const official = panel.getByRole("button", {
     name: /สถานีตรวจวัดทางการ/,
   });
-  const community = page.getByRole("button", {
+  const community = panel.getByRole("button", {
     name: /รายงานจากบุคคล/,
   });
-  const sensors = page.getByRole("button", {
+  const sensors = panel.getByRole("button", {
     name: /สถานีเซนเซอร์ชุมชน/,
   });
   await expect(official).toBeVisible();
@@ -497,4 +500,132 @@ test("installed service worker provides the explicit offline fallback", async ({
   } finally {
     await context.setOffline(false);
   }
+});
+
+test("admin triages a data issue and sees its audit trail @stateful-360", async ({
+  page,
+  request,
+}) => {
+  const message = `E2E ตรวจเวลาสถานีผิดปกติ ${Date.now()}`;
+  const created = await request.post("/api/community/data-issues", {
+    data: {
+      category: "station",
+      reference_id: "station-e2e",
+      message,
+    },
+  });
+  expect(created.status()).toBe(201);
+
+  await page.goto("/admin");
+  await page.getByRole("button", { name: /ข้อมูลและโมเดล|ระบบ/ }).click();
+  const issue = page
+    .locator(".cp-admin-issue-row")
+    .filter({ hasText: message });
+  await expect(issue).toBeVisible();
+  await issue.getByLabel("สถานะถัดไป").selectOption("resolved");
+  await issue
+    .getByLabel("ผลตรวจและเหตุผล")
+    .fill("ตรวจข้อมูลสถานีต้นทางและแก้ไขรายการเรียบร้อยแล้ว");
+  await issue.getByRole("button", { name: "บันทึกผลตรวจ" }).click();
+
+  await expect(issue.getByText("แก้ไขแล้ว")).toBeVisible();
+  await expect(page.getByText("data_issue_transitioned").first()).toBeVisible();
+});
+
+test("admin approves and rejects exception reports with evidence @stateful-360", async ({
+  page,
+  request,
+}) => {
+  const suffix = Date.now();
+  const approved = await createPendingReport(request, {
+    deviceModel: `Approve Meter ${suffix}`,
+    pm25: 38.4,
+  });
+  const rejected = await createPendingReport(request, {
+    deviceModel: `Reject Meter ${suffix}`,
+    pm25: 91.2,
+  });
+
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "คิวตรวจ", exact: true }).click();
+
+  const approveCard = page
+    .locator(".cp-admin-report-card")
+    .filter({ hasText: `Approve Meter ${suffix}` });
+  await expect(approveCard).toBeVisible();
+  for (const checkbox of await approveCard.getByRole("checkbox").all()) {
+    await checkbox.check();
+  }
+  await approveCard.getByLabel("ค่า PM2.5 ที่ Admin อ่านจากภาพ").fill("39.1");
+  await approveCard
+    .getByLabel(/ผลตรวจและเหตุผล/)
+    .fill("ตรวจภาพ ตำแหน่ง เวลา และค่าบนหน้าจอครบแล้ว");
+  await approveCard.getByRole("button", { name: "อนุมัติค่าที่กรอก" }).click();
+  await expect(approveCard).toHaveCount(0);
+
+  const rejectCard = page
+    .locator(".cp-admin-report-card")
+    .filter({ hasText: `Reject Meter ${suffix}` });
+  await expect(rejectCard).toBeVisible();
+  await rejectCard
+    .getByLabel("เหตุผลเมื่อปฏิเสธ")
+    .selectOption("image_unclear");
+  await rejectCard
+    .getByLabel(/ผลตรวจและเหตุผล/)
+    .fill("ตัวเลขบนหน้าจอไม่ชัดพอสำหรับยืนยันค่า");
+  await rejectCard.getByRole("button", { name: "ปฏิเสธ" }).click();
+  await expect(rejectCard).toHaveCount(0);
+
+  const publicReports = await request.get("/api/community/reports");
+  expect(publicReports.status()).toBe(200);
+  const rows = (await publicReports.json()).reports as Array<{
+    id: string;
+    pm25: number;
+  }>;
+  expect(rows.find((row) => row.id === approved.id)?.pm25).toBe(39.1);
+  expect(rows.some((row) => row.id === rejected.id)).toBe(false);
+});
+
+test("admin manages the complete announcement lifecycle @stateful-360", async ({
+  page,
+}) => {
+  const suffix = Date.now();
+  const title = `ประกาศทดสอบ ${suffix}`;
+  const editedTitle = `${title} แก้ไขแล้ว`;
+
+  await page.goto("/admin");
+  await page.getByRole("button", { name: /ประกาศ/ }).click();
+  const form = page.locator("form").filter({ hasText: "สร้างประกาศชุมชน" });
+  await form.getByLabel("หัวข้อประกาศ").fill(title);
+  await form
+    .getByLabel("รายละเอียด")
+    .fill("ข้อมูลทดสอบวงจรประกาศสำหรับผู้ใช้งาน ClearPath");
+  await form.getByLabel("ประเภท").selectOption("news");
+  await form.getByLabel("พื้นที่").fill("นครปฐม");
+  await form.getByLabel("สถานะ").selectOption("draft");
+  await form
+    .getByLabel(/ภาพประกอบ/)
+    .setInputFiles("docs/assets/ui-archive/clearpath-mobile-final.png");
+  await form.getByRole("button", { name: "บันทึกประกาศ" }).click();
+
+  let row = page
+    .locator(".cp-admin-announcement-row")
+    .filter({ hasText: title });
+  await expect(row.getByText(/ฉบับร่าง/)).toBeVisible();
+  await row.getByRole("button", { name: "แก้ไข" }).click();
+  const editForm = page.locator("form").filter({ hasText: "แก้ไขประกาศ" });
+  await editForm.getByLabel("หัวข้อประกาศ").fill(editedTitle);
+  await editForm.getByRole("button", { name: "บันทึกการแก้ไข" }).click();
+
+  row = page
+    .locator(".cp-admin-announcement-row")
+    .filter({ hasText: editedTitle });
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "เผยแพร่", exact: true }).click();
+  await expect(row.getByText(/เผยแพร่แล้ว/)).toBeVisible();
+  await row.getByRole("button", { name: "ยกเลิกเผยแพร่" }).click();
+  await expect(row.getByText(/ฉบับร่าง/)).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept());
+  await row.getByRole("button", { name: "เก็บออกจากรายการ" }).click();
+  await expect(row.getByText(/เก็บแล้ว/)).toBeVisible();
 });
