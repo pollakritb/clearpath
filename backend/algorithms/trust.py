@@ -216,6 +216,29 @@ def star_rating_direction(rating: int) -> str:
     return "positive" if rating >= 4 else "negative" if rating <= 2 else "neutral"
 
 
+def evaluate_gratitude_eligibility(
+    *,
+    report_status: str,
+    is_self: bool,
+    distance_km: float,
+    gps_accuracy_m: float,
+    captured_at: str,
+    now: datetime | None = None,
+) -> dict:
+    """Return an internal reason code for the privacy-safe gratitude gate."""
+    if report_status != "approved":
+        return {"eligible": False, "reason_code": "report_not_approved"}
+    if is_self:
+        return {"eligible": False, "reason_code": "self_review"}
+    if gps_accuracy_m > 200:
+        return {"eligible": False, "reason_code": "gps_inaccurate"}
+    if distance_km > 3.0:
+        return {"eligible": False, "reason_code": "outside_radius"}
+    if not is_report_fresh(captured_at, max_age_minutes=180, now=now):
+        return {"eligible": False, "reason_code": "report_expired"}
+    return {"eligible": True, "reason_code": "eligible"}
+
+
 def star_consensus(reviews: Sequence[dict], *, minimum_raters: int = 3) -> dict:
     """Calculate reputation-weighted star consensus and bounded trust adjustment."""
     unique: dict[str, dict] = {}

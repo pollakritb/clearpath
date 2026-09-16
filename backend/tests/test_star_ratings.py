@@ -1,6 +1,9 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
 
 from backend.algorithms.trust import (
+    evaluate_gratitude_eligibility,
     rating_matches_consensus,
     reviewer_weight,
     star_consensus,
@@ -46,3 +49,54 @@ def test_neutral_rating_never_matches_reward_consensus():
     assert star_rating_direction(3) == "neutral"
     with pytest.raises(ValueError):
         star_rating_direction(0)
+
+
+def test_gratitude_radius_and_freshness_boundaries_are_inclusive():
+    now = datetime(2026, 9, 16, 12, 0, tzinfo=UTC)
+    common = {
+        "report_status": "approved",
+        "is_self": False,
+        "gps_accuracy_m": 200,
+        "captured_at": (now - timedelta(minutes=180)).isoformat(),
+        "now": now,
+    }
+    assert evaluate_gratitude_eligibility(**common, distance_km=3.0) == {
+        "eligible": True,
+        "reason_code": "eligible",
+    }
+    assert (
+        evaluate_gratitude_eligibility(**common, distance_km=3.001)["reason_code"]
+        == "outside_radius"
+    )
+    assert (
+        evaluate_gratitude_eligibility(
+            **{**common, "captured_at": (now - timedelta(minutes=181)).isoformat()},
+            distance_km=3.0,
+        )["reason_code"]
+        == "report_expired"
+    )
+
+
+@pytest.mark.parametrize(
+    ("overrides", "reason_code"),
+    [
+        ({"report_status": "pending"}, "report_not_approved"),
+        ({"is_self": True}, "self_review"),
+        ({"gps_accuracy_m": 200.1}, "gps_inaccurate"),
+    ],
+)
+def test_gratitude_gate_reports_internal_reason_codes(overrides, reason_code):
+    now = datetime(2026, 9, 16, 12, 0, tzinfo=UTC)
+    values = {
+        "report_status": "approved",
+        "is_self": False,
+        "distance_km": 0,
+        "gps_accuracy_m": 20,
+        "captured_at": now.isoformat(),
+        "now": now,
+        **overrides,
+    }
+    assert evaluate_gratitude_eligibility(**values) == {
+        "eligible": False,
+        "reason_code": reason_code,
+    }

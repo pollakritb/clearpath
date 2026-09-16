@@ -61,3 +61,33 @@ def test_community_sensor_never_exposes_personal_profile():
     assert report["show_reporter_profile"] is False
     assert report["display_name"] is None
     assert report["reporter_avatar_url"] is None
+
+
+def test_gap_fill_stops_when_a_fresh_official_station_returns():
+    report = _report(device_calibrated=True, trust_score=82)
+    without_official = present_report(
+        report,
+        official_stations=[],
+        approved_reports=[report],
+        include_image=False,
+    )
+    assert without_official["data_role"] == "gap_fill"
+    assert without_official["eligible_for_gap_fill"] is True
+
+    with_official = present_report(
+        report,
+        official_stations=[
+            {
+                "station_id": "nearby-official",
+                "lat": 13.82,
+                "lon": 100.06,
+                "pm25": 25.0,
+                "recorded_at": datetime.now(UTC).isoformat(),
+            }
+        ],
+        approved_reports=[report],
+        include_image=False,
+    )
+    assert with_official["data_role"] == "supplementary"
+    assert with_official["eligible_for_gap_fill"] is False
+    assert "Air4Thai" in with_official["eligibility_reason"]

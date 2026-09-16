@@ -45,6 +45,49 @@ def pm25_values_compatible(a: float, b: float) -> bool:
     return abs(a - b) <= tolerance
 
 
+def _image_hash_distance(first: str | None, second: str | None) -> int | None:
+    if not first or not second:
+        return None
+    try:
+        return (int(first, 16) ^ int(second, 16)).bit_count()
+    except ValueError:
+        return None
+
+
+def _likely_same_measurement_source(first: dict, second: dict) -> bool:
+    """Collapse accounts that appear to reuse one device/image at one place/time."""
+    if first.get("image_sha256") and first.get("image_sha256") == second.get(
+        "image_sha256"
+    ):
+        return True
+    hash_distance = _image_hash_distance(
+        first.get("image_ahash"), second.get("image_ahash")
+    )
+    if hash_distance is not None and hash_distance <= 4:
+        return True
+
+    first_model = str(first.get("device_model") or "").strip().casefold()
+    second_model = str(second.get("device_model") or "").strip().casefold()
+    if not first_model or first_model != second_model:
+        return False
+    first_time = _as_datetime(str(first.get("captured_at") or ""))
+    second_time = _as_datetime(str(second.get("captured_at") or ""))
+    if first_time is None or second_time is None:
+        return False
+    time_delta_minutes = abs((first_time - second_time).total_seconds()) / 60.0
+    if time_delta_minutes > 60.0:
+        return False
+    return (
+        haversine_km(
+            float(first["lat"]),
+            float(first["lon"]),
+            float(second["lat"]),
+            float(second["lon"]),
+        )
+        <= 0.2
+    )
+
+
 def corroboration_count(
     target: dict,
     approved_reports: Sequence[dict],
@@ -57,8 +100,8 @@ def corroboration_count(
     target_pm25 = target.get("pm25")
     if target_time is None or target_pm25 is None:
         return 0
-    users: set[str] = set()
-    target_id = str(target.get("id") or "")
+    accepted: list[dict] = [target]
+    users: set[str] = {str(target.get("user_id") or target.get("id") or "")}
     for candidate in approved_reports:
         if candidate.get("status") != "approved" or candidate.get("pm25") is None:
             continue
@@ -79,12 +122,12 @@ def corroboration_count(
         if not pm25_values_compatible(float(target_pm25), float(candidate["pm25"])):
             continue
         candidate_user = str(candidate.get("user_id") or "")
-        if candidate_user:
-            users.add(candidate_user)
-    # Ensure the current report counts even if callers passed a list without it.
-    target_user = str(target.get("user_id") or target_id)
-    if target_user:
-        users.add(target_user)
+        if not candidate_user or candidate_user in users:
+            continue
+        if any(_likely_same_measurement_source(candidate, item) for item in accepted):
+            continue
+        accepted.append(candidate)
+        users.add(candidate_user)
     return len(users)
 
 

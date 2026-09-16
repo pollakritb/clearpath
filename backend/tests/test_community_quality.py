@@ -32,6 +32,40 @@ def test_corroboration_requires_independent_compatible_reporters():
     )
 
 
+def test_corroboration_collapses_shared_device_and_replayed_image_across_accounts():
+    target = {
+        **_report("a", "user-a", 13.82, 100.06, 80),
+        "device_model": "Shared Meter",
+        "image_sha256": "image-a",
+        "image_ahash": "0000000000000000",
+    }
+    shared_device = {
+        **_report("b", "user-b", 13.8205, 100.0605, 78, 5),
+        "device_model": " shared meter ",
+        "image_sha256": "image-b",
+        "image_ahash": "ffffffffffffffff",
+    }
+    replayed_image = {
+        **_report("c", "user-c", 13.821, 100.061, 79, 8),
+        "device_model": "Other Meter",
+        "image_sha256": "image-a",
+        "image_ahash": "aaaaaaaaaaaaaaaa",
+    }
+    independent = {
+        **_report("d", "user-d", 13.824, 100.064, 77, 10),
+        "device_model": "Independent Meter",
+        "image_sha256": "image-d",
+        "image_ahash": "5555555555555555",
+    }
+
+    assert (
+        corroboration_count(
+            target, [target, shared_device, replayed_image, independent]
+        )
+        == 2
+    )
+
+
 def test_gap_fill_requires_corroboration_or_calibrated_high_trust():
     common = dict(
         evidence_verified=True,
@@ -57,6 +91,40 @@ def test_gap_fill_requires_corroboration_or_calibrated_high_trust():
     )
     assert calibrated["eligible"]
     assert calibrated["basis"] == "calibrated_high_trust"
+
+
+def test_gap_fill_trust_boundaries_are_fail_closed():
+    common = dict(
+        evidence_verified=True,
+        report_fresh=True,
+        data_role="gap_fill",
+        near_emission_source=False,
+        gps_accuracy_m=200,
+    )
+    assert not evaluate_gap_fill(
+        **common,
+        trust_score=59,
+        corroborated_reporters=2,
+        device_calibrated=False,
+    )["eligible"]
+    assert evaluate_gap_fill(
+        **common,
+        trust_score=60,
+        corroborated_reporters=2,
+        device_calibrated=False,
+    )["eligible"]
+    assert not evaluate_gap_fill(
+        **common,
+        trust_score=79,
+        corroborated_reporters=1,
+        device_calibrated=True,
+    )["eligible"]
+    assert evaluate_gap_fill(
+        **common,
+        trust_score=80,
+        corroborated_reporters=1,
+        device_calibrated=True,
+    )["eligible"]
 
 
 def test_direct_emission_or_bad_gps_never_changes_surface():
@@ -95,3 +163,12 @@ def test_public_coordinates_are_stable_and_offset():
     assert first == second
     distance = haversine_km(13.82, 100.06, first[0], first[1])
     assert 0.115 <= distance <= 0.255
+
+
+def test_separate_reports_from_one_exact_point_are_not_publicly_linkable():
+    first = obfuscate_coordinates(13.82, 100.06, secret_seed="secret:report-a")
+    second = obfuscate_coordinates(13.82, 100.06, secret_seed="secret:report-b")
+
+    assert first[:2] != second[:2]
+    assert 120 <= first[2] <= 250
+    assert 120 <= second[2] <= 250

@@ -324,16 +324,16 @@ npm run test:e2e
 
 ### งาน
 
-- [ ] `CP-COMM-001` สร้าง seeded staging dataset ที่มีผู้ใช้หลายคน Trust ต่างกัน พื้นที่/เวลา/อุปกรณ์ต่างกัน
+- [x] `CP-COMM-001` สร้าง seeded staging dataset ที่มีผู้ใช้หลายคน Trust ต่างกัน พื้นที่/เวลา/อุปกรณ์ต่างกัน
 - [ ] `CP-TRUST-001` ทดสอบ Trust pure function: report outcome, duplicate, admin correction, gratitude reason และ decay/cap
-- [ ] `CP-TRUST-002` ยืนยัน rule: approved + fresh + Trust ≥60 + corroborated ≥2 คน หรือ Trust ≥80 + calibrated device
-- [ ] `CP-TRUST-003` ป้องกัน self-corroboration ด้วย account/device/image/location/time identity signals
-- [ ] `CP-GAP-001` ทดสอบ gap-fill เมื่อไม่มี Air4Thai ใกล้พื้นที่ และเมื่อมีข้อมูลหลักกลับมา
-- [ ] `CP-GAP-002` บังคับ GPS accuracy ≤200 เมตร, ไม่ติดแหล่งกำเนิดโดยตรง และไม่ใช่ภาพซ้ำ
-- [ ] `CP-GRAT-001` ทดสอบ gratitude 1–5 ดาว เฉพาะ GPS ≤3 กม. และ report อายุ ≤3 ชม.
-- [ ] `CP-GRAT-002` เก็บ internal reason code ที่ตรงกับดาว แต่ public UI แสดงคำขอบคุณอย่างเหมาะสม
+- [x] `CP-TRUST-002` ยืนยัน rule: approved + fresh + Trust ≥60 + corroborated ≥2 คน หรือ Trust ≥80 + calibrated device
+- [x] `CP-TRUST-003` ป้องกัน self-corroboration ด้วย account/device/image/location/time identity signals
+- [x] `CP-GAP-001` ทดสอบ gap-fill เมื่อไม่มี Air4Thai ใกล้พื้นที่ และเมื่อมีข้อมูลหลักกลับมา
+- [x] `CP-GAP-002` บังคับ GPS accuracy ≤200 เมตร, ไม่ติดแหล่งกำเนิดโดยตรง และไม่ใช่ภาพซ้ำ
+- [x] `CP-GRAT-001` ทดสอบ gratitude 1–5 ดาว เฉพาะ GPS ≤3 กม. และ report อายุ ≤3 ชม.
+- [x] `CP-GRAT-002` เก็บ internal reason code ที่ตรงกับดาว แต่ public UI แสดงคำขอบคุณอย่างเหมาะสม
 - [ ] `CP-PRIV-001` ตรวจ stable obfuscation 120–250 เมตร, k-anonymity risk และการ link จุดเดิมข้ามเวลา
-- [ ] `CP-PRIV-002` แสดง profile เฉพาะ report ที่ผู้ใช้ไม่ได้เลือกปิดบังตัวตน
+- [x] `CP-PRIV-002` แสดง profile เฉพาะ report ที่ผู้ใช้ไม่ได้เลือกปิดบังตัวตน
 - [ ] `CP-COMM-002` ทำ field trial อย่างน้อย 2–3 พื้นที่ ทั้งใกล้และไกลสถานีหลัก
 
 ### เกณฑ์ผ่าน

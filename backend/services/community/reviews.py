@@ -6,18 +6,14 @@ from uuid import uuid4
 from ...algorithms.distance import haversine_km
 from ...algorithms.trust import (
     calculate_trust_score,
-    is_report_fresh,
+    evaluate_gratitude_eligibility,
     rating_matches_consensus,
     reviewer_weight,
     star_consensus,
     star_rating_direction,
 )
 from .. import notifications, supabase_client
-from .constants import (
-    DAILY_REVIEW_REWARD_LIMIT,
-    PEER_REVIEW_RADIUS_KM,
-    PUBLIC_REPORT_MAX_AGE_MINUTES,
-)
+from .constants import DAILY_REVIEW_REWARD_LIMIT
 from .presenter import present_report
 
 
@@ -33,27 +29,30 @@ def rate_report(
     report = supabase_client.get_community_report(report_id)
     if not report:
         raise KeyError(report_id)
-    if report["status"] != "approved":
-        raise ValueError("ส่งคำขอบคุณได้เฉพาะข้อมูลที่ผ่านการตรวจแล้ว")
-    if str(report["user_id"]) == reviewer_id:
-        raise ValueError("ไม่สามารถส่งคำขอบคุณให้ข้อมูลของตนเองได้")
     if rating not in {1, 2, 3, 4, 5}:
         raise ValueError("คะแนนต้องอยู่ระหว่าง 1–5 ดาว")
-    if gps_accuracy_m > 200:
-        raise ValueError("GPS คลาดเคลื่อนเกิน 200 เมตร กรุณาขอตำแหน่งใหม่")
     distance = haversine_km(
         reviewer_lat,
         reviewer_lon,
         float(report["lat"]),
         float(report["lon"]),
     )
-    if distance > PEER_REVIEW_RADIUS_KM:
-        raise ValueError("ต้องอยู่ภายใน 3 กม. จากจุดรายงานจึงจะส่งคำขอบคุณได้")
-    if not is_report_fresh(
-        str(report["captured_at"]),
-        max_age_minutes=PUBLIC_REPORT_MAX_AGE_MINUTES,
-    ):
-        raise ValueError("ข้อมูลนี้หมดช่วงเวลาสำหรับส่งคำขอบคุณแล้ว")
+    eligibility = evaluate_gratitude_eligibility(
+        report_status=str(report["status"]),
+        is_self=str(report["user_id"]) == reviewer_id,
+        distance_km=distance,
+        gps_accuracy_m=gps_accuracy_m,
+        captured_at=str(report["captured_at"]),
+    )
+    if not eligibility["eligible"]:
+        messages = {
+            "report_not_approved": "ส่งคำขอบคุณได้เฉพาะข้อมูลที่ผ่านการตรวจแล้ว",
+            "self_review": "ไม่สามารถส่งคำขอบคุณให้ข้อมูลของตนเองได้",
+            "gps_inaccurate": "GPS คลาดเคลื่อนเกิน 200 เมตร กรุณาขอตำแหน่งใหม่",
+            "outside_radius": "ต้องอยู่ภายใน 3 กม. จากจุดรายงานจึงจะส่งคำขอบคุณได้",
+            "report_expired": "ข้อมูลนี้หมดช่วงเวลาสำหรับส่งคำขอบคุณแล้ว",
+        }
+        raise ValueError(messages[str(eligibility["reason_code"])])
     existing = supabase_client.get_report_reviews(report_id)
     if any(str(review.get("reviewer_id")) == reviewer_id for review in existing):
         raise ValueError("คุณส่งคำขอบคุณให้ข้อมูลนี้แล้ว")

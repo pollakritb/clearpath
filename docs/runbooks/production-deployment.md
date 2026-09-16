@@ -42,6 +42,17 @@ browser.
 
 ## 3. Prepare Supabase staging
 
+Synthetic community evidence can be generated for a staging-only field-flow
+check with:
+
+```powershell
+.venv\Scripts\python -m scripts.generate_community_staging_seed --output community-staging-seed.json
+```
+
+The generated rows are deterministic, contain no real account data, and carry
+`test_data=true`. Never import them into Production; delete the local JSON after
+the staging exercise.
+
 1. Create/select the staging project and copy its project reference from the
    Dashboard URL.
 2. Install/login/link the CLI:

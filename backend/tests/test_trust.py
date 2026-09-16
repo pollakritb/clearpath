@@ -56,6 +56,13 @@ def test_nakhon_pathom_bounds_and_freshness():
     assert is_report_fresh(datetime.now(UTC).isoformat())
 
 
+def test_report_freshness_boundary_is_exactly_three_hours():
+    now = datetime(2026, 9, 16, 12, 0, tzinfo=UTC)
+    assert is_report_fresh((now - timedelta(minutes=179)).isoformat(), now=now)
+    assert is_report_fresh((now - timedelta(minutes=180)).isoformat(), now=now)
+    assert not is_report_fresh((now - timedelta(minutes=181)).isoformat(), now=now)
+
+
 def test_nationwide_community_area_accepts_bangkok_and_chiang_mai():
     assert is_thailand_area(13.7563, 100.5018)
     assert is_thailand_area(18.7883, 98.9853)

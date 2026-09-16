@@ -141,3 +141,12 @@ Production checks on 2026-09-16 confirmed:
 - Final report submission uses the draft identifier as a deterministic
   idempotency key. A repeated request returns the original report rather than
   creating a second row or replacing the original claimed value.
+
+Candidate `568d1a336464657bacb56fb2447fd215a5ea5b66` reached Production on
+2026-09-16. Local verification recorded backend 301 passed at 81.30% coverage,
+frontend 74 passed at 99.11% coverage, successful production build, and 80/80
+Playwright checks across 360/390/430 px. [Quality run 35063699141](https://github.com/pollakritb/clearpath/actions/runs/35063699141)
+and [Production smoke run 35063934658](https://github.com/pollakritb/clearpath/actions/runs/35063934658)
+both concluded successfully. `/api/ready` returned the exact candidate SHA,
+177 stations, 156 fresh, 0 delayed, 21 expired, and latest observation
+`2026-09-16T13:00:00+07:00`.
