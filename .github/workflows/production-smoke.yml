@@ -10,8 +10,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: clearpath-production-smoke
-  cancel-in-progress: true
+  # A workflow_run event is emitted for every Quality run, including
+  # Dependabot pull requests. Isolate releases by SHA so an unrelated skipped
+  # smoke workflow can never cancel the production release currently syncing.
+  group: clearpath-production-smoke-${{ github.event.workflow_run.head_sha || github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   verify-production:
