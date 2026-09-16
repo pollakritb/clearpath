@@ -1560,6 +1560,26 @@ def insert_community_report(row: dict) -> dict:
     return data[0] if data else row
 
 
+def insert_community_report_once(row: dict) -> tuple[dict, bool]:
+    """Insert a deterministic report id without duplicating a retried submit."""
+    if settings.local_demo_mode:
+        return local_store.insert_report_once(row)
+    data = (
+        get_client()
+        .table("community_reports")
+        .upsert(row, on_conflict="id", ignore_duplicates=True)
+        .execute()
+        .data
+        or []
+    )
+    if data:
+        return data[0], True
+    existing = get_community_report(str(row["id"]))
+    if not existing:
+        raise RuntimeError("report insert did not return or persist a row")
+    return existing, False
+
+
 def get_community_report(report_id: str) -> dict | None:
     if settings.local_demo_mode:
         return local_store.get_report(report_id)
@@ -1699,8 +1719,10 @@ def purge_report_evidence(report_id: str) -> None:
             "image_path": None,
             "image_sha256": None,
             "image_ahash": None,
+            "unexpected_exif": False,
             "burst_hashes": [],
             "ocr_raw_text": None,
+            "ocr_status": "unavailable",
             "purged_at": purged_at,
         }
     ).eq("report_id", report_id).execute()

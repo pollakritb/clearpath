@@ -29,7 +29,7 @@ from ..models.schemas import (
 )
 from ..services import capture as capture_service
 from ..services import community as community_service
-from ..services import local_store, supabase_client
+from ..services import image_fingerprint, local_store, supabase_client
 
 router = APIRouter()
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -140,6 +140,14 @@ async def create_report_draft(
         raise HTTPException(400, detail="ไฟล์ภาพว่าง")
     if len(content) > MAX_IMAGE_BYTES:
         raise HTTPException(413, detail="ภาพต้องมีขนาดไม่เกิน 8 MB")
+    try:
+        detected_type = await run_in_threadpool(
+            image_fingerprint.detect_image_mime, content
+        )
+    except ValueError as exc:
+        raise HTTPException(415, detail=str(exc)) from exc
+    if detected_type != content_type:
+        raise HTTPException(415, detail="ชนิดไฟล์ภาพไม่ตรงกับข้อมูลภายในไฟล์")
     if len(burst_images) > 2:
         raise HTTPException(400, detail="รองรับภาพเสริมไม่เกิน 2 เฟรม")
     burst: list[tuple[bytes, str]] = []
@@ -150,6 +158,14 @@ async def create_report_draft(
             raise HTTPException(415, detail="ภาพเสริมต้องเป็น JPEG, PNG หรือ WEBP")
         if not burst_content or len(burst_content) > MAX_IMAGE_BYTES:
             raise HTTPException(413, detail="ภาพเสริมแต่ละภาพต้องไม่เกิน 8 MB")
+        try:
+            detected_burst_type = await run_in_threadpool(
+                image_fingerprint.detect_image_mime, burst_content
+            )
+        except ValueError as exc:
+            raise HTTPException(415, detail=str(exc)) from exc
+        if detected_burst_type != burst_type:
+            raise HTTPException(415, detail="ชนิดไฟล์ภาพเสริมไม่ตรงกับข้อมูลภายในไฟล์")
         burst.append((burst_content, burst_type))
     try:
         allowed = await run_in_threadpool(
@@ -184,11 +200,6 @@ async def submit_report_draft(
     user: AuthenticatedUser = Depends(require_user),
 ):
     try:
-        allowed = await run_in_threadpool(
-            supabase_client.take_rate_limit, user.id, "community_report", 86400, 6
-        )
-        if not allowed:
-            raise HTTPException(429, detail="ส่งรายงานได้ไม่เกิน 6 ครั้งต่อ 24 ชั่วโมง")
         report = await community_service.submit_draft(
             draft_id=draft_id,
             user_id=user.id,

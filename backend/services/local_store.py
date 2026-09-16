@@ -867,6 +867,17 @@ def insert_report(row: dict) -> dict:
         return dict(row)
 
 
+def insert_report_once(row: dict) -> tuple[dict, bool]:
+    """Insert one report per deterministic id and return whether it was new."""
+    with _LOCK:
+        report_id = str(row["id"])
+        existing = _REPORTS.get(report_id)
+        if existing:
+            return dict(existing), False
+        _REPORTS[report_id] = dict(row)
+        return dict(row), True
+
+
 def get_report(report_id: str) -> dict | None:
     with _LOCK:
         row = _REPORTS.get(report_id)

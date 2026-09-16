@@ -62,6 +62,7 @@ def try_automatic_approval(
         duplicate_detected=bool(report.get("duplicate_of_report_id")),
     )
     checks = {
+        **(report.get("moderation_checks") or {}),
         "image_clear": True,
         "value_matches_display": True,
         "location_plausible": True,

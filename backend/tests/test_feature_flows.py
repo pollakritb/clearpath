@@ -16,7 +16,7 @@ from backend.core.auth import AuthenticatedUser, require_user
 from backend.core.config import settings
 from backend.main import create_app
 from backend.services import firms as firms_service
-from backend.services import line_messaging, openweather
+from backend.services import line_messaging, local_store, openweather
 from backend.services import ocr as ocr_service
 
 
@@ -140,6 +140,7 @@ def _create_pending_report(client: TestClient, seed: int = 1) -> dict:
     report = submit_response.json()["report"]
     assert report["source_type"] == "individual"
     assert report["device_calibrated"] is True
+    assert report["moderation_checks"]["ocr_status_unavailable"] is True
     return report
 
 
@@ -201,6 +202,28 @@ def test_high_confidence_report_is_automatically_approved(feature_client, monkey
     assert report["verified_pm25"] == 42.0
     assert report["verification_method"] == "automatic"
     assert report["admin_verified"] is False
+    assert report["moderation_checks"]["ocr_status_ready"] is True
+    assert report["moderation_checks"]["ocr_evidence_ready"] is True
+    evidence = local_store.get_report_evidence(report["id"])
+    assert evidence is not None
+    assert evidence["ocr_status"] == "ready"
+
+    retried = client.post(
+        f"/api/community/report-drafts/{draft['id']}/submit",
+        json={
+            "user_claimed_pm25": 999,
+            "device_model": "Changed value must not create another report",
+            "measurement_environment": "outdoor",
+            "measurement_stable": True,
+            "near_emission_source": False,
+            "averaging_period": "instant",
+            "measurement_duration_seconds": 60,
+        },
+    )
+    assert retried.status_code == 201, retried.text
+    assert retried.json()["report"]["id"] == report["id"]
+    assert retried.json()["report"]["user_claimed_pm25"] == 42.5
+    assert "คำขอซ้ำ" in retried.json()["review_reasons"][0]
 
     public = client.get("/api/community/reports").json()["reports"]
     assert any(item["id"] == report["id"] for item in public)
@@ -402,6 +425,51 @@ def test_camera_evidence_validation_and_single_use_session(feature_client):
         files={"image": ("meter.txt", b"not an image", "text/plain")},
     )
     assert bad_type.status_code == 415
+
+    spoofed_type_session = client.post("/api/community/capture-session").json()
+    spoofed_type = client.post(
+        "/api/community/report-drafts",
+        data={
+            "lat": "13.8199",
+            "lon": "100.0622",
+            "gps_accuracy_m": "10",
+            "camera_session_token": spoofed_type_session["token"],
+        },
+        files={"image": ("meter.jpg", _meter_image(24), "image/jpeg")},
+    )
+    assert spoofed_type.status_code == 415
+    assert "ไม่ตรง" in spoofed_type.json()["detail"]
+
+
+def test_report_value_outside_supported_range_is_rejected(feature_client):
+    client, become = feature_client
+    become("user")
+    report = _create_pending_report(client, seed=25)
+    assert report["user_claimed_pm25"] == 42.5
+
+    session = client.post("/api/community/capture-session").json()
+    draft_response = client.post(
+        "/api/community/report-drafts",
+        data={
+            "lat": "13.8199",
+            "lon": "100.0622",
+            "gps_accuracy_m": "10",
+            "camera_session_token": session["token"],
+        },
+        files={"image": ("meter.png", _meter_image(26), "image/png")},
+    )
+    draft = draft_response.json()
+    invalid = client.post(
+        f"/api/community/report-drafts/{draft['id']}/submit",
+        json={
+            "user_claimed_pm25": 1000.1,
+            "device_model": "Range Test",
+            "measurement_environment": "outdoor",
+            "measurement_stable": True,
+            "measurement_duration_seconds": 60,
+        },
+    )
+    assert invalid.status_code == 422
 
 
 def test_role_guards_and_report_rejection_flow(feature_client):

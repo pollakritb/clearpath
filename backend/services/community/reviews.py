@@ -188,7 +188,7 @@ def moderate_report(
         raise ValueError("รายงานนี้ถูกตรวจสอบแล้ว")
     if decision == "approve" and verified_pm25 is None:
         raise ValueError("กรุณากรอกค่า PM2.5 ที่อ่านจากภาพก่อนอนุมัติ")
-    checks = checks or {}
+    checks = {**(report.get("moderation_checks") or {}), **(checks or {})}
     if decision == "approve" and not all(
         checks.get(key, False)
         for key in (

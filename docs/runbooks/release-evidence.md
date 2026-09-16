@@ -107,3 +107,37 @@ machine-verifiable evidence and the named human owner has approved the change.
 The production smoke exercised the protected sync path, waited for the exact
 release SHA, and required at least one canonically fresh station. This record
 does not approve the closed feature gates or replace human device/legal review.
+
+### Production authentication evidence
+
+Read-only dashboard and application checks on 2026-09-16 confirmed:
+
+- Supabase project `ClearPath` (`qnrtryspglioqhdxglzu`) has Google Auth enabled.
+- Supabase Site URL is `https://clearpath-gray.vercel.app`.
+- The redirect allow-list includes the production origin and
+  `http://localhost:3000`; no unrelated origin was observed.
+- An existing Google production session resolved the server-side profile and
+  opened `/admin` successfully. The browser did not supply or override the
+  profile role.
+- Google Cloud Console requested fresh account verification before exposing
+  OAuth client configuration. Redirect URI, consent-screen scope, and
+  publishing-status checks therefore remain a named human verification item;
+  no password or authentication prompt was automated.
+
+### Primary scheduler and report evidence hardening
+
+Production checks on 2026-09-16 confirmed:
+
+- ClearPath Supabase recorded `air4thai_supabase_primary` with status `success`
+  at `2026-09-16T06:17:00.691839+00:00`; the preceding GitHub backup run also
+  succeeded and remained distinguishable as `air4thai_github_backup`.
+- The `report-images` bucket is private, limited to 8 MB, and accepts only
+  JPEG, PNG, and WEBP. Server-side content decoding now verifies that the MIME
+  header matches the actual image before storage.
+- Additive migration `20260916_report_submission_hardening.sql` was applied
+  only to Supabase project `ClearPath` (`qnrtryspglioqhdxglzu`). A read-only
+  information-schema query returned `ocr_status` and `unexpected_exif` for
+  both `report_drafts` and `report_evidence`.
+- Final report submission uses the draft identifier as a deterministic
+  idempotency key. A repeated request returns the original report rather than
+  creating a second row or replacing the original claimed value.

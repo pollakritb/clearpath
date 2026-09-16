@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from starlette.concurrency import run_in_threadpool
 
@@ -21,6 +21,11 @@ from .evidence import IMAGE_EXTENSIONS, find_duplicate
 from .presenter import present_report
 
 DRAFT_TTL_MINUTES = 15
+
+
+def _report_id_for_draft(draft_id: str) -> str:
+    """Use the draft as the natural idempotency key for final submission."""
+    return str(uuid5(NAMESPACE_URL, f"https://clearpath.app/report-drafts/{draft_id}"))
 
 
 def _parse_client_time(
@@ -68,6 +73,9 @@ async def create_draft(
         client_captured_at, issued_at, received_at
     )
     fingerprint = image_fingerprint.fingerprint_image(image)
+    # Browser canvas capture intentionally strips EXIF. Metadata here indicates
+    # a non-live/replayed file and must prevent automatic publication.
+    clock_warning = clock_warning or bool(fingerprint.get("has_exif"))
     duplicate, exact_duplicate, _distance = find_duplicate(fingerprint)
     if exact_duplicate:
         raise ValueError("ภาพนี้เคยถูกส่งแล้ว กรุณาถ่ายหน้าจอเครื่องวัดใหม่")
@@ -89,6 +97,7 @@ async def create_draft(
             "display_clear": False,
             "raw_text": "",
         }
+    ocr_status = classify_ocr_result(ocr_result)
 
     draft_id = str(uuid4())
     image_path = f"drafts/{user_id}/{draft_id}.{IMAGE_EXTENSIONS[content_type]}"
@@ -108,11 +117,13 @@ async def create_draft(
         "image_path": image_path,
         "image_sha256": fingerprint["sha256"],
         "image_ahash": fingerprint["ahash"],
+        "unexpected_exif": bool(fingerprint.get("has_exif")),
         "burst_hashes": [item["sha256"] for item in burst_fingerprints],
         "duplicate_of_report_id": str(duplicate["id"]) if duplicate else None,
         "ocr_pm25": ocr_result["pm25"],
         "ocr_confidence": ocr_result["confidence"],
         "ocr_raw_text": ocr_result["raw_text"],
+        "ocr_status": ocr_status,
         "device_detected": ocr_result["device_detected"],
         "display_clear": ocr_result["display_clear"],
         "expires_at": expires_at.isoformat(),
@@ -133,7 +144,7 @@ async def create_draft(
         "ocr_pm25": saved.get("ocr_pm25"),
         "ocr_confidence": float(saved.get("ocr_confidence") or 0),
         "ocr_available": bool(ocr_result.get("available")),
-        "ocr_status": classify_ocr_result(ocr_result),
+        "ocr_status": str(saved.get("ocr_status") or ocr_status),
         "device_detected": bool(saved.get("device_detected")),
         "display_clear": bool(saved.get("display_clear")),
         "duplicate_detected": bool(saved.get("duplicate_of_report_id")),
@@ -154,8 +165,24 @@ async def submit_draft(
     draft = await run_in_threadpool(supabase_client.get_report_draft, draft_id, user_id)
     if not draft:
         raise KeyError(draft_id)
+    report_id = _report_id_for_draft(draft_id)
+    existing_report = await run_in_threadpool(
+        supabase_client.get_community_report, report_id
+    )
+    if existing_report:
+        official, _source = await get_current_stations()
+        presented = present_report(
+            existing_report, official_stations=official, include_exact_location=True
+        )
+        presented["_review_outcome"] = (
+            "automatic_approved"
+            if presented.get("verification_method") == "automatic"
+            else "pending_manual_review"
+        )
+        presented["_review_reasons"] = ["รับคำขอซ้ำโดยไม่สร้างรายงานใหม่"]
+        return presented
     if draft.get("submitted_at"):
-        raise ValueError("draft นี้ถูกส่งแล้ว")
+        raise ValueError("draft นี้ถูกส่งแล้ว แต่ไม่พบรายงานเดิม กรุณาติดต่อผู้ดูแล")
     expires_at = datetime.fromisoformat(str(draft["expires_at"]).replace("Z", "+00:00"))
     if expires_at < datetime.now(UTC):
         raise ValueError("draft หมดอายุ กรุณาถ่ายภาพใหม่")
@@ -171,6 +198,10 @@ async def submit_draft(
         raise ValueError("เครื่องที่ระบุว่าสอบเทียบแล้วต้องมีรุ่นเครื่องและวันที่สอบเทียบ")
     since = (datetime.now(UTC) - timedelta(hours=24)).isoformat()
     if supabase_client.count_user_reports_since(user_id, since) >= DAILY_REPORT_LIMIT:
+        raise ValueError("ส่งรายงานได้ไม่เกิน 6 ครั้งต่อ 24 ชั่วโมง")
+    if not supabase_client.take_rate_limit(
+        user_id, "community_report", 86400, DAILY_REPORT_LIMIT
+    ):
         raise ValueError("ส่งรายงานได้ไม่เกิน 6 ครั้งต่อ 24 ชั่วโมง")
 
     profile = await run_in_threadpool(supabase_client.ensure_profile, user_id)
@@ -214,7 +245,6 @@ async def submit_draft(
         gps_accuracy_m=float(draft["gps_accuracy_m"]),
         duplicate_detected=bool(draft.get("duplicate_of_report_id")),
     )
-    report_id = str(uuid4())
     public_lat, public_lon, _precision = obfuscate_coordinates(
         float(draft["exact_lat"]),
         float(draft["exact_lon"]),
@@ -226,6 +256,7 @@ async def submit_draft(
         5.0, claimed_pm25 * 0.2
     )
     now = datetime.now(UTC)
+    ocr_status = str(draft.get("ocr_status") or "unavailable")
     verified_identity = reporter_identity or {}
     show_reporter_profile = (
         not bool(values.get("hide_identity", True))
@@ -302,10 +333,28 @@ async def submit_draft(
         "trust_reasons": trust["reasons"],
         "peer_up": 0,
         "peer_down": 0,
+        "moderation_checks": {
+            f"ocr_status_{ocr_status}": True,
+            "ocr_evidence_ready": ocr_status == "ready",
+            "unexpected_exif": bool(draft.get("unexpected_exif")),
+        },
         "policy_version": "trust-v2",
         "created_at": now.isoformat(),
     }
-    saved = await run_in_threadpool(supabase_client.insert_community_report, report_row)
+    saved, created = await run_in_threadpool(
+        supabase_client.insert_community_report_once, report_row
+    )
+    if not created:
+        presented = present_report(
+            saved, official_stations=official, include_exact_location=True
+        )
+        presented["_review_outcome"] = (
+            "automatic_approved"
+            if presented.get("verification_method") == "automatic"
+            else "pending_manual_review"
+        )
+        presented["_review_reasons"] = ["รับคำขอซ้ำโดยไม่สร้างรายงานใหม่"]
+        return presented
     evidence = {
         "report_id": report_id,
         "exact_lat": draft["exact_lat"],
@@ -318,8 +367,10 @@ async def submit_draft(
         "image_path": draft["image_path"],
         "image_sha256": draft["image_sha256"],
         "image_ahash": draft.get("image_ahash"),
+        "unexpected_exif": bool(draft.get("unexpected_exif")),
         "burst_hashes": draft.get("burst_hashes") or [],
         "ocr_raw_text": draft.get("ocr_raw_text"),
+        "ocr_status": ocr_status,
         "retention_until": None,
         "created_at": now.isoformat(),
     }

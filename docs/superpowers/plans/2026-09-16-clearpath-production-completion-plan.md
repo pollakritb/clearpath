@@ -215,7 +215,7 @@ npm run test:e2e
 - [x] `CP-DATA-004` ให้ frontend types mirror backend schemas และเพิ่ม OpenAPI contract tests
 - [x] `CP-DATA-005` แสดง last updated/fallback state ด้วยภาษาที่ผู้ใช้เข้าใจ ไม่ใช้สีอย่างเดียว
 - [x] `CP-DATA-006` เพิ่ม monitor สำหรับ station count, latest observation, stale ratio, sync duration และ upstream failure
-- [ ] `CP-DATA-007` ตรวจ Supabase cron ทุก 15 นาทีและ GitHub backup scheduler; alert เมื่อ primary ไม่ทำงาน
+- [x] `CP-DATA-007` ตรวจ Supabase cron ทุก 15 นาทีและ GitHub backup scheduler; alert เมื่อ primary ไม่ทำงาน
 - [x] `CP-DATA-008` เพิ่ม production smoke หลัง release และหลัง backup cron เพื่อยืนยัน release SHA กับข้อมูล fresh จริง
 
 ### เกณฑ์ผ่าน
@@ -264,10 +264,10 @@ npm run test:e2e
 ### งาน
 
 - [ ] `CP-AUTH-001` ตรวจ Google Cloud project ชื่อ ClearPath และ redirect URIs ของ localhost/preview/production
-- [ ] `CP-AUTH-002` ตรวจ Supabase ClearPath provider config, Site URL และ allowed redirect URLs
+- [x] `CP-AUTH-002` ตรวจ Supabase ClearPath provider config, Site URL และ allowed redirect URLs
 - [ ] `CP-AUTH-003` ตรวจ consent screen, scopes, authorized domains และ test/published status
 - [ ] `CP-AUTH-004` ทดสอบ login ใหม่, refresh, logout, expired session, blocked popup และ cancelled consent
-- [ ] `CP-AUTH-005` ทดสอบ production account `pollakrit.b@ku.th` และ mapping role ผ่าน server-side authorization
+- [x] `CP-AUTH-005` ทดสอบ production account `pollakrit.b@ku.th` และ mapping role ผ่าน server-side authorization
 - [x] `CP-AUTH-006` ป้องกันการเชื่อ role จาก client/local storage
 - [x] `CP-AUTH-007` ทดสอบ profile name/avatar visibility ตาม anonymous consent ของแต่ละ report
 - [x] `CP-AUTH-008` เพิ่ม audit log เมื่อ role เปลี่ยน โดยไม่เก็บ token/PII เกินจำเป็น
@@ -289,15 +289,15 @@ npm run test:e2e
 
 - [ ] `CP-REPORT-001` ทดสอบ camera permission: allow, deny, retry, no camera, rear camera, orientation และ image rotation
 - [ ] `CP-REPORT-002` ทดสอบ GPS: precise/approximate, timeout, denied, accuracy >200 เมตร และตำแหน่งเปลี่ยนระหว่างส่ง
-- [ ] `CP-REPORT-003` บีบอัดภาพฝั่ง client อย่างเหมาะสม แต่เก็บหลักฐานอ่านค่าได้
+- [x] `CP-REPORT-003` บีบอัดภาพฝั่ง client อย่างเหมาะสม แต่เก็บหลักฐานอ่านค่าได้
 - [ ] `CP-OCR-001` ทำ real OCR integration test ด้วยภาพเครื่องวัดหลายยี่ห้อ แสงสะท้อน เบลอ และตัวเลขหลอก
-- [ ] `CP-OCR-002` เก็บ OCR confidence, extracted value และ failure reason โดยไม่เผย raw provider response
-- [ ] `CP-MOD-001` รวม OCR + GPS + timestamp + continuity + duplicate image + plausibility เป็น pure policy
-- [ ] `CP-MOD-002` กำหนด high-confidence auto-approve threshold และ fail closed เป็น `pending`
-- [ ] `CP-MOD-003` ทดสอบภาพซ้ำ exact/perceptual, EXIF mismatch, replay และค่าผิดช่วง
-- [ ] `CP-MOD-004` ทำ Admin correction โดยเก็บ original/result/auditor/reason/timestamp
-- [ ] `CP-REPORT-004` ตรวจ private bucket, signed URL expiry, upload limit, MIME sniffing และ malware-safe handling
-- [ ] `CP-REPORT-005` ทำ idempotency ป้องกันการกดส่งซ้ำเมื่อ network ช้า
+- [x] `CP-OCR-002` เก็บ OCR confidence, extracted value และ failure reason โดยไม่เผย raw provider response
+- [x] `CP-MOD-001` รวม OCR + GPS + timestamp + continuity + duplicate image + plausibility เป็น pure policy
+- [x] `CP-MOD-002` กำหนด high-confidence auto-approve threshold และ fail closed เป็น `pending`
+- [x] `CP-MOD-003` ทดสอบภาพซ้ำ exact/perceptual, EXIF mismatch, replay และค่าผิดช่วง
+- [x] `CP-MOD-004` ทำ Admin correction โดยเก็บ original/result/auditor/reason/timestamp
+- [x] `CP-REPORT-004` ตรวจ private bucket, signed URL expiry, upload limit, MIME sniffing และ malware-safe handling
+- [x] `CP-REPORT-005` ทำ idempotency ป้องกันการกดส่งซ้ำเมื่อ network ช้า
 - [ ] `CP-REPORT-006` เพิ่ม offline/failed upload recovery ที่ไม่เก็บภาพไว้นานเกิน consent
 
 ### ชุดภาพทดสอบขั้นต่ำ
