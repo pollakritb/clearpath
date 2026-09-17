@@ -2937,6 +2937,17 @@
   color: #725000;
 }
 
+.cp-forecast-alert p,
+.cp-forecast-alert small {
+  display: block;
+  margin: 4px 0 0;
+}
+
+.cp-forecast-alert small {
+  color: var(--cp-subink);
+  font-size: 0.7rem;
+}
+
 .cp-forecast-notice {
   border-left: 4px solid var(--cp-teal);
   background: var(--cp-teal-soft);
@@ -3075,6 +3086,12 @@
   overflow-x: auto;
   padding: 2px 1px 6px;
   scrollbar-width: thin;
+  margin-top: 14px;
+}
+
+.cp-forecast-horizons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .cp-forecast-horizons button {

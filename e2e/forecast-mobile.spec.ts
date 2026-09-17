@@ -180,9 +180,12 @@ function externalForecastFixture() {
   };
 }
 
-test.skip("forecast card exposes all horizons, uncertainty and accessible table", async ({
+test("forecast card exposes all horizons, uncertainty and accessible table", async ({
   page,
 }) => {
+  await page.route("**/api/forecast?**", async (route) => {
+    await route.fulfill({ json: externalForecastFixture() });
+  });
   await page.goto("/air?station=81t");
   await expect(
     page.getByText("อากาศวันนี้", { exact: false }).first(),
@@ -252,6 +255,16 @@ test("today page shows forecast unavailable without zero, mock, or comparison", 
   ).toBeVisible();
   await expect(
     forecastCard.getByText(/ยังไม่มีค่าพยากรณ์ในขณะนี้/),
+  ).toBeVisible();
+  const horizons = forecastCard.getByRole("group", {
+    name: "ช่วงเวลาพยากรณ์",
+  });
+  for (const label of ["1 ชม.", "3 ชม.", "6 ชม.", "12 ชม.", "24 ชม."]) {
+    await expect(horizons.getByRole("button", { name: label })).toBeVisible();
+  }
+  await horizons.getByRole("button", { name: "24 ชม." }).click();
+  await expect(
+    forecastCard.getByText(/ช่วงที่เลือก: อีก 24 ชม./),
   ).toBeVisible();
   await expect(
     forecastCard.getByText("เปรียบเทียบแหล่งข้อมูล", { exact: true }),

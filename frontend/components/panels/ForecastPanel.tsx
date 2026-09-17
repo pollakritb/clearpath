@@ -120,6 +120,42 @@ export default function ForecastPanel({
         </div>
       )}
 
+      {station && (
+        <div
+          className="cp-forecast-horizons"
+          role="group"
+          aria-label="ช่วงเวลาพยากรณ์"
+        >
+          {PRODUCT_HORIZONS.map((horizon) => {
+            const hasPoint = horizonPoints.some(
+              (point) => point.horizon_hours === horizon,
+            );
+            const disabled =
+              loading ||
+              Boolean(
+                data && data.forecast_status !== "unavailable" && !hasPoint,
+              );
+            return (
+              <button
+                key={horizon}
+                type="button"
+                className="cp-focus"
+                aria-pressed={selectedHorizon === horizon}
+                data-active={selectedHorizon === horizon}
+                disabled={disabled}
+                onClick={() => {
+                  setSelectedHorizon(horizon);
+                  setViewSource(null);
+                }}
+              >
+                <strong>{horizon}</strong>
+                <span>ชม.</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {unavailable && (
         <div className="cp-forecast-alert" role="status">
           <strong>{FORECAST_PAUSED_MESSAGE}</strong>
@@ -127,34 +163,15 @@ export default function ForecastPanel({
             ยังไม่มีค่าพยากรณ์ในขณะนี้
             กรุณาใช้ค่าฝุ่นปัจจุบันและคำแนะนำสุขภาพก่อน
           </p>
+          <small>
+            ช่วงที่เลือก: อีก {selectedHorizon} ชม. ·
+            จะแสดงค่าจริงเมื่อระบบรุ่นใหม่ผ่านการทดสอบ
+          </small>
         </div>
       )}
 
       {data && selected && data.forecast_status !== "unavailable" && (
         <div className="cp-forecast-card__body cp-anim-rise">
-          <div
-            className="cp-forecast-horizons"
-            role="group"
-            aria-label="ช่วงเวลาพยากรณ์"
-          >
-            {horizonPoints.map((point) => (
-              <button
-                key={point.horizon_hours}
-                type="button"
-                className="cp-focus"
-                aria-pressed={selected.horizon_hours === point.horizon_hours}
-                data-active={selected.horizon_hours === point.horizon_hours}
-                onClick={() => {
-                  setSelectedHorizon(point.horizon_hours);
-                  setViewSource(null);
-                }}
-              >
-                <strong>{point.horizon_hours}</strong>
-                <span>ชม.</span>
-              </button>
-            ))}
-          </div>
-
           <div
             className="cp-forecast-reading"
             style={
