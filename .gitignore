@@ -51,6 +51,8 @@ yarn-error.log*
 /field-comparison*.csv
 /field-comparison*.json
 /.forecast-reset-backups/
+/data/private/ocr-evaluation/
+/ocr-evaluation-results*.json
 
 # vercel
 .vercel
