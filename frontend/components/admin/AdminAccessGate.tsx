@@ -1,10 +1,12 @@
 import Link from "next/link";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 
 export default function AdminAccessGate() {
   const auth = useAuth();
+  const loginPrompt = useLoginPrompt();
   const canModerate = ["moderator", "admin"].includes(auth.role);
 
   if (auth.loading) {
@@ -32,9 +34,19 @@ export default function AdminAccessGate() {
             ClearPath รวมการเข้าสู่ระบบไว้ในหน้าการตั้งค่าเพียงจุดเดียว
             จากนั้นกลับมาที่หน้านี้ด้วยบัญชี Moderator หรือ Admin
           </p>
-          <Link href="/settings" className="cp-admin-primary-link cp-focus">
-            ไปหน้าเข้าสู่ระบบ
-          </Link>
+          <button
+            type="button"
+            className="cp-admin-primary-link cp-focus"
+            onClick={() =>
+              loginPrompt.openLoginPrompt({
+                title: "เข้าสู่ระบบผู้ดูแล",
+                description:
+                  "ใช้บัญชี Google ที่ได้รับบทบาท Moderator หรือ Admin เพื่อเปิดหลังบ้าน",
+              })
+            }
+          >
+            เข้าสู่ระบบด้วย Google
+          </button>
           <Link href="/" className="cp-admin-back-link cp-focus">
             <AppIcon name="back" size={17} /> กลับไปยังพื้นที่ผู้ใช้งาน
           </Link>

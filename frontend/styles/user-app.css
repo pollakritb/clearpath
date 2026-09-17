@@ -459,6 +459,10 @@
   gap: 0.4rem;
 }
 
+.cp-auth-form__row[hidden] {
+  display: none !important;
+}
+
 @media (max-width: 480px) {
   .cp-auth-session[data-compact="false"] {
     align-items: stretch;
@@ -522,6 +526,112 @@
   height: 1px;
   flex: 1;
   background: #dce5e3;
+}
+
+.cp-login-modal {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding: 18px max(14px, env(safe-area-inset-right))
+    max(18px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  background: rgba(8, 27, 25, 0.54);
+  backdrop-filter: blur(5px);
+  animation: cp-login-backdrop-in 160ms ease-out;
+}
+
+.cp-login-modal__card {
+  width: min(100%, 430px);
+  position: relative;
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d7e3e0;
+  border-radius: 22px;
+  padding: 24px 18px 18px;
+  background: #fff;
+  box-shadow: 0 22px 70px rgba(3, 31, 28, 0.3);
+  color: var(--cp-ink);
+  font-family: var(--font-noto-thai), system-ui, sans-serif;
+  animation: cp-login-card-in 180ms ease-out;
+}
+
+.cp-login-modal__close {
+  width: 42px;
+  height: 42px;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--cp-subink);
+  cursor: pointer;
+}
+
+.cp-login-modal__icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--cp-teal-soft);
+  color: var(--cp-teal);
+}
+
+.cp-login-modal__card h2,
+.cp-login-modal__card p {
+  margin: 0;
+  padding-right: 44px;
+}
+
+.cp-login-modal__card h2 {
+  font-size: 1.08rem;
+}
+
+.cp-login-modal__card p {
+  color: var(--cp-subink);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.cp-login-modal__card > a {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cp-teal);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@keyframes cp-login-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes cp-login-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@media (min-width: 700px) {
+  .cp-login-modal {
+    place-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-login-modal,
+  .cp-login-modal__card {
+    animation: none;
+  }
 }
 .cp-notification-settings {
   display: grid;

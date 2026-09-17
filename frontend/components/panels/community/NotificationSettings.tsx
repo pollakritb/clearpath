@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { NotificationPreferences } from "@/frontend/types";
@@ -53,6 +53,7 @@ function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
 
 export default function NotificationSettings() {
   const auth = useAuth();
+  const loginPrompt = useLoginPrompt();
   const [preferences, setPreferences] = useState(DEFAULTS);
   const [subscription, setSubscription] = useState<PushSubscription | null>(
     null,
@@ -196,9 +197,19 @@ export default function NotificationSettings() {
     return (
       <section className="cp-notification-auth">
         <p>เข้าสู่ระบบเพื่อบันทึกช่องทางและเงื่อนไขแจ้งเตือนของคุณ</p>
-        <Link href="/settings" className="cp-auth-redirect__button cp-focus">
-          ไปหน้าเข้าสู่ระบบ
-        </Link>
+        <button
+          type="button"
+          className="cp-auth-redirect__button cp-focus"
+          onClick={() =>
+            loginPrompt.openLoginPrompt({
+              title: "เข้าสู่ระบบเพื่อเปิดการแจ้งเตือน",
+              description:
+                "บันทึกช่องทาง ระดับฝุ่น และพื้นที่แจ้งเตือนไว้กับบัญชี Google ของคุณ",
+            })
+          }
+        >
+          เข้าสู่ระบบด้วย Google
+        </button>
       </section>
     );
   }

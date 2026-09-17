@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { DataIssueCategory, DataIssueCreate } from "@/frontend/types";
 
@@ -15,6 +15,7 @@ const EMPTY: DataIssueCreate = {
 
 export default function DataIssueForm() {
   const auth = useAuth();
+  const loginPrompt = useLoginPrompt();
   const [form, setForm] = useState<DataIssueCreate>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -24,9 +25,19 @@ export default function DataIssueForm() {
     return (
       <div className="cp-data-issue-form">
         <p>เข้าสู่ระบบเพื่อให้ผู้ดูแลติดตามรายการและป้องกันสแปม</p>
-        <Link href="/settings" className="cp-auth-redirect__button cp-focus">
-          ไปหน้าเข้าสู่ระบบ
-        </Link>
+        <button
+          type="button"
+          className="cp-auth-redirect__button cp-focus"
+          onClick={() =>
+            loginPrompt.openLoginPrompt({
+              title: "เข้าสู่ระบบก่อนแจ้งข้อมูลผิดพลาด",
+              description:
+                "ใช้บัญชี Google เพื่อป้องกันสแปมและให้ผู้ดูแลติดตามรายการได้",
+            })
+          }
+        >
+          เข้าสู่ระบบด้วย Google
+        </button>
       </div>
     );
   }

@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { T } from "@/frontend/lib/ui";
@@ -59,6 +59,7 @@ export default function ReportForm({
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState<ReportCreateResponse | null>(null);
   const auth = useAuth();
+  const loginPrompt = useLoginPrompt();
   const googleProfile = googleReporterProfile(auth.user);
   const activeStep = draft ? 3 : evidence ? 2 : 1;
 
@@ -278,9 +279,19 @@ export default function ReportForm({
             <strong>เข้าสู่ระบบก่อนส่งข้อมูล</strong>
             <small>จัดการบัญชี Google ได้จากหน้าการตั้งค่าเพียงจุดเดียว</small>
           </span>
-          <Link href="/settings" className="cp-focus">
-            ไปหน้าเข้าสู่ระบบ
-          </Link>
+          <button
+            type="button"
+            className="cp-focus"
+            onClick={() =>
+              loginPrompt.openLoginPrompt({
+                title: "เข้าสู่ระบบก่อนส่งข้อมูล",
+                description:
+                  "ใช้บัญชี Google เพื่อยืนยันผู้ส่ง ป้องกันสแปม และติดตามสถานะรายงาน",
+              })
+            }
+          >
+            เข้าสู่ระบบด้วย Google
+          </button>
         </aside>
       )}
       <form onSubmit={submit} className="cp-report-form">
@@ -299,6 +310,13 @@ export default function ReportForm({
               </span>
             </div>
             <CameraCapture
+              onLoginRequired={() =>
+                loginPrompt.openLoginPrompt({
+                  title: "เข้าสู่ระบบก่อนเปิดกล้อง",
+                  description:
+                    "ใช้บัญชี Google เพื่อยืนยันผู้ส่งและติดตามผลการตรวจรายงาน",
+                })
+              }
               onCaptured={(nextEvidence) => {
                 setDraft(null);
                 setClaimedPm25("");

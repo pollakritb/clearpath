@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { useCommunityRewards } from "@/frontend/hooks/useCommunity";
 
@@ -13,6 +13,7 @@ import RewardsSection from "./community/RewardsSection";
 
 export default function ProfilePanel() {
   const auth = useAuth();
+  const loginPrompt = useLoginPrompt();
   const signedIn = Boolean(auth.user || auth.localDemo);
   const [gratitudeOpen, setGratitudeOpen] = useState(false);
   const [rewardsOpen, setRewardsOpen] = useState(false);
@@ -25,9 +26,19 @@ export default function ProfilePanel() {
             <strong>เข้าสู่ระบบเพื่อดูโปรไฟล์</strong>
             <small>บัญชี Google จัดการจากหน้าการตั้งค่า</small>
           </span>
-          <Link href="/settings" className="cp-focus">
-            ไปหน้าเข้าสู่ระบบ
-          </Link>
+          <button
+            type="button"
+            className="cp-focus"
+            onClick={() =>
+              loginPrompt.openLoginPrompt({
+                title: "เข้าสู่ระบบเพื่อดูโปรไฟล์",
+                description:
+                  "ดูรายงาน คำขอบคุณ และกิจกรรมของคุณด้วยบัญชี Google",
+              })
+            }
+          >
+            เข้าสู่ระบบด้วย Google
+          </button>
         </aside>
       )}
 

@@ -751,6 +751,7 @@
 }
 
 .cp-app .cp-auth-redirect > a,
+.cp-app .cp-auth-redirect > button,
 .cp-app .cp-auth-redirect__button {
   min-height: 42px;
   display: inline-flex;
@@ -764,6 +765,9 @@
   font-weight: 800;
   text-align: center;
   text-decoration: none;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 @media (max-width: 430px) {
@@ -771,7 +775,8 @@
     grid-template-columns: 1fr;
   }
 
-  .cp-app .cp-auth-redirect > a {
+  .cp-app .cp-auth-redirect > a,
+  .cp-app .cp-auth-redirect > button {
     width: 100%;
   }
 }

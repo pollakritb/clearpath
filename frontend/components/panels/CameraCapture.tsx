@@ -23,9 +23,11 @@ type CameraFacing = "environment" | "user";
 export default function CameraCapture({
   onCaptured,
   onCleared,
+  onLoginRequired,
 }: {
   onCaptured: (evidence: CameraEvidence) => void;
   onCleared: () => void;
+  onLoginRequired?: () => boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -89,6 +91,7 @@ export default function CameraCapture({
   }, [preview]);
 
   async function startCamera() {
+    if (onLoginRequired?.()) return;
     setLoading(true);
     setError(null);
     if (preview) {

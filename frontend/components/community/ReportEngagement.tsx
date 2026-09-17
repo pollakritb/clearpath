@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type {
@@ -28,6 +28,7 @@ export default function ReportEngagement({
   report: CommunityReport;
 }) {
   const auth = useAuth();
+  const loginPrompt = useLoginPrompt();
   const [engagement, setEngagement] = useState(() => initialEngagement(report));
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comment, setComment] = useState("");
@@ -54,7 +55,15 @@ export default function ReportEngagement({
   const signedIn = Boolean(auth.user || auth.localDemo);
 
   async function react(kind: ReactionKind) {
-    if (!signedIn || pending) return;
+    if (!signedIn) {
+      loginPrompt.openLoginPrompt({
+        title: "เข้าสู่ระบบเพื่อร่วมแสดงความคิดเห็น",
+        description:
+          "ใช้บัญชี Google เพื่อกดถูกใจ ไม่ถูกใจ และแสดงความคิดเห็นต่อรายงานนี้",
+      });
+      return;
+    }
+    if (pending) return;
     setPending(true);
     setError(null);
     try {
@@ -120,7 +129,7 @@ export default function ReportEngagement({
           type="button"
           className="cp-focus"
           data-active={engagement.viewer_reaction === "like"}
-          disabled={!signedIn || pending}
+          disabled={pending}
           aria-pressed={engagement.viewer_reaction === "like"}
           onClick={() => void react("like")}
         >
@@ -132,7 +141,7 @@ export default function ReportEngagement({
           type="button"
           className="cp-focus"
           data-active={engagement.viewer_reaction === "dislike"}
-          disabled={!signedIn || pending}
+          disabled={pending}
           aria-pressed={engagement.viewer_reaction === "dislike"}
           onClick={() => void react("dislike")}
         >
@@ -144,7 +153,17 @@ export default function ReportEngagement({
           type="button"
           className="cp-focus"
           aria-expanded={commentsOpen}
-          onClick={() => setCommentsOpen((open) => !open)}
+          onClick={() => {
+            if (!signedIn) {
+              loginPrompt.openLoginPrompt({
+                title: "เข้าสู่ระบบเพื่อแสดงความคิดเห็น",
+                description:
+                  "ใช้บัญชี Google เพื่อร่วมสนทนาและช่วยยืนยันข้อมูลจากชุมชน",
+              });
+              return;
+            }
+            setCommentsOpen((open) => !open);
+          }}
         >
           <AppIcon name="comment" size={18} />
           <span>ความคิดเห็น</span>
@@ -154,8 +173,7 @@ export default function ReportEngagement({
 
       {!signedIn && (
         <p className="cp-report-engagement__signin">
-          <Link href="/settings">ไปหน้าเข้าสู่ระบบ</Link>
-          <span> เพื่อกดปฏิกิริยาหรือแสดงความคิดเห็น</span>
+          กดปุ่มด้านบนเพื่อเข้าสู่ระบบด้วย Google
         </p>
       )}
 

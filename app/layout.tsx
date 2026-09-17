@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/frontend/components/auth/AuthProvider";
+import { LoginPromptProvider } from "@/frontend/components/auth/LoginPromptProvider";
 import PwaRegistrar from "@/frontend/components/app/PwaRegistrar";
 import { DisplayPreferencesProvider } from "@/frontend/components/settings/DisplayPreferencesProvider";
 
@@ -42,7 +43,9 @@ export default function RootLayout({
     <html lang="th" className={`${notoThai.variable} ${plexMono.variable}`}>
       <body>
         <DisplayPreferencesProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <LoginPromptProvider>{children}</LoginPromptProvider>
+          </AuthProvider>
         </DisplayPreferencesProvider>
         <PwaRegistrar />
       </body>
