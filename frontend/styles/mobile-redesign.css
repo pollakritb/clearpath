@@ -496,6 +496,22 @@
   line-height: 1.55;
 }
 
+.cp-app .cp-community-announcements__source {
+  align-items: center;
+  color: var(--cp-teal);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  gap: 4px;
+  margin-top: 9px;
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.cp-app .cp-community-announcements__source:hover {
+  text-decoration: underline;
+}
+
 .cp-app .cp-community-overview {
   display: grid;
   gap: 12px;

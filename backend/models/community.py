@@ -268,6 +268,9 @@ class Announcement(BaseModel):
     expires_at: str | None = None
     status: AnnouncementStatus = "published"
     image_url: str | None = None
+    source_name: str | None = None
+    source_url: str | None = None
+    external: bool = False
     created_at: str | None = None
     updated_at: str | None = None
 

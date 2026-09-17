@@ -7,7 +7,7 @@ const pages = [
   { path: "/", text: "คุณภาพอากาศทั่วไทย" },
   { path: "/air", text: "อากาศวันนี้" },
   { path: "/report", text: "ส่งข้อมูลจากเครื่องวัด" },
-  { path: "/community", text: "ประกาศสำคัญ" },
+  { path: "/community", text: "ข่าวสารล่าสุด" },
   { path: "/settings", text: "การแสดงผล" },
   { path: "/profile", text: "โปรไฟล์ของฉัน" },
   { path: "/admin", text: "ศูนย์ควบคุม ClearPath" },
@@ -169,11 +169,42 @@ test("header actions expose refresh and a dedicated settings page", async ({
 test("news page prioritizes announcements and moves settings elsewhere", async ({
   page,
 }) => {
+  await page.route("**/api/community/announcements", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        announcements: [
+          {
+            id: "google-news-1",
+            title: "ข่าว PM2.5 ล่าสุด",
+            body: "เปิดอ่านรายละเอียดจากสำนักข่าวต้นฉบับ",
+            kind: "news",
+            area: "ประเทศไทย",
+            published_at: "2026-09-17T08:00:00+00:00",
+            expires_at: null,
+            status: "published",
+            image_url: null,
+            source_name: "Thai News",
+            source_url: "https://news.google.com/rss/articles/example",
+            external: true,
+            created_at: null,
+            updated_at: null,
+          },
+        ],
+      }),
+    });
+  });
   await page.goto("/community");
 
   await expect(
-    page.getByRole("heading", { name: "ประกาศสำคัญ" }),
+    page.getByRole("heading", { name: "ข่าวสารล่าสุด" }),
   ).toBeVisible();
+  const sourceLink = page.getByRole("link", { name: "อ่านจาก Thai News" });
+  await expect(sourceLink).toHaveAttribute(
+    "href",
+    "https://news.google.com/rss/articles/example",
+  );
+  await expect(sourceLink).toHaveAttribute("target", "_blank");
   await expect(page.getByRole("link", { name: /การแจ้งเตือน/ })).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: /ส่งข้อมูลค่าฝุ่น/ }),

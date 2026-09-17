@@ -33,7 +33,7 @@ from ..models.schemas import (
 )
 from ..services import capture as capture_service
 from ..services import community as community_service
-from ..services import image_fingerprint, local_store, supabase_client
+from ..services import google_news, image_fingerprint, local_store, supabase_client
 
 router = APIRouter()
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -452,9 +452,17 @@ async def leaderboard(limit: int = Query(20, ge=1, le=100)):
 
 
 @router.get("/community/announcements", response_model=AnnouncementsResponse)
-async def announcements():
+async def announcements(response: Response):
     rows = await run_in_threadpool(supabase_client.get_announcements)
-    return AnnouncementsResponse(announcements=[Announcement(**r) for r in rows])
+    external_rows = await google_news.fetch_latest()
+    combined = [*rows, *external_rows]
+    combined.sort(key=lambda row: str(row.get("published_at") or ""), reverse=True)
+    response.headers["Cache-Control"] = (
+        "public, s-maxage=3600, stale-while-revalidate=300"
+    )
+    return AnnouncementsResponse(
+        announcements=[Announcement(**row) for row in combined[:20]]
+    )
 
 
 @router.get("/community/activities", response_model=ActivitiesResponse)

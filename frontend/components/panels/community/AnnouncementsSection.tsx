@@ -23,7 +23,7 @@ export default function AnnouncementsSection({
 }: {
   announcements: Announcement[];
 }) {
-  const visible = announcements.slice(0, 3);
+  const visible = announcements.slice(0, 6);
 
   return (
     <section
@@ -35,8 +35,8 @@ export default function AnnouncementsSection({
           <AppIcon name="alert" size={21} />
         </span>
         <span>
-          <small>อัปเดตจาก ClearPath</small>
-          <h2 id="community-announcements-title">ประกาศสำคัญ</h2>
+          <small>ประกาศ ClearPath และข่าวคุณภาพอากาศ</small>
+          <h2 id="community-announcements-title">ข่าวสารล่าสุด</h2>
         </span>
         {visible.length > 0 && <b>{visible.length}</b>}
       </header>
@@ -73,6 +73,17 @@ export default function AnnouncementsSection({
               </div>
               <h3>{item.title}</h3>
               <p>{item.body}</p>
+              {item.external && item.source_url && (
+                <a
+                  className="cp-community-announcements__source"
+                  href={item.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  อ่านจาก {item.source_name ?? "สำนักข่าวต้นฉบับ"}
+                  <AppIcon name="chevron" size={16} />
+                </a>
+              )}
             </article>
           ))}
         </div>

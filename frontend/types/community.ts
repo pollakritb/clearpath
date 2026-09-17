@@ -267,6 +267,9 @@ export interface Announcement {
   expires_at: string | null;
   status: AnnouncementStatus;
   image_url: string | null;
+  source_name: string | null;
+  source_url: string | null;
+  external: boolean;
   created_at: string | null;
   updated_at: string | null;
 }
