@@ -7,11 +7,9 @@ import MobileAirSummary from "@/frontend/components/app/MobileAirSummary";
 import NationalSummary from "@/frontend/components/app/NationalSummary";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import AQICard from "@/frontend/components/panels/AQICard";
-import FireAlertPanel from "@/frontend/components/panels/FireAlertPanel";
 import ForecastPanel from "@/frontend/components/panels/ForecastPanel";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
 import { useCurrentLocation } from "@/frontend/hooks/useCurrentLocation";
-import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
 import { useForecast } from "@/frontend/hooks/useForecast";
 import { useHistory } from "@/frontend/hooks/useHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
@@ -54,7 +52,6 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
   const pm25 = usePm25();
   const weather = useWeather();
   const history = useHistory();
-  const firms = useFirms();
   const forecast = useForecast();
   const community = useCommunityMapData({ includeReports: false });
   const currentLocation = useCurrentLocation(true);
@@ -79,13 +76,6 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
   );
   const selectedStation = routeStation ?? automaticStation;
 
-  const loadFires = firms.load;
-  useEffect(() => {
-    void loadFires(1);
-    const timer = window.setInterval(() => void loadFires(1), FIRMS_REFRESH_MS);
-    return () => window.clearInterval(timer);
-  }, [loadFires]);
-
   const weatherLoad = weather.load;
   const forecastLoad = forecast.load;
   useEffect(() => {
@@ -106,11 +96,7 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
 
   const refresh = useCallback(() => {
     currentLocation.request();
-    const tasks: Promise<unknown>[] = [
-      pm25.refresh(),
-      community.refresh(),
-      firms.load(1),
-    ];
+    const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
     if (selectedStation) {
       tasks.push(
         weather.load(selectedStation.lat, selectedStation.lon),
@@ -122,7 +108,6 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
   }, [
     community,
     currentLocation,
-    firms,
     forecast,
     history,
     pm25,
@@ -170,15 +155,6 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
           historyLoading={history.loading}
           onOpenMap={() => router.push("/")}
         />
-        <FireAlertPanel
-          fires={firms.fires}
-          loading={firms.loading}
-          status={firms.status}
-          message={firms.message}
-          checkedAt={firms.checkedAt}
-          error={firms.error}
-          onShowLayer={() => router.push("/?layer=fires")}
-        />
         <ForecastPanel
           station={selectedStation}
           data={forecast.data}
@@ -187,7 +163,7 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
         />
         {community.error && (
           <p role="alert" className="cp-inline-error">
-            {community.error}
+            ยังโหลดข้อมูลรายงานชุมชนไม่ได้ กรุณาลองรีเฟรชอีกครั้ง
           </p>
         )}
       </div>

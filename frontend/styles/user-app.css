@@ -2912,8 +2912,8 @@
 }
 
 .cp-forecast-quality[data-state="unavailable"] {
-  background: #ffebe7;
-  color: #9e302a;
+  background: #eef3ff;
+  color: #425fa8;
 }
 
 .cp-forecast-empty,
@@ -2924,6 +2924,188 @@
   padding: 12px 13px;
   font-size: 0.78rem;
   line-height: 1.55;
+}
+
+.cp-forecast-preview {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.cp-forecast-preview__hero {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid #cfe4df;
+  border-radius: 18px;
+  padding: 14px;
+  background: linear-gradient(135deg, #f0f8f6 0%, #f7fbfa 100%);
+}
+
+.cp-forecast-preview__icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #dcefea;
+  color: var(--cp-teal);
+}
+
+.cp-forecast-preview__hero > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cp-forecast-preview__hero > div > span,
+.cp-forecast-preview__hero small,
+.cp-forecast-preview__summary span {
+  color: var(--cp-subink);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.cp-forecast-preview__hero > div > strong {
+  font-size: 0.9rem;
+}
+
+.cp-forecast-preview__value {
+  color: #77a49e;
+  font: 800 2.4rem/1 var(--font-mono);
+}
+
+.cp-forecast-preview__summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cp-forecast-preview__summary > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--cp-line);
+  border-radius: 14px;
+  padding: 11px 12px;
+  background: #fafcfb;
+}
+
+.cp-forecast-preview__summary strong {
+  overflow-wrap: anywhere;
+  font: 750 0.76rem/1.35 var(--font-mono);
+}
+
+.cp-forecast-preview__sources {
+  overflow: hidden;
+  border: 1px solid var(--cp-line);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.cp-forecast-preview__sources-heading {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--cp-line);
+  background: #f7faf9;
+}
+
+.cp-forecast-preview__sources-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.cp-forecast-preview__sources-heading small {
+  color: var(--cp-subink);
+  font-size: 0.62rem;
+  text-align: right;
+}
+
+.cp-forecast-preview__sources ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cp-forecast-preview__sources li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.cp-forecast-preview__sources li + li {
+  border-top: 1px solid var(--cp-line);
+}
+
+.cp-forecast-preview__sources li > svg {
+  color: var(--cp-teal);
+}
+
+.cp-forecast-preview__sources li > span {
+  min-width: 0;
+  display: grid;
+}
+
+.cp-forecast-preview__sources li strong {
+  font-size: 0.72rem;
+}
+
+.cp-forecast-preview__sources li small {
+  color: var(--cp-subink);
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+
+.cp-forecast-preview__sources li em {
+  border-radius: 999px;
+  padding: 5px 7px;
+  background: #eef3f2;
+  color: var(--cp-subink);
+  font-size: 0.6rem;
+  font-style: normal;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.cp-forecast-preview__notice {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #ead59c;
+  border-radius: 14px;
+  padding: 11px 12px;
+  background: #fff9e9;
+  color: #725000;
+}
+
+.cp-forecast-preview__notice > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cp-forecast-preview__notice strong {
+  font-size: 0.75rem;
+}
+
+.cp-forecast-preview__notice small {
+  color: #725000;
+  font-size: 0.64rem;
+  line-height: 1.45;
+  opacity: 0.85;
 }
 
 .cp-forecast-empty {
@@ -3076,6 +3258,37 @@
 @media (max-width: 390px) {
   .cp-forecast-sources__list {
     grid-template-columns: 1fr;
+  }
+
+  .cp-forecast-preview__hero {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .cp-forecast-preview__icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .cp-forecast-preview__sources-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .cp-forecast-preview__sources-heading small {
+    padding-left: 24px;
+    text-align: left;
+  }
+
+  .cp-forecast-preview__sources li {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .cp-forecast-preview__sources li em {
+    grid-column: 2;
+    justify-self: start;
   }
 }
 

@@ -16,7 +16,10 @@ import {
   formatProviderTime,
   PRODUCT_HORIZONS,
 } from "@/frontend/lib/forecast-presentation";
-import { FORECAST_PAUSED_MESSAGE } from "@/frontend/lib/forecast-state";
+import {
+  FORECAST_PAUSED_MESSAGE,
+  FORECAST_SYSTEM_PAUSED,
+} from "@/frontend/lib/forecast-state";
 import type {
   ForecastResponse,
   ForecastSource,
@@ -29,6 +32,92 @@ const SOURCE_ICONS: Record<ForecastSource, AppIconName> = {
   openmeteo_cams: "model",
   openweather: "database",
 };
+
+function ForecastPausedPreview({
+  selectedHorizon,
+}: {
+  selectedHorizon: number;
+}) {
+  return (
+    <div className="cp-forecast-preview cp-anim-rise" aria-live="polite">
+      <div className="cp-forecast-preview__hero">
+        <span className="cp-forecast-preview__icon" aria-hidden>
+          <AppIcon name="activity" size={22} />
+        </span>
+        <div>
+          <span>ช่วงที่เลือก · อีก {selectedHorizon} ชั่วโมง</span>
+          <strong>ยังไม่มีค่าพยากรณ์</strong>
+          <small>ค่าจริงจะแสดงเป็น µg/m³ พร้อมระดับคุณภาพอากาศ</small>
+        </div>
+        <span className="cp-forecast-preview__value" aria-hidden>
+          —
+        </span>
+      </div>
+
+      <div
+        className="cp-forecast-preview__summary"
+        aria-label="ข้อมูลประกอบพยากรณ์"
+      >
+        <div>
+          <span>ช่วงค่าที่เป็นไปได้</span>
+          <strong>— ถึง — µg/m³</strong>
+        </div>
+        <div>
+          <span>ความเชื่อมั่น</span>
+          <strong>รอข้อมูล</strong>
+        </div>
+      </div>
+
+      <div className="cp-forecast-preview__sources">
+        <div className="cp-forecast-preview__sources-heading">
+          <span>
+            <AppIcon name="layers" size={17} />
+            ข้อมูลที่จะใช้ประกอบ
+          </span>
+          <small>ยังไม่เชื่อมระบบคำนวณ</small>
+        </div>
+        <ul>
+          <li>
+            <AppIcon name="activity" size={17} />
+            <span>
+              <strong>ClearPath</strong>
+              <small>ค่าพยากรณ์หลักและช่วงความไม่แน่นอน</small>
+            </span>
+            <em>รอข้อมูล</em>
+          </li>
+          <li>
+            <AppIcon name="database" size={17} />
+            <span>
+              <strong>ข้อมูลภายนอก</strong>
+              <small>ใช้ตรวจสอบความสอดคล้องของแนวโน้ม</small>
+            </span>
+            <em>รอข้อมูล</em>
+          </li>
+          <li>
+            <AppIcon name="community" size={17} />
+            <span>
+              <strong>ข้อมูลชุมชน</strong>
+              <small>ใช้เป็นหลักฐานประกอบเมื่อผ่านเกณฑ์</small>
+            </span>
+            <em>รอข้อมูล</em>
+          </li>
+        </ul>
+      </div>
+
+      <div className="cp-forecast-preview__notice">
+        <AppIcon name="info" size={18} />
+        <span>
+          <strong>{FORECAST_PAUSED_MESSAGE}</strong>
+          <small>ระหว่างนี้ให้ใช้ค่าฝุ่นปัจจุบันและคำแนะนำสุขภาพเป็นหลัก</small>
+        </span>
+      </div>
+      <p className="cp-forecast-disclaimer">
+        เมื่อเปิดใช้งาน พยากรณ์จะแสดงแนวโน้มเพื่อช่วยวางแผน
+        ไม่ใช่ค่าตรวจวัดจริงหรือคำแนะนำทางการแพทย์
+      </p>
+    </div>
+  );
+}
 
 export default function ForecastPanel({
   station,
@@ -83,6 +172,7 @@ export default function ForecastPanel({
   const lowConfidence =
     data?.forecast_status === "limited" || data?.agreement === "low";
   const unavailable = data?.forecast_status === "unavailable";
+  const previewMode = FORECAST_SYSTEM_PAUSED || unavailable;
 
   return (
     <section className="cp-forecast-card" aria-labelledby="forecast-title">
@@ -94,12 +184,12 @@ export default function ForecastPanel({
             {station ? station.name_th || station.name_en : "เลือกสถานีก่อน"}
           </p>
         </div>
-        {data && (
+        {(previewMode || data) && (
           <span
             className="cp-forecast-quality"
-            data-state={data.forecast_status}
+            data-state={previewMode ? "unavailable" : data?.forecast_status}
           >
-            {forecastStatus(data)}
+            {previewMode ? "กำลังพัฒนา" : forecastStatus(data!)}
           </span>
         )}
       </div>
@@ -109,18 +199,18 @@ export default function ForecastPanel({
           แตะหมุดสถานี แล้วเปิดหน้าอากาศเพื่อดูพยากรณ์
         </div>
       )}
-      {loading && !unavailable && (
+      {loading && !previewMode && (
         <div className="cp-forecast-empty" role="status" aria-live="polite">
           กำลังโหลดพยากรณ์จากแหล่งข้อมูลที่พร้อมใช้งาน…
         </div>
       )}
-      {error && !unavailable && (
+      {error && !previewMode && (
         <div className="cp-forecast-alert" role="alert">
           {error}
         </div>
       )}
 
-      {station && (
+      {(station || previewMode) && (
         <div
           className="cp-forecast-horizons"
           role="group"
@@ -131,10 +221,11 @@ export default function ForecastPanel({
               (point) => point.horizon_hours === horizon,
             );
             const disabled =
-              loading ||
-              Boolean(
-                data && data.forecast_status !== "unavailable" && !hasPoint,
-              );
+              !previewMode &&
+              (loading ||
+                Boolean(
+                  data && data.forecast_status !== "unavailable" && !hasPoint,
+                ));
             return (
               <button
                 key={horizon}
@@ -156,21 +247,11 @@ export default function ForecastPanel({
         </div>
       )}
 
-      {unavailable && (
-        <div className="cp-forecast-alert" role="status">
-          <strong>{FORECAST_PAUSED_MESSAGE}</strong>
-          <p>
-            ยังไม่มีค่าพยากรณ์ในขณะนี้
-            กรุณาใช้ค่าฝุ่นปัจจุบันและคำแนะนำสุขภาพก่อน
-          </p>
-          <small>
-            ช่วงที่เลือก: อีก {selectedHorizon} ชม. ·
-            จะแสดงค่าจริงเมื่อระบบรุ่นใหม่ผ่านการทดสอบ
-          </small>
-        </div>
+      {previewMode && (
+        <ForecastPausedPreview selectedHorizon={selectedHorizon} />
       )}
 
-      {data && selected && data.forecast_status !== "unavailable" && (
+      {data && selected && !previewMode && (
         <div className="cp-forecast-card__body cp-anim-rise">
           <div
             className="cp-forecast-reading"
