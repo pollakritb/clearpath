@@ -218,6 +218,9 @@ def present_report(
         "rating_average": float(row["rating_average"])
         if row.get("rating_average") is not None
         else None,
+        "like_count": int(row.get("like_count") or 0),
+        "dislike_count": int(row.get("dislike_count") or 0),
+        "comment_count": int(row.get("comment_count") or 0),
     }
 
 

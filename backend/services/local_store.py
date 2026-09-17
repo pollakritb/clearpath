@@ -23,6 +23,8 @@ _HISTORY: list[dict] = []
 _PROFILES: dict[str, dict] = {}
 _REPORTS: dict[str, dict] = {}
 _REVIEWS: dict[tuple[str, str], dict] = {}
+_REPORT_REACTIONS: dict[tuple[str, str], dict] = {}
+_REPORT_COMMENTS: dict[str, dict] = {}
 _EVENTS: list[dict] = []
 _IMAGES: dict[str, tuple[bytes, str]] = {}
 _CAPTURE_SESSIONS: dict[str, dict] = {}
@@ -1031,6 +1033,14 @@ def delete_community_report(report_id: str) -> None:
         _REPORT_EVIDENCE.pop(report_id, None)
         for key in [key for key in _REVIEWS if key[0] == report_id]:
             _REVIEWS.pop(key, None)
+        for key in [key for key in _REPORT_REACTIONS if key[0] == report_id]:
+            _REPORT_REACTIONS.pop(key, None)
+        for comment_id in [
+            key
+            for key, row in _REPORT_COMMENTS.items()
+            if str(row["report_id"]) == report_id
+        ]:
+            _REPORT_COMMENTS.pop(comment_id, None)
 
 
 def upsert_review(row: dict) -> None:
@@ -1048,6 +1058,74 @@ def mark_review_rewarded(report_id: str, reviewer_id: str, rewarded_at: str) -> 
         row = _REVIEWS.get((report_id, reviewer_id))
         if row:
             row["rewarded_at"] = rewarded_at
+
+
+def _refresh_report_engagement(report_id: str) -> None:
+    report = _REPORTS.get(report_id)
+    if not report:
+        return
+    reactions = [row for (rid, _), row in _REPORT_REACTIONS.items() if rid == report_id]
+    report["like_count"] = sum(row["reaction"] == "like" for row in reactions)
+    report["dislike_count"] = sum(row["reaction"] == "dislike" for row in reactions)
+    report["comment_count"] = sum(
+        str(row["report_id"]) == report_id and row.get("status") == "published"
+        for row in _REPORT_COMMENTS.values()
+    )
+
+
+def upsert_report_reaction(row: dict) -> dict:
+    with _LOCK:
+        key = (str(row["report_id"]), str(row["user_id"]))
+        current = _REPORT_REACTIONS.get(key, {})
+        current.update(row)
+        _REPORT_REACTIONS[key] = current
+        _refresh_report_engagement(key[0])
+        return dict(current)
+
+
+def delete_report_reaction(report_id: str, user_id: str) -> None:
+    with _LOCK:
+        _REPORT_REACTIONS.pop((report_id, user_id), None)
+        _refresh_report_engagement(report_id)
+
+
+def get_report_reaction(report_id: str, user_id: str) -> dict | None:
+    with _LOCK:
+        row = _REPORT_REACTIONS.get((report_id, user_id))
+        return dict(row) if row else None
+
+
+def create_report_comment(row: dict) -> dict:
+    with _LOCK:
+        _REPORT_COMMENTS[str(row["id"])] = dict(row)
+        _refresh_report_engagement(str(row["report_id"]))
+        return dict(row)
+
+
+def list_report_comments(report_id: str, limit: int = 50) -> list[dict]:
+    with _LOCK:
+        rows = [
+            dict(row)
+            for row in _REPORT_COMMENTS.values()
+            if str(row["report_id"]) == report_id and row.get("status") == "published"
+        ]
+        rows.sort(key=lambda row: str(row["created_at"]), reverse=True)
+        for row in rows[:limit]:
+            profile = _PROFILES.get(str(row["user_id"]), {})
+            row["display_name"] = profile.get("display_name")
+            row["avatar_url"] = profile.get("avatar_url")
+        return rows[:limit]
+
+
+def delete_report_comment(comment_id: str, user_id: str) -> bool:
+    with _LOCK:
+        row = _REPORT_COMMENTS.get(comment_id)
+        if not row or str(row["user_id"]) != user_id:
+            return False
+        report_id = str(row["report_id"])
+        _REPORT_COMMENTS.pop(comment_id, None)
+        _refresh_report_engagement(report_id)
+        return True
 
 
 def apply_event(user_id: str, points: int, reason: str, report_id: str | None) -> dict:

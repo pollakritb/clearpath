@@ -4,6 +4,7 @@ export type CommunityDataRole = "supplementary" | "gap_fill";
 export type CommunitySourceType = "individual" | "community_sensor";
 export type GapFillBasis = "none" | "corroborated" | "calibrated_high_trust";
 export type RatingDirection = "negative" | "neutral" | "positive";
+export type ReactionKind = "like" | "dislike";
 export type RejectionReason =
   | "image_unclear"
   | "value_mismatch"
@@ -91,6 +92,9 @@ export interface CommunityReport {
   policy_version: string;
   rating_count: number;
   rating_average: number | null;
+  like_count: number;
+  dislike_count: number;
+  comment_count: number;
 }
 
 export interface CommunityReportsResponse {
@@ -181,6 +185,33 @@ export interface RatingResult {
   rating_average: number;
   consensus: RatingDirection;
   reward_points: number;
+}
+
+export interface ReportReactionRequest {
+  reaction: ReactionKind;
+}
+
+export interface ReportCommentCreate {
+  body: string;
+}
+
+export interface ReportComment {
+  id: string;
+  report_id: string;
+  user_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  body: string;
+  created_at: string;
+  is_own: boolean;
+}
+
+export interface ReportEngagementResponse {
+  like_count: number;
+  dislike_count: number;
+  comment_count: number;
+  viewer_reaction: ReactionKind | null;
+  comments: ReportComment[];
 }
 
 export interface ModerationChecks {

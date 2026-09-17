@@ -10,6 +10,7 @@ CommunityDataRole = Literal["supplementary", "gap_fill"]
 CommunitySourceType = Literal["individual", "community_sensor"]
 GapFillBasis = Literal["none", "corroborated", "calibrated_high_trust"]
 RatingDirection = Literal["negative", "neutral", "positive"]
+ReactionKind = Literal["like", "dislike"]
 RejectionReason = Literal[
     "image_unclear",
     "value_mismatch",
@@ -93,6 +94,9 @@ class CommunityReport(BaseModel):
     policy_version: str = "trust-v2"
     rating_count: int = 0
     rating_average: float | None = None
+    like_count: int = 0
+    dislike_count: int = 0
+    comment_count: int = 0
 
 
 class CommunityReportsResponse(BaseModel):
@@ -182,6 +186,33 @@ class RatingResult(BaseModel):
     rating_average: float
     consensus: RatingDirection
     reward_points: int = 0
+
+
+class ReportReactionRequest(BaseModel):
+    reaction: ReactionKind
+
+
+class ReportCommentCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=500)
+
+
+class ReportComment(BaseModel):
+    id: str
+    report_id: str
+    user_id: str
+    display_name: str | None = None
+    avatar_url: str | None = None
+    body: str
+    created_at: str
+    is_own: bool = False
+
+
+class ReportEngagementResponse(BaseModel):
+    like_count: int = 0
+    dislike_count: int = 0
+    comment_count: int = 0
+    viewer_reaction: ReactionKind | None = None
+    comments: list[ReportComment] = Field(default_factory=list)
 
 
 class ModerationChecks(BaseModel):

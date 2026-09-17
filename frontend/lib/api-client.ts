@@ -26,9 +26,13 @@ import type {
   PushConfigResponse,
   LeaderboardResponse,
   ReportCreateResponse,
+  ReportComment,
+  ReportCommentCreate,
   ReportDraftResponse,
   ReportDraftSubmit,
   ReportRatingRequest,
+  ReportEngagementResponse,
+  ReportReactionRequest,
   RatingResult,
   ModerationRequest,
   LocationSearchResponse,
@@ -184,6 +188,42 @@ export const api = {
       body: JSON.stringify(body),
       auth: true,
     }),
+
+  reportEngagement: (reportId: string) =>
+    http<ReportEngagementResponse>(
+      `/api/community/reports/${reportId}/engagement`,
+    ),
+
+  myReportEngagement: (reportId: string) =>
+    http<ReportEngagementResponse>(
+      `/api/community/reports/${reportId}/engagement/me`,
+      { auth: true },
+    ),
+
+  setReportReaction: (reportId: string, body: ReportReactionRequest) =>
+    http<ReportEngagementResponse>(
+      `/api/community/reports/${reportId}/reaction`,
+      { method: "PUT", body: JSON.stringify(body), auth: true },
+    ),
+
+  clearReportReaction: (reportId: string) =>
+    http<ReportEngagementResponse>(
+      `/api/community/reports/${reportId}/reaction`,
+      { method: "DELETE", auth: true },
+    ),
+
+  addReportComment: (reportId: string, body: ReportCommentCreate) =>
+    http<ReportComment>(`/api/community/reports/${reportId}/comments`, {
+      method: "POST",
+      body: JSON.stringify(body),
+      auth: true,
+    }),
+
+  removeReportComment: (reportId: string, commentId: string) =>
+    http<OperationResponse>(
+      `/api/community/reports/${reportId}/comments/${commentId}`,
+      { method: "DELETE", auth: true },
+    ),
 
   announcements: () =>
     http<AnnouncementsResponse>("/api/community/announcements"),

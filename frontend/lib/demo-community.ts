@@ -121,6 +121,9 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
       policy_version: "demo-v1",
       rating_count: 1 + Math.floor(seeded(index, 8) * 8),
       rating_average: Math.round((3.8 + seeded(index, 9) * 1.2) * 10) / 10,
+      like_count: 2 + Math.floor(seeded(index, 10) * 12),
+      dislike_count: Math.floor(seeded(index, 11) * 3),
+      comment_count: Math.floor(seeded(index, 12) * 5),
     };
   });
 }

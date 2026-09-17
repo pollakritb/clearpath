@@ -3998,6 +3998,158 @@
   font-weight: 650;
 }
 
+.cp-report-engagement {
+  margin-top: 8px;
+}
+
+.cp-report-engagement__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.cp-report-engagement__actions button {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--cp-line);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--cp-subink);
+  font: inherit;
+  font-size: 0.61rem;
+  font-weight: 750;
+}
+
+.cp-report-engagement__actions button[data-active="true"] {
+  border-color: #7048bb;
+  background: #f3edff;
+  color: #5b36a0;
+}
+
+.cp-report-engagement__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.cp-report-engagement__actions button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-report-engagement__actions button b {
+  color: inherit;
+  font-family: var(--font-plex-mono), monospace;
+}
+
+.cp-report-engagement__signin,
+.cp-report-engagement > [role="alert"] {
+  margin: 6px 2px 0;
+  color: var(--cp-subink);
+  font-size: 0.61rem;
+}
+
+.cp-report-engagement__signin a {
+  color: #5b36a0;
+  font-weight: 800;
+}
+
+.cp-report-engagement > [role="alert"] {
+  color: #aa332b;
+}
+
+.cp-report-comments {
+  margin-top: 7px;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  padding: 9px;
+  background: #fbfcfc;
+}
+
+.cp-report-comments form label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+.cp-report-comments form > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 5px;
+}
+
+.cp-report-comments input,
+.cp-report-comments form button {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--cp-line);
+  border-radius: 9px;
+  background: #fff;
+  font: inherit;
+}
+
+.cp-report-comments input {
+  padding: 0 10px;
+  font-size: 0.68rem;
+}
+
+.cp-report-comments form button {
+  display: grid;
+  place-items: center;
+  background: #7048bb;
+  color: #fff;
+}
+
+.cp-report-comments ul {
+  display: grid;
+  gap: 7px;
+  margin: 9px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cp-report-comments li {
+  border-top: 1px solid var(--cp-line);
+  padding-top: 7px;
+}
+
+.cp-report-comments li > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.61rem;
+}
+
+.cp-report-comments time {
+  flex: none;
+  color: var(--cp-subink);
+}
+
+.cp-report-comments li p,
+.cp-report-comments__empty {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.cp-report-comments li > button {
+  min-height: 32px;
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  color: #aa332b;
+  font: inherit;
+  font-size: 0.6rem;
+  font-weight: 750;
+}
+
 .cp-map-selection-card__action {
   min-height: 48px;
   display: flex;

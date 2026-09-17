@@ -21,10 +21,14 @@ from ..models.schemas import (
     LeaderboardResponse,
     OperationResponse,
     RatingResult,
+    ReportComment,
+    ReportCommentCreate,
     ReportCreateResponse,
     ReportDraftResponse,
     ReportDraftSubmit,
+    ReportEngagementResponse,
     ReportRatingRequest,
+    ReportReactionRequest,
     UserReputation,
 )
 from ..services import capture as capture_service
@@ -267,6 +271,134 @@ async def rate_report(
     except ValueError as exc:
         raise HTTPException(400, detail=str(exc)) from exc
     return RatingResult(**result)
+
+
+@router.get(
+    "/community/reports/{report_id}/engagement",
+    response_model=ReportEngagementResponse,
+)
+async def report_engagement(report_id: str):
+    try:
+        result = await run_in_threadpool(
+            community_service.get_engagement, report_id, None
+        )
+    except KeyError as exc:
+        raise HTTPException(404, detail="ไม่พบรายงาน") from exc
+    except ValueError as exc:
+        raise HTTPException(400, detail=str(exc)) from exc
+    return ReportEngagementResponse(**result)
+
+
+@router.get(
+    "/community/reports/{report_id}/engagement/me",
+    response_model=ReportEngagementResponse,
+)
+async def my_report_engagement(
+    report_id: str, user: AuthenticatedUser = Depends(require_user)
+):
+    try:
+        result = await run_in_threadpool(
+            community_service.get_engagement, report_id, user.id
+        )
+    except KeyError as exc:
+        raise HTTPException(404, detail="ไม่พบรายงาน") from exc
+    except ValueError as exc:
+        raise HTTPException(400, detail=str(exc)) from exc
+    return ReportEngagementResponse(**result)
+
+
+@router.put(
+    "/community/reports/{report_id}/reaction",
+    response_model=ReportEngagementResponse,
+)
+async def set_report_reaction(
+    report_id: str,
+    body: ReportReactionRequest,
+    user: AuthenticatedUser = Depends(require_user),
+):
+    allowed = await run_in_threadpool(
+        supabase_client.take_rate_limit, user.id, "report_reaction", 60, 30
+    )
+    if not allowed:
+        raise HTTPException(429, detail="กดปฏิกิริยาถี่เกินไป กรุณารอสักครู่")
+    try:
+        result = await run_in_threadpool(
+            community_service.set_reaction, report_id, user.id, body.reaction
+        )
+    except KeyError as exc:
+        raise HTTPException(404, detail="ไม่พบรายงาน") from exc
+    except ValueError as exc:
+        raise HTTPException(400, detail=str(exc)) from exc
+    return ReportEngagementResponse(**result)
+
+
+@router.delete(
+    "/community/reports/{report_id}/reaction",
+    response_model=ReportEngagementResponse,
+)
+async def clear_report_reaction(
+    report_id: str, user: AuthenticatedUser = Depends(require_user)
+):
+    try:
+        result = await run_in_threadpool(
+            community_service.clear_reaction, report_id, user.id
+        )
+    except KeyError as exc:
+        raise HTTPException(404, detail="ไม่พบรายงาน") from exc
+    except ValueError as exc:
+        raise HTTPException(400, detail=str(exc)) from exc
+    return ReportEngagementResponse(**result)
+
+
+@router.post(
+    "/community/reports/{report_id}/comments",
+    response_model=ReportComment,
+    status_code=201,
+)
+async def add_report_comment(
+    report_id: str,
+    body: ReportCommentCreate,
+    user: AuthenticatedUser = Depends(require_user),
+):
+    allowed = await run_in_threadpool(
+        supabase_client.take_rate_limit, user.id, "report_comment", 3600, 20
+    )
+    if not allowed:
+        raise HTTPException(429, detail="ส่งความคิดเห็นถี่เกินไป กรุณารอรอบถัดไป")
+    try:
+        result = await run_in_threadpool(
+            community_service.add_comment,
+            report_id,
+            user.id,
+            body.body,
+            user.display_name,
+        )
+    except KeyError as exc:
+        raise HTTPException(404, detail="ไม่พบรายงาน") from exc
+    except ValueError as exc:
+        raise HTTPException(400, detail=str(exc)) from exc
+    return ReportComment(**result)
+
+
+@router.delete(
+    "/community/reports/{report_id}/comments/{comment_id}",
+    response_model=OperationResponse,
+)
+async def remove_report_comment(
+    report_id: str,
+    comment_id: str,
+    user: AuthenticatedUser = Depends(require_user),
+):
+    try:
+        await run_in_threadpool(community_service.get_engagement, report_id, user.id, 1)
+    except KeyError as exc:
+        raise HTTPException(404, detail="ไม่พบรายงาน") from exc
+    deleted = await run_in_threadpool(
+        community_service.remove_comment, comment_id, user.id
+    )
+    if not deleted:
+        raise HTTPException(404, detail="ไม่พบความคิดเห็นของคุณ")
+    return OperationResponse(ok=True, message="ลบความคิดเห็นแล้ว")
 
 
 @router.get("/community/me", response_model=CommunityProfileResponse)

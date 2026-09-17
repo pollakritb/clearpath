@@ -1911,6 +1911,109 @@ def mark_review_rewarded(report_id: str, reviewer_id: str) -> None:
     )
 
 
+def upsert_report_reaction(row: dict) -> dict:
+    if settings.local_demo_mode:
+        return local_store.upsert_report_reaction(row)
+    data = (
+        get_client()
+        .table("report_reactions")
+        .upsert(row, on_conflict="report_id,user_id")
+        .execute()
+        .data
+        or []
+    )
+    return data[0] if data else row
+
+
+def delete_report_reaction(report_id: str, user_id: str) -> None:
+    if settings.local_demo_mode:
+        local_store.delete_report_reaction(report_id, user_id)
+        return
+    (
+        get_client()
+        .table("report_reactions")
+        .delete()
+        .eq("report_id", report_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+
+def get_report_reaction(report_id: str, user_id: str) -> dict | None:
+    if settings.local_demo_mode:
+        return local_store.get_report_reaction(report_id, user_id)
+    data = (
+        get_client()
+        .table("report_reactions")
+        .select("report_id,user_id,reaction,created_at,updated_at")
+        .eq("report_id", report_id)
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return data[0] if data else None
+
+
+def create_report_comment(row: dict) -> dict:
+    if settings.local_demo_mode:
+        return local_store.create_report_comment(row)
+    data = get_client().table("report_comments").insert(row).execute().data or []
+    return data[0] if data else row
+
+
+def list_report_comments(report_id: str, limit: int = 50) -> list[dict]:
+    if settings.local_demo_mode:
+        return local_store.list_report_comments(report_id, limit)
+    rows = (
+        get_client()
+        .table("report_comments")
+        .select(
+            "id,report_id,user_id,body,created_at,profiles(display_name,avatar_url)"
+        )
+        .eq("report_id", report_id)
+        .eq("status", "published")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+        .data
+        or []
+    )
+    for row in rows:
+        profile = row.pop("profiles", None) or {}
+        row["display_name"] = profile.get("display_name")
+        row["avatar_url"] = profile.get("avatar_url")
+    return rows
+
+
+def delete_report_comment(comment_id: str, user_id: str) -> bool:
+    if settings.local_demo_mode:
+        return local_store.delete_report_comment(comment_id, user_id)
+    existing = (
+        get_client()
+        .table("report_comments")
+        .select("id")
+        .eq("id", comment_id)
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if not existing:
+        return False
+    (
+        get_client()
+        .table("report_comments")
+        .delete()
+        .eq("id", comment_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return True
+
+
 def apply_reputation_event(
     user_id: str,
     points: int,

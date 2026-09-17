@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import ReportEngagement from "@/frontend/components/community/ReportEngagement";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import CalibrationBadge from "@/frontend/components/ui/CalibrationBadge";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
@@ -274,6 +275,10 @@ export default function MapStatusCard({
           <AppIcon name="shield" size={15} />
           จุดสาธารณะถูกเลื่อนจากพิกัดจริงประมาณ {report.location_precision_m} ม.
         </p>
+      )}
+
+      {source === "individual" && report && (
+        <ReportEngagement key={report.id} report={report} />
       )}
 
       <Link href={href} className="cp-map-selection-card__action cp-focus">

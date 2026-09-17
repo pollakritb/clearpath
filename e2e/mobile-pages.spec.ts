@@ -522,8 +522,54 @@ test("map separates official stations from community reports", async ({
 test("community marker opens a distinct privacy-safe report card", async ({
   page,
 }) => {
+  let likeCount = 4;
+  const engagement = () => ({
+    like_count: likeCount,
+    dislike_count: 1,
+    comment_count: 0,
+    viewer_reaction: likeCount > 4 ? "like" : null,
+    comments: [],
+  });
   await page.route("https://lh3.googleusercontent.com/**", (route) =>
     route.abort(),
+  );
+  await page.route(
+    "**/api/community/reports/community-map-demo/engagement**",
+    async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(engagement()),
+      });
+    },
+  );
+  await page.route(
+    "**/api/community/reports/community-map-demo/reaction",
+    async (route) => {
+      likeCount = 5;
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(engagement()),
+      });
+    },
+  );
+  await page.route(
+    "**/api/community/reports/community-map-demo/comments",
+    async (route) => {
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "comment-e2e",
+          report_id: "community-map-demo",
+          user_id: "local-user",
+          display_name: "ผู้ทดสอบ",
+          avatar_url: null,
+          body: "ข้อมูลมีประโยชน์",
+          created_at: new Date().toISOString(),
+          is_own: true,
+        }),
+      });
+    },
   );
   await page.route("**/api/community/reports", async (route) => {
     await route.fulfill({
@@ -547,6 +593,9 @@ test("community marker opens a distinct privacy-safe report card", async ({
             source_type: "individual",
             device_calibrated: true,
             calibrated_at: "2026-08-01",
+            like_count: 4,
+            dislike_count: 1,
+            comment_count: 0,
             device_model: "Xiaomi Air Monitor",
             subdistrict: "ปทุมวัน",
             district: "ปทุมวัน",
@@ -577,6 +626,19 @@ test("community marker opens a distinct privacy-safe report card", async ({
   await expect(card.getByText(/ผู้รายงาน สมาชิกชุมชน/)).toBeVisible();
   await expect(card.getByText(/สอบเทียบ/)).toBeVisible();
   await expect(card.getByText(/พิกัดจริงประมาณ 180 ม./)).toBeVisible();
+  const like = card.getByRole("button", { name: /ถูกใจ 4/ });
+  await expect(like).toBeVisible();
+  await like.click();
+  await expect(card.getByRole("button", { name: /ถูกใจ 5/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await card.getByRole("button", { name: /ความคิดเห็น 0/ }).click();
+  await card.getByLabel("เขียนความคิดเห็น").fill("ข้อมูลมีประโยชน์");
+  await card.getByRole("button", { name: "ส่งความคิดเห็น" }).click();
+  await expect(
+    card.getByText("ข้อมูลมีประโยชน์", { exact: true }),
+  ).toBeVisible();
 });
 
 test("large text and high contrast remain mobile-safe", async ({ page }) => {

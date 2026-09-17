@@ -10,6 +10,7 @@ export type AppIconName =
   | "check"
   | "chevron"
   | "clock"
+  | "comment"
   | "copy"
   | "community"
   | "community-station"
@@ -34,6 +35,8 @@ export type AppIconName =
   | "settings"
   | "shield"
   | "sparkles"
+  | "thumb-down"
+  | "thumb-up"
   | "location"
   | "user";
 
@@ -84,6 +87,21 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
           <path d="m8 6 1.5-2h5L16 6" />
           <circle cx="12" cy="13" r="3.5" />
         </>
+      )}
+      {name === "thumb-up" && (
+        <>
+          <path d="M7.5 10.5 11 3c1.8.2 2.6 1.6 2.1 3.4l-.8 2.6H18a3 3 0 0 1 2.9 3.8l-1.5 5.5A2.3 2.3 0 0 1 17.2 20H7.5Z" />
+          <path d="M3.5 10.5h4v10h-4Z" />
+        </>
+      )}
+      {name === "thumb-down" && (
+        <>
+          <path d="m7.5 13.5 3.5 7.5c1.8-.2 2.6-1.6 2.1-3.4l-.8-2.6H18a3 3 0 0 0 2.9-3.8l-1.5-5.5A2.3 2.3 0 0 0 17.2 4H7.5Z" />
+          <path d="M3.5 3.5h4v10h-4Z" />
+        </>
+      )}
+      {name === "comment" && (
+        <path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-5 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
       )}
       {name === "location" && (
         <>
