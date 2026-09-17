@@ -1,9 +1,10 @@
 # ClearPath Community
 
-> **Forecast maintenance (2026-09-16):** Forecast generation and provider
-> synchronization are paused while `clearpath-self-forecast-v1` is designed.
-> Current Air4Thai measurements, the map, and community workflows remain
-> available. See `docs/runbooks/forecast-reset.md`.
+> **External forecast mode (2026-09-17):** Public forecasts show raw PM2.5
+> values from CAMS through Open-Meteo for 1, 3, 6, 12, and 24 hours. ClearPath
+> does not blend, bias-correct, or recalculate these values. The former local,
+> ML, evaluation, and provider-sync pipelines remain paused. See
+> `docs/runbooks/forecast-reset.md`.
 
 > พยากรณ์ PM2.5 และเครือข่ายข้อมูลคุณภาพอากาศที่ชุมชนช่วยกันตรวจสอบ
 

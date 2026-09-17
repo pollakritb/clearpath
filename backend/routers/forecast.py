@@ -6,7 +6,7 @@ from starlette.concurrency import run_in_threadpool
 from ..algorithms.distance import haversine_km
 from ..core.config import settings
 from ..models.schemas import ForecastResponse, ForecastSurfaceResponse
-from ..services import forecast_status, forecasting
+from ..services import external_forecast, forecast_status, forecasting
 
 router = APIRouter()
 
@@ -18,6 +18,16 @@ async def forecast(
     station_id: str = Query(...),
     hours: int = Query(12, ge=1, le=24),
 ):
+    if settings.external_forecast_enabled:
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        try:
+            result = await external_forecast.station_forecast(station_id, hours)
+        except ValueError as exc:
+            raise HTTPException(422, detail=str(exc)) from exc
+        response.headers["Cache-Control"] = (
+            "public, max-age=300, s-maxage=1800, stale-while-revalidate=300"
+        )
+        return ForecastResponse(**result)
     response.headers["Cache-Control"] = "no-store, max-age=0"
     response.headers["CDN-Cache-Control"] = "no-store"
     if settings.forecast_system_paused:
@@ -66,6 +76,14 @@ async def surface(
             "min_lon": min_lon,
             "max_lon": max_lon,
         }
+    if settings.external_forecast_enabled:
+        if bounds is None:
+            raise HTTPException(422, detail="surface_bounds_required")
+        result = await external_forecast.surface_forecast(horizon, grid_size, bounds)
+        response.headers["Cache-Control"] = (
+            "public, max-age=300, s-maxage=1800, stale-while-revalidate=300"
+        )
+        return ForecastSurfaceResponse(**result)
     if settings.forecast_system_paused:
         return ForecastSurfaceResponse(
             **forecast_status.unavailable_surface_response(horizon, grid_size, bounds)

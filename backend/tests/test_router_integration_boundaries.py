@@ -104,6 +104,7 @@ def test_admin_role_change_boundary_is_admin_only_and_audited_by_service(monkeyp
 
 
 def test_forecast_router_rejects_service_and_viewport_contract_errors(monkeypatch):
+    monkeypatch.setattr(settings, "external_forecast_enabled", False)
     monkeypatch.setattr(settings, "forecast_system_paused", False)
     client = TestClient(create_app())
 
@@ -288,6 +289,7 @@ def test_cron_job_routes_delegate_to_alert_evaluation_and_provider_services(
 
 
 def test_forecast_maintenance_returns_unavailable_without_generation(monkeypatch):
+    monkeypatch.setattr(settings, "external_forecast_enabled", False)
     monkeypatch.setattr(settings, "forecast_system_paused", True)
     monkeypatch.setattr(
         forecast.forecasting,

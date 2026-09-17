@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     air4thai_url: str = "http://air4thai.pcd.go.th/services/getNewAQI_JSON.php"
     openweather_air_enabled: bool = True
     openmeteo_air_enabled: bool = True
+    # Public forecast mode serves raw CAMS values directly through Open-Meteo.
+    # It remains independent from the paused ClearPath model/generation pipeline.
+    external_forecast_enabled: bool = True
     # GISTDA metadata currently states no explicit data licence. Keep the
     # adapter fail-closed until written permission/terms are recorded.
     gistda_air_enabled: bool = False

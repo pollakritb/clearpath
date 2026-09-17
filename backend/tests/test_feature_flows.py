@@ -26,6 +26,7 @@ def feature_client(monkeypatch):
     monkeypatch.setattr(settings, "local_demo_mode", True)
     # This broad legacy feature-flow fixture exercises the forecast engine
     # contract itself. Maintenance-mode behavior has dedicated router tests.
+    monkeypatch.setattr(settings, "external_forecast_enabled", False)
     monkeypatch.setattr(settings, "forecast_system_paused", False)
     monkeypatch.setattr(
         settings, "capture_session_secret", "test-capture-secret-32-bytes-long"

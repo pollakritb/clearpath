@@ -2,24 +2,29 @@
 
 ## Current state
 
-ClearPath forecasting is intentionally paused. Public forecast endpoints return
-an explicit `unavailable` state with reason code
-`forecast_system_under_improvement`; they do not calculate a fallback, read
-provider snapshots, run an ML artifact, or persist a forecast ledger.
+ClearPath now serves raw PM2.5 forecasts from CAMS through Open-Meteo for the
+1, 3, 6, 12, and 24-hour product horizons. The public endpoints request the
+provider on demand and do not blend sources, calculate a local fallback, apply
+bias correction, use community reports, run an ML artifact, or persist a
+forecast ledger/provider snapshot.
 
 The map continues to show current Air4Thai and eligible community data. Forecast
-horizon controls and provider comparison are hidden while the maintenance gate
-is active. Air4Thai ingestion, community reports, moderation, trust, current
-weather, satellite hotspots, and notifications remain operational.
+horizon controls show the raw CAMS surface; provider comparison is omitted
+because only one provider is active. Air4Thai ingestion, community reports,
+moderation, trust, current weather, satellite hotspots, and notifications remain
+operational.
 
-The global server gate is `FORECAST_SYSTEM_PAUSED=true`. The temporary frontend
-product gate is `FORECAST_SYSTEM_PAUSED` in `frontend/lib/forecast-state.ts`.
-Both gates must remain active until a reviewed replacement is ready.
+`EXTERNAL_FORECAST_ENABLED=true` enables this public external-only mode.
+`FORECAST_SYSTEM_PAUSED=true` continues to protect every legacy/local producer,
+evaluation job, and ML path. The frontend gate in
+`frontend/lib/forecast-state.ts` is disabled so the raw provider values can be
+shown.
 
 ## Paused producers
 
 - OpenWeather air-quality forecast provider sync
-- Open-Meteo/CAMS forecast provider sync
+- Open-Meteo/CAMS forecast provider sync and database snapshots (public reads
+  call the provider directly instead)
 - GISTDA forecast provider sync
 - station and map-surface forecast generation
 - forecast evaluation and drift snapshots
@@ -39,7 +44,7 @@ Air4Thai `sync_runs`, `forecast_data_quality_daily`, issue/audit logs,
 notification preferences and connections, `model_registry`, and
 `forecast_release_decisions`.
 
-## Next forecast (not implemented)
+## Next self forecast (not implemented)
 
 TODO: design and validate `clearpath-self-forecast-v1` as a separate change.
 That work must define the baseline, time/season features, community evidence,

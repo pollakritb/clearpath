@@ -171,6 +171,10 @@ export default function ForecastPanel({
   const showingRecommendation = !activeSourcePoint;
   const lowConfidence =
     data?.forecast_status === "limited" || data?.agreement === "low";
+  const externalOnly =
+    data?.forecast_mode === "external_provider" &&
+    data.recommended_source === "openmeteo_cams" &&
+    data.provider_count === 1;
   const unavailable = data?.forecast_status === "unavailable";
   const previewMode = FORECAST_SYSTEM_PAUSED || unavailable;
 
@@ -189,7 +193,11 @@ export default function ForecastPanel({
             className="cp-forecast-quality"
             data-state={previewMode ? "unavailable" : data?.forecast_status}
           >
-            {previewMode ? "กำลังพัฒนา" : forecastStatus(data!)}
+            {previewMode
+              ? "กำลังพัฒนา"
+              : externalOnly
+                ? "ข้อมูลจาก CAMS"
+                : forecastStatus(data!)}
           </span>
         )}
       </div>
@@ -278,7 +286,16 @@ export default function ForecastPanel({
               <strong>{displayPm25}</strong>
               <small>µg/m³ PM2.5 · {classification.level}</small>
             </div>
-            {showingRecommendation ? (
+            {showingRecommendation && externalOnly ? (
+              <div className="cp-forecast-interval">
+                <span>แหล่งพยากรณ์</span>
+                <strong>CAMS / Open-Meteo</strong>
+                <small>
+                  แสดงค่าจากผู้ให้บริการโดยตรง ไม่มีการเฉลี่ยหรือปรับค่าด้วยสูตร
+                  ClearPath
+                </small>
+              </div>
+            ) : showingRecommendation ? (
               <div className="cp-forecast-interval">
                 <span>ช่วงความไม่แน่นอนโดยประมาณ</span>
                 <strong>
@@ -304,14 +321,18 @@ export default function ForecastPanel({
             </span>
             <span>
               <strong>
-                {lowConfidence
-                  ? "ใช้ประกอบการตัดสินใจด้วยความระมัดระวัง"
-                  : classification.advice}
+                {externalOnly
+                  ? "ใช้ดูแนวโน้มเพื่อวางแผนล่วงหน้า"
+                  : lowConfidence
+                    ? "ใช้ประกอบการตัดสินใจด้วยความระมัดระวัง"
+                    : classification.advice}
               </strong>
               <small>
-                {lowConfidence
-                  ? `${agreementLabel(data)} ควรตรวจค่าปัจจุบันก่อนทำกิจกรรมกลางแจ้ง`
-                  : `${data.provider_count} แหล่งข้อมูล · ${agreementLabel(data)}`}
+                {externalOnly
+                  ? "แบบจำลองระดับภูมิภาค ควรตรวจค่าฝุ่นปัจจุบันร่วมด้วย"
+                  : lowConfidence
+                    ? `${agreementLabel(data)} ควรตรวจค่าปัจจุบันก่อนทำกิจกรรมกลางแจ้ง`
+                    : `${data.provider_count} แหล่งข้อมูล · ${agreementLabel(data)}`}
               </small>
             </span>
           </div>
@@ -326,60 +347,74 @@ export default function ForecastPanel({
             กลับไปค่าที่ระบบแนะนำ
           </button>
 
-          <details className="cp-forecast-sources">
-            <summary className="cp-focus">
-              <span>
-                <AppIcon name="layers" size={18} />
-                เปรียบเทียบแหล่งข้อมูล
-              </span>
-              <small>
-                {data.provider_count} แหล่ง · {agreementLabel(data)}
-              </small>
-            </summary>
-            <p>
-              เลือกดูค่าดิบได้เองสูงสุด 3 แหล่ง โดยค่าของแต่ละแหล่งไม่ถูกแก้ไข
-              หรือแอบเฉลี่ยเข้าด้วยกัน
-            </p>
-            <div className="cp-forecast-sources__list">
-              {selectedSources.map((source) => (
-                <button
-                  type="button"
-                  className="cp-focus"
-                  data-source={source.source}
-                  data-active={activeSource === source.source}
-                  key={`${source.source}:${source.horizon_hours}`}
-                  onClick={() => setViewSource(source.source)}
-                >
-                  <span>
-                    <AppIcon name={SOURCE_ICONS[source.source]} size={18} />
-                    {FORECAST_SOURCE_LABELS[source.source]}
-                  </span>
-                  <strong>{Math.round(source.pm25 * 10) / 10}</strong>
-                  <small>
-                    µg/m³ · ดึงข้อมูลเมื่อ{" "}
-                    {formatProviderTime(source.issued_at)}
-                  </small>
-                </button>
-              ))}
-              {!selectedSources.length && (
-                <div className="cp-forecast-source-empty">
-                  ช่วงเวลานี้ยังไม่มีแหล่งภายนอกที่สด
-                </div>
-              )}
-            </div>
+          {!externalOnly && (
+            <details className="cp-forecast-sources">
+              <summary className="cp-focus">
+                <span>
+                  <AppIcon name="layers" size={18} />
+                  เปรียบเทียบแหล่งข้อมูล
+                </span>
+                <small>
+                  {data.provider_count} แหล่ง · {agreementLabel(data)}
+                </small>
+              </summary>
+              <p>
+                เลือกดูค่าดิบได้เองสูงสุด 3 แหล่ง โดยค่าของแต่ละแหล่งไม่ถูกแก้ไข
+                หรือแอบเฉลี่ยเข้าด้วยกัน
+              </p>
+              <div className="cp-forecast-sources__list">
+                {selectedSources.map((source) => (
+                  <button
+                    type="button"
+                    className="cp-focus"
+                    data-source={source.source}
+                    data-active={activeSource === source.source}
+                    key={`${source.source}:${source.horizon_hours}`}
+                    onClick={() => setViewSource(source.source)}
+                  >
+                    <span>
+                      <AppIcon name={SOURCE_ICONS[source.source]} size={18} />
+                      {FORECAST_SOURCE_LABELS[source.source]}
+                    </span>
+                    <strong>{Math.round(source.pm25 * 10) / 10}</strong>
+                    <small>
+                      µg/m³ · ดึงข้อมูลเมื่อ{" "}
+                      {formatProviderTime(source.issued_at)}
+                    </small>
+                  </button>
+                ))}
+                {!selectedSources.length && (
+                  <div className="cp-forecast-source-empty">
+                    ช่วงเวลานี้ยังไม่มีแหล่งภายนอกที่สด
+                  </div>
+                )}
+              </div>
+              <p className="cp-forecast-source-links">
+                {data.providers.slice(0, 3).map((provider) => (
+                  <a
+                    key={provider.source}
+                    href={provider.license_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {provider.label} · {provider.license}
+                  </a>
+                ))}
+              </p>
+            </details>
+          )}
+
+          {externalOnly && (
             <p className="cp-forecast-source-links">
-              {data.providers.slice(0, 3).map((provider) => (
-                <a
-                  key={provider.source}
-                  href={provider.license_url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {provider.label} · {provider.license}
-                </a>
-              ))}
+              <a
+                href="https://open-meteo.com/en/docs/air-quality-api"
+                target="_blank"
+                rel="noreferrer"
+              >
+                ข้อมูล CAMS ENSEMBLE ผ่าน Open-Meteo · CC BY 4.0
+              </a>
             </p>
-          </details>
+          )}
 
           <details className="cp-forecast-details">
             <summary className="cp-focus">
@@ -418,27 +453,29 @@ export default function ForecastPanel({
                   </div>
                 </dl>
               )}
-              <section
-                className="cp-forecast-community"
-                aria-label="ข้อมูลจากชุมชน"
-              >
-                <span className="cp-forecast-community__icon">
-                  <AppIcon name="community" size={20} />
-                </span>
-                <div>
-                  <strong>ข้อมูลยืนยันจากชุมชน</strong>
-                  <p>
-                    {data.community_context.nearby_report_count
-                      ? `พบ ${data.community_context.nearby_report_count} รายงานที่ผ่านเกณฑ์ภายใน ${data.community_context.radius_km} กม.`
-                      : "ยังไม่มีรายงานใกล้เคียงที่ผ่านเกณฑ์"}
-                  </p>
-                  <small>
-                    {data.community_context.affects_recommendation
-                      ? "ข้อมูลชุมชนมีผลต่อค่าที่แนะนำในรอบนี้"
-                      : "ใช้เป็นหลักฐานประกอบ ยังไม่แก้ค่าพยากรณ์หลัก"}
-                  </small>
-                </div>
-              </section>
+              {!externalOnly && (
+                <section
+                  className="cp-forecast-community"
+                  aria-label="ข้อมูลจากชุมชน"
+                >
+                  <span className="cp-forecast-community__icon">
+                    <AppIcon name="community" size={20} />
+                  </span>
+                  <div>
+                    <strong>ข้อมูลยืนยันจากชุมชน</strong>
+                    <p>
+                      {data.community_context.nearby_report_count
+                        ? `พบ ${data.community_context.nearby_report_count} รายงานที่ผ่านเกณฑ์ภายใน ${data.community_context.radius_km} กม.`
+                        : "ยังไม่มีรายงานใกล้เคียงที่ผ่านเกณฑ์"}
+                    </p>
+                    <small>
+                      {data.community_context.affects_recommendation
+                        ? "ข้อมูลชุมชนมีผลต่อค่าที่แนะนำในรอบนี้"
+                        : "ใช้เป็นหลักฐานประกอบ ยังไม่แก้ค่าพยากรณ์หลัก"}
+                    </small>
+                  </div>
+                </section>
+              )}
               <dl className="cp-forecast-times">
                 <div>
                   <dt>พยากรณ์สำหรับ</dt>
@@ -475,7 +512,9 @@ export default function ForecastPanel({
                           <th scope="row">{point.horizon_hours} ชม.</th>
                           <td>{point.pm25}</td>
                           <td>
-                            {point.lower}–{point.upper}
+                            {externalOnly
+                              ? "—"
+                              : `${point.lower}–${point.upper}`}
                           </td>
                           <td>{FORECAST_SOURCE_LABELS[point.source]}</td>
                         </tr>
