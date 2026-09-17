@@ -379,6 +379,13 @@
 .cp-camera-actions {
   margin-top: 0.55rem;
 }
+.cp-camera-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
 .cp-camera-guide {
   position: absolute;
   inset: 22% 9%;

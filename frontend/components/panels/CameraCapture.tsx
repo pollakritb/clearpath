@@ -18,6 +18,8 @@ export interface CameraEvidence {
   capturedAt: string;
 }
 
+type CameraFacing = "environment" | "user";
+
 export default function CameraCapture({
   onCaptured,
   onCleared,
@@ -31,14 +33,52 @@ export default function CameraCapture({
   const [preview, setPreview] = useState<string | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<CameraFacing>("environment");
+  const [canSwitchCamera, setCanSwitchCamera] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function stopStream() {
+  function releaseStream() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+  }
+
+  function stopStream() {
+    releaseStream();
     setCameraOpen(false);
     setCameraReady(false);
+  }
+
+  async function requestCamera(facing: CameraFacing, exact = false) {
+    return navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: exact ? { exact: facing } : { ideal: facing },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+      audio: false,
+    });
+  }
+
+  async function attachStream(stream: MediaStream, facing: CameraFacing) {
+    streamRef.current = stream;
+    setCameraFacing(facing);
+    setCameraReady(false);
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play().catch(() => undefined);
+    }
+    setCameraOpen(true);
+
+    const videoTrack = stream.getVideoTracks()[0];
+    const capabilities = videoTrack?.getCapabilities?.();
+    const facingModes = capabilities?.facingMode ?? [];
+    const devices = await navigator.mediaDevices
+      .enumerateDevices?.()
+      .catch(() => []);
+    const videoDeviceCount =
+      devices?.filter((device) => device.kind === "videoinput").length ?? 0;
+    setCanSwitchCamera(videoDeviceCount > 1 || facingModes.length > 1);
   }
 
   useEffect(() => {
@@ -62,28 +102,57 @@ export default function CameraCapture({
         throw new Error("อุปกรณ์หรือ browser นี้ไม่รองรับกล้องภายในเว็บ");
       }
       const session = await api.captureSession();
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      });
-      streamRef.current = stream;
+      const stream = await requestCamera(cameraFacing);
       sessionRef.current = {
         token: session.token,
         issuedAt: session.issued_at,
       };
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => undefined);
-      }
-      setCameraOpen(true);
+      await attachStream(stream, cameraFacing);
     } catch (cause) {
       stopStream();
       if (cause instanceof ApiError) setError(cause.message);
       else if (cause instanceof DOMException)
+        setError(cameraErrorMessage(cause.name));
+      else
+        setError(
+          cause instanceof Error ? cause.message : cameraErrorMessage(""),
+        );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function switchCamera() {
+    if (!cameraOpen || loading) return;
+    const previousFacing = cameraFacing;
+    const nextFacing: CameraFacing =
+      previousFacing === "environment" ? "user" : "environment";
+    setLoading(true);
+    setError(null);
+    setCameraReady(false);
+    releaseStream();
+    try {
+      let stream: MediaStream;
+      try {
+        stream = await requestCamera(nextFacing, true);
+      } catch (cause) {
+        if (
+          !(cause instanceof DOMException) ||
+          cause.name !== "OverconstrainedError"
+        ) {
+          throw cause;
+        }
+        stream = await requestCamera(nextFacing);
+      }
+      await attachStream(stream, nextFacing);
+    } catch (cause) {
+      try {
+        const restored = await requestCamera(previousFacing);
+        await attachStream(restored, previousFacing);
+      } catch {
+        stopStream();
+      }
+      if (cause instanceof DOMException)
         setError(cameraErrorMessage(cause.name));
       else
         setError(
@@ -290,6 +359,25 @@ export default function CameraCapture({
                   ? "ถ่ายหน้าจอเครื่องวัด"
                   : "กำลังเตรียมกล้อง…"}
             </button>
+            {canSwitchCamera && (
+              <button
+                type="button"
+                onClick={switchCamera}
+                disabled={loading}
+                className="cp-focus cp-camera-switch"
+                aria-label={
+                  cameraFacing === "environment"
+                    ? "สลับเป็นกล้องหน้า"
+                    : "สลับเป็นกล้องหลัง"
+                }
+                style={{ ...buttonStyle, background: T.chip, color: T.ink }}
+              >
+                <AppIcon name="refresh" size={18} />
+                <span>
+                  {cameraFacing === "environment" ? "กล้องหน้า" : "กล้องหลัง"}
+                </span>
+              </button>
+            )}
             <button
               type="button"
               onClick={stopStream}
@@ -304,7 +392,7 @@ export default function CameraCapture({
       {cameraOpen && (
         <p aria-live="polite" className="cp-camera-status">
           {cameraReady
-            ? "กล้องพร้อมแล้ว ถือเครื่องให้นิ่งและหลีกเลี่ยงแสงสะท้อน"
+            ? `${cameraFacing === "environment" ? "กล้องหลัง" : "กล้องหน้า"}พร้อมแล้ว ถือเครื่องให้นิ่งและหลีกเลี่ยงแสงสะท้อน`
             : "กำลังเตรียมภาพจากกล้อง…"}
         </p>
       )}

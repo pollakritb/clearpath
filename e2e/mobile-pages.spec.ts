@@ -446,10 +446,34 @@ test("LINE linking flow creates a one-time code on mobile", async ({
 test("mobile camera opens, becomes ready and captures a live frame @camera-390", async ({
   page,
 }) => {
+  await page.addInitScript(() => {
+    const devices = ["back-camera", "front-camera"].map((deviceId) => ({
+      deviceId,
+      groupId: "clearpath-e2e",
+      kind: "videoinput" as MediaDeviceKind,
+      label: deviceId,
+      toJSON: () => ({}),
+    }));
+    Object.defineProperty(navigator.mediaDevices, "enumerateDevices", {
+      configurable: true,
+      value: async () => devices,
+    });
+  });
   await page.goto("/report");
   await page.getByRole("button", { name: "เปิดกล้องในแอป" }).click();
   await expect(
-    page.getByText("กล้องพร้อมแล้ว ถือเครื่องให้นิ่ง", { exact: false }),
+    page.getByText("กล้องหลังพร้อมแล้ว ถือเครื่องให้นิ่ง", { exact: false }),
+  ).toBeVisible();
+  const switchCamera = page.getByRole("button", {
+    name: "สลับเป็นกล้องหน้า",
+  });
+  await expect(switchCamera).toBeVisible();
+  await switchCamera.click();
+  await expect(
+    page.getByText("กล้องหน้าพร้อมแล้ว", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "สลับเป็นกล้องหลัง" }),
   ).toBeVisible();
   const capture = page.getByRole("button", {
     name: "ถ่ายหน้าจอเครื่องวัด",
