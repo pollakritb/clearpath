@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
-import AuthControl from "@/frontend/components/auth/AuthControl";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { DataIssueCategory, DataIssueCreate } from "@/frontend/types";
@@ -24,7 +24,9 @@ export default function DataIssueForm() {
     return (
       <div className="cp-data-issue-form">
         <p>เข้าสู่ระบบเพื่อให้ผู้ดูแลติดตามรายการและป้องกันสแปม</p>
-        <AuthControl />
+        <Link href="/settings" className="cp-auth-redirect__button cp-focus">
+          ไปหน้าเข้าสู่ระบบ
+        </Link>
       </div>
     );
   }

@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import AuthControl from "@/frontend/components/auth/AuthControl";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 
@@ -28,11 +27,14 @@ export default function AdminAccessGate() {
             <AppIcon name="admin" size={28} />
           </span>
           <span className="cp-eyebrow">Restricted workspace</span>
-          <h1>เข้าสู่ระบบผู้ดูแล</h1>
-          <p>ใช้บัญชีที่ได้รับบทบาท Moderator หรือ Admin เพื่อเปิดหลังบ้าน</p>
-          <div className="cp-admin-gate__auth">
-            <AuthControl />
-          </div>
+          <h1>เข้าสู่ระบบก่อนเปิดหลังบ้าน</h1>
+          <p>
+            ClearPath รวมการเข้าสู่ระบบไว้ในหน้าการตั้งค่าเพียงจุดเดียว
+            จากนั้นกลับมาที่หน้านี้ด้วยบัญชี Moderator หรือ Admin
+          </p>
+          <Link href="/settings" className="cp-admin-primary-link cp-focus">
+            ไปหน้าเข้าสู่ระบบ
+          </Link>
           <Link href="/" className="cp-admin-back-link cp-focus">
             <AppIcon name="back" size={17} /> กลับไปยังพื้นที่ผู้ใช้งาน
           </Link>
@@ -57,7 +59,13 @@ export default function AdminAccessGate() {
             <Link href="/" className="cp-admin-back-link cp-focus">
               กลับพื้นที่ผู้ใช้
             </Link>
-            <AuthControl compact />
+            <button
+              type="button"
+              className="cp-admin-signout cp-focus"
+              onClick={() => void auth.signOut()}
+            >
+              ออกจากระบบ
+            </button>
           </div>
         </div>
       </main>

@@ -69,6 +69,67 @@ export default function SettingsPanel({
   return (
     <section className="cp-settings-page cp-section-enter">
       <section
+        className="cp-settings-card cp-settings-account"
+        aria-labelledby="account-settings-title"
+      >
+        <SettingsHeading
+          icon="user"
+          title="บัญชี ClearPath"
+          description="เข้าสู่ระบบและจัดการข้อมูลส่วนตัวจากที่นี่เพียงจุดเดียว"
+          id="account-settings-title"
+        />
+        <div className="cp-settings-auth">
+          <AuthControl compact />
+        </div>
+        <div className="cp-settings-links">
+          {(auth.user || auth.localDemo) && (
+            <Link href="/profile" className="cp-settings-row cp-focus">
+              <span className="cp-settings-row__icon" aria-hidden="true">
+                <AppIcon name="user" size={20} />
+              </span>
+              <span>
+                <strong>โปรไฟล์และผลงาน</strong>
+                <small>สถานะรายงาน คำขอบคุณ และกิจกรรม</small>
+              </span>
+              <AppIcon name="chevron" size={18} />
+            </Link>
+          )}
+          <Link href="/privacy" className="cp-settings-row cp-focus">
+            <span className="cp-settings-row__icon" aria-hidden="true">
+              <AppIcon name="shield" size={20} />
+            </span>
+            <span>
+              <strong>ความเป็นส่วนตัว</strong>
+              <small>การเก็บภาพ ตำแหน่ง และข้อมูลบัญชี</small>
+            </span>
+            <AppIcon name="chevron" size={18} />
+          </Link>
+          <Link href="/terms" className="cp-settings-row cp-focus">
+            <span className="cp-settings-row__icon" aria-hidden="true">
+              <AppIcon name="info" size={20} />
+            </span>
+            <span>
+              <strong>เงื่อนไขการใช้งาน</strong>
+              <small>ข้อจำกัดของข้อมูลและคำแนะนำสุขภาพ</small>
+            </span>
+            <AppIcon name="chevron" size={18} />
+          </Link>
+          {showAdmin && (
+            <Link href="/admin" className="cp-settings-row cp-focus">
+              <span className="cp-settings-row__icon" aria-hidden="true">
+                <AppIcon name="admin" size={20} />
+              </span>
+              <span>
+                <strong>ศูนย์ควบคุมผู้ดูแล</strong>
+                <small>ตรวจรายงาน ประกาศ และสถานะระบบ</small>
+              </span>
+              <AppIcon name="chevron" size={18} />
+            </Link>
+          )}
+        </div>
+      </section>
+
+      <section
         className="cp-settings-card"
         aria-labelledby="display-settings-title"
       >
@@ -126,67 +187,6 @@ export default function SettingsPanel({
           </span>
           <AppIcon name="chevron" size={18} />
         </Link>
-      </section>
-
-      <section
-        className="cp-settings-card"
-        aria-labelledby="account-settings-title"
-      >
-        <SettingsHeading
-          icon="user"
-          title="บัญชีและความเป็นส่วนตัว"
-          description="จัดการบัญชี และดูวิธีที่ ClearPath ใช้ข้อมูล"
-          id="account-settings-title"
-        />
-        <div className="cp-settings-auth">
-          <AuthControl compact />
-        </div>
-        <div className="cp-settings-links">
-          {(auth.user || auth.localDemo) && (
-            <Link href="/profile" className="cp-settings-row cp-focus">
-              <span className="cp-settings-row__icon" aria-hidden="true">
-                <AppIcon name="user" size={20} />
-              </span>
-              <span>
-                <strong>โปรไฟล์และผลงาน</strong>
-                <small>สถานะรายงาน คำขอบคุณ และกิจกรรม</small>
-              </span>
-              <AppIcon name="chevron" size={18} />
-            </Link>
-          )}
-          <Link href="/privacy" className="cp-settings-row cp-focus">
-            <span className="cp-settings-row__icon" aria-hidden="true">
-              <AppIcon name="shield" size={20} />
-            </span>
-            <span>
-              <strong>ความเป็นส่วนตัว</strong>
-              <small>การเก็บภาพ ตำแหน่ง และข้อมูลบัญชี</small>
-            </span>
-            <AppIcon name="chevron" size={18} />
-          </Link>
-          <Link href="/terms" className="cp-settings-row cp-focus">
-            <span className="cp-settings-row__icon" aria-hidden="true">
-              <AppIcon name="info" size={20} />
-            </span>
-            <span>
-              <strong>เงื่อนไขการใช้งาน</strong>
-              <small>ข้อจำกัดของข้อมูลและคำแนะนำสุขภาพ</small>
-            </span>
-            <AppIcon name="chevron" size={18} />
-          </Link>
-          {showAdmin && (
-            <Link href="/admin" className="cp-settings-row cp-focus">
-              <span className="cp-settings-row__icon" aria-hidden="true">
-                <AppIcon name="admin" size={20} />
-              </span>
-              <span>
-                <strong>ศูนย์ควบคุมผู้ดูแล</strong>
-                <small>ตรวจรายงาน ประกาศ และสถานะระบบ</small>
-              </span>
-              <AppIcon name="chevron" size={18} />
-            </Link>
-          )}
-        </div>
       </section>
 
       <section className="cp-settings-permissions" aria-label="สิทธิ์อุปกรณ์">

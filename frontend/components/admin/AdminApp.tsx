@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import AuthControl from "@/frontend/components/auth/AuthControl";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AdminPanel from "@/frontend/components/panels/AdminPanel";
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -252,7 +251,13 @@ export default function AdminApp() {
             <span className="cp-admin-role-pill">
               <AppIcon name="shield" size={15} /> {auth.role}
             </span>
-            <AuthControl compact />
+            <button
+              type="button"
+              className="cp-admin-signout cp-focus"
+              onClick={() => void auth.signOut()}
+            >
+              ออกจากระบบ
+            </button>
           </div>
         </header>
 

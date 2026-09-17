@@ -12,7 +12,6 @@ export default function ProfilePageClient() {
         title: "โปรไฟล์ของฉัน",
         description: "รายงานและกิจกรรมที่คุณมีส่วนร่วม",
         showDataStatus: false,
-        showAuth: false,
       }}
     >
       <ProfilePanel />

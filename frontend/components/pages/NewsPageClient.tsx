@@ -16,7 +16,6 @@ export default function NewsPageClient() {
         error: news.error,
         onRefresh: news.refresh,
         showDataStatus: false,
-        showAuth: false,
       }}
     >
       {news.error && (

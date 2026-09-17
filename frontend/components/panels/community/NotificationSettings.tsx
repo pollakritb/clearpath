@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import AuthControl from "@/frontend/components/auth/AuthControl";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
@@ -196,7 +196,9 @@ export default function NotificationSettings() {
     return (
       <section className="cp-notification-auth">
         <p>เข้าสู่ระบบเพื่อบันทึกช่องทางและเงื่อนไขแจ้งเตือนของคุณ</p>
-        <AuthControl />
+        <Link href="/settings" className="cp-auth-redirect__button cp-focus">
+          ไปหน้าเข้าสู่ระบบ
+        </Link>
       </section>
     );
   }

@@ -18,7 +18,7 @@ export default function SettingsPageClient({
     <UserPageShell
       tab="settings"
       icon="settings"
-      header={{ showDataStatus: false, showAuth: false }}
+      header={{ showDataStatus: false }}
     >
       <SettingsPanel section={section} showAdmin={canModerate} />
     </UserPageShell>

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 
-import AuthControl from "@/frontend/components/auth/AuthControl";
 import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
 import type { DashboardTab } from "@/frontend/types/ui";
 
@@ -19,7 +18,6 @@ interface HeaderProps {
   error: string | null;
   onRefresh?: () => void;
   showDataStatus?: boolean;
-  showAuth?: boolean;
 }
 
 function fmtTime(iso: string | null): string {
@@ -45,7 +43,6 @@ export default function Header({
   error,
   onRefresh,
   showDataStatus = true,
-  showAuth = true,
 }: HeaderProps) {
   const hasStaleData = delayedCount > 0 || expiredCount > 0;
   const state = error ? "error" : hasStaleData ? "warning" : "healthy";
@@ -124,12 +121,6 @@ export default function Header({
             </small>
           </span>
           <span className="cp-data-status__source">Air4Thai</span>
-        </div>
-      )}
-
-      {showAuth && (
-        <div className="cp-context-header__auth">
-          <AuthControl compact />
         </div>
       )}
     </header>

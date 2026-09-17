@@ -1,9 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
-import AuthControl from "@/frontend/components/auth/AuthControl";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
@@ -272,7 +272,17 @@ export default function ReportForm({
           <span>ตรวจและส่ง</span>
         </li>
       </ol>
-      <AuthControl compact />
+      {!auth.user && !auth.localDemo && (
+        <aside className="cp-auth-redirect" aria-label="ต้องเข้าสู่ระบบ">
+          <span>
+            <strong>เข้าสู่ระบบก่อนส่งข้อมูล</strong>
+            <small>จัดการบัญชี Google ได้จากหน้าการตั้งค่าเพียงจุดเดียว</small>
+          </span>
+          <Link href="/settings" className="cp-focus">
+            ไปหน้าเข้าสู่ระบบ
+          </Link>
+        </aside>
+      )}
       <form onSubmit={submit} className="cp-report-form">
         {!draft && (
           <div
@@ -380,7 +390,7 @@ export default function ReportForm({
                         ? details.hideIdentity
                           ? "ชื่อและรูป Google จะไม่แสดงบนแผนที่"
                           : "ชื่อและรูป Google จะแสดงเฉพาะรายงานนี้"
-                        : "เข้าสู่ระบบด้วย Google หากต้องการแสดงโปรไฟล์"}
+                        : "ตั้งค่าบัญชี Google หากต้องการแสดงโปรไฟล์"}
                     </small>
                   </div>
                 </div>

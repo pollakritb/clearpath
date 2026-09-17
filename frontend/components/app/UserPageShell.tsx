@@ -22,7 +22,6 @@ interface HeaderState {
   error?: string | null;
   onRefresh?: () => void;
   showDataStatus?: boolean;
-  showAuth?: boolean;
 }
 
 interface UserPageShellProps {
@@ -81,7 +80,6 @@ export default function UserPageShell({
             error={header.error ?? null}
             onRefresh={header.onRefresh}
             showDataStatus={header.showDataStatus ?? true}
-            showAuth={header.showAuth ?? true}
           />
         }
       >

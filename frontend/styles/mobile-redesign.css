@@ -573,6 +573,11 @@
   padding: 15px;
 }
 
+.cp-app .cp-settings-account {
+  border-color: #b8d8d2;
+  box-shadow: 0 10px 28px rgba(11, 67, 61, 0.08);
+}
+
 .cp-app .cp-settings-card__heading,
 .cp-app .cp-settings-page__heading {
   display: grid;
@@ -715,6 +720,60 @@
   border-radius: 14px;
   padding: 10px;
   background: #f7f9f8;
+}
+
+.cp-app .cp-auth-redirect {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #c9ded9;
+  border-radius: 16px;
+  padding: 12px;
+  background: #eef7f5;
+}
+
+.cp-app .cp-auth-redirect > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cp-app .cp-auth-redirect strong {
+  font-size: 0.76rem;
+}
+
+.cp-app .cp-auth-redirect small {
+  color: var(--cp-subink);
+  font-size: 0.64rem;
+  line-height: 1.45;
+}
+
+.cp-app .cp-auth-redirect > a,
+.cp-app .cp-auth-redirect__button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  padding: 9px 12px;
+  background: var(--cp-teal);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+
+@media (max-width: 430px) {
+  .cp-app .cp-auth-redirect {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-app .cp-auth-redirect > a {
+    width: 100%;
+  }
 }
 
 .cp-app .cp-settings-permissions {
@@ -1137,11 +1196,6 @@
 }
 
 .cp-app .cp-profile-page {
-  display: grid;
-  gap: 12px;
-}
-
-.cp-app .cp-profile-account {
   display: grid;
   gap: 12px;
 }

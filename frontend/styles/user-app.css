@@ -317,9 +317,6 @@
   font-size: 8px;
   font-weight: 600;
 }
-.cp-context-header__auth {
-  margin-top: 10px;
-}
 .cp-map {
   flex: 1;
   min-width: 0;
@@ -460,14 +457,6 @@
 .cp-auth-form {
   display: grid;
   gap: 0.4rem;
-}
-
-.cp-community-account {
-  padding: 12px;
-  border: 1px solid #dbe5e2;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 8px 24px rgba(11, 67, 61, 0.06);
 }
 
 @media (max-width: 480px) {
@@ -1368,7 +1357,6 @@
     font-size: 18px;
   }
   .cp-context-header > p,
-  .cp-context-header__auth,
   .cp-a11y-actions {
     display: none;
   }
@@ -1723,9 +1711,7 @@
   }
 
   .cp-app[data-tab="report"] .cp-data-status,
-  .cp-app[data-tab="community"] .cp-data-status,
-  .cp-app[data-tab="report"] .cp-context-header__auth,
-  .cp-app[data-tab="community"] .cp-context-header__auth {
+  .cp-app[data-tab="community"] .cp-data-status {
     display: none;
   }
 }
@@ -2408,8 +2394,7 @@
     display: none !important;
   }
 
-  .cp-context-header .cp-data-status,
-  .cp-context-header__auth {
+  .cp-context-header .cp-data-status {
     display: none;
   }
 

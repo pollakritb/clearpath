@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
-import AuthControl from "@/frontend/components/auth/AuthControl";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { useCommunityRewards } from "@/frontend/hooks/useCommunity";
@@ -19,18 +19,17 @@ export default function ProfilePanel() {
 
   return (
     <section className="cp-profile-page cp-section-enter">
-      <div className="cp-settings-card cp-profile-account">
-        <header className="cp-settings-card__heading">
-          <span aria-hidden="true">
-            <AppIcon name="user" size={20} />
-          </span>
+      {!signedIn && (
+        <aside className="cp-auth-redirect" aria-label="ต้องเข้าสู่ระบบ">
           <span>
-            <h2>บัญชีของฉัน</h2>
-            <p>ข้อมูลบัญชีและผลงานที่คุณร่วมกับ ClearPath</p>
+            <strong>เข้าสู่ระบบเพื่อดูโปรไฟล์</strong>
+            <small>บัญชี Google จัดการจากหน้าการตั้งค่า</small>
           </span>
-        </header>
-        <AuthControl compact />
-      </div>
+          <Link href="/settings" className="cp-focus">
+            ไปหน้าเข้าสู่ระบบ
+          </Link>
+        </aside>
+      )}
 
       {signedIn && (
         <div className="cp-settings-card">

@@ -154,7 +154,7 @@ export default function ReportEngagement({
 
       {!signedIn && (
         <p className="cp-report-engagement__signin">
-          <Link href="/settings">เข้าสู่ระบบด้วย Google</Link>
+          <Link href="/settings">ไปหน้าเข้าสู่ระบบ</Link>
           <span> เพื่อกดปฏิกิริยาหรือแสดงความคิดเห็น</span>
         </p>
       )}

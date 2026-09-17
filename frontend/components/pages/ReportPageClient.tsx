@@ -24,7 +24,7 @@ export default function ReportPageClient() {
     <UserPageShell
       tab="report"
       icon="camera"
-      header={{ showDataStatus: false, showAuth: false }}
+      header={{ showDataStatus: false }}
     >
       <ReportForm
         location={location}
