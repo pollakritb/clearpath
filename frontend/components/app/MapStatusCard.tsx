@@ -13,12 +13,6 @@ interface MapStatusCardProps {
   station: Station | null;
   report: CommunityReport | null;
   updatedAt: string | null;
-  horizon: 0 | 1 | 3 | 6 | 12 | 24;
-  forecastLoading: boolean;
-  forecastError: string | null;
-  forecastWarnings: string[];
-  forecastPaused: boolean;
-  onHorizonChange: (horizon: 0 | 1 | 3 | 6 | 12 | 24) => void;
   onClose: () => void;
 }
 
@@ -42,81 +36,30 @@ export default function MapStatusCard({
   station,
   report,
   updatedAt,
-  horizon,
-  forecastLoading,
-  forecastError,
-  forecastWarnings,
-  forecastPaused,
-  onHorizonChange,
   onClose,
 }: MapStatusCardProps) {
   const selection = report ?? station;
 
   if (!selection) {
-    if (forecastPaused) {
-      return (
-        <section
-          className="cp-map-current-dock"
-          aria-label="สถานะแผนที่ค่าฝุ่นปัจจุบัน"
-        >
-          <span className="cp-map-current-dock__icon" aria-hidden="true">
-            <AppIcon name="activity" size={19} />
-          </span>
-          <span className="cp-map-current-dock__copy">
-            <strong>ค่าฝุ่นปัจจุบัน</strong>
-            <small>Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ</small>
-          </span>
-          <time
-            className="cp-map-current-dock__time"
-            dateTime={updatedAt ?? undefined}
-          >
-            <i aria-hidden="true" />
-            {updatedAt ? `อัปเดต ${formatTime(updatedAt)} น.` : "กำลังอัปเดต"}
-          </time>
-        </section>
-      );
-    }
-
     return (
-      <section className="cp-map-time-dock" aria-label="เลือกช่วงเวลาบนแผนที่">
-        <div
-          className="cp-map-horizon"
-          role="group"
-          aria-label="ช่วงเวลาบนแผนที่"
+      <section
+        className="cp-map-current-dock"
+        aria-label="สถานะแผนที่ค่าฝุ่นปัจจุบัน"
+      >
+        <span className="cp-map-current-dock__icon" aria-hidden="true">
+          <AppIcon name="activity" size={19} />
+        </span>
+        <span className="cp-map-current-dock__copy">
+          <strong>ค่าฝุ่นปัจจุบัน</strong>
+          <small>Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ</small>
+        </span>
+        <time
+          className="cp-map-current-dock__time"
+          dateTime={updatedAt ?? undefined}
         >
-          {([0, 1, 3, 6, 12, 24] as const).map((item) => (
-            <button
-              key={item}
-              type="button"
-              className="cp-focus"
-              aria-pressed={horizon === item}
-              data-active={horizon === item}
-              onClick={() => onHorizonChange(item)}
-            >
-              {item === 0 ? "ตอนนี้" : `+${item}ชม.`}
-            </button>
-          ))}
-        </div>
-        {horizon > 0 && (
-          <div
-            className="cp-map-forecast-chip"
-            data-state={forecastError ? "error" : "ready"}
-          >
-            <AppIcon name="model" size={16} />
-            <div>
-              <strong>พยากรณ์ประเทศไทยอีก {horizon} ชั่วโมง</strong>
-              <small>
-                {forecastLoading
-                  ? "กำลังคำนวณพื้นผิว…"
-                  : forecastError
-                    ? forecastError
-                    : forecastWarnings.length
-                      ? "บางพื้นที่ถูกซ่อนเพราะข้อมูลไม่เพียงพอ"
-                      : "แตะสถานีเพื่อดูรายละเอียด"}
-              </small>
-            </div>
-          </div>
-        )}
+          <i aria-hidden="true" />
+          {updatedAt ? `อัปเดต ${formatTime(updatedAt)} น.` : "กำลังอัปเดต"}
+        </time>
       </section>
     );
   }

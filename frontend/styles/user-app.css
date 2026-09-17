@@ -2928,33 +2928,6 @@
   margin-inline: auto;
 }
 
-.cp-map-horizon {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 4px;
-  margin: -4px -4px 12px;
-  overflow-x: auto;
-  padding: 4px;
-  scrollbar-width: thin;
-}
-
-.cp-map-horizon button {
-  min-width: 48px;
-  min-height: 44px;
-  border: 1px solid var(--cp-line);
-  border-radius: 9px;
-  background: #fff;
-  color: var(--cp-subink);
-  font: 800 0.64rem var(--font-sans);
-  white-space: nowrap;
-}
-
-.cp-map-horizon button[data-active="true"] {
-  border-color: var(--cp-teal);
-  background: var(--cp-teal);
-  color: #fff;
-}
-
 /* Forecast card — touch-first, uncertainty and method are always explicit. */
 .cp-forecast-card {
   overflow: hidden;
@@ -4255,7 +4228,6 @@
   content: "";
 }
 
-.cp-map-time-dock,
 .cp-map-current-dock,
 .cp-map-selection-card {
   position: absolute;
@@ -4330,67 +4302,6 @@
   border-radius: 50%;
   background: #46a276;
   box-shadow: 0 0 0 3px rgba(70, 162, 118, 0.14);
-}
-
-.cp-map-time-dock {
-  bottom: 16px;
-  left: 50%;
-  width: min(430px, calc(100% - 32px));
-  border-radius: 18px;
-  padding: 7px;
-  transform: translateX(-50%);
-}
-
-.cp-map-time-dock .cp-map-horizon {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 4px;
-  margin: 0;
-  overflow: visible;
-  padding: 0;
-}
-
-.cp-map-time-dock .cp-map-horizon button {
-  min-width: 0;
-  min-height: 44px;
-  padding: 0 4px;
-  border-radius: 11px;
-  font-size: 0.64rem;
-}
-
-.cp-map-forecast-chip {
-  min-height: 46px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-top: 6px;
-  border-radius: 12px;
-  padding: 7px 10px;
-  background: #edf6ff;
-  color: #245f9e;
-}
-
-.cp-map-forecast-chip[data-state="error"] {
-  background: #fff1ef;
-  color: #9e302a;
-}
-
-.cp-map-forecast-chip > div {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.cp-map-forecast-chip strong {
-  font-size: 0.68rem;
-}
-
-.cp-map-forecast-chip small {
-  overflow: hidden;
-  margin-top: 1px;
-  font-size: 0.61rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .cp-map-selection-card {
@@ -4794,15 +4705,6 @@
     background: rgba(255, 255, 255, 0.96) !important;
   }
 
-  .cp-map-time-dock {
-    right: 10px;
-    bottom: calc(var(--cp-mobile-nav-h) + 10px);
-    left: 10px;
-    width: auto;
-    border-radius: 17px;
-    transform: none;
-  }
-
   .cp-map-current-dock {
     right: 10px;
     bottom: calc(var(--cp-mobile-nav-h) + 10px);
@@ -4814,11 +4716,6 @@
 
   .cp-map-current-dock__time {
     padding-inline: 7px;
-  }
-
-  .cp-map-time-dock .cp-map-horizon button {
-    min-height: 44px;
-    font-size: clamp(0.56rem, 2.55vw, 0.66rem);
   }
 
   .cp-map-selection-card {
@@ -5493,10 +5390,6 @@
 
   .cp-map-flyout {
     top: max(67px, calc(env(safe-area-inset-top) + 58px));
-  }
-
-  .cp-map-time-dock {
-    bottom: calc(var(--cp-mobile-nav-h) + 10px);
   }
 
   .cp-report-source-guide,

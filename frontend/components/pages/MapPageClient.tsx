@@ -10,13 +10,10 @@ import ListView from "@/frontend/components/panels/ListView";
 import { useDisplayPreferences } from "@/frontend/components/settings/DisplayPreferencesProvider";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
 import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
-import { useForecastSurface } from "@/frontend/hooks/useForecastSurface";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
-import { FORECAST_SYSTEM_PAUSED } from "@/frontend/lib/forecast-state";
 import {
   buildCurrentSurfaceStations,
-  buildForecastSurfaceStations,
   countCommunitySources,
 } from "@/frontend/lib/dashboard";
 import type {
@@ -24,7 +21,7 @@ import type {
   LocationSuggestion,
   Station,
 } from "@/frontend/types";
-import type { ViewMode, ViewportBounds } from "@/frontend/types/ui";
+import type { ViewMode } from "@/frontend/types/ui";
 
 const MapView = dynamic(() => import("@/frontend/components/map/MapView"), {
   ssr: false,
@@ -38,7 +35,6 @@ export default function MapPageClient({
 }) {
   const pm25 = usePm25();
   const firms = useFirms();
-  const forecastSurface = useForecastSurface();
   const community = useCommunityMapData();
   const display = useDisplayPreferences();
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
@@ -51,12 +47,10 @@ export default function MapPageClient({
   const [showIndividualReports, setShowIndividualReports] = useState(true);
   const [showFires, setShowFires] = useState(showFiresInitially);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
-  const [mapHorizon, setMapHorizon] = useState<0 | 1 | 3 | 6 | 12 | 24>(0);
   const [focusPoint, setFocusPoint] = useState<{
     lat: number;
     lon: number;
   } | null>(null);
-  const [mapBounds, setMapBounds] = useState<ViewportBounds | null>(null);
 
   const loadFires = firms.load;
   useEffect(() => {
@@ -81,29 +75,6 @@ export default function MapPageClient({
     [community.mapPoints, pm25.stations],
   );
 
-  const forecastSurfaceLoad = forecastSurface.load;
-  const forecastSurfaceClear = forecastSurface.clear;
-  useEffect(() => {
-    if (FORECAST_SYSTEM_PAUSED) {
-      forecastSurfaceClear();
-      return;
-    }
-    if (mapHorizon === 0) {
-      forecastSurfaceClear();
-      return;
-    }
-    if (mapBounds) void forecastSurfaceLoad(mapHorizon, mapBounds);
-  }, [forecastSurfaceClear, forecastSurfaceLoad, mapBounds, mapHorizon]);
-
-  const forecastSurfaceStations = useMemo(
-    () => buildForecastSurfaceStations(forecastSurface.data, mapHorizon),
-    [forecastSurface.data, mapHorizon],
-  );
-  const surfaceStations =
-    FORECAST_SYSTEM_PAUSED || mapHorizon === 0
-      ? currentSurfaceStations
-      : forecastSurfaceStations;
-
   const refresh = useCallback(() => {
     const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
     if (showFires) tasks.push(firms.load(1));
@@ -113,20 +84,18 @@ export default function MapPageClient({
   const selectStation = useCallback((station: Station) => {
     setSelectedStation(station);
     setSelectedReport(null);
-    setMapHorizon(0);
   }, []);
 
   const selectReport = useCallback((report: CommunityReport) => {
     setSelectedReport(report);
     setSelectedStation(null);
-    setMapHorizon(0);
   }, []);
 
   const map = (
     <main className="cp-map">
       <MapView
         stations={serviceAreaStations}
-        surfaceStations={surfaceStations}
+        surfaceStations={currentSurfaceStations}
         fires={showFires ? firms.fires : []}
         reports={community.reports}
         reportPin={null}
@@ -145,7 +114,6 @@ export default function MapPageClient({
         selectedStationId={selectedStation?.id}
         selectedReportId={selectedReport?.id}
         onLocate={(lat, lon) => setFocusPoint({ lat, lon })}
-        onViewportChange={setMapBounds}
       />
       <MapChrome
         viewMode={viewMode}
@@ -196,12 +164,6 @@ export default function MapPageClient({
         station={selectedStation}
         report={selectedReport}
         updatedAt={pm25.updatedAt}
-        horizon={mapHorizon}
-        forecastLoading={forecastSurface.loading}
-        forecastError={forecastSurface.error}
-        forecastWarnings={forecastSurface.data?.warnings ?? []}
-        forecastPaused={FORECAST_SYSTEM_PAUSED}
-        onHorizonChange={setMapHorizon}
         onClose={() => {
           setSelectedStation(null);
           setSelectedReport(null);
