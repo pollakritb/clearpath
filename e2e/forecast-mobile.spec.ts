@@ -225,24 +225,30 @@ test("forecast card exposes all horizons, uncertainty and accessible table", asy
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
 });
 
-test("map forecast controls are paused while current readings remain available", async ({
+test("map focuses on current readings while forecast controls are paused", async ({
   page,
 }) => {
   await page.goto("/");
-  const selector = page.getByRole("group", { name: /ช่วงเวลาบนแผนที่/ });
-  await expect(selector).toBeVisible();
-  await expect(selector.getByRole("button")).toHaveCount(1);
-  await expect(selector.getByRole("button", { name: "ตอนนี้" })).toBeVisible();
-  const sizes = await selector
-    .getByRole("button")
-    .evaluateAll((buttons) =>
-      buttons.map((button) => button.getBoundingClientRect().height),
-    );
-  expect(sizes.every((height) => height >= 44)).toBe(true);
+  const currentDock = page.getByRole("region", {
+    name: "สถานะแผนที่ค่าฝุ่นปัจจุบัน",
+  });
+  await expect(currentDock).toBeVisible();
+  await expect(currentDock.getByText("ค่าฝุ่นปัจจุบัน")).toBeVisible();
+  await expect(
+    currentDock.getByText("Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ"),
+  ).toBeVisible();
   await expect(
     page.getByText("ระบบพยากรณ์กำลังปรับปรุง", { exact: true }),
-  ).toBeVisible();
-  await expect(page.locator(".cp-map-forecast-chip")).toBeVisible();
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("group", { name: /ช่วงเวลาบนแผนที่/ }),
+  ).toHaveCount(0);
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
 });
 
 test("today page shows forecast unavailable without zero, mock, or comparison", async ({

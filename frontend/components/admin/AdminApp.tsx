@@ -13,13 +13,6 @@ import type {
   DataHealthResponse,
   DataIssueRow,
   DataIssueUpdateRequest,
-  ForecastDataQualityRow,
-  ForecastEvaluationRow,
-  ForecastFalseSafeCase,
-  ForecastFalseSafeReviewRequest,
-  ForecastModelStatus,
-  ForecastProviderHealthResponse,
-  ForecastReleaseDecision,
   NotificationOutboxSummary,
 } from "@/frontend/types/ui";
 
@@ -36,32 +29,20 @@ import AdminPublishingPanel from "./AdminPublishingPanel";
 interface OverviewData {
   queueCount: number;
   runs: AdminSyncRun[];
-  models: ForecastModelStatus[];
   outbox: NotificationOutboxSummary | null;
-  dataQuality: ForecastDataQualityRow[];
-  evaluation: ForecastEvaluationRow[];
   dataIssues: DataIssueRow[];
   auditLogs: AuditLogRow[];
   auditHasMore: boolean;
-  falseSafeCases: ForecastFalseSafeCase[];
-  releaseDecisions: ForecastReleaseDecision[];
-  providerHealth: ForecastProviderHealthResponse | null;
   dataHealth: DataHealthResponse | null;
 }
 
 const EMPTY_OVERVIEW: OverviewData = {
   queueCount: 0,
   runs: [],
-  models: [],
   outbox: null,
-  dataQuality: [],
-  evaluation: [],
   dataIssues: [],
   auditLogs: [],
   auditHasMore: false,
-  falseSafeCases: [],
-  releaseDecisions: [],
-  providerHealth: null,
   dataHealth: null,
 };
 
@@ -82,10 +63,7 @@ export default function AdminApp() {
     const results = await Promise.allSettled([
       api.adminReports(),
       api.adminSyncRuns(20),
-      api.adminForecastModels(),
       api.adminNotificationOutbox(),
-      api.adminForecastDataQuality(7),
-      api.adminForecastEvaluation(14),
       api.adminDataIssues(100),
       isAdmin
         ? api.adminAuditLogs(100, 0)
@@ -96,9 +74,6 @@ export default function AdminApp() {
             offset: 0,
             has_more: false,
           }),
-      api.adminForecastFalseSafeCases(30, 100),
-      api.adminForecastReleaseDecisions(100),
-      api.adminForecastProviderHealth(),
       api.adminDataHealth(),
     ]);
     setOverview((current) => ({
@@ -110,47 +85,23 @@ export default function AdminApp() {
         results[1].status === "fulfilled"
           ? results[1].value.runs
           : current.runs,
-      models:
-        results[2].status === "fulfilled"
-          ? results[2].value.models
-          : current.models,
       outbox:
-        results[3].status === "fulfilled" ? results[3].value : current.outbox,
-      dataQuality:
-        results[4].status === "fulfilled"
-          ? results[4].value.rows
-          : current.dataQuality,
-      evaluation:
-        results[5].status === "fulfilled"
-          ? results[5].value.rows
-          : current.evaluation,
+        results[2].status === "fulfilled" ? results[2].value : current.outbox,
       dataIssues:
-        results[6].status === "fulfilled"
-          ? results[6].value.issues
+        results[3].status === "fulfilled"
+          ? results[3].value.issues
           : current.dataIssues,
       auditLogs:
-        results[7].status === "fulfilled"
-          ? results[7].value.logs
+        results[4].status === "fulfilled"
+          ? results[4].value.logs
           : current.auditLogs,
       auditHasMore:
-        results[7].status === "fulfilled"
-          ? results[7].value.has_more
+        results[4].status === "fulfilled"
+          ? results[4].value.has_more
           : current.auditHasMore,
-      falseSafeCases:
-        results[8].status === "fulfilled"
-          ? results[8].value.cases
-          : current.falseSafeCases,
-      releaseDecisions:
-        results[9].status === "fulfilled"
-          ? results[9].value.decisions
-          : current.releaseDecisions,
-      providerHealth:
-        results[10].status === "fulfilled"
-          ? results[10].value
-          : current.providerHealth,
       dataHealth:
-        results[11].status === "fulfilled"
-          ? results[11].value
+        results[5].status === "fulfilled"
+          ? results[5].value
           : current.dataHealth,
     }));
     const failed = results.find((result) => result.status === "rejected");
@@ -162,15 +113,19 @@ export default function AdminApp() {
     setLoading(false);
   }, [canModerate, isAdmin]);
 
+  const handleQueueCountChange = useCallback((queueCount: number) => {
+    setOverview((current) => ({ ...current, queueCount }));
+  }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => void loadOverview(), 0);
     return () => window.clearTimeout(timer);
   }, [loadOverview]);
 
   const latestRun = overview.runs[0];
-  const activeModels = useMemo(
-    () => overview.models.filter((model) => model.active).length,
-    [overview.models],
+  const openIssueCount = useMemo(
+    () => overview.dataIssues.filter((issue) => issue.status === "new").length,
+    [overview.dataIssues],
   );
   const copy = ADMIN_PAGE_COPY[view];
 
@@ -268,8 +223,8 @@ export default function AdminApp() {
               loading={loading}
               error={error}
               latestRun={latestRun}
-              activeModels={activeModels}
-              modelCount={overview.models.length}
+              dataHealth={overview.dataHealth}
+              openIssueCount={openIssueCount}
               isAdmin={isAdmin}
               onNavigate={setView}
             />
@@ -277,9 +232,7 @@ export default function AdminApp() {
           {view === "moderation" && (
             <AdminPanel
               onChanged={() => void loadOverview()}
-              onQueueCountChange={(queueCount) =>
-                setOverview((current) => ({ ...current, queueCount }))
-              }
+              onQueueCountChange={handleQueueCountChange}
             />
           )}
           {view === "publishing" && (
@@ -291,18 +244,12 @@ export default function AdminApp() {
           {view === "operations" && (
             <AdminOperationsPanel
               runs={overview.runs}
-              models={overview.models}
               outbox={overview.outbox}
-              dataQuality={overview.dataQuality}
-              evaluation={overview.evaluation}
               dataIssues={overview.dataIssues}
               auditLogs={overview.auditLogs}
               auditHasMore={overview.auditHasMore}
               auditLoadingMore={auditLoadingMore}
               isAdmin={isAdmin}
-              falseSafeCases={overview.falseSafeCases}
-              releaseDecisions={overview.releaseDecisions}
-              providerHealth={overview.providerHealth}
               dataHealth={overview.dataHealth}
               loading={loading}
               error={error}
@@ -343,18 +290,6 @@ export default function AdminApp() {
                 } finally {
                   setAuditLoadingMore(false);
                 }
-              }}
-              onReviewFalseSafe={async (
-                row: ForecastFalseSafeCase,
-                body: ForecastFalseSafeReviewRequest,
-              ) => {
-                await api.reviewForecastFalseSafeCase(
-                  row.run_id,
-                  row.horizon_hours,
-                  row.variant,
-                  body,
-                );
-                await loadOverview();
               }}
             />
           )}

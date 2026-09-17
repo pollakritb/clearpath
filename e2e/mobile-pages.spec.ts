@@ -88,6 +88,44 @@ for (const item of pages) {
   });
 }
 
+test("admin exposes only the active operational surfaces", async ({ page }) => {
+  await page.goto("/admin");
+
+  await expect(
+    page.getByRole("heading", { name: "สิ่งที่ต้องดูแลวันนี้" }),
+  ).toBeVisible();
+  await expect(page.getByText("โมเดลพยากรณ์")).toHaveCount(0);
+
+  const adminNavigation = page.getByRole("navigation", {
+    name: "เมนูผู้ดูแล",
+  });
+  await adminNavigation
+    .getByRole("button", { name: "ระบบ", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "ข้อมูลและบริการที่ต้องดูแล" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "ข้อมูล PM2.5 จาก Air4Thai" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "การส่งแจ้งเตือน" }),
+  ).toBeVisible();
+  await expect(page.getByText("โมเดลพยากรณ์")).toHaveCount(0);
+  await expect(page.getByText("false-safe")).toHaveCount(0);
+  await expectNoHorizontalPageOverflow(page);
+
+  await adminNavigation
+    .getByRole("button", { name: "OCR", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "ตรวจเฉพาะหลักฐานที่ไม่ผ่านเกณฑ์อัตโนมัติ",
+    }),
+  ).toBeVisible();
+  await expectNoHorizontalPageOverflow(page);
+});
+
 test("mobile primary navigation targets are at least 44px", async ({
   page,
 }) => {
@@ -812,7 +850,7 @@ test("admin approves and rejects exception reports with evidence @stateful-360",
   });
 
   await page.goto("/admin");
-  await page.getByRole("button", { name: "คิวตรวจ", exact: true }).click();
+  await page.getByRole("button", { name: /ข้อยกเว้น OCR|OCR/ }).click();
 
   const approveCard = page
     .locator(".cp-admin-report-card")

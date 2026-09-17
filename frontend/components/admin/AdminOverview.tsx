@@ -1,5 +1,5 @@
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import type { AdminSyncRun } from "@/frontend/types/ui";
+import type { AdminSyncRun, DataHealthResponse } from "@/frontend/types/ui";
 
 import { formatRelative, type AdminView } from "./admin-navigation";
 
@@ -8,8 +8,8 @@ interface AdminOverviewProps {
   loading: boolean;
   error: string | null;
   latestRun?: AdminSyncRun;
-  activeModels: number;
-  modelCount: number;
+  dataHealth: DataHealthResponse | null;
+  openIssueCount: number;
   isAdmin: boolean;
   onNavigate: (view: AdminView) => void;
 }
@@ -19,8 +19,8 @@ export default function AdminOverview({
   loading,
   error,
   latestRun,
-  activeModels,
-  modelCount,
+  dataHealth,
+  openIssueCount,
   isAdmin,
   onNavigate,
 }: AdminOverviewProps) {
@@ -31,8 +31,8 @@ export default function AdminOverview({
           <span className="cp-eyebrow">ศูนย์ควบคุมรายวัน</span>
           <h2>สิ่งที่ต้องดูแลวันนี้</h2>
           <p>
-            ตรวจเฉพาะรายงานที่ระบบยังไม่มั่นใจ ติดตาม Air4Thai
-            และดูว่าโมเดลใดผ่านเกณฑ์ใช้งาน
+            ดูเคสที่ระบบตรวจอัตโนมัติยังสรุปไม่ได้ ติดตามข้อมูล Air4Thai
+            และจัดการปัญหาที่ผู้ใช้แจ้ง
           </p>
         </div>
         <button
@@ -63,7 +63,7 @@ export default function AdminOverview({
           <span>
             <small>รอตรวจข้อยกเว้น</small>
             <strong>{loading ? "…" : queueCount}</strong>
-            <em>รายงานจากชุมชน</em>
+            <em>เฉพาะเคสที่หลักฐานไม่ครบ</em>
           </span>
           <AppIcon name="chevron" size={18} />
         </button>
@@ -91,14 +91,32 @@ export default function AdminOverview({
           className="cp-admin-stat-card cp-focus"
         >
           <span className="cp-admin-stat-card__icon">
-            <AppIcon name="model" size={22} />
+            <AppIcon name="station" size={22} />
           </span>
           <span>
-            <small>สถานะเปิดใช้โมเดล</small>
+            <small>สถานีข้อมูลสด</small>
             <strong>
-              {loading ? "…" : `${activeModels}/${modelCount || 5}`}
+              {loading
+                ? "…"
+                : `${dataHealth?.fresh_station_count ?? "—"}/${dataHealth?.station_count ?? "—"}`}
             </strong>
-            <em>โมเดลที่เปิดใช้งาน</em>
+            <em>สถานีที่ข้อมูลยังไม่หมดอายุ</em>
+          </span>
+          <AppIcon name="chevron" size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigate("operations")}
+          className="cp-admin-stat-card cp-focus"
+          data-tone={openIssueCount > 0 ? "attention" : "healthy"}
+        >
+          <span className="cp-admin-stat-card__icon">
+            <AppIcon name="alert" size={22} />
+          </span>
+          <span>
+            <small>ปัญหาข้อมูลใหม่</small>
+            <strong>{loading ? "…" : openIssueCount}</strong>
+            <em>รายการที่ผู้ใช้แจ้งเข้ามา</em>
           </span>
           <AppIcon name="chevron" size={18} />
         </button>
@@ -116,32 +134,30 @@ export default function AdminOverview({
             <li>
               <span>1</span>
               <div>
-                <strong>ตรวจภาพและเวลา</strong>
-                <small>ภาพต้องมาจากกล้องในระบบและไม่ใช่ภาพซ้ำ</small>
+                <strong>ระบบอ่านภาพด้วย OCR</strong>
+                <small>ตรวจค่าบนหน้าจอ ความชัด และความต่อเนื่องของภาพ</small>
               </div>
             </li>
             <li>
               <span>2</span>
               <div>
-                <strong>อ่านค่าจากหน้าจอเครื่องวัด</strong>
-                <small>OCR เป็นเพียงข้อมูลช่วย ไม่ใช่ค่าตัดสินสุดท้าย</small>
+                <strong>ระบบตรวจหลักฐานร่วม</strong>
+                <small>ตรวจ GPS เวลา ภาพซ้ำ และความสมเหตุสมผลของค่า</small>
               </div>
             </li>
             <li>
               <span>3</span>
               <div>
-                <strong>เทียบข้อมูลอ้างอิง</strong>
-                <small>
-                  ตรวจ GPS, Air4Thai ใกล้สุด และเหตุผิดปกติในพื้นที่
-                </small>
+                <strong>เคสมั่นใจสูงเผยแพร่อัตโนมัติ</strong>
+                <small>ไม่ต้องรอผู้ดูแลตรวจทีละรายงาน</small>
               </div>
             </li>
             <li>
               <span>4</span>
               <div>
-                <strong>อนุมัติหรือปฏิเสธ</strong>
+                <strong>ส่งต่อเฉพาะข้อยกเว้น</strong>
                 <small>
-                  บันทึกค่าที่อ่านจริงและหมายเหตุให้ตรวจสอบย้อนหลังได้
+                  พักรายงานที่หลักฐานขัดแย้งไว้ ไม่เผยแพร่โดยอัตโนมัติ
                 </small>
               </div>
             </li>
@@ -158,11 +174,11 @@ export default function AdminOverview({
           <div className="cp-admin-permission-list">
             <div data-allowed>
               <AppIcon name="check" size={17} />
-              ตรวจและตัดสินรายงานจากชุมชน
+              จัดการข้อยกเว้นจากระบบตรวจอัตโนมัติ
             </div>
             <div data-allowed>
               <AppIcon name="check" size={17} />
-              ดูสถานะ sync และโมเดลพยากรณ์
+              ดูสุขภาพข้อมูล Air4Thai และการแจ้งเตือน
             </div>
             <div data-allowed={isAdmin || undefined}>
               <AppIcon name={isAdmin ? "check" : "alert"} size={17} />

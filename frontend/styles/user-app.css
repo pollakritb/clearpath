@@ -4256,6 +4256,7 @@
 }
 
 .cp-map-time-dock,
+.cp-map-current-dock,
 .cp-map-selection-card {
   position: absolute;
   z-index: 1250;
@@ -4263,6 +4264,72 @@
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 16px 40px rgba(10, 42, 38, 0.23);
   backdrop-filter: blur(20px);
+}
+
+.cp-map-current-dock {
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  max-width: 520px;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto;
+  border-radius: 18px;
+  padding: 9px 12px;
+}
+
+.cp-map-current-dock__icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--cp-teal-soft);
+  color: var(--cp-teal);
+}
+
+.cp-map-current-dock__copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cp-map-current-dock__copy strong {
+  color: var(--cp-ink);
+  font-size: 0.75rem;
+}
+
+.cp-map-current-dock__copy small {
+  overflow: hidden;
+  color: var(--cp-subink);
+  font-size: 0.59rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-map-current-dock__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 6px 8px;
+  background: #eef8f3;
+  color: #286c5d;
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.cp-map-current-dock__time i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #46a276;
+  box-shadow: 0 0 0 3px rgba(70, 162, 118, 0.14);
 }
 
 .cp-map-time-dock {
@@ -4306,11 +4373,6 @@
 .cp-map-forecast-chip[data-state="error"] {
   background: #fff1ef;
   color: #9e302a;
-}
-
-.cp-map-forecast-chip[data-state="paused"] {
-  background: var(--cp-surface-muted);
-  color: var(--cp-text-muted);
 }
 
 .cp-map-forecast-chip > div {
@@ -4739,6 +4801,19 @@
     width: auto;
     border-radius: 17px;
     transform: none;
+  }
+
+  .cp-map-current-dock {
+    right: 10px;
+    bottom: calc(var(--cp-mobile-nav-h) + 10px);
+    left: 10px;
+    min-height: 58px;
+    border-radius: 17px;
+    padding: 8px 10px;
+  }
+
+  .cp-map-current-dock__time {
+    padding-inline: 7px;
   }
 
   .cp-map-time-dock .cp-map-horizon button {

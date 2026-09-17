@@ -18,23 +18,23 @@ export const ADMIN_NAV_ITEMS: Array<{
   },
   {
     id: "moderation",
-    label: "คิวตรวจข้อยกเว้น",
-    mobileLabel: "คิวตรวจ",
-    description: "เคสที่ระบบยังไม่มั่นใจ",
+    label: "ข้อยกเว้น OCR",
+    mobileLabel: "OCR",
+    description: "หลักฐานที่ระบบสรุปไม่ได้",
     icon: "shield",
   },
   {
     id: "publishing",
-    label: "ประกาศและกิจกรรม",
+    label: "ประกาศ",
     mobileLabel: "ประกาศ",
-    description: "สื่อสารกับชุมชน",
+    description: "ข่าวสารและกิจกรรม",
     icon: "megaphone",
   },
   {
     id: "operations",
-    label: "ข้อมูลและโมเดล",
+    label: "สถานะระบบ",
     mobileLabel: "ระบบ",
-    description: "Air4Thai sync และ ML",
+    description: "ข้อมูล ปัญหา และ audit",
     icon: "activity",
   },
 ];
@@ -45,14 +45,14 @@ export const ADMIN_PAGE_COPY: Record<
 > = {
   overview: { eyebrow: "ภาพรวมผู้ดูแล", title: "ศูนย์ควบคุม ClearPath" },
   moderation: {
-    eyebrow: "Review exceptions",
-    title: "คิวตรวจเคสที่ระบบยังไม่มั่นใจ",
+    eyebrow: "OCR exceptions",
+    title: "หลักฐานที่ต้องตรวจเพิ่มเติม",
   },
   publishing: {
     eyebrow: "Community management",
     title: "จัดการเนื้อหาชุมชน",
   },
-  operations: { eyebrow: "System health", title: "สถานะข้อมูลและการพยากรณ์" },
+  operations: { eyebrow: "System health", title: "สถานะข้อมูลและบริการ" },
 };
 
 export function formatRelative(value?: string | null): string {

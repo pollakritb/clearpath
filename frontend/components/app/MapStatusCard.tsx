@@ -7,7 +7,6 @@ import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
 import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
-import { FORECAST_PAUSED_MESSAGE } from "@/frontend/lib/forecast-state";
 import type { CommunityReport, Station } from "@/frontend/types";
 
 interface MapStatusCardProps {
@@ -54,6 +53,30 @@ export default function MapStatusCard({
   const selection = report ?? station;
 
   if (!selection) {
+    if (forecastPaused) {
+      return (
+        <section
+          className="cp-map-current-dock"
+          aria-label="สถานะแผนที่ค่าฝุ่นปัจจุบัน"
+        >
+          <span className="cp-map-current-dock__icon" aria-hidden="true">
+            <AppIcon name="activity" size={19} />
+          </span>
+          <span className="cp-map-current-dock__copy">
+            <strong>ค่าฝุ่นปัจจุบัน</strong>
+            <small>Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ</small>
+          </span>
+          <time
+            className="cp-map-current-dock__time"
+            dateTime={updatedAt ?? undefined}
+          >
+            <i aria-hidden="true" />
+            {updatedAt ? `อัปเดต ${formatTime(updatedAt)} น.` : "กำลังอัปเดต"}
+          </time>
+        </section>
+      );
+    }
+
     return (
       <section className="cp-map-time-dock" aria-label="เลือกช่วงเวลาบนแผนที่">
         <div
@@ -61,10 +84,7 @@ export default function MapStatusCard({
           role="group"
           aria-label="ช่วงเวลาบนแผนที่"
         >
-          {(forecastPaused
-            ? ([0] as const)
-            : ([0, 1, 3, 6, 12, 24] as const)
-          ).map((item) => (
+          {([0, 1, 3, 6, 12, 24] as const).map((item) => (
             <button
               key={item}
               type="button"
@@ -77,19 +97,6 @@ export default function MapStatusCard({
             </button>
           ))}
         </div>
-        {forecastPaused && (
-          <div
-            className="cp-map-forecast-chip"
-            data-state="paused"
-            role="status"
-          >
-            <AppIcon name="info" size={16} />
-            <div>
-              <strong>{FORECAST_PAUSED_MESSAGE}</strong>
-              <small>แผนที่ยังแสดงค่าฝุ่นปัจจุบันตามปกติ</small>
-            </div>
-          </div>
-        )}
         {horizon > 0 && (
           <div
             className="cp-map-forecast-chip"
