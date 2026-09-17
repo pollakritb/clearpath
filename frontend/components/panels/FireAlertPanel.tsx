@@ -24,27 +24,12 @@ export default function FireAlertPanel({
   onShowLayer: () => void;
 }) {
   // The server owns province, duplicate-pass and 12-hour freshness policy.
-  const maxFrp = fires.reduce(
-    (maximum, fire) => Math.max(maximum, fire.frp ?? 0),
-    0,
-  );
-  const severity =
-    fires.length >= 3 || maxFrp >= 20
-      ? "high"
-      : fires.length > 0
-        ? "watch"
-        : "clear";
-  const active = severity !== "clear";
+  const active = fires.length > 0;
   const unavailable = ["failed", "unavailable", "unconfigured"].includes(
     status,
   );
   const stale = status === "stale";
-  const tone =
-    unavailable || stale || severity === "watch"
-      ? "#914600"
-      : severity === "high"
-        ? T.red
-        : T.teal;
+  const tone = unavailable || stale || active ? "#914600" : T.teal;
   const newest = fires.reduce<string | null>((latest, fire) => {
     if (!fire.acquired_at) return latest;
     return !latest || fire.acquired_at > latest ? fire.acquired_at : latest;
@@ -81,13 +66,11 @@ export default function FireAlertPanel({
                 ? "ยังตรวจสอบจุดความร้อนจากดาวเทียมไม่ได้"
                 : stale
                   ? "ข้อมูลล่าสุดเกิน 12 ชั่วโมง"
-                  : severity === "high"
-                    ? `เฝ้าระวัง: พบ ${fires.length} จุดความร้อนจากดาวเทียมในนครปฐม`
-                    : severity === "watch"
-                      ? `พบ ${fires.length} จุดความร้อนจากดาวเทียมในนครปฐม`
-                      : status === "checked_no_hotspots"
-                        ? "ตรวจแล้วไม่พบจุดความร้อนในช่วง 12 ชั่วโมง"
-                        : "ยังไม่ได้ตรวจข้อมูลดาวเทียม"}
+                  : active
+                    ? "พบสัญญาณจุดความร้อนจากดาวเทียมในนครปฐม"
+                    : status === "checked_no_hotspots"
+                      ? "ตรวจแล้วไม่พบจุดความร้อนในช่วง 12 ชั่วโมง"
+                      : "ยังไม่ได้ตรวจข้อมูลดาวเทียม"}
           </b>
           <div
             style={{ fontSize: ".66em", color: T.subInk, marginTop: ".15em" }}
