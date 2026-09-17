@@ -10,7 +10,7 @@ export default function ProfilePageClient() {
       icon="user"
       header={{
         title: "โปรไฟล์ของฉัน",
-        description: "รายงาน Trust และกิจกรรมที่คุณมีส่วนร่วม",
+        description: "รายงานและกิจกรรมที่คุณมีส่วนร่วม",
         showDataStatus: false,
         showAuth: false,
       }}

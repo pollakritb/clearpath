@@ -23,7 +23,7 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "ClearPath — พยากรณ์ฝุ่นและเครือข่ายชุมชน",
   description:
-    "ติดตามและพยากรณ์ PM2.5 จาก Air4Thai พร้อมรายงานจากชุมชนที่ผ่าน OCR, Trust Score และการตรวจสอบ",
+    "ติดตามและพยากรณ์ PM2.5 จาก Air4Thai พร้อมรายงานจากชุมชนที่ผ่าน OCR และการตรวจสอบหลักฐาน",
 };
 
 export const viewport: Viewport = {

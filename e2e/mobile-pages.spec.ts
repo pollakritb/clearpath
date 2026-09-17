@@ -548,6 +548,7 @@ test("community marker opens a distinct privacy-safe report card", async ({
     name: "รายละเอียดรายงานจากบุคคล",
   });
   await expect(card).toBeVisible();
+  await expect(card.getByText(/Trust/i)).toHaveCount(0);
   await expect(card.getByText("รายงานจากบุคคล", { exact: true })).toBeVisible();
   await expect(card.getByText(/ผู้รายงาน สมาชิกชุมชน/)).toBeVisible();
   await expect(card.getByText(/สอบเทียบ/)).toBeVisible();

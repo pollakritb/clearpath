@@ -149,7 +149,7 @@ export default function SettingsPanel({
               </span>
               <span>
                 <strong>โปรไฟล์และผลงาน</strong>
-                <small>Trust รายงาน คำขอบคุณ และกิจกรรม</small>
+                <small>สถานะรายงาน คำขอบคุณ และกิจกรรม</small>
               </span>
               <AppIcon name="chevron" size={18} />
             </Link>

@@ -174,9 +174,7 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
               >
                 {value}
               </b>
-              <span style={{ fontSize: ".68em" }}>
-                µg/m³ · Trust {report.trust_score}
-              </span>
+              <span style={{ fontSize: ".68em" }}>µg/m³ PM2.5</span>
             </div>
             <div style={{ fontSize: ".66em", color: T.subInk }}>
               ค่าขณะวัดที่ผ่านการตรวจ

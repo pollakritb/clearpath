@@ -135,7 +135,7 @@ export default function ReportForm({
         measurement_duration_seconds: details.measurementDurationSeconds,
       });
       setMessage(
-        `${result.message} · คะแนนเบื้องต้น ${result.report.trust_score}/100` +
+        result.message +
           (result.review_outcome === "automatic_approved"
             ? ` · เผยแพร่ ${result.report.verified_pm25 ?? "—"} µg/m³ แล้ว`
             : result.ocr_available
@@ -184,10 +184,6 @@ export default function ReportForm({
             <div>
               <dt>สถานะ</dt>
               <dd>{approved ? "เผยแพร่แล้ว" : "รอตรวจสอบ"}</dd>
-            </div>
-            <div>
-              <dt>Trust เบื้องต้น</dt>
-              <dd>{completed.report.trust_score}/100</dd>
             </div>
           </dl>
           <button

@@ -241,7 +241,7 @@ export default function MapStatusCard({
               <small>{SOURCE_LABELS[source].description}</small>
             </span>
             <span>
-              <strong>Trust {report.trust_score}/100</strong>
+              <strong>เวลาที่ตรวจวัด</strong>
               <small>
                 {report.age_minutes == null
                   ? "ไม่ทราบเวลาวัด"
