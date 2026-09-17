@@ -404,7 +404,11 @@ def test_complete_report_moderation_rating_reward_and_privacy_flow(feature_clien
 
     leaderboard = client.get("/api/community/leaderboard")
     assert leaderboard.status_code == 200
-    assert any(item["user_id"] == reporter.id for item in leaderboard.json()["users"])
+    leaders = leaderboard.json()["users"]
+    assert any(item["user_id"] == reporter.id for item in leaders)
+    assert [item["rank"] for item in leaders] == list(range(1, len(leaders) + 1))
+    assert all("reputation_score" not in item for item in leaders)
+    assert all("approved_reports" not in item for item in leaders)
 
 
 def test_camera_evidence_validation_and_single_use_session(feature_client):

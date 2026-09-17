@@ -2061,6 +2061,174 @@
   padding: 1rem;
 }
 
+.cp-rewards {
+  display: grid;
+  gap: 14px;
+}
+
+.cp-rewards__section {
+  min-width: 0;
+}
+
+.cp-rewards__section + .cp-rewards__section {
+  border-top: 1px solid var(--cp-line);
+  padding-top: 14px;
+}
+
+.cp-rewards__heading {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.cp-rewards__heading-icon {
+  align-items: center;
+  background: var(--cp-teal-soft);
+  border-radius: 12px;
+  color: var(--cp-teal);
+  display: inline-flex;
+  flex: 0 0 40px;
+  height: 40px;
+  justify-content: center;
+}
+
+.cp-rewards__heading h2,
+.cp-rewards__title {
+  font-size: 0.94rem;
+  margin: 0;
+}
+
+.cp-rewards__heading p {
+  color: var(--cp-subink);
+  font-size: 0.75rem;
+  margin: 2px 0 0;
+}
+
+.cp-leaderboard {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cp-leaderboard__item {
+  align-items: center;
+  background: var(--cp-chip);
+  border: 1px solid var(--cp-line);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: 10px;
+}
+
+.cp-leaderboard__item--rank-1 {
+  background: color-mix(in srgb, #f7c948 16%, var(--cp-panel));
+  border-color: color-mix(in srgb, #d49b17 45%, var(--cp-line));
+}
+
+.cp-leaderboard__item--rank-2,
+.cp-leaderboard__item--rank-3 {
+  background: color-mix(in srgb, var(--cp-teal) 7%, var(--cp-panel));
+}
+
+.cp-leaderboard__rank {
+  align-items: center;
+  background: var(--cp-panel);
+  border: 1px solid var(--cp-line);
+  border-radius: 50%;
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 800;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.cp-leaderboard__person,
+.cp-leaderboard__points {
+  display: grid;
+  min-width: 0;
+}
+
+.cp-leaderboard__person strong {
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-leaderboard__person small,
+.cp-leaderboard__points small {
+  color: var(--cp-subink);
+  font-size: 0.67rem;
+}
+
+.cp-leaderboard__points {
+  justify-items: end;
+}
+
+.cp-leaderboard__points strong {
+  color: var(--cp-teal);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.cp-leaderboard__empty {
+  align-items: center;
+  background: var(--cp-chip);
+  border: 1px dashed var(--cp-line);
+  border-radius: 14px;
+  color: var(--cp-subink);
+  display: grid;
+  font-size: 0.74rem;
+  gap: 4px;
+  justify-items: center;
+  padding: 20px 12px;
+  text-align: center;
+}
+
+.cp-leaderboard__empty strong {
+  color: var(--cp-ink);
+  font-size: 0.82rem;
+}
+
+.cp-reward-card {
+  align-items: center;
+  background: var(--cp-chip);
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 10px;
+}
+
+.cp-reward-card span {
+  display: grid;
+  min-width: 0;
+}
+
+.cp-reward-card strong {
+  font-size: 0.78rem;
+}
+
+.cp-reward-card small {
+  color: var(--cp-subink);
+  font-size: 0.69rem;
+}
+
+.cp-reward-card b {
+  color: var(--cp-teal);
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
 .cp-data-issue-form {
   display: grid;
   gap: 0.85rem;

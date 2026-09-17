@@ -18,6 +18,7 @@ from ..models.schemas import (
     CommunityReport,
     CommunityReportsResponse,
     DataIssueCreate,
+    LeaderboardEntry,
     LeaderboardResponse,
     OperationResponse,
     RatingResult,
@@ -29,7 +30,6 @@ from ..models.schemas import (
     ReportEngagementResponse,
     ReportRatingRequest,
     ReportReactionRequest,
-    UserReputation,
 )
 from ..services import capture as capture_service
 from ..services import community as community_service
@@ -435,21 +435,18 @@ async def leaderboard(limit: int = Query(20, ge=1, le=100)):
 
     return LeaderboardResponse(
         users=[
-            UserReputation(
+            LeaderboardEntry(
                 user_id=str(r["id"]),
                 display_name=r.get("display_name"),
-                reputation_score=int(r.get("reputation_score") or 0),
-                approved_reports=int(r.get("approved_reports") or 0),
-                helpful_reviews=int(r.get("helpful_reviews") or 0),
+                rank=index,
                 weekly_points=int(r.get("weekly_points") or 0),
                 badges=derive_badges(
-                    reputation_score=int(r.get("reputation_score") or 0),
+                    reputation_score=0,
                     approved_reports=int(r.get("approved_reports") or 0),
                     helpful_reviews=int(r.get("helpful_reviews") or 0),
                 ),
-                role=str(r.get("role") or "user"),
             )
-            for r in rows
+            for index, r in enumerate(rows, start=1)
         ]
     )
 

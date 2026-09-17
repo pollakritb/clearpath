@@ -246,7 +246,15 @@ export interface CommunityProfileResponse extends UserReputation {
 }
 
 export interface LeaderboardResponse {
-  users: UserReputation[];
+  users: LeaderboardEntry[];
+}
+
+export interface LeaderboardEntry {
+  user_id: string;
+  display_name: string | null;
+  rank: number;
+  weekly_points: number;
+  badges: string[];
 }
 
 export interface Announcement {

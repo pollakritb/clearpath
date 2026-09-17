@@ -1,77 +1,81 @@
-import { T } from "@/frontend/lib/ui";
-import type { Activity, UserReputation } from "@/frontend/types";
+import AppIcon from "@/frontend/components/ui/AppIcon";
+import type { Activity, LeaderboardEntry } from "@/frontend/types";
 
 export default function RewardsSection({
   activities,
   leaders,
 }: {
   activities: Activity[];
-  leaders: UserReputation[];
+  leaders: LeaderboardEntry[];
 }) {
   return (
-    <>
-      <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: ".9em" }}>
-        <h2 style={{ margin: "0 0 .5em", fontSize: ".95em" }}>
+    <div className="cp-rewards">
+      <section className="cp-rewards__section" aria-labelledby="weekly-ranking">
+        <header className="cp-rewards__heading">
+          <span className="cp-rewards__heading-icon" aria-hidden="true">
+            <AppIcon name="activity" size={19} />
+          </span>
+          <span>
+            <h2 id="weekly-ranking">ผู้ช่วยชุมชนประจำสัปดาห์</h2>
+            <p>นับคะแนนกิจกรรมในช่วง 7 วันล่าสุด</p>
+          </span>
+        </header>
+
+        {leaders.length > 0 ? (
+          <ol className="cp-leaderboard" aria-label="อันดับผู้ช่วยชุมชน 7 วัน">
+            {leaders.slice(0, 10).map((user) => (
+              <li
+                className={`cp-leaderboard__item cp-leaderboard__item--rank-${Math.min(user.rank, 4)}`}
+                key={user.user_id}
+              >
+                <span
+                  className="cp-leaderboard__rank"
+                  aria-label={`อันดับ ${user.rank}`}
+                >
+                  {user.rank}
+                </span>
+                <span className="cp-leaderboard__person">
+                  <strong>{user.display_name ?? "สมาชิก ClearPath"}</strong>
+                  <small>
+                    {user.badges[0] ?? "ช่วยแบ่งปันข้อมูลอากาศให้ชุมชน"}
+                  </small>
+                </span>
+                <span className="cp-leaderboard__points">
+                  <strong>{user.weekly_points}</strong>
+                  <small>คะแนน</small>
+                </span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <div className="cp-leaderboard__empty">
+            <AppIcon name="community" size={24} />
+            <strong>ยังไม่มีอันดับในสัปดาห์นี้</strong>
+            <span>ส่งข้อมูลหรือช่วยขอบคุณรายงานใกล้คุณเพื่อเริ่มอันดับ</span>
+          </div>
+        )}
+      </section>
+
+      <section
+        className="cp-rewards__section"
+        aria-labelledby="community-activities"
+      >
+        <h2 id="community-activities" className="cp-rewards__title">
           กิจกรรมและรางวัล
         </h2>
         {activities.map((activity) => (
-          <div
-            key={activity.id}
-            style={{
-              background: T.chip,
-              borderRadius: "10px",
-              padding: ".65em",
-              marginBottom: ".45em",
-            }}
-          >
-            <b style={{ fontSize: ".8em" }}>{activity.title}</b>
-            <div style={{ fontSize: ".7em", color: T.subInk }}>
-              {activity.description}
-            </div>
-            <span
-              style={{ fontFamily: T.mono, fontSize: ".7em", color: T.teal }}
-            >
-              +{activity.reward_points} คะแนน
+          <article className="cp-reward-card" key={activity.id}>
+            <span>
+              <strong>{activity.title}</strong>
+              <small>{activity.description}</small>
             </span>
-          </div>
+            <b>+{activity.reward_points} คะแนน</b>
+          </article>
         ))}
         {activities.length === 0 && (
-          <p style={{ fontSize: ".74em", color: T.subInk }}>ยังไม่มีกิจกรรม</p>
+          <p className="cp-muted-status">ยังไม่มีกิจกรรมในขณะนี้</p>
         )}
-      </div>
-
-      <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: ".9em" }}>
-        <h2 style={{ margin: "0 0 .5em", fontSize: ".95em" }}>
-          ผู้ช่วยชุมชนยอดเยี่ยม · 7 วันล่าสุด
-        </h2>
-        {leaders.slice(0, 5).map((user, index) => (
-          <div
-            key={user.user_id}
-            style={{
-              padding: ".45em 0",
-              borderBottom: `1px solid ${T.line}`,
-              fontSize: ".76em",
-            }}
-          >
-            <div style={{ display: "flex", gap: ".5em", alignItems: "center" }}>
-              <b style={{ fontFamily: T.mono, color: T.teal }}>#{index + 1}</b>
-              <span style={{ flex: 1 }}>{user.display_name ?? "สมาชิก"}</span>
-              <b style={{ fontFamily: T.mono }}>+{user.weekly_points}</b>
-            </div>
-            {user.badges.length > 0 && (
-              <div
-                style={{
-                  margin: ".3em 0 0 1.9em",
-                  color: T.subInk,
-                  fontSize: ".88em",
-                }}
-              >
-                {user.badges.join(" · ")}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </>
+      </section>
+    </div>
   );
 }

@@ -13,7 +13,7 @@ import type {
   Announcement,
   CommunityMapPoint,
   CommunityReport,
-  UserReputation,
+  LeaderboardEntry,
 } from "@/frontend/types";
 
 const MAP_FALLBACK_REFRESH_MS = 5 * 60_000;
@@ -152,7 +152,7 @@ export function useAnnouncements() {
 
 export function useCommunityRewards() {
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [leaders, setLeaders] = useState<UserReputation[]>([]);
+  const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

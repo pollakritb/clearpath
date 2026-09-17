@@ -246,8 +246,16 @@ class CommunityProfileResponse(UserReputation):
     reports: list[CommunityReport] = Field(default_factory=list)
 
 
+class LeaderboardEntry(BaseModel):
+    user_id: str
+    display_name: str | None = None
+    rank: int = Field(ge=1)
+    weekly_points: int = Field(default=0, ge=0)
+    badges: list[str] = Field(default_factory=list)
+
+
 class LeaderboardResponse(BaseModel):
-    users: list[UserReputation]
+    users: list[LeaderboardEntry]
 
 
 class Announcement(BaseModel):

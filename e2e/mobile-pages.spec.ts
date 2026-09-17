@@ -108,6 +108,41 @@ test("mobile primary navigation targets are at least 44px", async ({
   }
 });
 
+test("profile leaderboard shows a clear weekly rank without trust scores", async ({
+  page,
+}) => {
+  await page.route("**/api/community/leaderboard", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        users: [
+          {
+            user_id: "helper-1",
+            display_name: "ผู้ช่วยนครปฐม",
+            rank: 1,
+            weekly_points: 42,
+            badges: ["นักรายงานที่ยืนยันแล้ว"],
+          },
+        ],
+      }),
+    });
+  });
+  await page.goto("/profile");
+  await page.getByText("กิจกรรมและอันดับ", { exact: true }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "ผู้ช่วยชุมชนประจำสัปดาห์" }),
+  ).toBeVisible();
+  await expect(page.getByText("ผู้ช่วยนครปฐม", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("อันดับ 1")).toBeVisible();
+  await expect(page.getByText("42", { exact: true })).toBeVisible();
+  const leaderboard = page.getByRole("region", {
+    name: "ผู้ช่วยชุมชนประจำสัปดาห์",
+  });
+  await expect(leaderboard.getByText(/Trust|ความน่าเชื่อถือ/i)).toHaveCount(0);
+  await expectNoHorizontalPageOverflow(page);
+});
+
 test("header actions expose refresh and a dedicated settings page", async ({
   page,
 }) => {
