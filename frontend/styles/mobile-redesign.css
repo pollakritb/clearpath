@@ -959,10 +959,6 @@
     font-size: 1rem;
   }
 
-  .cp-app .cp-forecast-horizons button {
-    min-height: 48px;
-  }
-
   .cp-app .cp-forecast-reading {
     grid-template-columns: minmax(0, 1fr) minmax(120px, 0.72fr);
     border-radius: 16px;

@@ -6,11 +6,10 @@ from datetime import UTC, datetime
 
 from starlette.concurrency import run_in_threadpool
 
-from ..algorithms.external_forecast import select_horizon_rows
+from ..algorithms.external_forecast import select_horizon_rows, select_hourly_rows
 from ..core.errors import UpstreamError
 from . import openmeteo_air, supabase_client
 
-PRODUCT_HORIZONS = (1, 3, 6, 12, 24)
 PROVIDER = "openmeteo_cams"
 PROVIDER_LABEL = "CAMS / Open-Meteo"
 ATTRIBUTION = "CAMS ENSEMBLE data provided by Copernicus via Open-Meteo"
@@ -91,13 +90,13 @@ async def station_forecast(station_id: str, hours: int) -> dict:
     if station.get("lat") is None or station.get("lon") is None:
         raise ValueError("station_coordinates_missing")
 
-    requested_horizons = [hour for hour in PRODUCT_HORIZONS if hour <= hours]
+    requested_hours = max(1, min(24, hours))
     result = await openmeteo_air.get_forecasts(
         [{"id": station_id, "lat": station["lat"], "lon": station["lon"]}],
-        forecast_days=2,
+        forecast_hours=requested_hours + 2,
     )
     generated_at = datetime.now(UTC).isoformat()
-    selected = select_horizon_rows(result.get(station_id, []), requested_horizons)
+    selected = select_hourly_rows(result.get(station_id, []), requested_hours)
     if not selected:
         raise UpstreamError("Open-Meteo/CAMS returned no usable PM2.5 forecast")
 
@@ -137,7 +136,7 @@ async def station_forecast(station_id: str, hours: int) -> dict:
         "station_id": station_id,
         "generated_at": generated_at,
         "source_recorded_at": generated_at,
-        "horizon_hours": max(requested_horizons),
+        "horizon_hours": requested_hours,
         "method": "raw_openmeteo_cams",
         "source_points": len(points),
         "coverage_target": 0,
@@ -162,7 +161,7 @@ async def station_forecast(station_id: str, hours: int) -> dict:
         },
         "forecast_mode": "external_provider",
         "recommended_source": PROVIDER,
-        "providers": [_provider_summary(generated_at, max(requested_horizons))],
+        "providers": [_provider_summary(generated_at, len(points))],
         "selection_evidence": _selection_evidence(),
         "community_context": _community_context(),
     }

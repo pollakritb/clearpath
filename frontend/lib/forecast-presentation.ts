@@ -4,8 +4,6 @@ import type {
   ForecastSource,
 } from "@/frontend/types";
 
-export const PRODUCT_HORIZONS = [1, 3, 6, 12, 24] as const;
-
 export const FORECAST_SOURCE_LABELS: Record<ForecastSource, string> = {
   clearpath: "ClearPath",
   gistda: "GISTDA เช็คฝุ่น",
@@ -37,6 +35,7 @@ export function formatProviderTime(value: string | null): string {
   const date = parseDate(value);
   if (!date) return "ไม่พบเวลา";
   return date.toLocaleString("th-TH", {
+    timeZone: "Asia/Bangkok",
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -50,17 +49,32 @@ export function formatForecastTime(
 ): string {
   const date = parseDate(value);
   if (!date) return "ไม่พบเวลา";
-  const target = startOfDay(date);
-  const today = startOfDay(now);
-  const dayOffset = Math.round(
-    (target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000),
-  );
+  const dayOffset = bangkokDaySerial(date) - bangkokDaySerial(now);
   if (dayOffset < 0 || dayOffset > 1) return formatProviderTime(value);
   const day = dayOffset === 0 ? "วันนี้" : "พรุ่งนี้";
   return `${day} ${date.toLocaleTimeString("th-TH", {
+    timeZone: "Asia/Bangkok",
     hour: "2-digit",
     minute: "2-digit",
   })} น.`;
+}
+
+export function formatForecastTimelineTime(
+  value: string | null,
+  now = new Date(),
+): { day: string | null; time: string } {
+  const date = parseDate(value);
+  if (!date) return { day: null, time: "—" };
+  const dayOffset = bangkokDaySerial(date) - bangkokDaySerial(now);
+  const day = dayOffset === 0 ? null : dayOffset === 1 ? "พรุ่งนี้" : null;
+  return {
+    day,
+    time: date.toLocaleTimeString("th-TH", {
+      timeZone: "Asia/Bangkok",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
 }
 
 export function agreementLabel(data: ForecastResponse): string {
@@ -111,6 +125,22 @@ function parseDate(value: string | null): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function startOfDay(value: Date): Date {
-  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+function bangkokDaySerial(value: Date): number {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+  const values = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+  return (
+    Date.UTC(
+      Number(values.year),
+      Number(values.month) - 1,
+      Number(values.day),
+    ) /
+    (24 * 60 * 60 * 1000)
+  );
 }

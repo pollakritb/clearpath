@@ -5,12 +5,22 @@ import type { ForecastPoint, ForecastResponse } from "@/frontend/types";
 import {
   agreementLabel,
   FORECAST_SOURCE_LABELS,
+  formatForecastTimelineTime,
   forecastIntervalHint,
   forecastMethodLabel,
   forecastStatus,
   formatForecastTime,
   formatProviderTime,
 } from "./forecast-presentation";
+
+describe("formatForecastTimelineTime", () => {
+  it("labels local tomorrow timestamps without hiding the clock time", () => {
+    const now = new Date("2026-09-18T16:30:00+07:00");
+    expect(
+      formatForecastTimelineTime("2026-09-19T01:00:00+07:00", now),
+    ).toEqual({ day: "พรุ่งนี้", time: "01:00" });
+  });
+});
 
 function response(overrides: Partial<ForecastResponse> = {}): ForecastResponse {
   return {

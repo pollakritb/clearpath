@@ -21,7 +21,7 @@ def _as_utc(value: str) -> str:
 
 
 async def get_forecasts(
-    stations: list[dict], forecast_days: int = 4
+    stations: list[dict], forecast_days: int = 4, forecast_hours: int | None = None
 ) -> dict[str, list[dict]]:
     if not settings.openmeteo_air_enabled or not stations:
         return {}
@@ -31,16 +31,20 @@ async def get_forecasts(
         async with httpx.AsyncClient(timeout=30.0) as client:
             for offset in range(0, len(stations), max_batch):
                 batch = stations[offset : offset + max_batch]
+                params: dict[str, str | int] = {
+                    "latitude": ",".join(str(float(row["lat"])) for row in batch),
+                    "longitude": ",".join(str(float(row["lon"])) for row in batch),
+                    "hourly": "pm2_5",
+                    "timezone": "UTC",
+                }
+                if forecast_hours is None:
+                    params["forecast_days"] = max(1, min(7, forecast_days))
+                else:
+                    params["forecast_hours"] = max(1, min(168, forecast_hours))
                 payload = await get_json(
                     client,
                     URL,
-                    params={
-                        "latitude": ",".join(str(float(row["lat"])) for row in batch),
-                        "longitude": ",".join(str(float(row["lon"])) for row in batch),
-                        "hourly": "pm2_5",
-                        "timezone": "UTC",
-                        "forecast_days": max(1, min(7, forecast_days)),
-                    },
+                    params=params,
                 )
                 locations = payload if isinstance(payload, list) else [payload]
                 if len(locations) != len(batch):

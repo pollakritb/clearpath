@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
-from backend.algorithms.external_forecast import select_horizon_rows
+from backend.algorithms.external_forecast import select_horizon_rows, select_hourly_rows
 from backend.core.config import settings
 from backend.main import create_app
 from backend.routers import forecast
@@ -24,6 +24,25 @@ def test_select_horizon_rows_returns_raw_provider_values():
 
     assert [row["horizon_hours"] for row in result] == [1, 3, 6, 12, 24]
     assert [row["pm25"] for row in result] == [11.2, 12.3, 14.6, 18.1, 20.4]
+
+
+def test_select_hourly_rows_keeps_timestamps_and_raw_values():
+    now = datetime(2026, 9, 17, 5, 15, tzinfo=UTC)
+    rows = [
+        {
+            "forecast_at": (now.replace(minute=0) + timedelta(hours=hour)).isoformat(),
+            "pm25": 10 + hour,
+        }
+        for hour in range(0, 30)
+    ]
+
+    result = select_hourly_rows(rows, 24, now=now)
+
+    assert len(result) == 24
+    assert result[0]["forecast_at"] == "2026-09-17T06:00:00+00:00"
+    assert result[-1]["forecast_at"] == "2026-09-18T05:00:00+00:00"
+    assert [row["horizon_hours"] for row in result] == list(range(1, 25))
+    assert result[0]["pm25"] == 11.0
 
 
 def test_forecast_route_serves_only_openmeteo_cams(monkeypatch):

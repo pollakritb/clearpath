@@ -3360,48 +3360,103 @@
   }
 }
 
-.cp-forecast-horizons {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(54px, 1fr));
-  gap: 6px;
-  overflow-x: auto;
-  padding: 2px 1px 6px;
-  scrollbar-width: thin;
+.cp-forecast-timeline-wrap {
   margin-top: 14px;
 }
 
-.cp-forecast-horizons button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
+.cp-forecast-timeline {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 1px 8px;
+  scroll-padding-inline: 1px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
 }
 
-.cp-forecast-horizons button {
-  min-height: 52px;
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
+.cp-forecast-timeline > button,
+.cp-forecast-timeline__now {
+  width: 78px;
+  min-width: 78px;
+  min-height: 88px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
   gap: 3px;
+  scroll-snap-align: start;
   border: 1px solid var(--cp-line);
-  border-radius: 13px;
+  border-radius: 16px;
+  padding: 9px 7px;
   background: #f7f9f8;
   color: var(--cp-subink);
   font-family: inherit;
 }
 
-.cp-forecast-horizons button strong {
-  font: 800 1rem var(--font-mono);
+.cp-forecast-timeline__now {
+  border-color: #c9ddda;
+  background: #edf6f4;
 }
 
-.cp-forecast-horizons button span {
-  font-size: 0.65rem;
-  font-weight: 700;
+.cp-forecast-timeline > button {
+  cursor: pointer;
 }
 
-.cp-forecast-horizons button[data-active="true"] {
+.cp-forecast-timeline span,
+.cp-forecast-timeline small {
+  font-size: 0.64rem;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.cp-forecast-timeline strong {
+  color: var(--cp-ink);
+  font: 850 1.08rem/1.1 var(--font-mono);
+}
+
+.cp-forecast-timeline > button[data-active="true"] {
   border-color: var(--cp-teal);
   background: var(--cp-teal);
   color: #fff;
   box-shadow: 0 5px 14px rgba(11, 127, 116, 0.2);
+}
+
+.cp-forecast-timeline > button[data-active="true"] strong {
+  color: #fff;
+}
+
+.cp-forecast-timeline-toggle {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+  border: 0;
+  padding: 0 2px;
+  background: transparent;
+  color: var(--cp-teal);
+  font-family: inherit;
+  font-size: 0.73rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cp-forecast-timeline-note {
+  margin: 0;
+  color: var(--cp-subink);
+  font-size: 0.65rem;
+  line-height: 1.45;
+}
+
+.cp-forecast-timeline-placeholder {
+  margin-top: 14px;
+  border: 1px dashed var(--cp-line);
+  border-radius: 14px;
+  padding: 12px;
+  background: #f7f9f8;
+  color: var(--cp-subink);
+  font-size: 0.72rem;
+  text-align: center;
 }
 
 .cp-forecast-reading {

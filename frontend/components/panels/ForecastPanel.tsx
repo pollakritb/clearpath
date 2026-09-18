@@ -13,8 +13,8 @@ import {
   FORECAST_SOURCE_ORDER,
   forecastStatus,
   formatForecastTime,
+  formatForecastTimelineTime,
   formatProviderTime,
-  PRODUCT_HORIZONS,
 } from "@/frontend/lib/forecast-presentation";
 import {
   FORECAST_PAUSED_MESSAGE,
@@ -33,11 +33,7 @@ const SOURCE_ICONS: Record<ForecastSource, AppIconName> = {
   openweather: "database",
 };
 
-function ForecastPausedPreview({
-  selectedHorizon,
-}: {
-  selectedHorizon: number;
-}) {
+function ForecastPausedPreview() {
   return (
     <div className="cp-forecast-preview cp-anim-rise" aria-live="polite">
       <div className="cp-forecast-preview__hero">
@@ -45,7 +41,7 @@ function ForecastPausedPreview({
           <AppIcon name="activity" size={22} />
         </span>
         <div>
-          <span>ช่วงที่เลือก · อีก {selectedHorizon} ชั่วโมง</span>
+          <span>ช่วงเวลาพยากรณ์</span>
           <strong>ยังไม่มีค่าพยากรณ์</strong>
           <small>ค่าจริงจะแสดงเป็น µg/m³ พร้อมระดับคุณภาพอากาศ</small>
         </div>
@@ -130,21 +126,31 @@ export default function ForecastPanel({
   loading: boolean;
   error: string | null;
 }) {
-  const [selectedHorizon, setSelectedHorizon] = useState<number>(12);
+  const [selectedForecastAt, setSelectedForecastAt] = useState<string | null>(
+    null,
+  );
+  const [showHourly, setShowHourly] = useState(false);
   const [viewSource, setViewSource] = useState<ForecastSource | null>(null);
   const horizonPoints = useMemo(
     () =>
-      PRODUCT_HORIZONS.flatMap((horizon) => {
-        const point = data?.points.find(
-          (candidate) => candidate.horizon_hours === horizon,
-        );
-        return point ? [point] : [];
-      }),
+      [...(data?.points ?? [])].sort(
+        (left, right) =>
+          Date.parse(left.forecast_at) - Date.parse(right.forecast_at),
+      ),
     [data],
   );
+  const timelinePoints = useMemo(() => {
+    if (showHourly) return horizonPoints;
+    const sampled = horizonPoints.filter((_, index) => index % 3 === 0);
+    const last = horizonPoints.at(-1);
+    if (last && sampled.at(-1)?.forecast_at !== last.forecast_at) {
+      sampled.push(last);
+    }
+    return sampled;
+  }, [horizonPoints, showHourly]);
   const selected =
-    horizonPoints.find((point) => point.horizon_hours === selectedHorizon) ??
-    horizonPoints.at(-1);
+    horizonPoints.find((point) => point.forecast_at === selectedForecastAt) ??
+    horizonPoints.at(0);
   const selectedSources =
     data?.sources
       .filter(
@@ -218,46 +224,67 @@ export default function ForecastPanel({
         </div>
       )}
 
-      {(station || previewMode) && (
-        <div
-          className="cp-forecast-horizons"
-          role="group"
-          aria-label="ช่วงเวลาพยากรณ์"
-        >
-          {PRODUCT_HORIZONS.map((horizon) => {
-            const hasPoint = horizonPoints.some(
-              (point) => point.horizon_hours === horizon,
-            );
-            const disabled =
-              !previewMode &&
-              (loading ||
-                Boolean(
-                  data && data.forecast_status !== "unavailable" && !hasPoint,
-                ));
-            return (
-              <button
-                key={horizon}
-                type="button"
-                className="cp-focus"
-                aria-pressed={selectedHorizon === horizon}
-                data-active={selectedHorizon === horizon}
-                disabled={disabled}
-                onClick={() => {
-                  setSelectedHorizon(horizon);
-                  setViewSource(null);
-                }}
-              >
-                <strong>{horizon}</strong>
-                <span>ชม.</span>
-              </button>
-            );
-          })}
+      {station && !previewMode && timelinePoints.length > 0 && (
+        <div className="cp-forecast-timeline-wrap">
+          <div
+            className="cp-forecast-timeline"
+            role="group"
+            aria-label="พยากรณ์ตามเวลา"
+          >
+            <div className="cp-forecast-timeline__now" aria-label="ค่าปัจจุบัน">
+              <span>ตอนนี้</span>
+              <strong>{station.pm25 ?? "—"}</strong>
+              <small>ค่าตรวจวัด</small>
+            </div>
+            {timelinePoints.map((point) => {
+              const slot = formatForecastTimelineTime(point.forecast_at);
+              const active = selected?.forecast_at === point.forecast_at;
+              return (
+                <button
+                  key={point.forecast_at}
+                  type="button"
+                  className="cp-focus"
+                  aria-label={`${slot.day ? `${slot.day} ` : ""}${slot.time} PM2.5 ${point.pm25} ไมโครกรัมต่อลูกบาศก์เมตร`}
+                  aria-pressed={active}
+                  data-active={active}
+                  onClick={() => {
+                    setSelectedForecastAt(point.forecast_at);
+                    setViewSource(null);
+                  }}
+                >
+                  <span>{slot.day ?? slot.time}</span>
+                  {slot.day && <small>{slot.time}</small>}
+                  <strong>{point.pm25}</strong>
+                  <small>µg/m³</small>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="cp-forecast-timeline-toggle cp-focus"
+            aria-pressed={showHourly}
+            onClick={() => setShowHourly((value) => !value)}
+          >
+            <AppIcon name="clock" size={16} />
+            {showHourly ? "แสดงทุก 3 ชั่วโมง" : "ดูรายชั่วโมงครบ 24 ชม."}
+          </button>
+          <p className="cp-forecast-timeline-note">
+            “ตอนนี้” คือค่าตรวจวัดจริง · เวลาถัดไปคือค่าดิบจาก CAMS/Open‑Meteo
+          </p>
         </div>
       )}
 
       {previewMode && (
-        <ForecastPausedPreview selectedHorizon={selectedHorizon} />
+        <div
+          className="cp-forecast-timeline-placeholder"
+          aria-label="ช่วงเวลาพยากรณ์ยังไม่พร้อม"
+        >
+          Timeline จะปรากฏเมื่อมีข้อมูลจาก CAMS/Open‑Meteo
+        </div>
       )}
+
+      {previewMode && <ForecastPausedPreview />}
 
       {data && selected && !previewMode && (
         <div className="cp-forecast-card__body cp-anim-rise">
@@ -277,7 +304,7 @@ export default function ForecastPanel({
                   size={16}
                 />
                 {showingRecommendation
-                  ? `อีก ${selected.horizon_hours} ชม. · ${formatForecastTime(selected.forecast_at)}`
+                  ? formatForecastTime(selected.forecast_at)
                   : "กำลังดูค่าจากแหล่งนี้"}
               </span>
               <small>
@@ -508,8 +535,10 @@ export default function ForecastPanel({
                     </thead>
                     <tbody>
                       {horizonPoints.map((point) => (
-                        <tr key={point.horizon_hours}>
-                          <th scope="row">{point.horizon_hours} ชม.</th>
+                        <tr key={point.forecast_at}>
+                          <th scope="row">
+                            {formatForecastTime(point.forecast_at)}
+                          </th>
                           <td>{point.pm25}</td>
                           <td>
                             {externalOnly

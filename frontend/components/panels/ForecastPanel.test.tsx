@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { ForecastResponse, Station } from "@/frontend/types";
@@ -50,7 +50,7 @@ describe("ForecastPanel paused UI", () => {
     expect(screen.queryByText(/^0(?:\.0)?$/)).toBeNull();
   });
 
-  it("lets users inspect every planned horizon while the backend is paused", () => {
+  it("does not invent timeline controls while the provider is unavailable", () => {
     render(
       <ForecastPanel
         station={station}
@@ -60,12 +60,7 @@ describe("ForecastPanel paused UI", () => {
       />,
     );
 
-    const twentyFourHourButton = screen.getByRole("button", {
-      name: /24\s*ชม\./,
-    });
-    fireEvent.click(twentyFourHourButton);
-
-    expect(twentyFourHourButton.getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByText("ช่วงที่เลือก · อีก 24 ชั่วโมง")).not.toBeNull();
+    expect(screen.getByLabelText("ช่วงเวลาพยากรณ์ยังไม่พร้อม")).not.toBeNull();
+    expect(screen.queryByRole("group", { name: "พยากรณ์ตามเวลา" })).toBeNull();
   });
 });

@@ -180,7 +180,7 @@ function externalForecastFixture() {
   };
 }
 
-test("forecast card exposes all horizons, uncertainty and accessible table", async ({
+test("forecast card exposes a time-based timeline and accessible table", async ({
   page,
 }) => {
   await page.route("**/api/forecast?**", async (route) => {
@@ -194,11 +194,10 @@ test("forecast card exposes all horizons, uncertainty and accessible table", asy
     page.getByRole("heading", { name: "PM2.5 ในพื้นที่นี้" }).first(),
   ).toBeVisible();
 
-  const selector = page.getByRole("group", { name: /ช่วงเวลาพยากรณ์/ }).first();
-  for (const label of ["1 ชม.", "3 ชม.", "6 ชม.", "12 ชม.", "24 ชม."]) {
-    await expect(selector.getByRole("button", { name: label })).toBeVisible();
-  }
-  const sizes = await selector.getByRole("button").evaluateAll((buttons) =>
+  const timeline = page.getByRole("group", { name: "พยากรณ์ตามเวลา" }).first();
+  await expect(timeline.getByText("ตอนนี้", { exact: true })).toBeVisible();
+  await expect(timeline.getByRole("button")).toHaveCount(9);
+  const sizes = await timeline.getByRole("button").evaluateAll((buttons) =>
     buttons.map((button) => {
       const rect = button.getBoundingClientRect();
       return { width: rect.width, height: rect.height };
@@ -209,7 +208,9 @@ test("forecast card exposes all horizons, uncertainty and accessible table", asy
     expect(size.height).toBeGreaterThanOrEqual(44);
   }
 
-  await selector.getByRole("button", { name: "24 ชม." }).click();
+  await page.getByRole("button", { name: "ดูรายชั่วโมงครบ 24 ชม." }).click();
+  await expect(timeline.getByRole("button")).toHaveCount(24);
+  await timeline.getByRole("button").last().click();
   await page.getByText("เปรียบเทียบแหล่งข้อมูล").click();
   await expect(page.getByText("GISTDA เช็คฝุ่น")).toBeVisible();
   await page.getByText("รายละเอียดและวิธีคำนวณ").click();
@@ -254,24 +255,37 @@ test("map focuses on current readings while forecast controls are paused", async
 test("today page shows forecast unavailable without zero, mock, or comparison", async ({
   page,
 }) => {
+  await page.route("**/api/forecast?**", async (route) => {
+    await route.fulfill({
+      json: {
+        station_id: "81t",
+        station_name: "สถานีทดสอบ",
+        generated_at: new Date().toISOString(),
+        forecast_status: "unavailable",
+        reason_code: "provider_unavailable",
+        points: [],
+        sources: [],
+        agreement: "unavailable",
+        warnings: [],
+        limitations: [],
+        provenance: {},
+      },
+    });
+  });
   await page.goto("/air?station=81t");
   const forecastCard = page.locator(".cp-forecast-card");
   await expect(
     forecastCard.getByText("ระบบพยากรณ์กำลังปรับปรุง", { exact: true }),
   ).toBeVisible();
   await expect(
-    forecastCard.getByText(/ยังไม่มีค่าพยากรณ์ในขณะนี้/),
+    forecastCard.getByText("ยังไม่มีค่าพยากรณ์", { exact: true }),
   ).toBeVisible();
-  const horizons = forecastCard.getByRole("group", {
-    name: "ช่วงเวลาพยากรณ์",
-  });
-  for (const label of ["1 ชม.", "3 ชม.", "6 ชม.", "12 ชม.", "24 ชม."]) {
-    await expect(horizons.getByRole("button", { name: label })).toBeVisible();
-  }
-  await horizons.getByRole("button", { name: "24 ชม." }).click();
   await expect(
-    forecastCard.getByText(/ช่วงที่เลือก: อีก 24 ชม./),
+    forecastCard.getByLabel("ช่วงเวลาพยากรณ์ยังไม่พร้อม"),
   ).toBeVisible();
+  await expect(
+    forecastCard.getByRole("group", { name: "พยากรณ์ตามเวลา" }),
+  ).toHaveCount(0);
   await expect(
     forecastCard.getByText("เปรียบเทียบแหล่งข้อมูล", { exact: true }),
   ).toHaveCount(0);
@@ -285,7 +299,9 @@ test("external provider comparison keeps raw values separate on mobile", async (
     await route.fulfill({ json: externalForecastFixture() });
   });
   await page.goto("/air?station=81t");
-  await expect(page.getByText(/อีก 12 ชม./, { exact: false })).toBeVisible();
+  await expect(
+    page.getByRole("group", { name: "พยากรณ์ตามเวลา" }),
+  ).toBeVisible();
   await page.getByText("เปรียบเทียบแหล่งข้อมูล").click();
   await expect(
     page.getByRole("button", { name: /CAMS \/ Open-Meteo/ }),
