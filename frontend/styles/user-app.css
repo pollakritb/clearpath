@@ -4981,15 +4981,8 @@
   background: var(--cp-source-official);
 }
 
-.cp-layer-symbol--sensor {
-  border-radius: 10px;
-  background: var(--cp-source-sensor);
-  color: #fff;
-  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
-}
-
 .cp-layer-symbol--individual {
-  border-radius: 50% 50% 50% 12px;
+  border-radius: 11px 11px 11px 3px;
   background: var(--cp-source-individual);
   color: #fff;
 }
@@ -5066,22 +5059,15 @@
   font: 900 0.62rem/1 var(--font-mono);
 }
 
-.cp-community-marker[data-source="sensor"] > span {
-  border-radius: 0;
-  background: var(--marker-aqi);
-  transform: none;
-  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
-}
-
 .cp-community-marker[data-source="individual"] > span {
-  border-radius: 50%;
+  border-radius: 12px 12px 12px 3px;
   padding: 4px;
   background: var(--marker-aqi);
-  transform: none;
+  transform: rotate(-6deg);
 }
 
 .cp-community-marker[data-source="individual"] > span > span {
-  transform: none;
+  transform: rotate(6deg);
 }
 
 .cp-community-marker svg {
@@ -5096,7 +5082,7 @@
   display: grid !important;
   place-items: center;
   overflow: hidden;
-  border-radius: 50%;
+  border-radius: 8px 8px 8px 2px;
   background: color-mix(in srgb, var(--marker-aqi), #fff 35%);
 }
 

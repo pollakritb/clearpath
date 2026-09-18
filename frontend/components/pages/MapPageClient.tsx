@@ -43,7 +43,6 @@ export default function MapPageClient({
   );
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showStations, setShowStations] = useState(true);
-  const [showCommunitySensors, setShowCommunitySensors] = useState(true);
   const [showIndividualReports, setShowIndividualReports] = useState(true);
   const [showFires, setShowFires] = useState(showFiresInitially);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
@@ -102,7 +101,6 @@ export default function MapPageClient({
         focusPoint={effectiveFocusPoint}
         showHeatmap={showHeatmap}
         showStations={showStations}
-        showCommunitySensors={showCommunitySensors}
         showIndividualReports={showIndividualReports}
         onMapClick={(lat, lon) => {
           setFocusPoint({ lat, lon });
@@ -118,7 +116,6 @@ export default function MapPageClient({
       <MapChrome
         viewMode={viewMode}
         stationCount={serviceAreaStations.length}
-        sensorCount={communitySourceCounts.sensor}
         individualReportCount={communitySourceCounts.individual}
         fireCount={firms.fires.length}
         fireStatus={firms.status}
@@ -127,16 +124,12 @@ export default function MapPageClient({
         bigText={display.bigText}
         showHeatmap={showHeatmap}
         showStations={showStations}
-        showCommunitySensors={showCommunitySensors}
         showIndividualReports={showIndividualReports}
         showFires={showFires}
         onViewModeChange={setViewMode}
         onToggleBigText={() => display.setBigText(!display.bigText)}
         onToggleHeatmap={() => setShowHeatmap((value) => !value)}
         onToggleStations={() => setShowStations((value) => !value)}
-        onToggleCommunitySensors={() =>
-          setShowCommunitySensors((value) => !value)
-        }
         onToggleIndividualReports={() =>
           setShowIndividualReports((value) => !value)
         }

@@ -12,7 +12,6 @@ import MapSearchPanel from "./MapSearchPanel";
 interface MapChromeProps {
   viewMode: ViewMode;
   stationCount: number;
-  sensorCount: number;
   individualReportCount: number;
   fireCount: number;
   fireStatus: FirmsLoadStatus;
@@ -21,14 +20,12 @@ interface MapChromeProps {
   bigText: boolean;
   showHeatmap: boolean;
   showStations: boolean;
-  showCommunitySensors: boolean;
   showIndividualReports: boolean;
   showFires: boolean;
   onViewModeChange: (mode: ViewMode) => void;
   onToggleBigText: () => void;
   onToggleHeatmap: () => void;
   onToggleStations: () => void;
-  onToggleCommunitySensors: () => void;
   onToggleIndividualReports: () => void;
   onToggleFires: () => void;
   onLocationSelect: (location: LocationSuggestion) => void;
@@ -40,7 +37,6 @@ type OpenPanel = "search" | "layers" | null;
 export default function MapChrome({
   viewMode,
   stationCount,
-  sensorCount,
   individualReportCount,
   fireCount,
   fireStatus,
@@ -49,14 +45,12 @@ export default function MapChrome({
   bigText,
   showHeatmap,
   showStations,
-  showCommunitySensors,
   showIndividualReports,
   showFires,
   onViewModeChange,
   onToggleBigText,
   onToggleHeatmap,
   onToggleStations,
-  onToggleCommunitySensors,
   onToggleIndividualReports,
   onToggleFires,
   onLocationSelect,
@@ -78,8 +72,7 @@ export default function MapChrome({
           <small>คุณภาพอากาศทั่วไทย</small>
         </div>
         <span className="cp-map-topbar__count">
-          {stationCount + sensorCount + individualReportCount}{" "}
-          <small>จุดข้อมูล</small>
+          {stationCount + individualReportCount} <small>จุดข้อมูล</small>
         </span>
         {demoMode && <span className="cp-map-demo-badge">ข้อมูลจำลอง</span>}
       </div>
@@ -113,14 +106,12 @@ export default function MapChrome({
         <MapLayersPanel
           viewMode={viewMode}
           stationCount={stationCount}
-          sensorCount={sensorCount}
           individualReportCount={individualReportCount}
           fireCount={fireCount}
           fireStatus={fireStatus}
           bigText={bigText}
           showHeatmap={showHeatmap}
           showStations={showStations}
-          showCommunitySensors={showCommunitySensors}
           showIndividualReports={showIndividualReports}
           showFires={showFires}
           onClose={closePanel}
@@ -128,7 +119,6 @@ export default function MapChrome({
           onToggleBigText={onToggleBigText}
           onToggleHeatmap={onToggleHeatmap}
           onToggleStations={onToggleStations}
-          onToggleCommunitySensors={onToggleCommunitySensors}
           onToggleIndividualReports={onToggleIndividualReports}
           onToggleFires={onToggleFires}
         />

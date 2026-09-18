@@ -594,7 +594,7 @@ test("mobile camera opens, becomes ready and captures a live frame @camera-390",
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
 });
 
-test("map separates official stations from community reports", async ({
+test("map separates official stations from individual reports", async ({
   page,
 }) => {
   await page.goto("/");
@@ -609,15 +609,13 @@ test("map separates official stations from community reports", async ({
   const community = panel.getByRole("button", {
     name: /รายงานจากบุคคล/,
   });
-  const sensors = panel.getByRole("button", {
-    name: /สถานีเซนเซอร์ชุมชน/,
-  });
   await expect(official).toBeVisible();
-  await expect(sensors).toBeVisible();
   await expect(community).toBeVisible();
   await expect(official).toHaveAttribute("aria-pressed", "true");
-  await expect(sensors).toHaveAttribute("aria-pressed", "true");
   await expect(community).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    panel.getByRole("button", { name: /สถานีเซนเซอร์ชุมชน/ }),
+  ).toHaveCount(0);
   await expect(
     page.getByText(/สีหมุดบอกระดับ PM2.5.*ไอคอนบอกเจ้าของข้อมูล/),
   ).toBeVisible();
@@ -719,7 +717,7 @@ test("community marker opens a distinct privacy-safe report card", async ({
     "src",
     "https://lh3.googleusercontent.com/a/clearpath-e2e-reporter",
   );
-  await marker.click();
+  await marker.click({ force: true });
 
   const card = page.getByRole("region", {
     name: "รายละเอียดรายงานจากบุคคล",

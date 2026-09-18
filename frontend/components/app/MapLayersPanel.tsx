@@ -9,14 +9,12 @@ import type { ViewMode } from "@/frontend/types/ui";
 interface MapLayersPanelProps {
   viewMode: ViewMode;
   stationCount: number;
-  sensorCount: number;
   individualReportCount: number;
   fireCount: number;
   fireStatus: FirmsLoadStatus;
   bigText: boolean;
   showHeatmap: boolean;
   showStations: boolean;
-  showCommunitySensors: boolean;
   showIndividualReports: boolean;
   showFires: boolean;
   onClose: () => void;
@@ -24,7 +22,6 @@ interface MapLayersPanelProps {
   onToggleBigText: () => void;
   onToggleHeatmap: () => void;
   onToggleStations: () => void;
-  onToggleCommunitySensors: () => void;
   onToggleIndividualReports: () => void;
   onToggleFires: () => void;
 }
@@ -32,14 +29,12 @@ interface MapLayersPanelProps {
 export default function MapLayersPanel({
   viewMode,
   stationCount,
-  sensorCount,
   individualReportCount,
   fireCount,
   fireStatus,
   bigText,
   showHeatmap,
   showStations,
-  showCommunitySensors,
   showIndividualReports,
   showFires,
   onClose,
@@ -47,7 +42,6 @@ export default function MapLayersPanel({
   onToggleBigText,
   onToggleHeatmap,
   onToggleStations,
-  onToggleCommunitySensors,
   onToggleIndividualReports,
   onToggleFires,
 }: MapLayersPanelProps) {
@@ -80,15 +74,6 @@ export default function MapLayersPanel({
           title="สถานีตรวจวัดทางการ"
           description={`Air4Thai · ${stationCount} สถานี`}
           onClick={onToggleStations}
-        />
-        <LayerButton
-          active={showCommunitySensors}
-          icon="community-station"
-          iconSize={17}
-          symbolClass="cp-layer-symbol--sensor"
-          title="สถานีเซนเซอร์ชุมชน"
-          description={`อุปกรณ์ประจำจุดที่ลงทะเบียน · ${sensorCount} สถานี`}
-          onClick={onToggleCommunitySensors}
         />
         <LayerButton
           active={showIndividualReports}

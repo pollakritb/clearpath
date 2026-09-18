@@ -5,17 +5,12 @@ import { Marker } from "react-leaflet";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
-import {
-  communitySourceKind,
-  SOURCE_LABELS,
-  type MapSourceKind,
-} from "@/frontend/lib/source-kind";
+import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
 import type { CommunityReport } from "@/frontend/types";
 
 function reportIcon(
   color: string,
   value: number,
-  source: Exclude<MapSourceKind, "official">,
   calibrated: boolean,
   selected: boolean,
   avatarUrl: string | null,
@@ -23,21 +18,16 @@ function reportIcon(
   const touchSize = 48;
   const size = selected ? 46 : 40;
   const glyph =
-    source === "sensor"
-      ? '<svg aria-hidden="true" viewBox="0 0 24 24"><rect x="7" y="6" width="10" height="14" rx="2.5"></rect><path d="M10 10h4M10 14h2M12 6V3M8.5 3.8A5 5 0 0 0 6.2 6.2M15.5 3.8a5 5 0 0 1 2.3 2.4"></path></svg>'
-      : '<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"></circle><path d="M5.5 20c.5-4 2.7-6 6.5-6s6 2 6.5 6"></path></svg>';
+    '<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"></circle><path d="M5.5 20c.5-4 2.7-6 6.5-6s6 2 6.5 6"></path></svg>';
   const roundedValue = Math.round(value);
-  const content =
-    source === "individual"
-      ? `<span aria-hidden="true"><span class="cp-community-marker__portrait">${
-          avatarUrl
-            ? `<img src="${avatarUrl.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}" alt="" referrerpolicy="no-referrer" loading="lazy">`
-            : glyph
-        }</span></span><b class="cp-community-marker__value" aria-hidden="true">${roundedValue}</b>`
-      : `<span aria-hidden="true"><span>${glyph}<b>${roundedValue}</b></span></span>`;
+  const content = `<span aria-hidden="true"><span class="cp-community-marker__portrait">${
+    avatarUrl
+      ? `<img src="${avatarUrl.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}" alt="" referrerpolicy="no-referrer" loading="lazy">`
+      : glyph
+  }</span></span><b class="cp-community-marker__value" aria-hidden="true">${roundedValue}</b>`;
   return L.divIcon({
-    className: `cp-marker cp-marker--community cp-marker--${source}`,
-    html: `<div class="cp-community-marker${selected ? " is-selected" : ""}" data-source="${source}" data-profile="${Boolean(avatarUrl)}" data-calibrated="${calibrated}" style="--marker-aqi:${color};--marker-text:#07130f;--marker-size:${size}px">${content}${calibrated ? '<em aria-hidden="true">✓</em>' : ""}</div>`,
+    className: "cp-marker cp-marker--community cp-marker--individual",
+    html: `<div class="cp-community-marker${selected ? " is-selected" : ""}" data-source="individual" data-profile="${Boolean(avatarUrl)}" data-calibrated="${calibrated}" style="--marker-aqi:${color};--marker-text:#07130f;--marker-size:${size}px">${content}${calibrated ? '<em aria-hidden="true">✓</em>' : ""}</div>`,
     iconSize: [touchSize, touchSize],
     iconAnchor: [touchSize / 2, touchSize / 2 + size / 2 - 4],
   });
@@ -47,22 +37,17 @@ export default function ReportMarkers({
   reports,
   onSelect,
   selectedId,
-  showSensors,
-  showIndividuals,
 }: {
   reports: CommunityReport[];
   onSelect?: (report: CommunityReport) => void;
   selectedId?: string | null;
-  showSensors: boolean;
-  showIndividuals: boolean;
 }) {
   return (
     <>
       {reports.map((report) => {
         if (report.pm25 == null) return null;
         const source = communitySourceKind(report);
-        if (source === "sensor" && !showSensors) return null;
-        if (source === "individual" && !showIndividuals) return null;
+        if (source !== "individual") return null;
         const cls = classifyPm25(report.pm25);
         const avatarUrl = publicReporterAvatar(report);
         const area =
@@ -77,7 +62,6 @@ export default function ReportMarkers({
             icon={reportIcon(
               cls.color,
               report.pm25,
-              source,
               report.device_calibrated,
               report.id === selectedId,
               avatarUrl,
