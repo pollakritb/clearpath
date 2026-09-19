@@ -6,10 +6,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import MapChrome from "@/frontend/components/app/MapChrome";
 import MapStatusCard from "@/frontend/components/app/MapStatusCard";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
+import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import ListView from "@/frontend/components/panels/ListView";
 import { useDisplayPreferences } from "@/frontend/components/settings/DisplayPreferencesProvider";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
 import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
+import { useMapHistory } from "@/frontend/hooks/useMapHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
 import {
@@ -36,6 +38,7 @@ export default function MapPageClient({
   const pm25 = usePm25();
   const firms = useFirms();
   const community = useCommunityMapData();
+  const mapHistory = useMapHistory();
   const display = useDisplayPreferences();
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [selectedReport, setSelectedReport] = useState<CommunityReport | null>(
@@ -46,6 +49,8 @@ export default function MapPageClient({
   const [showIndividualReports, setShowIndividualReports] = useState(true);
   const [showFires, setShowFires] = useState(showFiresInitially);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
+  const [historyEnabled, setHistoryEnabled] = useState(false);
+  const [historyOffsetHours, setHistoryOffsetHours] = useState(1);
   const [focusPoint, setFocusPoint] = useState<{
     lat: number;
     lon: number;
@@ -58,6 +63,16 @@ export default function MapPageClient({
     const timer = window.setInterval(() => void loadFires(1), FIRMS_REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [firms.loaded, loadFires, showFires]);
+
+  const loadMapHistory = mapHistory.load;
+  useEffect(() => {
+    if (!historyEnabled) return;
+    const target = new Date();
+    target.setMinutes(0, 0, 0);
+    target.setHours(target.getHours() - historyOffsetHours);
+    const timer = window.setTimeout(() => void loadMapHistory(target), 240);
+    return () => window.clearTimeout(timer);
+  }, [historyEnabled, historyOffsetHours, loadMapHistory]);
 
   const serviceAreaStations = useMemo(
     () => pm25.stations.filter((station) => station.in_service_area),
@@ -73,6 +88,12 @@ export default function MapPageClient({
     () => buildCurrentSurfaceStations(pm25.stations, community.mapPoints),
     [community.mapPoints, pm25.stations],
   );
+  const visibleStations = historyEnabled
+    ? mapHistory.stations.filter((station) => station.in_service_area)
+    : serviceAreaStations;
+  const visibleSurfaceStations = historyEnabled
+    ? visibleStations.filter((station) => station.eligible_for_surface)
+    : currentSurfaceStations;
 
   const refresh = useCallback(() => {
     const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
@@ -93,15 +114,15 @@ export default function MapPageClient({
   const map = (
     <main className="cp-map">
       <MapView
-        stations={serviceAreaStations}
-        surfaceStations={currentSurfaceStations}
-        fires={showFires ? firms.fires : []}
-        reports={community.reports}
+        stations={visibleStations}
+        surfaceStations={visibleSurfaceStations}
+        fires={!historyEnabled && showFires ? firms.fires : []}
+        reports={historyEnabled ? [] : community.reports}
         reportPin={null}
         focusPoint={effectiveFocusPoint}
         showHeatmap={showHeatmap}
         showStations={showStations}
-        showIndividualReports={showIndividualReports}
+        showIndividualReports={!historyEnabled && showIndividualReports}
         onMapClick={(lat, lon) => {
           setFocusPoint({ lat, lon });
           setSelectedStation(null);
@@ -115,17 +136,19 @@ export default function MapPageClient({
       />
       <MapChrome
         viewMode={viewMode}
-        stationCount={serviceAreaStations.length}
-        individualReportCount={communitySourceCounts.individual}
-        fireCount={firms.fires.length}
+        stationCount={visibleStations.length}
+        individualReportCount={
+          historyEnabled ? 0 : communitySourceCounts.individual
+        }
+        fireCount={historyEnabled ? 0 : firms.fires.length}
         fireStatus={firms.status}
         demoMode={community.demoMode}
         stations={serviceAreaStations}
         bigText={display.bigText}
         showHeatmap={showHeatmap}
         showStations={showStations}
-        showIndividualReports={showIndividualReports}
-        showFires={showFires}
+        showIndividualReports={historyEnabled ? false : showIndividualReports}
+        showFires={historyEnabled ? false : showFires}
         onViewModeChange={setViewMode}
         onToggleBigText={() => display.setBigText(!display.bigText)}
         onToggleHeatmap={() => setShowHeatmap((value) => !value)}
@@ -146,22 +169,52 @@ export default function MapPageClient({
       />
       {viewMode === "list" && (
         <ListView
-          stations={serviceAreaStations}
+          stations={visibleStations}
           onSelectStation={(station) => {
             selectStation(station);
             setViewMode("map");
           }}
         />
       )}
-      <MapStatusCard
-        station={selectedStation}
-        report={selectedReport}
-        updatedAt={pm25.updatedAt}
-        onClose={() => {
-          setSelectedStation(null);
-          setSelectedReport(null);
-        }}
-      />
+      {historyEnabled && !selectedStation ? (
+        <MapHistoryControls
+          offsetHours={historyOffsetHours}
+          targetAt={mapHistory.targetAt}
+          stationCount={visibleStations.length}
+          loading={mapHistory.loading}
+          error={mapHistory.error}
+          onOffsetChange={(hours) => {
+            setHistoryOffsetHours(hours);
+            setSelectedStation(null);
+          }}
+          onReturnCurrent={() => {
+            setHistoryEnabled(false);
+            setHistoryOffsetHours(1);
+            mapHistory.clear();
+            setSelectedStation(null);
+          }}
+        />
+      ) : (
+        <MapStatusCard
+          station={selectedStation}
+          report={selectedReport}
+          updatedAt={pm25.updatedAt}
+          historicalAt={historyEnabled ? mapHistory.targetAt : null}
+          onOpenHistory={
+            historyEnabled
+              ? undefined
+              : () => {
+                  setHistoryEnabled(true);
+                  setSelectedStation(null);
+                  setSelectedReport(null);
+                }
+          }
+          onClose={() => {
+            setSelectedStation(null);
+            setSelectedReport(null);
+          }}
+        />
+      )}
     </main>
   );
 

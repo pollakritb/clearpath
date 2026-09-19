@@ -43,3 +43,11 @@ class HistoryPoint(BaseModel):
 class HistoryResponse(BaseModel):
     station_id: str
     points: list[HistoryPoint]
+
+
+class MapHistoryResponse(BaseModel):
+    target_at: str
+    source: Literal["air4thai"] = "air4thai"
+    stations: list[Station]
+    count: int
+    max_age_minutes: int

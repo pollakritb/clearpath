@@ -18,6 +18,7 @@ import type {
   ForecastResponse,
   ForecastSurfaceResponse,
   HistoryResponse,
+  MapHistoryResponse,
   LineLinkCodeResponse,
   LineNotificationStatus,
   NotificationPreferences,
@@ -112,6 +113,16 @@ export const api = {
     http<HistoryResponse>(
       `/api/history?station_id=${encodeURIComponent(stationId)}&hours=${hours}`,
     ),
+
+  mapHistory: (at: string, maxAgeMinutes = 90) => {
+    const params = new URLSearchParams({
+      at,
+      max_age_minutes: String(maxAgeMinutes),
+    });
+    return http<MapHistoryResponse>(`/api/history/map?${params}`, {
+      cache: "no-store",
+    });
+  },
 
   forecast: (stationId: string, hours = 12) =>
     http<ForecastResponse>(

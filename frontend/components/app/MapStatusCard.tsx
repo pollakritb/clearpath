@@ -14,6 +14,8 @@ interface MapStatusCardProps {
   report: CommunityReport | null;
   updatedAt: string | null;
   onClose: () => void;
+  onOpenHistory?: () => void;
+  historicalAt?: string | null;
 }
 
 function formatTime(value: string | null) {
@@ -37,6 +39,8 @@ export default function MapStatusCard({
   report,
   updatedAt,
   onClose,
+  onOpenHistory,
+  historicalAt = null,
 }: MapStatusCardProps) {
   const selection = report ?? station;
 
@@ -53,13 +57,25 @@ export default function MapStatusCard({
           <strong>ค่าฝุ่นปัจจุบัน</strong>
           <small>Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ</small>
         </span>
-        <time
-          className="cp-map-current-dock__time"
-          dateTime={updatedAt ?? undefined}
-        >
-          <i aria-hidden="true" />
-          {updatedAt ? `อัปเดต ${formatTime(updatedAt)} น.` : "กำลังอัปเดต"}
-        </time>
+        <span className="cp-map-current-dock__actions">
+          <time
+            className="cp-map-current-dock__time"
+            dateTime={updatedAt ?? undefined}
+          >
+            <i aria-hidden="true" />
+            {updatedAt ? `อัปเดต ${formatTime(updatedAt)} น.` : "กำลังอัปเดต"}
+          </time>
+          {onOpenHistory && (
+            <button
+              type="button"
+              className="cp-map-current-dock__history cp-focus"
+              onClick={onOpenHistory}
+            >
+              <AppIcon name="clock" size={15} />
+              ย้อนหลัง
+            </button>
+          )}
+        </span>
       </section>
     );
   }
@@ -204,12 +220,18 @@ export default function MapStatusCard({
           <>
             <span>
               <strong>
-                {station ? stationStatus(station) : "ไม่มีข้อมูล"}
+                {station
+                  ? historicalAt
+                    ? "ค่าตรวจวัดย้อนหลัง"
+                    : stationStatus(station)
+                  : "ไม่มีข้อมูล"}
               </strong>
               <small>
-                {station?.age_minutes == null
-                  ? `อัปเดต ${formatTime(station?.recorded_at ?? updatedAt)}`
-                  : `${Math.round(station.age_minutes)} นาทีที่แล้ว`}
+                {historicalAt
+                  ? `ตรวจวัด ${formatTime(station?.recorded_at ?? historicalAt)} น.`
+                  : station?.age_minutes == null
+                    ? `อัปเดต ${formatTime(station?.recorded_at ?? updatedAt)}`
+                    : `${Math.round(station.age_minutes)} นาทีที่แล้ว`}
               </small>
             </span>
             <span>

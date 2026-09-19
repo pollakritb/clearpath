@@ -181,6 +181,28 @@ def get_history(station_id: str, hours: int = 24) -> list[dict]:
     return res.data or []
 
 
+def get_map_history_readings(
+    target_at: datetime, max_age_minutes: int = 90
+) -> list[dict]:
+    if settings.local_demo_mode:
+        return local_store.get_map_history_readings(target_at, max_age_minutes)
+    target = target_at.astimezone(UTC)
+    cutoff = target - timedelta(minutes=max_age_minutes)
+    res = _execute_read(
+        lambda: (
+            get_client()
+            .table("pm25_readings")
+            .select("station_id,recorded_at,pm25,aqi")
+            .gte("recorded_at", cutoff.isoformat())
+            .lte("recorded_at", target.isoformat())
+            .order("recorded_at", desc=True)
+            .limit(1000)
+            .execute()
+        )
+    )
+    return res.data or []
+
+
 # External forecast provider snapshots and consensus
 
 

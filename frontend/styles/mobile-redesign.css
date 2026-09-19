@@ -59,6 +59,7 @@
 .cp-app .cp-map-flyout,
 .cp-app .cp-map-selection-card,
 .cp-app .cp-map-current-dock,
+.cp-app .cp-map-history-dock,
 .cp-app .cp-section-enter,
 .cp-app .cp-report-step-card {
   animation: cp-section-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;

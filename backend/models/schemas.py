@@ -4,7 +4,13 @@ Keep this module mirrored by ``frontend/types/index.ts``. Domain models live in
 small modules so routers can keep importing from one stable public boundary.
 """
 
-from .air_quality import HistoryPoint, HistoryResponse, Station, StationsResponse
+from .air_quality import (
+    HistoryPoint,
+    HistoryResponse,
+    MapHistoryResponse,
+    Station,
+    StationsResponse,
+)
 from .community import (
     ActivitiesResponse,
     Activity,
@@ -98,6 +104,7 @@ __all__ = [
     "GapFillBasis",
     "HistoryPoint",
     "HistoryResponse",
+    "MapHistoryResponse",
     "LeaderboardEntry",
     "LeaderboardResponse",
     "LoocvMetrics",

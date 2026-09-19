@@ -299,6 +299,36 @@ def get_history(station_id: str, hours: int) -> list[dict]:
         ]
 
 
+def get_map_history_readings(target_at: datetime, max_age_minutes: int) -> list[dict]:
+    """Return deterministic hourly demo readings around a historical target."""
+
+    target = target_at.astimezone(UTC).replace(minute=0, second=0, microsecond=0)
+    with _LOCK:
+        _seed_stations()
+        stored = [
+            dict(row)
+            for row in _HISTORY
+            if target - timedelta(minutes=max_age_minutes)
+            <= datetime.fromisoformat(str(row["recorded_at"]).replace("Z", "+00:00"))
+            <= target
+        ]
+        if stored:
+            return stored
+        return [
+            {
+                "station_id": station_id,
+                "recorded_at": target.isoformat(),
+                "pm25": round(
+                    max(0, float(station["pm25"]) + math.sin(target.hour / 3) * 2.5),
+                    1,
+                ),
+                "aqi": station.get("aqi"),
+            }
+            for station_id, station in _STATIONS.items()
+            if station.get("pm25") is not None
+        ]
+
+
 # Forecast evaluation and retention
 
 

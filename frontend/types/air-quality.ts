@@ -37,3 +37,11 @@ export interface HistoryResponse {
   station_id: string;
   points: HistoryPoint[];
 }
+
+export interface MapHistoryResponse {
+  target_at: string;
+  source: "air4thai";
+  stations: Station[];
+  count: number;
+  max_age_minutes: number;
+}

@@ -37,6 +37,7 @@ describe("api client", () => {
       () => api.weather(13.8, 100.1),
       () => api.firms(),
       () => api.history("station / one"),
+      () => api.mapHistory("2026-09-19T03:00:00.000Z"),
       () => api.forecast("station / one"),
       () => api.forecastSurface(),
       () =>
@@ -116,6 +117,9 @@ describe("api client", () => {
 
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain(
       "/api/history?station_id=station%20%2F%20one&hours=24",
+    );
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain(
+      "/api/history/map?at=2026-09-19T03%3A00%3A00.000Z&max_age_minutes=90",
     );
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain(
       "/api/locations/search?q=Nakhon%20Pathom%20%2F%20center",
