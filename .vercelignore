@@ -1,4 +1,5 @@
 .pytest-*
+.forecast-reset-backups
 .pytest_cache
 .ruff_cache
 coverage
