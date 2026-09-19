@@ -10,7 +10,7 @@ from .engagement import (
 )
 from .feedback import create_data_issue
 from .presenter import list_reports, list_reviewable_reports
-from .reviews import moderate_report, rate_report
+from .reviews import rate_report
 
 __all__ = [
     "create_draft",
@@ -21,7 +21,6 @@ __all__ = [
     "list_reports",
     "list_reviewable_reports",
     "get_engagement",
-    "moderate_report",
     "rate_report",
     "remove_comment",
     "set_reaction",

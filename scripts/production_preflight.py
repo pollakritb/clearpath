@@ -81,8 +81,7 @@ def run_preflight(
         and "*" not in runtime_settings.allowed_cors_origins,
     }
     feature_checks = {
-        "automatic_review_ocr": not runtime_settings.automatic_review_enabled
-        or _configured(values, "OPENAI_API_KEY", minimum=20),
+        "automatic_review_ocr": _configured(values, "OPENAI_API_KEY", minimum=20),
         "web_push": not runtime_settings.push_enabled
         or all(
             _configured(values, key, minimum=10)

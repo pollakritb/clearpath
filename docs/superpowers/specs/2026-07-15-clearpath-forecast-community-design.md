@@ -9,7 +9,7 @@
 - Fire layer: NASA FIRMS พร้อม acquisition time/confidence และแจ้งเตือนเฉพาะ hotspot ≤12 ชั่วโมง
 - Community evidence: `getUserMedia` camera, server-signed 5-minute session, GPS, private image
 - Explainable Trust Score + reputation-weighted gratitude/star feedback
-- Fail-closed automatic approval for high-confidence evidence, with Admin exception review
+- Fail-closed automatic decision: approve complete high-confidence evidence or reject with reasons
 - Community announcements, activities, rewards and leaderboard
 
 ระบบนำทาง, ORS, Nominatim, route comparison และ route speech อยู่นอก scope และถูกถอดออก
@@ -17,12 +17,12 @@
 ## Publication state machine
 
 ```text
-camera + GPS → pending (no public PM2.5) → automatic evidence review
+camera + GPS → transient pending (never public) → automatic evidence review
                     ├─ all high-confidence checks pass → approved → map → nearby gratitude + stars
-                    └─ uncertain/failure → Admin exception queue → approved or rejected
+                    └─ uncertain/failure → rejected + reasons → user retakes evidence
 ```
 
-คำขอบคุณพร้อมดาวไม่สามารถเผยแพร่รายงานเองได้ เปิดหลังรายงานผ่านการอนุมัติอัตโนมัติหรือ Admin แล้ว และผู้ส่งคำขอบคุณต้องส่ง GPS
+คำขอบคุณพร้อมดาวไม่สามารถเผยแพร่รายงานเองได้ เปิดหลังรายงานผ่านการอนุมัติอัตโนมัติแล้ว และผู้ส่งคำขอบคุณต้องส่ง GPS
 ที่อยู่ภายใน 3 กม. ขณะที่รายงานมีอายุไม่เกิน 3 ชั่วโมง ทุกผลตรวจต้องมี reason code
 และห้ามตรวจรายงานของตนเอง
 
@@ -42,7 +42,7 @@ camera + GPS → pending (no public PM2.5) → automatic evidence review
 
 | Signal                                  | คะแนนสูงสุด |
 | --------------------------------------- | ----------: |
-| evidence verification (automatic/Admin) |       20–25 |
+| automatic evidence verification         |       20–25 |
 | signed in-app camera session            |          15 |
 | capture freshness                       |          10 |
 | GPS within Nakhon Pathom service area   |          10 |
@@ -52,8 +52,8 @@ camera + GPS → pending (no public PM2.5) → automatic evidence review
 | reporter reputation                     |          10 |
 
 Automatic review อนุมัติเฉพาะเมื่อ OCR confidence ≥92%, device/display ชัดเจน, ค่าที่ผู้ใช้ยืนยันอยู่ใน tolerance,
-GPS ≤100 ม., เวลาปกติ, ไม่เป็นภาพซ้ำ และมี burst เสริม 2 เฟรม การไม่ผ่านเกณฑ์ใดๆ ไม่ใช่การปฏิเสธ
-แต่จะ fail closed และส่งเข้า Admin exception queue โดยเก็บเหตุผลของทุกผลตัดสินเพื่อ audit
+GPS ≤100 ม., เวลาปกติ, ไม่เป็นภาพซ้ำ และมี burst เสริม 2 เฟรม การไม่ผ่านเกณฑ์ใดๆ จะ fail closed
+เป็น `rejected` อัตโนมัติพร้อมเหตุผล ผู้ใช้ต้องถ่ายใหม่ และระบบเก็บเหตุผลของทุกผลตัดสินเพื่อ audit
 ดาวที่แนบกับคำขอบคุณปรับเพิ่ม/ลด Trust ได้ไม่เกิน 8 คะแนน คะแนนทุกส่วนเก็บเหตุผลเพื่อให้ตรวจสอบได้
 GPS accuracy >200 เมตรและภาพ perceptually similar ถูกหักคะแนน ส่วน exact duplicate ถูกปฏิเสธ
 
@@ -63,7 +63,7 @@ GPS accuracy >200 เมตรและภาพ perceptually similar ถูก�
 - ตรวจไฟล์ภาพด้วย Pillow, จำกัด 25 ล้านพิกเซล, เก็บ SHA-256 และ 8×8 average hash
 - exact duplicate ถูกปฏิเสธ; perceptual distance ≤4 ถูกทำเครื่องหมายและหัก Trust
 - จำกัดส่ง 6 รายงาน/ผู้ใช้/24 ชั่วโมง และให้แต้มจากคำขอบคุณที่ตรง consensus สูงสุด 5 ครั้ง/24 ชั่วโมง
-- ตำแหน่ง Admin แสดง GPS accuracy เพื่อช่วยตัดสินหลักฐาน
+- Admin เห็นตำแหน่งจริง, GPS accuracy, รูป และเหตุผลเพื่อ audit เท่านั้น ไม่มี action อนุมัติ/ปฏิเสธ
 
 ## Forecast v1
 

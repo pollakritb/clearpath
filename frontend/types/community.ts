@@ -130,7 +130,7 @@ export interface ReportCreateResponse {
     | "no_reading"
     | "low_confidence"
     | "ready";
-  review_outcome: "automatic_approved" | "pending_manual_review";
+  review_outcome: "automatic_approved" | "automatic_rejected";
   review_reasons: string[];
   message: string;
 }
@@ -212,21 +212,6 @@ export interface ReportEngagementResponse {
   comment_count: number;
   viewer_reaction: ReactionKind | null;
   comments: ReportComment[];
-}
-
-export interface ModerationChecks {
-  image_clear: boolean;
-  value_matches_display: boolean;
-  location_plausible: boolean;
-  no_screen_recapture_signs: boolean;
-}
-
-export interface ModerationRequest {
-  decision: "approve" | "reject";
-  verified_pm25?: number | null;
-  rejection_reason_code?: RejectionReason | null;
-  checks?: ModerationChecks;
-  note: string;
 }
 
 export interface UserReputation {

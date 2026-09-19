@@ -1159,6 +1159,29 @@
   font-weight: 700;
 }
 
+.cp-app .cp-report-success__reasons {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, #b83b3b 32%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, #b83b3b 7%, white);
+  text-align: left;
+}
+
+.cp-app .cp-report-success__reasons strong {
+  color: #9e2f2f;
+}
+
+.cp-app .cp-report-success__reasons ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  color: #53635f;
+}
+
+.cp-app .cp-report-success__reasons li + li {
+  margin-top: 4px;
+}
+
 .cp-app .cp-report-success__meta {
   display: grid;
   width: 100%;

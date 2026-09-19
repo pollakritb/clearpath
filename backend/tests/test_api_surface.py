@@ -41,7 +41,7 @@ def test_new_product_api_surface_and_no_navigation_api():
     assert "/api/admin/audit-logs" in paths
     assert "/api/admin/audit-logs/export" in paths
     assert "/api/admin/profiles/{user_id}/role" in paths
-    assert "/api/admin/reports/{report_id}/moderate" in paths
+    assert "/api/admin/reports/{report_id}/moderate" not in paths
     assert "/api/admin/announcements/{announcement_id}" in paths
     assert "/api/admin/notification-outbox" in paths
     assert "/api/admin/forecast-false-safe-cases" in paths

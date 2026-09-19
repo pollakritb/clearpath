@@ -1,6 +1,6 @@
 import type { AppIconName } from "@/frontend/components/ui/AppIcon";
 
-export type AdminView = "overview" | "moderation" | "publishing" | "operations";
+export type AdminView = "overview" | "reports" | "publishing" | "operations";
 
 export const ADMIN_NAV_ITEMS: Array<{
   id: AdminView;
@@ -17,10 +17,10 @@ export const ADMIN_NAV_ITEMS: Array<{
     icon: "home",
   },
   {
-    id: "moderation",
-    label: "ข้อยกเว้น OCR",
-    mobileLabel: "OCR",
-    description: "หลักฐานที่ระบบสรุปไม่ได้",
+    id: "reports",
+    label: "ประวัติรายงาน",
+    mobileLabel: "รายงาน",
+    description: "ภาพ ผล OCR และรายละเอียด",
     icon: "shield",
   },
   {
@@ -44,9 +44,9 @@ export const ADMIN_PAGE_COPY: Record<
   { eyebrow: string; title: string }
 > = {
   overview: { eyebrow: "ภาพรวมผู้ดูแล", title: "ศูนย์ควบคุม ClearPath" },
-  moderation: {
-    eyebrow: "OCR exceptions",
-    title: "หลักฐานที่ต้องตรวจเพิ่มเติม",
+  reports: {
+    eyebrow: "Automatic review log",
+    title: "ประวัติรายงานจากผู้ใช้",
   },
   publishing: {
     eyebrow: "Community management",

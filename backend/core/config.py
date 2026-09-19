@@ -59,9 +59,8 @@ class Settings(BaseSettings):
     capture_session_ttl_seconds: int = 300
     local_demo_mode: bool = False
 
-    # Hybrid evidence review: high-confidence cases are approved automatically;
-    # every uncertain case remains pending for the administrator exception queue.
-    automatic_review_enabled: bool = True
+    # Automatic-only evidence review. Every submission ends approved/rejected;
+    # administrators receive a read-only evidence and audit log.
     automatic_review_min_confidence: float = 0.92
     automatic_review_max_gps_accuracy_m: float = 100.0
 

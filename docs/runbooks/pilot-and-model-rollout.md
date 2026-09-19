@@ -7,10 +7,11 @@
 - Cover good/poor GPS, clear/blurred display, duplicate image, screen recapture,
   indoor reading, direct emission source, clock mismatch and interrupted upload.
 - Expected safety result: only high-confidence evidence may auto-approve; every
-  ambiguous case remains pending and exposes neither PM2.5 nor exact location.
+  ambiguous case is automatically rejected with reasons and exposes neither
+  PM2.5, report image, nor exact location.
 
 Record aggregate outcomes only: automatic approval rate, false approval count,
-false pending count, OCR absolute error, GPS rejection rate and median flow time.
+false rejection count, OCR absolute error, GPS rejection rate and median flow time.
 Do not export report images or exact coordinates into analytics.
 
 Stop automatic review immediately if any false approval exposes an incorrect
@@ -19,11 +20,11 @@ value, a duplicate bypasses detection, or exact evidence becomes public.
 ## Stage 1 — closed community pilot
 
 - 25–50 consented users for at least two weeks.
-- Start `AUTOMATIC_REVIEW_ENABLED=false`; manually label enough representative
+- Start by collecting a representative automatic-review evaluation set; label
   evidence to calculate OCR/policy precision.
-- Enable automatic review for 10% of eligible high-confidence cases, then 25%,
-  50% and 100% only when the previous cohort has zero critical privacy failures
-  and meets the approved precision target.
+- Automatic review is always on. Evaluate OCR model or threshold changes against
+  the frozen private dataset first, then release only when the candidate has zero
+  critical privacy failures and meets the approved precision target.
 - Keep Air4Thai under one hour/5 km as primary and community as supplementary.
 
 ## Forecast data collection

@@ -30,14 +30,12 @@ interface ReportFormProps {
 }
 
 const OCR_STATUS_MESSAGES: Record<ReportDraftResponse["ocr_status"], string> = {
-  unavailable:
-    "ระบบอ่านภาพอัตโนมัติยังไม่เปิดใช้งาน กรุณากรอกค่าที่เห็นบนเครื่อง ระบบจะเก็บรายงานไว้ตรวจสอบ",
-  service_error:
-    "ระบบอ่านภาพขัดข้องชั่วคราว กรุณากรอกค่าที่เห็นบนเครื่อง รายงานจะยังไม่เผยแพร่จนกว่าจะผ่านการตรวจ",
+  unavailable: "ระบบอ่านภาพอัตโนมัติยังไม่พร้อม กรุณาลองถ่ายภาพใหม่ก่อนส่ง",
+  service_error: "ระบบอ่านภาพขัดข้องชั่วคราว กรุณารอสักครู่แล้วลองถ่ายภาพใหม่",
   no_device:
-    "ระบบไม่พบเครื่องวัดในภาพ กรุณาตรวจภาพและกรอกค่าที่เห็น รายงานจะถูกพักไว้เพื่อตรวจสอบ",
+    "ระบบไม่พบเครื่องวัดในภาพ กรุณาจัดเครื่องวัดให้อยู่กลางภาพแล้วถ่ายใหม่",
   unclear_display:
-    "หน้าจอในภาพยังไม่ชัด กรุณากรอกค่าที่เห็น รายงานจะถูกพักไว้เพื่อตรวจสอบ",
+    "หน้าจอในภาพยังไม่ชัด กรุณาเช็ดหน้าจอ ลดแสงสะท้อน แล้วถ่ายใหม่",
   no_reading:
     "ระบบแยกค่า PM2.5 จากค่าอื่นไม่ได้ กรุณากรอกค่าตามหน้าจอเครื่องวัด",
   low_confidence:
@@ -139,9 +137,7 @@ export default function ReportForm({
         result.message +
           (result.review_outcome === "automatic_approved"
             ? ` · เผยแพร่ ${result.report.verified_pm25 ?? "—"} µg/m³ แล้ว`
-            : result.ocr_available
-              ? " · Admin จะตรวจเฉพาะเคสที่ระบบยังไม่มั่นใจ"
-              : " · ระบบอ่านภาพไม่ได้ จึงส่งให้ Admin ตรวจแทน"),
+            : " · ไม่เผยแพร่ กรุณาตรวจเหตุผลและถ่ายภาพใหม่"),
       );
       setCompleted(result);
       setEvidence(null);
@@ -168,23 +164,39 @@ export default function ReportForm({
             <AppIcon name="check" size={30} />
           </span>
           <span className="cp-eyebrow">ระบบได้รับข้อมูลแล้ว</span>
-          <h2>{approved ? "รายงานผ่านการตรวจอัตโนมัติ" : "ส่งรายงานแล้ว"}</h2>
+          <h2>
+            {approved
+              ? "รายงานผ่านการตรวจอัตโนมัติ"
+              : "รายงานไม่ผ่านการตรวจอัตโนมัติ"}
+          </h2>
           <p>
             {approved
               ? "ข้อมูลที่ผ่านเกณฑ์ถูกเผยแพร่ตามนโยบายของ ClearPath แล้ว"
-              : "ระบบยังไม่มั่นใจเพียงพอ รายงานจึงอยู่ระหว่างรอผู้ดูแลตรวจ"}
+              : "ข้อมูลนี้ไม่ถูกเผยแพร่บนแผนที่ กรุณาตรวจเหตุผลแล้วถ่ายภาพใหม่"}
           </p>
           <div className="cp-report-success__reading">
             <strong>
               {completed.report.verified_pm25 ??
                 completed.report.user_claimed_pm25}
             </strong>
-            <span>µg/m³ PM2.5</span>
+            <span>
+              µg/m³ PM2.5{approved ? "" : " · ค่าที่ส่ง (ไม่เผยแพร่)"}
+            </span>
           </div>
+          {!approved && completed.review_reasons.length > 0 ? (
+            <div className="cp-report-success__reasons" role="alert">
+              <strong>เหตุผลที่ไม่ผ่าน</strong>
+              <ul>
+                {completed.review_reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <dl className="cp-report-success__meta">
             <div>
               <dt>สถานะ</dt>
-              <dd>{approved ? "เผยแพร่แล้ว" : "รอตรวจสอบ"}</dd>
+              <dd>{approved ? "เผยแพร่แล้ว" : "ไม่ผ่านเกณฑ์"}</dd>
             </div>
           </dl>
           <button
@@ -448,7 +460,7 @@ export default function ReportForm({
           >
             {sending
               ? draft
-                ? "กำลังส่งเข้าคิว…"
+                ? "กำลังตรวจอัตโนมัติ…"
                 : "กำลังอ่านค่าจากภาพ…"
               : draft
                 ? "ยืนยันและส่งข้อมูล"
@@ -472,8 +484,9 @@ export default function ReportForm({
       <details className="cp-privacy-note">
         <summary>ข้อมูลของฉันถูกเก็บอย่างไร</summary>
         <p>
-          ระบบเก็บ GPS จริงสำหรับตรวจคุณภาพและให้ผู้ดูแลดูเฉพาะเคสผิดปกติ
+          ระบบเก็บ GPS จริงสำหรับตรวจคุณภาพและ audit log
           ตำแหน่งสาธารณะจะเลื่อนประมาณ 120–250 เมตรเพื่อปกป้องความเป็นส่วนตัว
+          ภาพของรายงานที่ผ่านจะแสดงผ่านลิงก์ชั่วคราวเมื่อเปิดหมุดบนแผนที่
         </p>
       </details>
     </section>

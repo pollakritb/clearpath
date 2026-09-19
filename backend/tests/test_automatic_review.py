@@ -26,7 +26,7 @@ def test_high_confidence_evidence_is_approved_automatically():
     assert result["reasons"]
 
 
-def test_uncertain_evidence_falls_back_to_manual_review():
+def test_uncertain_evidence_returns_blockers_for_automatic_rejection():
     result = _review(
         ocr_confidence=0.80,
         display_clear=False,

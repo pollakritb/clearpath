@@ -15,7 +15,7 @@ from ...core.config import settings
 from ...core.errors import UpstreamError
 from .. import capture, image_fingerprint, ocr, supabase_client
 from ..stations import get_current_stations
-from .automatic_review import try_automatic_approval
+from .automatic_review import finalize_automatic_review
 from .constants import DAILY_REPORT_LIMIT
 from .evidence import IMAGE_EXTENSIONS, find_duplicate
 from .presenter import present_report
@@ -176,8 +176,8 @@ async def submit_draft(
         )
         presented["_review_outcome"] = (
             "automatic_approved"
-            if presented.get("verification_method") == "automatic"
-            else "pending_manual_review"
+            if presented.get("status") == "approved"
+            else "automatic_rejected"
         )
         presented["_review_reasons"] = ["รับคำขอซ้ำโดยไม่สร้างรายงานใหม่"]
         return presented
@@ -350,8 +350,8 @@ async def submit_draft(
         )
         presented["_review_outcome"] = (
             "automatic_approved"
-            if presented.get("verification_method") == "automatic"
-            else "pending_manual_review"
+            if presented.get("status") == "approved"
+            else "automatic_rejected"
         )
         presented["_review_reasons"] = ["รับคำขอซ้ำโดยไม่สร้างรายงานใหม่"]
         return presented
@@ -384,22 +384,29 @@ async def submit_draft(
     except Exception:
         await run_in_threadpool(supabase_client.delete_community_report, report_id)
         raise
-    presented = present_report(
-        saved, official_stations=official, include_exact_location=True
-    )
-    automatic_report, decision = await run_in_threadpool(
-        try_automatic_approval,
-        report=saved,
-        draft=draft,
-        claimed_pm25=claimed_pm25,
-        official_stations=official,
-    )
-    if automatic_report is not None:
-        presented = automatic_report
+    try:
+        presented, decision = await run_in_threadpool(
+            finalize_automatic_review,
+            report=saved,
+            draft=draft,
+            claimed_pm25=claimed_pm25,
+            official_stations=official,
+        )
+    except Exception:
+        # A submission must never remain pending for a human reviewer. If the
+        # final machine decision cannot be persisted, roll the report back and
+        # let the user retry the same draft.
+        await run_in_threadpool(supabase_client.delete_community_report, report_id)
+        await run_in_threadpool(
+            supabase_client.update_report_draft,
+            draft_id,
+            {"submitted_at": None},
+        )
+        raise
     presented["_review_outcome"] = (
         "automatic_approved"
-        if automatic_report is not None
-        else "pending_manual_review"
+        if presented.get("status") == "approved"
+        else "automatic_rejected"
     )
     presented["_review_reasons"] = list(decision["reasons"])
     return presented

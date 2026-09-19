@@ -27,7 +27,7 @@ import AdminOverview from "./AdminOverview";
 import AdminPublishingPanel from "./AdminPublishingPanel";
 
 interface OverviewData {
-  queueCount: number;
+  reportCount: number;
   runs: AdminSyncRun[];
   outbox: NotificationOutboxSummary | null;
   dataIssues: DataIssueRow[];
@@ -37,7 +37,7 @@ interface OverviewData {
 }
 
 const EMPTY_OVERVIEW: OverviewData = {
-  queueCount: 0,
+  reportCount: 0,
   runs: [],
   outbox: null,
   dataIssues: [],
@@ -77,10 +77,10 @@ export default function AdminApp() {
       api.adminDataHealth(),
     ]);
     setOverview((current) => ({
-      queueCount:
+      reportCount:
         results[0].status === "fulfilled"
           ? results[0].value.count
-          : current.queueCount,
+          : current.reportCount,
       runs:
         results[1].status === "fulfilled"
           ? results[1].value.runs
@@ -112,10 +112,6 @@ export default function AdminApp() {
     }
     setLoading(false);
   }, [canModerate, isAdmin]);
-
-  const handleQueueCountChange = useCallback((queueCount: number) => {
-    setOverview((current) => ({ ...current, queueCount }));
-  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadOverview(), 0);
@@ -166,8 +162,8 @@ export default function AdminApp() {
                 </strong>
                 <small>{item.description}</small>
               </span>
-              {item.id === "moderation" && overview.queueCount > 0 && (
-                <b>{overview.queueCount}</b>
+              {item.id === "reports" && overview.reportCount > 0 && (
+                <b>{overview.reportCount}</b>
               )}
             </button>
           ))}
@@ -219,7 +215,7 @@ export default function AdminApp() {
         <div className="cp-admin-content cp-scroll">
           {view === "overview" && (
             <AdminOverview
-              queueCount={overview.queueCount}
+              reportCount={overview.reportCount}
               loading={loading}
               error={error}
               latestRun={latestRun}
@@ -229,12 +225,7 @@ export default function AdminApp() {
               onNavigate={setView}
             />
           )}
-          {view === "moderation" && (
-            <AdminPanel
-              onChanged={() => void loadOverview()}
-              onQueueCountChange={handleQueueCountChange}
-            />
-          )}
+          {view === "reports" && <AdminPanel />}
           {view === "publishing" && (
             <AdminPublishingPanel
               isAdmin={isAdmin}

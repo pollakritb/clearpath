@@ -14,7 +14,6 @@ from ...algorithms.trust import (
 from ...core.config import settings
 from .. import supabase_client
 from .constants import (
-    AUTOMATIC_REVIEW_POLICY,
     OFFICIAL_PRIORITY_KM,
     PEER_REVIEW_RADIUS_KM,
     PUBLIC_REPORT_MAX_AGE_MINUTES,
@@ -59,7 +58,7 @@ def present_report(
         "pending"
         if not row.get("moderated_at")
         else "automatic"
-        if moderation_note.startswith(AUTOMATIC_REVIEW_POLICY)
+        if moderation_note.startswith("automatic-review-")
         else "admin"
     )
     admin_verified = evidence_verified and verification_method == "admin"
@@ -237,7 +236,9 @@ def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
             row,
             official_stations=official,
             approved_reports=approved,
-            include_image=status != "approved",
+            # Approved report photos stay in the private bucket. Public clients
+            # receive only a short-lived signed URL when opening a report pin.
+            include_image=True,
             include_exact_location=status != "approved",
         )
         for row in rows

@@ -218,7 +218,7 @@ async def submit_report_draft(
         raise HTTPException(404, detail="ไม่พบ draft") from exc
     except ValueError as exc:
         raise HTTPException(400, detail=str(exc)) from exc
-    review_outcome = report.get("_review_outcome", "pending_manual_review")
+    review_outcome = report.get("_review_outcome", "automatic_rejected")
     return ReportCreateResponse(
         report=CommunityReport(**report),
         ocr_available=report.get("ocr_pm25") is not None,
@@ -227,7 +227,7 @@ async def submit_report_draft(
         message=(
             "ระบบตรวจหลักฐานและอนุมัติรายงานอัตโนมัติแล้ว"
             if review_outcome == "automatic_approved"
-            else "ระบบยังไม่มั่นใจ จึงส่งรายงานให้ผู้ดูแลตรวจสอบก่อนเผยแพร่"
+            else "รายงานไม่ผ่านเกณฑ์อัตโนมัติ กรุณาดูเหตุผลและถ่ายภาพใหม่"
         ),
     )
 

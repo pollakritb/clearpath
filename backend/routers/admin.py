@@ -1,4 +1,4 @@
-"""Admin moderation API protected by verified Supabase roles."""
+"""Admin operations and read-only audit APIs protected by Supabase roles."""
 
 import csv
 import io
@@ -26,7 +26,6 @@ from ..models.schemas import (
     AnnouncementUpdate,
     CommunityReport,
     CommunityReportsResponse,
-    ModerationRequest,
 )
 from ..services import (
     admin_operations,
@@ -162,38 +161,14 @@ async def export_audit_logs(
 
 
 @router.get("/admin/reports", response_model=CommunityReportsResponse)
-async def moderation_queue(
+async def report_log(
     limit: int = Query(100, ge=1, le=200),
     _user: AuthenticatedUser = Depends(require_moderator),
 ):
-    rows = await run_in_threadpool(community_service.list_reports, "pending", limit)
+    rows = await run_in_threadpool(community_service.list_reports, "all", limit)
     return CommunityReportsResponse(
         reports=[CommunityReport(**r) for r in rows], count=len(rows)
     )
-
-
-@router.post("/admin/reports/{report_id}/moderate", response_model=CommunityReport)
-async def moderate(
-    report_id: str,
-    body: ModerationRequest,
-    user: AuthenticatedUser = Depends(require_moderator),
-):
-    try:
-        row = await run_in_threadpool(
-            community_service.moderate_report,
-            report_id,
-            user.id,
-            body.decision,
-            body.verified_pm25,
-            body.note,
-            body.rejection_reason_code,
-            body.checks.model_dump(),
-        )
-    except KeyError as exc:
-        raise HTTPException(404, detail="ไม่พบรายงาน") from exc
-    except ValueError as exc:
-        raise HTTPException(400, detail=str(exc)) from exc
-    return CommunityReport(**row)
 
 
 @router.post("/admin/announcements", response_model=Announcement, status_code=201)

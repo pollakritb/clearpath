@@ -4,7 +4,7 @@ import type { AdminSyncRun, DataHealthResponse } from "@/frontend/types/ui";
 import { formatRelative, type AdminView } from "./admin-navigation";
 
 interface AdminOverviewProps {
-  queueCount: number;
+  reportCount: number;
   loading: boolean;
   error: string | null;
   latestRun?: AdminSyncRun;
@@ -15,7 +15,7 @@ interface AdminOverviewProps {
 }
 
 export default function AdminOverview({
-  queueCount,
+  reportCount,
   loading,
   error,
   latestRun,
@@ -28,24 +28,24 @@ export default function AdminOverview({
     <section>
       <div className="cp-admin-welcome">
         <div>
-          <span className="cp-eyebrow">ศูนย์ควบคุมรายวัน</span>
-          <h2>สิ่งที่ต้องดูแลวันนี้</h2>
+          <span className="cp-eyebrow">ศูนย์ตรวจสอบระบบ</span>
+          <h2>ติดตามการทำงาน ไม่ตัดสินรายงานแทนระบบ</h2>
           <p>
-            ดูเคสที่ระบบตรวจอัตโนมัติยังสรุปไม่ได้ ติดตามข้อมูล Air4Thai
-            และจัดการปัญหาที่ผู้ใช้แจ้ง
+            รายงานจากผู้ใช้ถูกตรวจและตัดสินโดย OCR กับกฎคุณภาพอัตโนมัติ
+            ผู้ดูแลใช้หน้านี้ดูประวัติ ภาพ และ audit log เท่านั้น
           </p>
         </div>
         <button
           type="button"
-          onClick={() => onNavigate("moderation")}
+          onClick={() => onNavigate("reports")}
           className="cp-admin-button cp-focus"
         >
-          เปิดคิวตรวจข้อยกเว้น
+          เปิดประวัติรายงาน
         </button>
       </div>
 
       {error && (
-        <div role="alert" className="cp-admin-feedback" data-error>
+        <div className="cp-admin-feedback" data-error>
           {error}
         </div>
       )}
@@ -53,17 +53,17 @@ export default function AdminOverview({
       <div className="cp-admin-stat-grid">
         <button
           type="button"
-          onClick={() => onNavigate("moderation")}
+          onClick={() => onNavigate("reports")}
           className="cp-admin-stat-card cp-focus"
-          data-tone="attention"
+          data-tone="healthy"
         >
           <span className="cp-admin-stat-card__icon">
             <AppIcon name="shield" size={22} />
           </span>
           <span>
-            <small>รอตรวจข้อยกเว้น</small>
-            <strong>{loading ? "…" : queueCount}</strong>
-            <em>เฉพาะเคสที่หลักฐานไม่ครบ</em>
+            <small>รายงานที่บันทึกไว้</small>
+            <strong>{loading ? "…" : reportCount}</strong>
+            <em>ดูภาพและผลตรวจอัตโนมัติย้อนหลัง</em>
           </span>
           <AppIcon name="chevron" size={18} />
         </button>
@@ -126,39 +126,37 @@ export default function AdminOverview({
         <article className="cp-admin-overview-card">
           <div className="cp-admin-card-heading">
             <div>
-              <h3>ขั้นตอนตรวจเคสที่ระบบส่งต่อ</h3>
-              <p>ใช้เฉพาะเมื่อหลักฐานไม่ผ่านเกณฑ์อัตโนมัติ</p>
+              <h3>ขั้นตอนตรวจรายงานอัตโนมัติ</h3>
+              <p>ทุก submission ได้ผลสุดท้ายทันที ไม่มีคิวอนุมัติด้วยคน</p>
             </div>
           </div>
           <ol className="cp-admin-workflow">
             <li>
               <span>1</span>
               <div>
-                <strong>ระบบอ่านภาพด้วย OCR</strong>
-                <small>ตรวจค่าบนหน้าจอ ความชัด และความต่อเนื่องของภาพ</small>
+                <strong>อ่านภาพด้วย OCR</strong>
+                <small>ตรวจเครื่องวัด ตัวเลข และความชัดของภาพ</small>
               </div>
             </li>
             <li>
               <span>2</span>
               <div>
-                <strong>ระบบตรวจหลักฐานร่วม</strong>
-                <small>ตรวจ GPS เวลา ภาพซ้ำ และความสมเหตุสมผลของค่า</small>
+                <strong>ตรวจหลักฐานร่วม</strong>
+                <small>ตรวจ GPS เวลา ภาพซ้ำ และความสอดคล้องของค่า</small>
               </div>
             </li>
             <li>
               <span>3</span>
               <div>
-                <strong>เคสมั่นใจสูงเผยแพร่อัตโนมัติ</strong>
-                <small>ไม่ต้องรอผู้ดูแลตรวจทีละรายงาน</small>
+                <strong>ตัดสินผลอัตโนมัติ</strong>
+                <small>ผ่านแล้วเผยแพร่ ไม่ผ่านแล้วแจ้งเหตุผลให้ถ่ายใหม่</small>
               </div>
             </li>
             <li>
               <span>4</span>
               <div>
-                <strong>ส่งต่อเฉพาะข้อยกเว้น</strong>
-                <small>
-                  พักรายงานที่หลักฐานขัดแย้งไว้ ไม่เผยแพร่โดยอัตโนมัติ
-                </small>
+                <strong>บันทึกหลักฐานและ audit log</strong>
+                <small>ผู้ดูแลเปิดดูย้อนหลังได้ แต่ไม่มีปุ่มแก้ผลตรวจ</small>
               </div>
             </li>
           </ol>
@@ -167,22 +165,26 @@ export default function AdminOverview({
         <article className="cp-admin-overview-card">
           <div className="cp-admin-card-heading">
             <div>
-              <h3>ขอบเขตสิทธิ์ของคุณ</h3>
-              <p>การทำงานแยกตาม role อย่างชัดเจน</p>
+              <h3>ขอบเขตสิทธิ์ของผู้ดูแล</h3>
+              <p>แยกงานตรวจสอบระบบออกจากการตัดสินข้อมูลผู้ใช้</p>
             </div>
           </div>
           <div className="cp-admin-permission-list">
             <div data-allowed>
               <AppIcon name="check" size={17} />
-              จัดการข้อยกเว้นจากระบบตรวจอัตโนมัติ
+              ดูภาพ รายละเอียด ผล OCR และเหตุผลย้อนหลัง
             </div>
             <div data-allowed>
               <AppIcon name="check" size={17} />
-              ดูสุขภาพข้อมูล Air4Thai และการแจ้งเตือน
+              ดูสุขภาพข้อมูล Air4Thai และ audit log
             </div>
             <div data-allowed={isAdmin || undefined}>
               <AppIcon name={isAdmin ? "check" : "alert"} size={17} />
               สร้างประกาศและกิจกรรม {isAdmin ? "" : "(Admin เท่านั้น)"}
+            </div>
+            <div>
+              <AppIcon name="close" size={17} />
+              ไม่มีสิทธิ์อนุมัติหรือปฏิเสธรายงานด้วยคน
             </div>
           </div>
         </article>

@@ -79,7 +79,6 @@ describe("api client", () => {
       () => api.searchLocations("Nakhon Pathom / center"),
       () => api.myProfile(),
       () => api.adminReports(),
-      () => api.moderateReport("report-1", {} as never),
       () => api.createAnnouncement({} as never),
       () => api.adminAnnouncements(),
       () => api.updateAnnouncement("announcement-1", {} as never),

@@ -1,4 +1,4 @@
-"""Pure fail-closed decision rules for hybrid automatic evidence review."""
+"""Pure fail-closed decision rules for automatic evidence review."""
 
 from __future__ import annotations
 
@@ -25,8 +25,8 @@ def evaluate_automatic_review(
 ) -> dict:
     """Approve only evidence where every independently checkable signal passes.
 
-    A failed signal does not reject the report. It routes the evidence to the
-    human exception queue so the automatic path can never publish uncertain data.
+    The caller must reject a report when any blocker is returned. This keeps
+    uncertain evidence private without introducing a manual moderation queue.
     """
     blockers: list[str] = []
     if not enabled:

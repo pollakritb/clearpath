@@ -104,7 +104,7 @@ def _meter_image(seed: int) -> bytes:
     return output.getvalue()
 
 
-def _create_pending_report(client: TestClient, seed: int = 1) -> dict:
+def _create_report(client: TestClient, seed: int = 1) -> dict:
     session_response = client.post("/api/community/capture-session")
     assert session_response.status_code == 200
     session = session_response.json()
@@ -118,12 +118,14 @@ def _create_pending_report(client: TestClient, seed: int = 1) -> dict:
             "camera_session_token": session["token"],
             "client_captured_at": session["issued_at"],
         },
-        files={"image": ("meter.png", _meter_image(seed), "image/png")},
+        files=[
+            ("image", ("meter.png", _meter_image(seed), "image/png")),
+            ("burst_images", ("burst-1.png", _meter_image(seed + 100), "image/png")),
+            ("burst_images", ("burst-2.png", _meter_image(seed + 200), "image/png")),
+        ],
     )
     assert draft_response.status_code == 201, draft_response.text
     draft = draft_response.json()
-    assert draft["ocr_available"] is False
-    assert draft["ocr_status"] == "unavailable"
     assert draft["image_preview_url"]
 
     submit_response = client.post(
@@ -146,7 +148,7 @@ def _create_pending_report(client: TestClient, seed: int = 1) -> dict:
     report = submit_response.json()["report"]
     assert report["source_type"] == "individual"
     assert report["device_calibrated"] is True
-    assert report["moderation_checks"]["ocr_status_unavailable"] is True
+    assert any(key.startswith("ocr_status_") for key in report["moderation_checks"])
     return report
 
 
@@ -235,71 +237,45 @@ def test_high_confidence_report_is_automatically_approved(feature_client, monkey
     assert any(item["id"] == report["id"] for item in public)
 
     become("admin")
-    queue = client.get("/api/admin/reports").json()["reports"]
-    assert all(item["id"] != report["id"] for item in queue)
+    history = client.get("/api/admin/reports").json()["reports"]
+    admin_report = next(item for item in history if item["id"] == report["id"])
+    assert admin_report["status"] == "approved"
+    assert admin_report["image_url"]
+    assert admin_report["gps_accuracy_m"] == 20
 
 
-def test_complete_report_moderation_rating_reward_and_privacy_flow(feature_client):
+def test_complete_automatic_review_rating_reward_and_privacy_flow(
+    feature_client, monkeypatch
+):
     client, become = feature_client
     reporter = become("user")
-    pending = _create_pending_report(client, seed=11)
-    report_id = pending["id"]
 
-    assert pending["status"] == "pending"
-    assert pending["pm25"] is None
-    assert pending["gps_accuracy_m"] == 15
-    assert all(
-        item["id"] != report_id
-        for item in client.get("/api/community/reports").json()["reports"]
-    )
+    async def confident_ocr(_image: bytes, _content_type: str) -> dict:
+        return {
+            "available": True,
+            "service_error": False,
+            "pm25": 44.0,
+            "confidence": 0.98,
+            "device_detected": True,
+            "display_clear": True,
+            "raw_text": "PM2.5 44",
+        }
+
+    monkeypatch.setattr(ocr_service, "read_pm25", confident_ocr)
+    report = _create_report(client, seed=11)
+    report_id = report["id"]
+
+    assert report["status"] == "approved"
+    assert report["pm25"] == 44
+    assert report["gps_accuracy_m"] == 15
+    assert report["verification_method"] == "automatic"
 
     become("admin")
-    queue = client.get("/api/admin/reports")
-    assert queue.status_code == 200
-    assert any(item["id"] == report_id for item in queue.json()["reports"])
-
-    missing_note = client.post(
-        f"/api/admin/reports/{report_id}/moderate",
-        json={
-            "decision": "approve",
-            "verified_pm25": 44,
-            "checks": {
-                "image_clear": True,
-                "value_matches_display": True,
-                "location_plausible": True,
-                "no_screen_recapture_signs": True,
-            },
-        },
-    )
-    assert missing_note.status_code == 422
-
-    incomplete = client.post(
-        f"/api/admin/reports/{report_id}/moderate",
-        json={
-            "decision": "approve",
-            "verified_pm25": 44,
-            "checks": {},
-            "note": "checklist incomplete",
-        },
-    )
-    assert incomplete.status_code == 400
-
-    approved_response = client.post(
-        f"/api/admin/reports/{report_id}/moderate",
-        json={
-            "decision": "approve",
-            "verified_pm25": 44,
-            "note": "evidence verified",
-            "checks": {
-                "image_clear": True,
-                "value_matches_display": True,
-                "location_plausible": True,
-                "no_screen_recapture_signs": True,
-            },
-        },
-    )
-    assert approved_response.status_code == 200, approved_response.text
-    assert approved_response.json()["pm25"] == 44
+    history = client.get("/api/admin/reports")
+    assert history.status_code == 200
+    logged = next(item for item in history.json()["reports"] if item["id"] == report_id)
+    assert logged["image_url"]
+    assert logged["gps_accuracy_m"] == 15
     audit = client.get(
         "/api/admin/audit-logs?action=report_approved&entity_type=community_report"
     )
@@ -309,15 +285,15 @@ def test_complete_report_moderation_rating_reward_and_privacy_flow(feature_clien
     )
     assert entry["details"]["before"]["status"] == "pending"
     assert entry["details"]["after"]["status"] == "approved"
-    assert entry["details"]["reason"] == "evidence verified"
+    assert "automatic-review-v2" in entry["details"]["reason"]
 
     public_reports = client.get("/api/community/reports").json()["reports"]
     public = next(item for item in public_reports if item["id"] == report_id)
-    assert public["admin_verified"] is True
-    assert public["verification_method"] == "admin"
+    assert public["admin_verified"] is False
+    assert public["verification_method"] == "automatic"
     assert public["pm25"] == 44
     assert public["verified_pm25"] == 44
-    assert public["image_url"] is None
+    assert public["image_url"]
     assert public["gps_accuracy_m"] is None
     assert public["ocr_pm25"] is None
     assert public["user_claimed_pm25"] is None
@@ -484,7 +460,7 @@ def test_camera_evidence_validation_and_single_use_session(feature_client):
 def test_report_value_outside_supported_range_is_rejected(feature_client):
     client, become = feature_client
     become("user")
-    report = _create_pending_report(client, seed=25)
+    report = _create_report(client, seed=25)
     assert report["user_claimed_pm25"] == 42.5
 
     session = client.post("/api/community/capture-session").json()
@@ -519,28 +495,18 @@ def test_role_guards_and_report_rejection_flow(feature_client):
     assert client.get("/api/admin/reports").status_code == 403
     assert client.get("/api/admin/announcements").status_code == 403
 
-    pending = _create_pending_report(client, seed=41)
-    report_id = pending["id"]
+    report = _create_report(client, seed=41)
+    report_id = report["id"]
+    assert report["status"] == "rejected"
+    assert report["rejection_reason_code"] in {"image_unclear", "duplicate"}
 
     become("moderator")
-    missing_reason = client.post(
-        f"/api/admin/reports/{report_id}/moderate",
-        json={"decision": "reject", "checks": {}, "note": "evidence failed"},
-    )
-    assert missing_reason.status_code == 400
-
-    rejected = client.post(
-        f"/api/admin/reports/{report_id}/moderate",
-        json={
-            "decision": "reject",
-            "rejection_reason_code": "image_unclear",
-            "checks": {},
-            "note": "หน้าจอเครื่องวัดไม่ชัด",
-        },
-    )
-    assert rejected.status_code == 200, rejected.text
-    assert rejected.json()["status"] == "rejected"
-    assert rejected.json()["rejection_reason_code"] == "image_unclear"
+    assert client.post(f"/api/admin/reports/{report_id}/moderate").status_code == 404
+    history = client.get("/api/admin/reports")
+    assert history.status_code == 200
+    logged = next(item for item in history.json()["reports"] if item["id"] == report_id)
+    assert logged["status"] == "rejected"
+    assert logged["image_url"]
 
     public = client.get("/api/community/reports").json()["reports"]
     assert all(item["id"] != report_id for item in public)
@@ -551,7 +517,7 @@ def test_role_guards_and_report_rejection_flow(feature_client):
         item for item in profile.json()["reports"] if item["id"] == report_id
     )
     assert own_report["status"] == "rejected"
-    assert own_report["rejection_reason_code"] == "image_unclear"
+    assert own_report["rejection_reason_code"] == report["rejection_reason_code"]
     inbox = client.get("/api/notifications").json()
     assert inbox["unread_count"] == 1
     assert inbox["notifications"][0]["event_type"] == "report_status"

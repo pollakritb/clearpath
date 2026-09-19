@@ -101,9 +101,9 @@ def calculate_trust_score(
 ) -> dict:
     """Return score 0..100 and human-readable reasons.
 
-    Verified evidence may come from an administrator or the fail-closed
-    automatic-review path. Low-confidence OCR remains advisory and cannot
-    publish a report by itself.
+    Verified evidence may come from the current automatic-review path or from a
+    legacy administrator decision. Rejected and low-confidence OCR evidence
+    cannot publish a report or receive verification credit.
     """
     score = 0.0
     reasons: list[str] = []
@@ -111,9 +111,11 @@ def calculate_trust_score(
     if verification_method == "admin":
         score += 25.0
         reasons.append("ผู้ดูแลอ่านค่าและยืนยันจากภาพแล้ว")
-    elif verification_method == "automatic":
+    elif verification_method == "automatic" and pm25 is not None:
         score += 20.0 + (5.0 * max(0.0, min(1.0, ocr_confidence)))
         reasons.append("ระบบตรวจภาพและค่า OCR ผ่านเกณฑ์อนุมัติอัตโนมัติ")
+    elif verification_method == "rejected":
+        reasons.append("หลักฐานไม่ผ่านเกณฑ์ตรวจอัตโนมัติ")
     else:
         reasons.append("รอการตรวจเคสที่ระบบยังไม่มั่นใจ")
 

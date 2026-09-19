@@ -11,7 +11,7 @@
 ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถานีทางการ, NASA FIRMS สำหรับจุดความร้อน
 และเปิดให้ประชาชนถ่ายภาพเครื่องวัด PM2.5 ผ่านกล้องภายในแพลตฟอร์ม เมื่อส่งภาพแล้ว
 ระบบจะตรวจ OCR, ภาพต่อเนื่อง, GPS, เวลา และภาพซ้ำร่วมกัน เคสที่มั่นใจสูงจะอนุมัติและ
-เผยแพร่อัตโนมัติ ส่วนเคสที่ไม่ชัดเจนจะคงสถานะ pending และเข้าคิวข้อยกเว้นให้ผู้ดูแลตรวจ
+เผยแพร่อัตโนมัติ ส่วนเคสที่ไม่ชัดเจนจะถูกปฏิเสธอัตโนมัติพร้อมเหตุผลและให้ผู้ใช้ถ่ายใหม่
 
 ## ฟีเจอร์หลัก
 
@@ -23,7 +23,7 @@ ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถ
 - ตรวจชนิด/ความสมบูรณ์ของไฟล์ภาพ, exact hash และ perceptual hash เพื่อกันภาพซ้ำ
 - OCR อ่านค่าหลังอัปโหลดเป็น draft ผู้ใช้ตรวจแก้ก่อนยืนยัน และระบบอนุมัติอัตโนมัติเมื่อหลักฐานทั้งชุดผ่านเกณฑ์
 - Air4Thai ภายใน 5 กม. เป็นค่าหลัก; Community Report เป็นข้อมูลเสริม
-- นอกระยะ 5 กม. รายงานต้องผ่านการตรวจอัตโนมัติหรือ Admin, Trust ≥60, อายุไม่เกิน 3 ชั่วโมง และผ่านกติกาหลายแหล่งก่อนเติม IDW
+- นอกระยะ 5 กม. รายงานต้องผ่านการตรวจอัตโนมัติ, Trust ≥60, อายุไม่เกิน 3 ชั่วโมง และผ่านกติกาหลายแหล่งก่อนเติม IDW
 - คำขอบคุณจากชุมชนพร้อมดาว 1–5 จำกัดผู้ใช้อยู่ภายใน 3 กม./GPS ≤200 ม. ดาวยังใช้ปรับ Trust เมื่อมีอย่างน้อย 3 คน และให้รางวัลเฉพาะความเห็นที่ตรง consensus
 - จุดชุมชนที่เข้า IDW ถูกรวมด้วย clustering 2 กม./60 นาทีและ weighted median ก่อนใช้งาน
 - เก็บพิกัดจริงสำหรับ Admin แต่เลื่อนตำแหน่งสาธารณะ 120–250 เมตรเพื่อลดความเสี่ยงต่อความเป็นส่วนตัว
@@ -45,7 +45,7 @@ ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถ
 | Backend API           | Python 3.12, FastAPI, Pydantic v2 และ HTTPX                                                     |
 | Database/Auth/Storage | Supabase PostgreSQL, Supabase Auth, private Storage bucket และ Realtime invalidation events     |
 | External data         | Air4Thai, NASA FIRMS, CAMS/Open-Meteo, OpenWeather และ GISTDA แบบ legal-gated                   |
-| OCR/AI                | OpenAI Responses API แบบ optional; fail-closed automatic review + Admin exception queue         |
+| OCR/AI                | OpenAI Responses API; ตรวจหลักฐานทั้งชุดและอนุมัติหรือปฏิเสธอัตโนมัติแบบ fail closed            |
 | Forecast              | External-first 3 แหล่ง, raw comparison, uncertainty envelope และ gated local/community fallback |
 | Notification          | In-App inbox, Web Push/VAPID, LINE Messaging API, signed webhook และ retryable outbox           |
 | Testing/quality       | Pytest, Ruff, ESLint, TypeScript strict checks, Prettier และ Next production build              |
@@ -63,7 +63,7 @@ Next.js 16 / React 19 ── /api/* ── FastAPI
 ```
 
 Frontend รู้จักเฉพาะ `/api/*`; service-role, OpenAI, VAPID private key และ cron secret
-อยู่ฝั่ง server เท่านั้น การส่งรายงาน/ส่งคำขอบคุณพร้อมดาวใช้ Supabase Email OTP และ Admin API ใช้ role
+อยู่ฝั่ง server เท่านั้น การส่งรายงาน/ส่งคำขอบคุณพร้อมดาวใช้ Supabase Email OTP และ Admin API แบบอ่านอย่างเดียวใช้ role
 `moderator`/`admin` จากตาราง `profiles` โดยไม่รับ user id หรือ admin key จาก browser
 
 ### Code layout
@@ -131,7 +131,7 @@ server camera session → getUserMedia + GPS → private draft + OCR
                                                 ▼
                                user confirms value → automatic review
                                                 ├─ high confidence → approved map
-                                                └─ uncertain → pending Admin exception queue
+                                                └─ uncertain → rejected + reasons → retake
                                                                      │
                                                                      ▼
                                                 nearby users rate proximity with 1–5 stars
@@ -139,7 +139,7 @@ server camera session → getUserMedia + GPS → private draft + OCR
 
 ระบบอนุมัติอัตโนมัติเฉพาะเมื่อ OCR confidence ≥92%, ตรวจพบเครื่องวัดและหน้าจอชัด, ค่าที่ผู้ใช้ยืนยันสอดคล้อง,
 GPS ≤100 ม., ไม่มี clock warning/ภาพซ้ำ และมีภาพต่อเนื่องเสริม 2 เฟรม หากไม่มี `OPENAI_API_KEY` หรือเกณฑ์ใดไม่ผ่าน
-ระบบจะ fail closed เข้าคิวข้อยกเว้น และรายงาน pending จะไม่เปิดเผยค่า PM2.5
+ระบบจะ fail closed ด้วยการปฏิเสธอัตโนมัติพร้อมเหตุผล และจะไม่เปิดเผยค่า PM2.5 หรือภาพของรายงานที่ไม่ผ่าน
 
 ก่อนส่ง ผู้ใช้ต้องระบุรุ่นเครื่อง, สถานะการสอบเทียบ, ความแม่นยำ GPS และยืนยันว่า
 วัดกลางแจ้งหลังรอค่าคงที่แล้ว จุดที่อยู่ติดแหล่งกำเนิดโดยตรง เช่น ควันบุหรี่หรือท่อไอเสีย
@@ -149,7 +149,7 @@ GPS ≤100 ม., ไม่มี clock warning/ภาพซ้ำ และม�
 
 - ถ้ามี Air4Thai ภายใน 5 กม. ค่า Air4Thai เป็นข้อมูลหลัก ส่วนค่าประชาชนแสดงแยกเป็น `Community Report`
 - สถานีรัฐถือว่าใช้เป็นข้อมูลหลักได้เมื่ออายุไม่เกิน 90 นาที; ถ้า API ต้นทางล่มใช้ snapshot ล่าสุดพร้อมสถานะ delayed/expired
-- ถ้าไม่มี Air4Thai ที่สดใหม่ภายใน 5 กม. รายงานที่ระบบหรือ Admin อนุมัติ, Trust ≥60 และอายุไม่เกิน 3 ชั่วโมงจะเป็นผู้สมัคร `gap_fill`
+- ถ้าไม่มี Air4Thai ที่สดใหม่ภายใน 5 กม. รายงานที่ระบบอนุมัติ, Trust ≥60 และอายุไม่เกิน 3 ชั่วโมงจะเป็นผู้สมัคร `gap_fill`
 - ผู้สมัครจะเข้า IDW ได้เมื่อมีผู้รายงานคนละคนอย่างน้อย 2 คน วัดใกล้กันภายใน 2 กม./60 นาทีและค่าเข้ากันได้ หรือผู้ส่งมี Trust ≥80 พร้อมเครื่องที่ระบุว่าสอบเทียบแล้ว
 - รายงานต้องมี GPS accuracy ไม่เกิน 200 เมตร, ไม่เป็นภาพซ้ำ และไม่วัดติดแหล่งกำเนิดโดยตรง จึงจะเข้า IDW ได้
 - ค่าที่ต่างจาก Air4Thai มากจะไม่ถูกซ่อน แต่แสดงเป็นความผิดปกติเฉพาะจุดและรอ community verification
@@ -199,47 +199,46 @@ $env:CAPTURE_SESSION_SECRET="local-only-secret-at-least-32-characters"
 
 ## API
 
-| Method · Path                                     | หน้าที่                                                           |
-| ------------------------------------------------- | ----------------------------------------------------------------- |
-| `GET /api/health`                                 | Liveness ของ process                                              |
-| `GET /api/ready`                                  | Readiness ของ Supabase และความสดข้อมูลสถานี                       |
-| `GET /api/pm25/current`                           | สถานี Air4Thai ล่าสุดจาก Supabase                                 |
-| `GET /api/forecast?station_id=&hours=`            | พยากรณ์ 1–24 ชั่วโมง                                              |
-| `GET /api/firms?days=`                            | จุดความร้อน NASA FIRMS ใน polygon นครปฐม                          |
-| `POST /api/community/capture-session`             | ออก camera session ที่ลงนามและหมดอายุใน 5 นาที                    |
-| `POST /api/community/report-drafts`               | อัปโหลดภาพสด + GPS และรับผล OCR ชั่วคราว                          |
-| `POST /api/community/report-drafts/{id}/submit`   | ยืนยันค่าและให้ระบบตรวจ/ส่งคิวข้อยกเว้น                           |
-| `GET /api/community/reports`                      | รายงานที่อนุมัติแล้ว                                              |
-| `GET /api/community/map-points`                   | จุดรวม weighted median สำหรับ IDW                                 |
-| `GET /api/community/review-queue?lat=&lon=`       | ข้อมูล approved ภายใน 3 กม. ที่ยังขอบคุณได้                       |
-| `POST /api/community/reports/{id}/ratings`        | ส่งคำขอบคุณพร้อมดาวความใกล้เคียง 1–5                              |
-| `GET /api/community/reports/{id}/engagement`      | จำนวน Like/Dislike และความคิดเห็นสาธารณะ (ไม่กระทบ Trust)         |
-| `PUT/DELETE /api/community/reports/{id}/reaction` | เพิ่ม เปลี่ยน หรือยกเลิก Like/Dislike                             |
-| `POST /api/community/reports/{id}/comments`       | เพิ่มความคิดเห็นในรายงานที่เผยแพร่แล้ว                            |
-| `GET /api/community/announcements`                | ประกาศ ClearPath + ลิงก์ข่าวคุณภาพอากาศ Google News (cache 1 ชม.) |
-| `GET /api/community/activities`                   | กิจกรรมและรางวัล                                                  |
-| `GET /api/community/leaderboard`                  | อันดับ reputation                                                 |
-| `GET /api/community/me`                           | โปรไฟล์ คะแนน badge และประวัติของบัญชี                            |
-| `GET /api/admin/reports`                          | คิวข้อยกเว้นที่ระบบยังไม่มั่นใจ                                   |
-| `POST /api/admin/reports/{id}/moderate`           | Admin ตัดสินเคสข้อยกเว้นและบันทึกค่าที่ตรวจแล้ว                   |
-| `GET/PATCH/DELETE /api/admin/announcements/{id}`  | จัดการ lifecycle ประกาศและ soft archive                           |
-| `GET /api/admin/sync-runs`                        | ประวัติ sync และ error ของแหล่งข้อมูล                             |
-| `GET /api/admin/forecast-models`                  | สถานะ artifact/quality gate ของแต่ละ horizon                      |
-| `GET /api/admin/forecast-false-safe-cases`        | คิว false-safe ที่ Admin ต้องตรวจรายเหตุการณ์                     |
-| `PUT /api/admin/forecast-false-safe-cases/…`      | บันทึกสาเหตุ/หลักฐานการตรวจ false-safe                            |
-| `GET /api/admin/forecast-release-decisions`       | ประวัติ shadow/canary/promote/rollback/reject                     |
-| `GET/PUT /api/notifications/preferences`          | พื้นที่ รัศมี และเกณฑ์แจ้งเตือนของผู้ใช้                          |
-| `POST /api/notifications/subscriptions`           | ลงทะเบียน PWA Web Push                                            |
-| `GET /api/notifications`                          | กล่องแจ้งเตือนในแอป                                               |
-| `GET/POST/DELETE /api/notifications/line`         | สถานะ สร้างรหัส และยกเลิกการเชื่อม LINE                           |
-| `POST /api/notifications/line/test`               | ส่งข้อความทดสอบเข้า LINE ที่เชื่อมไว้                             |
-| `POST /api/notifications/line/webhook`            | รับ signed webhook จาก LINE Messaging API                         |
-| `GET /api/locations/search?q=`                    | ค้นหาตำบล/อำเภอจาก gazetteer ในระบบ                               |
-| `GET /api/history`                                | ประวัติรายสถานี                                                   |
-| `GET /api/validate`                               | LOOCV ของ interpolation                                           |
-| `GET /api/cron/sync`                              | Air4Thai → Supabase                                               |
-| `GET /api/cron/alerts`                            | ตรวจ PM2.5/FIRMS และส่ง Web Push/LINE แบบ deduplicate             |
-| `GET /api/cron/forecast-evaluation`               | Settle prediction, aggregate metrics และ drift                    |
+| Method · Path                                     | หน้าที่                                                               |
+| ------------------------------------------------- | --------------------------------------------------------------------- |
+| `GET /api/health`                                 | Liveness ของ process                                                  |
+| `GET /api/ready`                                  | Readiness ของ Supabase และความสดข้อมูลสถานี                           |
+| `GET /api/pm25/current`                           | สถานี Air4Thai ล่าสุดจาก Supabase                                     |
+| `GET /api/forecast?station_id=&hours=`            | พยากรณ์ 1–24 ชั่วโมง                                                  |
+| `GET /api/firms?days=`                            | จุดความร้อน NASA FIRMS ใน polygon นครปฐม                              |
+| `POST /api/community/capture-session`             | ออก camera session ที่ลงนามและหมดอายุใน 5 นาที                        |
+| `POST /api/community/report-drafts`               | อัปโหลดภาพสด + GPS และรับผล OCR ชั่วคราว                              |
+| `POST /api/community/report-drafts/{id}/submit`   | ยืนยันค่าและรับผลอนุมัติหรือปฏิเสธอัตโนมัติทันที                      |
+| `GET /api/community/reports`                      | รายงานที่อนุมัติแล้ว                                                  |
+| `GET /api/community/map-points`                   | จุดรวม weighted median สำหรับ IDW                                     |
+| `GET /api/community/review-queue?lat=&lon=`       | ข้อมูล approved ภายใน 3 กม. ที่ยังขอบคุณได้                           |
+| `POST /api/community/reports/{id}/ratings`        | ส่งคำขอบคุณพร้อมดาวความใกล้เคียง 1–5                                  |
+| `GET /api/community/reports/{id}/engagement`      | จำนวน Like/Dislike และความคิดเห็นสาธารณะ (ไม่กระทบ Trust)             |
+| `PUT/DELETE /api/community/reports/{id}/reaction` | เพิ่ม เปลี่ยน หรือยกเลิก Like/Dislike                                 |
+| `POST /api/community/reports/{id}/comments`       | เพิ่มความคิดเห็นในรายงานที่เผยแพร่แล้ว                                |
+| `GET /api/community/announcements`                | ประกาศ ClearPath + ลิงก์ข่าวคุณภาพอากาศ Google News (cache 1 ชม.)     |
+| `GET /api/community/activities`                   | กิจกรรมและรางวัล                                                      |
+| `GET /api/community/leaderboard`                  | อันดับ reputation                                                     |
+| `GET /api/community/me`                           | โปรไฟล์ คะแนน badge และประวัติของบัญชี                                |
+| `GET /api/admin/reports`                          | ประวัติผลตรวจอัตโนมัติ รูป และรายละเอียดสำหรับ audit (อ่านอย่างเดียว) |
+| `GET/PATCH/DELETE /api/admin/announcements/{id}`  | จัดการ lifecycle ประกาศและ soft archive                               |
+| `GET /api/admin/sync-runs`                        | ประวัติ sync และ error ของแหล่งข้อมูล                                 |
+| `GET /api/admin/forecast-models`                  | สถานะ artifact/quality gate ของแต่ละ horizon                          |
+| `GET /api/admin/forecast-false-safe-cases`        | คิว false-safe ที่ Admin ต้องตรวจรายเหตุการณ์                         |
+| `PUT /api/admin/forecast-false-safe-cases/…`      | บันทึกสาเหตุ/หลักฐานการตรวจ false-safe                                |
+| `GET /api/admin/forecast-release-decisions`       | ประวัติ shadow/canary/promote/rollback/reject                         |
+| `GET/PUT /api/notifications/preferences`          | พื้นที่ รัศมี และเกณฑ์แจ้งเตือนของผู้ใช้                              |
+| `POST /api/notifications/subscriptions`           | ลงทะเบียน PWA Web Push                                                |
+| `GET /api/notifications`                          | กล่องแจ้งเตือนในแอป                                                   |
+| `GET/POST/DELETE /api/notifications/line`         | สถานะ สร้างรหัส และยกเลิกการเชื่อม LINE                               |
+| `POST /api/notifications/line/test`               | ส่งข้อความทดสอบเข้า LINE ที่เชื่อมไว้                                 |
+| `POST /api/notifications/line/webhook`            | รับ signed webhook จาก LINE Messaging API                             |
+| `GET /api/locations/search?q=`                    | ค้นหาตำบล/อำเภอจาก gazetteer ในระบบ                                   |
+| `GET /api/history`                                | ประวัติรายสถานี                                                       |
+| `GET /api/validate`                               | LOOCV ของ interpolation                                               |
+| `GET /api/cron/sync`                              | Air4Thai → Supabase                                                   |
+| `GET /api/cron/alerts`                            | ตรวจ PM2.5/FIRMS และส่ง Web Push/LINE แบบ deduplicate                 |
+| `GET /api/cron/forecast-evaluation`               | Settle prediction, aggregate metrics และ drift                        |
 
 ## Verification
 

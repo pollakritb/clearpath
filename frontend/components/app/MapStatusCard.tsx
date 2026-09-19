@@ -184,6 +184,29 @@ export default function MapStatusCard({
         </div>
       )}
 
+      {source === "individual" && report?.image_url && (
+        <a
+          href={report.image_url}
+          target="_blank"
+          rel="noreferrer"
+          className="cp-map-report-photo cp-focus"
+          aria-label="เปิดดูภาพเครื่องวัดจากรายงานนี้"
+        >
+          {/* The API exposes only a short-lived signed URL from private storage. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={report.image_url}
+            alt="ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+          <span>
+            <AppIcon name="camera" size={17} />
+            แตะเพื่อดูภาพเครื่องวัด
+          </span>
+        </a>
+      )}
+
       <div className="cp-map-selection-reading">
         <div>
           <strong>{value ?? "—"}</strong>
@@ -202,8 +225,8 @@ export default function MapStatusCard({
             <span>
               <strong>
                 {report.verification_method === "automatic"
-                  ? "ระบบตรวจแล้ว"
-                  : "ผู้ดูแลตรวจแล้ว"}
+                  ? "ระบบตรวจอัตโนมัติแล้ว"
+                  : "ข้อมูลที่ตรวจด้วยระบบเดิม"}
               </strong>
               <small>{SOURCE_LABELS[source].description}</small>
             </span>

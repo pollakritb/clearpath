@@ -2,7 +2,7 @@
 
 ใช้ OpenAI Responses API แบบ image input + Structured Outputs เมื่อมี key.
 ผล OCR เป็นสัญญาณหนึ่งของระบบตรวจหลักฐาน: เคสที่มั่นใจสูงอนุมัติอัตโนมัติ
-ส่วนเคสที่ไม่ชัดเจนจะ fail closed เข้าคิวข้อยกเว้นให้ผู้ดูแลตรวจ.
+ส่วนเคสที่ไม่ชัดเจนจะ fail closed เป็นการปฏิเสธอัตโนมัติพร้อมเหตุผลให้ถ่ายใหม่.
 """
 
 from __future__ import annotations

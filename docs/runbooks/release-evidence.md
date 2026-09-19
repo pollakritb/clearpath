@@ -80,7 +80,7 @@ fields and fail-closed behavior.
 | `ML_FORECAST_SHADOW_ENABLED`        | Configured, gate closed | Requires a registered artifact and shadow evidence window                     |
 | `ML_FORECAST_CANARY_PERCENTAGE`     | Not configured          | Defaults to `0`; no canary traffic                                            |
 | `PUSH_ENABLED`                      | Configured, gate closed | `/api/notifications/config.enabled=false`                                     |
-| `AUTOMATIC_REVIEW_ENABLED`          | Configured              | Must still pass the complete OCR/GPS/time/continuity/duplicate policy         |
+| Automatic report review             | Always on               | Must pass the complete OCR/GPS/time/continuity/duplicate policy               |
 | `LINE_MESSAGING_ENABLED`            | Configured              | Authenticated delivery test is required; configuration alone is not a pass    |
 
 The closed gates above are deliberate release controls, not missing features.

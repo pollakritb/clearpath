@@ -130,7 +130,7 @@ class DataIssueCreate(BaseModel):
 class ReportCreateResponse(BaseModel):
     report: CommunityReport
     ocr_available: bool
-    review_outcome: Literal["automatic_approved", "pending_manual_review"]
+    review_outcome: Literal["automatic_approved", "automatic_rejected"]
     review_reasons: list[str] = Field(default_factory=list)
     message: str
 
@@ -213,21 +213,6 @@ class ReportEngagementResponse(BaseModel):
     comment_count: int = 0
     viewer_reaction: ReactionKind | None = None
     comments: list[ReportComment] = Field(default_factory=list)
-
-
-class ModerationChecks(BaseModel):
-    image_clear: bool = False
-    value_matches_display: bool = False
-    location_plausible: bool = False
-    no_screen_recapture_signs: bool = False
-
-
-class ModerationRequest(BaseModel):
-    decision: Literal["approve", "reject"]
-    verified_pm25: float | None = Field(default=None, ge=0, le=1000)
-    rejection_reason_code: RejectionReason | None = None
-    checks: ModerationChecks = Field(default_factory=ModerationChecks)
-    note: str = Field(min_length=10, max_length=500)
 
 
 class UserReputation(BaseModel):

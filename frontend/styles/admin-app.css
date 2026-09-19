@@ -596,8 +596,96 @@
 .cp-admin-report-card {
   min-width: 0;
   margin-top: 0 !important;
+  border: 1px solid var(--cp-line);
+  border-radius: 14px;
+  padding: 14px;
   background: #fff;
   box-shadow: 0 5px 18px rgba(22, 53, 49, 0.045);
+}
+.cp-admin-report-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.cp-admin-report-filter {
+  display: grid;
+  gap: 6px;
+  color: var(--cp-subink);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+.cp-admin-report-filter select {
+  min-height: 44px;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #fff;
+  color: var(--cp-ink);
+  font: inherit;
+}
+.cp-admin-report-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.cp-admin-report-card__header > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.cp-admin-report-card__header small {
+  color: var(--cp-subink);
+  font-size: 0.68rem;
+}
+.cp-admin-report-card__header strong {
+  overflow: hidden;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cp-admin-report-result {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+.cp-admin-report-result > div {
+  min-width: 0;
+  border-radius: 10px;
+  padding: 9px;
+  background: #f4f7f6;
+}
+.cp-admin-report-result dt {
+  color: var(--cp-subink);
+  font-size: 0.62rem;
+}
+.cp-admin-report-result dd {
+  overflow-wrap: anywhere;
+  margin: 3px 0 0;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+.cp-admin-report-reasons {
+  margin-top: 10px;
+  border-top: 1px solid var(--cp-line);
+  padding-top: 10px;
+  color: var(--cp-subink);
+  font-size: 0.7rem;
+}
+.cp-admin-report-reasons summary {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 750;
+}
+.cp-admin-report-reasons ul {
+  margin: 5px 0 0;
+  padding-left: 18px;
 }
 .cp-admin-evidence-grid {
   display: grid;
@@ -1122,6 +1210,9 @@
     grid-template-columns: 1fr;
   }
   .cp-admin-report-grid {
+    grid-template-columns: 1fr;
+  }
+  .cp-admin-report-toolbar {
     grid-template-columns: 1fr;
   }
 }

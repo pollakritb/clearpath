@@ -2,8 +2,8 @@
 
 ClearPath treats OCR as one evidence signal. A model result never bypasses GPS,
 capture time, burst continuity, duplicate-image checks, or the claimed-value
-comparison. Uncertain cases remain `pending` for the administrator exception
-queue.
+comparison. Uncertain cases are automatically rejected with reason codes and
+the user is asked to capture new evidence.
 
 ## Private dataset
 
@@ -77,7 +77,7 @@ set `store: false` and the browser never receives the API key.
 4. Require the automated gate to pass and record reviewer/date/model snapshot.
 5. Test iPhone and Android capture, denial/retry, rotation, and slow network.
 6. Change `OPENAI_OCR_MODEL` only after approval; retain the previous value for rollback.
-7. Monitor pending rate, disagreements, and corrections. Roll back on a critical false read.
+7. Monitor rejection rate, reason distribution, disagreements, and resubmission success. Roll back on a critical false read.
 
 The evaluator deliberately fails when the real dataset is absent or too small.
 Synthetic labels and mocked unit tests are useful for code verification but do

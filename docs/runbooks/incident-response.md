@@ -20,7 +20,7 @@ Page the on-call owner when any condition occurs:
 2. Check Vercel runtime logs using request ID and Supabase service status.
 3. Run `scripts.verify_deployment` and inspect Admin sync/outbox/model status.
 4. Contain with the narrowest feature flag:
-   - `AUTOMATIC_REVIEW_ENABLED=false` — all uncertain reports remain pending;
+   - หาก OCR ขัดข้อง ระบบจะปฏิเสธรายงานใหม่แบบ fail closed และให้ผู้ใช้ลองใหม่;
    - `PUSH_ENABLED=false` — stop delivery while keeping preferences;
    - `ML_FORECAST_ENABLED=false` — return to explainable baseline;
    - disable Vercel cron temporarily if it is damaging data.

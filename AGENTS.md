@@ -26,15 +26,15 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 - Forecast/trust algorithms ต้องเป็น pure functions, อธิบายผลได้ และมี unit tests.
 - Kriging (scipy/pykrige) is `requirements-dev` only — NOT deployed (function size). Prod interpolation = IDW.
 - Supabase is source of truth; air4thai is hit only by the hourly cron `/api/cron/sync`.
-- Community reports เริ่ม `pending`; ระบบอนุมัติอัตโนมัติเฉพาะเคสที่ OCR/GPS/เวลา/ภาพต่อเนื่อง/ภาพซ้ำผ่านเกณฑ์ความมั่นใจสูง; เคสที่ไม่ชัดเจน fail closed และคง `pending` ให้ Admin ตรวจ.
-- OCR เป็นสัญญาณหนึ่งในนโยบายตรวจอัตโนมัติ ไม่ใช่หลักฐานเดี่ยว; ค่า PM2.5 จะเผยแพร่ได้เมื่อผ่านนโยบายทั้งชุดหรือ Admin อนุมัติ.
+- Community reports ใช้ `pending` เป็นสถานะภายในชั่วคราวระหว่างบันทึกเท่านั้น; เมื่อส่งเสร็จระบบต้องอนุมัติหรือปฏิเสธอัตโนมัติทันที ห้ามรอ Admin ตัดสิน. เคสที่ไม่ชัดเจนต้อง fail closed เป็น `rejected` พร้อมเหตุผลและให้ผู้ใช้ถ่ายใหม่.
+- OCR เป็นสัญญาณหนึ่งในนโยบายตรวจอัตโนมัติ ไม่ใช่หลักฐานเดี่ยว; ค่า PM2.5 จะเผยแพร่ได้เมื่อ OCR/GPS/เวลา/ภาพต่อเนื่อง/ภาพซ้ำและค่าที่ยืนยันผ่านนโยบายทั้งชุด. Admin ดู log/รูป/รายละเอียดได้อย่างเดียว ไม่มีสิทธิ์อนุมัติหรือปฏิเสธรายงาน.
 - Air4Thai ที่อายุไม่เกิน 1 ชั่วโมงภายใน 5 กม. เป็นข้อมูลหลัก; community เป็น supplementary.
 - Community เข้า IDW ได้เฉพาะ approved/fresh/Trust ≥60 และต้อง corroborated จากผู้ใช้คนละคน ≥2 ราย หรือ Trust ≥80 พร้อม calibrated device.
 - Gap-fill ต้องมี GPS accuracy ≤200 ม., ไม่วัดติดแหล่งกำเนิดโดยตรง และไม่เป็นภาพซ้ำ.
 - Community gratitude แสดงเป็นคำขอบคุณพร้อมดาว 1–5; รับเฉพาะผู้ใช้ที่ส่ง GPS อยู่ภายใน 3 กม. รายงานอายุไม่เกิน 3 ชั่วโมง และเก็บ reason code ภายในที่สอดคล้องกับดาวเพื่อคำนวณ Trust.
 - พิกัดจริงเปิดเฉพาะ Admin; public coordinates ต้องผ่าน stable obfuscation 120–250 ม.
 - Fire alert ใช้ hotspot ในขอบเขตนครปฐมที่อายุไม่เกิน 12 ชั่วโมง และต้องเรียกว่า satellite hotspot ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว.
-- ภาพรายงานเก็บ private bucket; ฝั่ง browser ห้ามถือ service-role/OpenAI/admin keys.
+- ภาพรายงานเก็บ private bucket; รายงานที่อนุมัติแล้วเปิดดูจากหมุดได้ด้วย signed URL อายุสั้น และฝั่ง browser ห้ามถือ service-role/OpenAI/admin keys.
 
 ## Run / verify
 

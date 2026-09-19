@@ -9,7 +9,6 @@ import type {
   AnnouncementUpdate,
   AnnouncementsResponse,
   CaptureSessionResponse,
-  CommunityReport,
   CommunityProfileResponse,
   CommunityMapPointsResponse,
   CommunityReportsResponse,
@@ -35,7 +34,6 @@ import type {
   ReportEngagementResponse,
   ReportReactionRequest,
   RatingResult,
-  ModerationRequest,
   LocationSearchResponse,
   StationsResponse,
   Weather,
@@ -327,13 +325,6 @@ export const api = {
 
   adminReports: () =>
     http<CommunityReportsResponse>("/api/admin/reports", {
-      auth: true,
-    }),
-
-  moderateReport: (reportId: string, body: ModerationRequest) =>
-    http<CommunityReport>(`/api/admin/reports/${reportId}/moderate`, {
-      method: "POST",
-      body: JSON.stringify(body),
       auth: true,
     }),
 
