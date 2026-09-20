@@ -92,15 +92,21 @@ test("admin exposes only the active operational surfaces", async ({ page }) => {
   await page.goto("/admin");
 
   await expect(
-    page.getByRole("heading", { name: "สิ่งที่ต้องดูแลวันนี้" }),
+    page.getByRole("heading", {
+      name: "ติดตามการทำงาน ไม่ตัดสินรายงานแทนระบบ",
+    }),
   ).toBeVisible();
+  await expect(page.getByRole("button", { name: "อนุมัติ" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "ปฏิเสธ" })).toHaveCount(0);
   await expect(page.getByText("โมเดลพยากรณ์")).toHaveCount(0);
+  await expectNoHorizontalPageOverflow(page);
 
   const adminNavigation = page.getByRole("navigation", {
     name: "เมนูผู้ดูแล",
   });
   await adminNavigation
-    .getByRole("button", { name: "ระบบ", exact: true })
+    .getByRole("button")
+    .filter({ hasText: "สถานะระบบ" })
     .click();
   await expect(
     page.getByRole("heading", { name: "ข้อมูลและบริการที่ต้องดูแล" }),
@@ -116,13 +122,15 @@ test("admin exposes only the active operational surfaces", async ({ page }) => {
   await expectNoHorizontalPageOverflow(page);
 
   await adminNavigation
-    .getByRole("button", { name: "OCR", exact: true })
+    .getByRole("button")
+    .filter({ hasText: "ประวัติรายงาน" })
     .click();
   await expect(
-    page.getByRole("heading", {
-      name: "ตรวจเฉพาะหลักฐานที่ไม่ผ่านเกณฑ์อัตโนมัติ",
-    }),
+    page.getByRole("heading", { name: "ประวัติรายงานจากผู้ใช้" }).first(),
   ).toBeVisible();
+  await expect(page.getByText("กำลังประมวลผล")).toBeAttached();
+  await expect(page.getByRole("button", { name: "อนุมัติ" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "ปฏิเสธ" })).toHaveCount(0);
   await expectNoHorizontalPageOverflow(page);
 });
 
@@ -373,7 +381,7 @@ test("news page loads no map, rewards, or leaderboard data by default", async ({
 
   await page.goto("/community");
   await expect(
-    page.getByRole("heading", { name: "ประกาศสำคัญ" }),
+    page.getByRole("heading", { name: "ข่าวสารล่าสุด" }),
   ).toBeVisible();
   await page.waitForTimeout(250);
 
@@ -818,7 +826,11 @@ test("admin triages a data issue and sees its audit trail @stateful-360", async 
   expect(created.status()).toBe(201);
 
   await page.goto("/admin");
-  await page.getByRole("button", { name: /ข้อมูลและโมเดล|ระบบ/ }).click();
+  await page
+    .getByRole("navigation", { name: "เมนูผู้ดูแล" })
+    .getByRole("button")
+    .filter({ hasText: "สถานะระบบ" })
+    .click();
   const issue = page
     .locator(".cp-admin-issue-row")
     .filter({ hasText: message });

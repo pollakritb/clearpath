@@ -16,7 +16,6 @@ from ...core.errors import UpstreamError
 from .. import capture, image_fingerprint, ocr, supabase_client
 from ..stations import get_current_stations
 from .automatic_review import finalize_automatic_review
-from .constants import DAILY_REPORT_LIMIT
 from .evidence import IMAGE_EXTENSIONS, find_duplicate
 from .presenter import present_report
 
@@ -196,14 +195,6 @@ async def submit_draft(
         not values.get("device_model") or not values.get("calibrated_at")
     ):
         raise ValueError("เครื่องที่ระบุว่าสอบเทียบแล้วต้องมีรุ่นเครื่องและวันที่สอบเทียบ")
-    since = (datetime.now(UTC) - timedelta(hours=24)).isoformat()
-    if supabase_client.count_user_reports_since(user_id, since) >= DAILY_REPORT_LIMIT:
-        raise ValueError("ส่งรายงานได้ไม่เกิน 6 ครั้งต่อ 24 ชั่วโมง")
-    if not supabase_client.take_rate_limit(
-        user_id, "community_report", 86400, DAILY_REPORT_LIMIT
-    ):
-        raise ValueError("ส่งรายงานได้ไม่เกิน 6 ครั้งต่อ 24 ชั่วโมง")
-
     profile = await run_in_threadpool(supabase_client.ensure_profile, user_id)
     official, _source = await get_current_stations()
     nearest_location = min(

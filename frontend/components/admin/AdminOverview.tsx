@@ -31,8 +31,9 @@ export default function AdminOverview({
           <span className="cp-eyebrow">ศูนย์ตรวจสอบระบบ</span>
           <h2>ติดตามการทำงาน ไม่ตัดสินรายงานแทนระบบ</h2>
           <p>
-            รายงานจากผู้ใช้ถูกตรวจและตัดสินโดย OCR กับกฎคุณภาพอัตโนมัติ
-            ผู้ดูแลใช้หน้านี้ดูประวัติ ภาพ และ audit log เท่านั้น
+            ระบบตรวจ GPS และภาพซ้ำก่อนให้ OCR อ่านตัวเลข PM2.5
+            หากอ่านได้จะเผยแพร่ทันที ผู้ดูแลใช้หน้านี้ดูประวัติ ภาพ และ audit
+            log เท่านั้น
           </p>
         </div>
         <button
@@ -134,22 +135,24 @@ export default function AdminOverview({
             <li>
               <span>1</span>
               <div>
-                <strong>อ่านภาพด้วย OCR</strong>
-                <small>ตรวจเครื่องวัด ตัวเลข และความชัดของภาพ</small>
+                <strong>ตรวจข้อมูลก่อนอ่านภาพ</strong>
+                <small>ยืนยัน GPS และป้องกันภาพซ้ำแบบ exact duplicate</small>
               </div>
             </li>
             <li>
               <span>2</span>
               <div>
-                <strong>ตรวจหลักฐานร่วม</strong>
-                <small>ตรวจ GPS เวลา ภาพซ้ำ และความสอดคล้องของค่า</small>
+                <strong>อ่านตัวเลขด้วย OCR</strong>
+                <small>อ่านเฉพาะตัวเลข PM2.5 จากภาพเครื่องวัด</small>
               </div>
             </li>
             <li>
               <span>3</span>
               <div>
-                <strong>ตัดสินผลอัตโนมัติ</strong>
-                <small>ผ่านแล้วเผยแพร่ ไม่ผ่านแล้วแจ้งเหตุผลให้ถ่ายใหม่</small>
+                <strong>เผยแพร่หรือให้ถ่ายใหม่</strong>
+                <small>
+                  อ่านเลขได้เผยแพร่ทันที อ่านไม่ได้แจ้งให้ผู้ใช้ถ่ายใหม่
+                </small>
               </div>
             </li>
             <li>

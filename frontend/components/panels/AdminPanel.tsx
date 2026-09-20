@@ -12,7 +12,9 @@ export default function AdminPanel() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"all" | "approved" | "rejected">("all");
+  const [status, setStatus] = useState<
+    "all" | "pending" | "approved" | "rejected"
+  >("all");
 
   const visibleReports = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -50,8 +52,8 @@ export default function AdminPanel() {
           <span className="cp-eyebrow">Automatic review log</span>
           <h2>ประวัติรายงานจากผู้ใช้</h2>
           <p>
-            ระบบ OCR และกฎคุณภาพตัดสินผลอัตโนมัติทั้งหมด หน้านี้ใช้ตรวจสอบภาพ
-            รายละเอียด และเหตุผลย้อนหลังเท่านั้น
+            ระบบตรวจ GPS และภาพซ้ำก่อนให้ OCR อ่านตัวเลข PM2.5
+            หน้านี้ใช้ตรวจสอบภาพ ค่าที่อ่านได้ และเหตุผลย้อนหลังเท่านั้น
           </p>
         </div>
         <button
@@ -87,6 +89,7 @@ export default function AdminPanel() {
             onChange={(event) => setStatus(event.target.value as typeof status)}
           >
             <option value="all">ทั้งหมด</option>
+            <option value="pending">กำลังประมวลผล</option>
             <option value="approved">เผยแพร่แล้ว</option>
             <option value="rejected">ไม่ผ่านเกณฑ์</option>
           </select>

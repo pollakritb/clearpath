@@ -1786,20 +1786,6 @@ def list_user_reports(user_id: str, limit: int = 50) -> list[dict]:
     ]
 
 
-def count_user_reports_since(user_id: str, cutoff: str) -> int:
-    if settings.local_demo_mode:
-        return local_store.count_user_reports_since(user_id, cutoff)
-    rows = (
-        get_client()
-        .table("community_reports")
-        .select("id")
-        .eq("user_id", user_id)
-        .gte("created_at", cutoff)
-        .execute()
-    ).data or []
-    return len(rows)
-
-
 def get_recent_image_fingerprints(limit: int = 500) -> list[dict]:
     if settings.local_demo_mode:
         return [

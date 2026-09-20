@@ -994,16 +994,6 @@ def list_user_reports(user_id: str, limit: int) -> list[dict]:
         return rows[:limit]
 
 
-def count_user_reports_since(user_id: str, cutoff: str) -> int:
-    with _LOCK:
-        return sum(
-            1
-            for row in _REPORTS.values()
-            if str(row.get("user_id")) == user_id
-            and str(row.get("created_at")) >= cutoff
-        )
-
-
 def update_report(report_id: str, values: dict) -> dict:
     with _LOCK:
         _REPORTS[report_id].update(values)

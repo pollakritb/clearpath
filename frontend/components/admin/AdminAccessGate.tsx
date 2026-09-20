@@ -65,7 +65,7 @@ export default function AdminAccessGate() {
           <h1>บัญชีนี้ไม่มีสิทธิ์เข้าถึง</h1>
           <p>
             คุณเข้าสู่ระบบแล้ว แต่บทบาทปัจจุบันคือ User กรุณาติดต่อ Admin
-            หากต้องรับผิดชอบการตรวจข้อมูล
+            หากต้องรับผิดชอบการดูแลระบบและ audit log
           </p>
           <div className="cp-admin-gate__actions">
             <Link href="/" className="cp-admin-back-link cp-focus">

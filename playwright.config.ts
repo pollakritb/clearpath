@@ -8,6 +8,8 @@ const backendPort = isCi ? 8000 : 8017;
 
 export default defineConfig({
   testDir: "./e2e",
+  // Keep Playwright cleanup isolated from pytest and local browser artifacts.
+  outputDir: "test-results/playwright",
   fullyParallel: false,
   workers: 1,
   retries: isCi ? 2 : 0,

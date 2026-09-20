@@ -18,6 +18,13 @@ export default function AdminReportCard({
   report: CommunityReport;
 }) {
   const approved = report.status === "approved";
+  const pending = report.status === "pending";
+  const statusTone = approved ? "success" : pending ? "running" : "failed";
+  const statusLabel = approved
+    ? "เผยแพร่แล้ว"
+    : pending
+      ? "กำลังประมวลผล"
+      : "ไม่ผ่านเกณฑ์";
 
   return (
     <article className="cp-admin-report-card">
@@ -26,11 +33,8 @@ export default function AdminReportCard({
           <small>ส่งเมื่อ {formatDate(report.created_at)}</small>
           <strong>{report.device_model ?? "ไม่ระบุรุ่นเครื่องวัด"}</strong>
         </div>
-        <span
-          className="cp-admin-status"
-          data-status={approved ? "success" : "failed"}
-        >
-          {approved ? "เผยแพร่แล้ว" : "ไม่ผ่านเกณฑ์"}
+        <span className="cp-admin-status" data-status={statusTone}>
+          {statusLabel}
         </span>
       </header>
 
@@ -42,18 +46,20 @@ export default function AdminReportCard({
           <dd>
             {approved
               ? `PM2.5 ${report.verified_pm25 ?? "—"} µg/m³`
-              : "ไม่เผยแพร่บนแผนที่"}
+              : pending
+                ? "กำลังรอผล OCR"
+                : "ไม่เผยแพร่บนแผนที่"}
           </dd>
         </div>
         <div>
           <dt>วิธีตรวจ</dt>
-          <dd>OCR และกฎอัตโนมัติ</dd>
+          <dd>OCR อ่านตัวเลข PM2.5 อัตโนมัติ</dd>
         </div>
         <div>
           <dt>รหัสรายงาน</dt>
           <dd>{report.id}</dd>
         </div>
-        {!approved && (
+        {!approved && !pending && (
           <div>
             <dt>เหตุผล</dt>
             <dd>{report.rejection_reason_code ?? "ไม่ผ่านกฎคุณภาพ"}</dd>
