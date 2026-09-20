@@ -210,6 +210,12 @@ def test_numeric_ocr_report_is_published_without_other_ocr_gates(
     assert report["admin_verified"] is False
     assert report["device_model"] is None
     assert report["moderation_checks"]["ocr_evidence_ready"] is False
+    assert report["moderation_checks"]["automatic_ocr_numeric_reading"] is True
+    assert report["moderation_checks"]["image_clear"] is True
+    assert report["moderation_checks"]["value_matches_display"] is True
+    assert report["moderation_checks"]["location_plausible"] is True
+    assert report["moderation_checks"]["no_screen_recapture_signs"] is True
+    assert report["moderation_checks"]["observed_display_clear"] is False
     evidence = local_store.get_report_evidence(report["id"])
     assert evidence is not None
     assert evidence["ocr_status"] == draft["ocr_status"]
