@@ -74,13 +74,29 @@ export default function ReportForm({
     Number(claimedPm25) >= 0 &&
     Number(claimedPm25) <= 1000 &&
     details.measurementStable &&
-    details.deviceModel.trim() &&
     !sending &&
     (auth.user || auth.localDemo),
   );
 
   function updateDetails(values: Partial<ReportDetails>) {
     setDetails((current) => ({ ...current, ...values }));
+  }
+
+  async function retakePhoto() {
+    if (!draft || sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      await api.deleteReportDraft(draft.id);
+      setDraft(null);
+      setEvidence(null);
+      setClaimedPm25("");
+      setMessage(null);
+    } catch (cause) {
+      setError(apiErrorMessage(cause, "เริ่มถ่ายภาพใหม่ไม่สำเร็จ"));
+    } finally {
+      setSending(false);
+    }
   }
 
   async function submit(event: React.FormEvent) {
@@ -364,73 +380,89 @@ export default function ReportForm({
                 <small>บอกข้อมูลเครื่องวัดเพื่อให้ระบบตรวจได้แม่นยำ</small>
               </span>
             </div>
-            <div className="cp-report-fields">
-              <label>
-                ค่า PM2.5 ที่ OCR อ่านได้ (µg/m³)
-                <input
-                  required
-                  inputMode="decimal"
-                  type="number"
-                  min="0"
-                  max="1000"
-                  step="0.1"
-                  value={claimedPm25}
-                  readOnly
-                />
-                <small>ระบบจะเผยแพร่ค่าที่อ่านจากภาพโดยอัตโนมัติ</small>
-              </label>
-              <div
-                className="cp-report-identity-choice"
-                data-hidden={!googleProfile || details.hideIdentity}
-              >
-                <div className="cp-report-identity-choice__preview">
-                  {googleProfile?.avatarUrl && !details.hideIdentity ? (
-                    // The URL is restricted to HTTPS googleusercontent.com.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={googleProfile.avatarUrl}
-                      alt=""
-                      width={44}
-                      height={44}
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <span aria-hidden>
-                      <AppIcon name="user" size={21} />
-                    </span>
-                  )}
-                  <div>
-                    <strong>
-                      {googleProfile && !details.hideIdentity
-                        ? (googleProfile.displayName ?? "โปรไฟล์ Google")
-                        : "ไม่เปิดเผยตัวตน"}
-                    </strong>
-                    <small>
-                      {googleProfile
-                        ? details.hideIdentity
-                          ? "ชื่อและรูป Google จะไม่แสดงบนแผนที่"
-                          : "ชื่อและรูป Google จะแสดงเฉพาะรายงานนี้"
-                        : "ตั้งค่าบัญชี Google หากต้องการแสดงโปรไฟล์"}
-                    </small>
-                  </div>
-                </div>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={!googleProfile || details.hideIdentity}
-                    disabled={!googleProfile}
-                    onChange={(event) =>
-                      updateDetails({ hideIdentity: event.target.checked })
-                    }
-                  />
-                  <span>ปิดบังตัวตนในรายงานนี้</span>
-                </label>
+            {draft.ocr_pm25 == null ? (
+              <div className="cp-report-ocr-retry" role="alert">
+                <strong>ยังอ่านตัวเลข PM2.5 ไม่ได้</strong>
+                <p>{OCR_STATUS_MESSAGES[draft.ocr_status]}</p>
+                <button
+                  type="button"
+                  className="cp-focus"
+                  disabled={sending}
+                  onClick={retakePhoto}
+                >
+                  <AppIcon name="camera" size={18} />
+                  {sending ? "กำลังเตรียม…" : "ถ่ายภาพใหม่"}
+                </button>
               </div>
-              <DeviceFields details={details} onChange={updateDetails} />
-            </div>
+            ) : (
+              <div className="cp-report-fields">
+                <label>
+                  ค่า PM2.5 ที่ OCR อ่านได้ (µg/m³)
+                  <input
+                    required
+                    inputMode="decimal"
+                    type="number"
+                    min="0"
+                    max="1000"
+                    step="0.1"
+                    value={claimedPm25}
+                    readOnly
+                  />
+                  <small>ระบบจะเผยแพร่ค่าที่อ่านจากภาพโดยอัตโนมัติ</small>
+                </label>
+                <div
+                  className="cp-report-identity-choice"
+                  data-hidden={!googleProfile || details.hideIdentity}
+                >
+                  <div className="cp-report-identity-choice__preview">
+                    {googleProfile?.avatarUrl && !details.hideIdentity ? (
+                      // The URL is restricted to HTTPS googleusercontent.com.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={googleProfile.avatarUrl}
+                        alt=""
+                        width={44}
+                        height={44}
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <span aria-hidden>
+                        <AppIcon name="user" size={21} />
+                      </span>
+                    )}
+                    <div>
+                      <strong>
+                        {googleProfile && !details.hideIdentity
+                          ? (googleProfile.displayName ?? "โปรไฟล์ Google")
+                          : "ไม่เปิดเผยตัวตน"}
+                      </strong>
+                      <small>
+                        {googleProfile
+                          ? details.hideIdentity
+                            ? "ชื่อและรูป Google จะไม่แสดงบนแผนที่"
+                            : "ชื่อและรูป Google จะแสดงเฉพาะรายงานนี้"
+                          : "ตั้งค่าบัญชี Google หากต้องการแสดงโปรไฟล์"}
+                      </small>
+                    </div>
+                  </div>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={!googleProfile || details.hideIdentity}
+                      disabled={!googleProfile}
+                      onChange={(event) =>
+                        updateDetails({ hideIdentity: event.target.checked })
+                      }
+                    />
+                    <span>ปิดบังตัวตนในรายงานนี้</span>
+                  </label>
+                </div>
+                <DeviceFields details={details} onChange={updateDetails} />
+              </div>
+            )}
           </div>
         )}
-        {(evidence || draft) && (
+        {(evidence || (draft && draft.ocr_pm25 != null)) && (
           <button
             type="submit"
             disabled={draft ? !canSubmit : !canAnalyze}
@@ -453,7 +485,9 @@ export default function ReportForm({
                 ? "กำลังตรวจอัตโนมัติ…"
                 : "กำลังอ่านค่าจากภาพ…"
               : draft
-                ? "ยืนยันและส่งข้อมูล"
+                ? details.measurementStable
+                  ? "ยืนยันและส่งข้อมูล"
+                  : "ยืนยันวิธีวัดก่อนส่ง"
                 : hasGps
                   ? "อ่านค่าจากภาพ"
                   : "รอตำแหน่ง GPS…"}

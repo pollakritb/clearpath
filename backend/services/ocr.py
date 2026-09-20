@@ -34,7 +34,16 @@ def _output_text(payload: dict) -> str:
     raise UpstreamError("ระบบ OCR ไม่คืนผลลัพธ์ที่อ่านได้")
 
 
-async def read_pm25(image: bytes, content_type: str) -> dict:
+def _image_input(image: bytes, content_type: str) -> dict:
+    data_url = f"data:{content_type};base64,{base64.b64encode(image).decode('ascii')}"
+    return {"type": "input_image", "image_url": data_url, "detail": "high"}
+
+
+async def read_pm25(
+    image: bytes,
+    content_type: str,
+    additional_images: list[tuple[bytes, str]] | None = None,
+) -> dict:
     """คืนผล OCR; available=False เมื่อยังไม่ได้ตั้ง API key."""
     if not settings.openai_api_key:
         return {
@@ -46,7 +55,7 @@ async def read_pm25(image: bytes, content_type: str) -> dict:
             "raw_text": "",
         }
 
-    data_url = f"data:{content_type};base64,{base64.b64encode(image).decode('ascii')}"
+    frames = [(image, content_type), *(additional_images or [])][:3]
     body = {
         "model": settings.openai_ocr_model,
         "store": False,
@@ -57,12 +66,16 @@ async def read_pm25(image: bytes, content_type: str) -> dict:
                     {
                         "type": "input_text",
                         "text": (
-                            "อ่านเฉพาะตัวเลขค่า PM2.5 จากภาพนี้ แล้วคืนในฟิลด์ pm25 "
-                            "ไม่ต้องอธิบายและห้ามคืนค่า AQI อุณหภูมิ หรือความชื้น "
-                            "ถ้าไม่มีตัวเลข PM2.5 ที่อ่านได้ให้คืน pm25 เป็น null"
+                            "ภาพทั้งหมดเป็นเฟรมต่อเนื่องของเครื่องวัดเครื่องเดียวกัน "
+                            "ให้เปรียบเทียบทุกเฟรมและอ่านเฉพาะตัวเลขค่า PM2.5 "
+                            "มองหาป้าย PM2.5, PM 2.5 หรือหน่วย µg/m³ ที่สัมพันธ์กับตัวเลข "
+                            "รักษาจุดทศนิยมตามหน้าจอ ห้ามใช้ค่า AQI, PM10, อุณหภูมิ, "
+                            "ความชื้น, เวลา หรือแบตเตอรี่ และห้ามเดาตัวเลขที่มองไม่ชัด "
+                            "เลือกค่าจากเฟรมที่คมชัดที่สุด หากไม่มีค่า PM2.5 ที่ยืนยันได้ "
+                            "ให้คืน pm25 เป็น null โดยไม่ต้องอธิบาย"
                         ),
                     },
-                    {"type": "input_image", "image_url": data_url, "detail": "high"},
+                    *[_image_input(content, mime) for content, mime in frames],
                 ],
             }
         ],

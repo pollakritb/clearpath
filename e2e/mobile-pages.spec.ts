@@ -602,6 +602,133 @@ test("mobile camera opens, becomes ready and captures a live frame @camera-390",
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
 });
 
+test("an unreadable OCR draft offers a working retake path @camera-390", async ({
+  context,
+  page,
+}) => {
+  await context.grantPermissions(["camera", "geolocation"]);
+  await context.setGeolocation({ latitude: 13.8199, longitude: 100.0622 });
+  await page.route("**/api/community/report-drafts", async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "ocr-retry-e2e",
+        ocr_pm25: null,
+        ocr_confidence: 0,
+        ocr_available: true,
+        ocr_status: "no_reading",
+        device_detected: false,
+        display_clear: false,
+        duplicate_detected: false,
+        clock_warning: false,
+        captured_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 15 * 60_000).toISOString(),
+        image_preview_url: null,
+      }),
+    });
+  });
+  await page.route(
+    "**/api/community/report-drafts/ocr-retry-e2e",
+    async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, message: "ลบ draft แล้ว" }),
+      });
+    },
+  );
+
+  await page.goto("/report");
+  await page.getByRole("button", { name: "เปิดกล้องในแอป" }).click();
+  await expect(
+    page.getByText("กล้องหลังพร้อมแล้ว ถือเครื่องให้นิ่ง", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "ถ่ายหน้าจอเครื่องวัด" }).click();
+  const analyze = page.getByRole("button", { name: "อ่านค่าจากภาพ" });
+  await expect(analyze).toBeEnabled();
+  await analyze.click();
+
+  await expect(page.getByText("ยังอ่านตัวเลข PM2.5 ไม่ได้")).toBeVisible();
+  const retake = page.getByRole("button", { name: "ถ่ายภาพใหม่" });
+  await expect(retake).toBeEnabled();
+  await retake.click();
+  await expect(
+    page.getByRole("button", { name: "เปิดกล้องในแอป" }),
+  ).toBeVisible();
+  await expectNoHorizontalPageOverflow(page);
+});
+
+test("a numeric OCR draft can be submitted without a device model @camera-390", async ({
+  context,
+  page,
+}) => {
+  await context.grantPermissions(["camera", "geolocation"]);
+  await context.setGeolocation({ latitude: 13.8199, longitude: 100.0622 });
+  await page.route("**/api/community/report-drafts", async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "ocr-submit-e2e",
+        ocr_pm25: 23.4,
+        ocr_confidence: 1,
+        ocr_available: true,
+        ocr_status: "ready",
+        device_detected: true,
+        display_clear: true,
+        duplicate_detected: false,
+        clock_warning: false,
+        captured_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 15 * 60_000).toISOString(),
+        image_preview_url: null,
+      }),
+    });
+  });
+  await page.route(
+    "**/api/community/report-drafts/ocr-submit-e2e/submit",
+    async (route) => {
+      const requestBody = route.request().postDataJSON();
+      expect(requestBody.device_model).toBe("");
+      expect(requestBody.user_claimed_pm25).toBe(23.4);
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report: {
+            verified_pm25: 23.4,
+            user_claimed_pm25: 23.4,
+          },
+          ocr_available: true,
+          review_outcome: "automatic_approved",
+          review_reasons: ["OCR อ่านตัวเลข PM2.5 จากภาพและเผยแพร่อัตโนมัติ"],
+          message: "ระบบตรวจหลักฐานและอนุมัติรายงานอัตโนมัติแล้ว",
+        }),
+      });
+    },
+  );
+
+  await page.goto("/report");
+  await page.getByRole("button", { name: "เปิดกล้องในแอป" }).click();
+  await expect(
+    page.getByText("กล้องหลังพร้อมแล้ว ถือเครื่องให้นิ่ง", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "ถ่ายหน้าจอเครื่องวัด" }).click();
+  await page.getByRole("button", { name: "อ่านค่าจากภาพ" }).click();
+
+  const confirmMeasurement = page.getByRole("checkbox", {
+    name: /ยืนยันวิธีวัดถูกต้อง/,
+  });
+  await expect(confirmMeasurement).not.toBeChecked();
+  await confirmMeasurement.check();
+  const submit = page.getByRole("button", { name: "ยืนยันและส่งข้อมูล" });
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await expect(
+    page.getByRole("heading", { name: "รายงานผ่านการตรวจอัตโนมัติ" }),
+  ).toBeVisible();
+  await expect(page.getByText("23.4").first()).toBeVisible();
+});
+
 test("map separates official stations from individual reports", async ({
   page,
 }) => {

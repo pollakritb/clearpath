@@ -1,5 +1,4 @@
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import { T } from "@/frontend/lib/ui";
 import type { ReportDetails } from "@/frontend/types/ui";
 
 import { FORM_CONTROL_STYLE } from "../styles";
@@ -15,9 +14,8 @@ export default function DeviceFields({ details, onChange }: DeviceFieldsProps) {
   return (
     <>
       <label style={{ fontSize: ".76em", fontWeight: 600 }}>
-        ยี่ห้อหรือรุ่นเครื่องวัด <span style={{ color: T.red }}>*</span>
+        ยี่ห้อหรือรุ่นเครื่องวัด <span>(ไม่บังคับ)</span>
         <input
-          required
           value={details.deviceModel}
           onChange={(event) => onChange({ deviceModel: event.target.value })}
           maxLength={80}

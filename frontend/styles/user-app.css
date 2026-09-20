@@ -2033,6 +2033,42 @@
   font-weight: 500;
 }
 
+.cp-report-ocr-retry {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid #efc882;
+  border-radius: 14px;
+  padding: 0.9rem;
+  background: #fff8e9;
+  color: #684814;
+}
+
+.cp-report-ocr-retry p {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.cp-report-ocr-retry button {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 1px solid currentColor;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--cp-teal);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cp-report-ocr-retry button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .cp-privacy-note {
   border-top: 1px solid var(--cp-line);
   color: var(--cp-subink);

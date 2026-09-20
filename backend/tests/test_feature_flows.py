@@ -158,7 +158,7 @@ def test_numeric_ocr_report_is_published_without_other_ocr_gates(
     client, become = feature_client
     become("user")
 
-    async def numeric_ocr(_image: bytes, _content_type: str) -> dict:
+    async def numeric_ocr(_image: bytes, _content_type: str, **_kwargs: object) -> dict:
         return {
             "available": True,
             "service_error": False,
@@ -191,7 +191,6 @@ def test_numeric_ocr_report_is_published_without_other_ocr_gates(
         f"/api/community/report-drafts/{draft['id']}/submit",
         json={
             "user_claimed_pm25": 42.5,
-            "device_model": "Automatic Review Meter",
             "measurement_environment": "outdoor",
             "measurement_stable": True,
             "near_emission_source": False,
@@ -209,6 +208,7 @@ def test_numeric_ocr_report_is_published_without_other_ocr_gates(
     assert report["verified_pm25"] == 42.0
     assert report["verification_method"] == "automatic"
     assert report["admin_verified"] is False
+    assert report["device_model"] is None
     assert report["moderation_checks"]["ocr_evidence_ready"] is False
     evidence = local_store.get_report_evidence(report["id"])
     assert evidence is not None
@@ -249,7 +249,9 @@ def test_complete_automatic_review_rating_reward_and_privacy_flow(
     client, become = feature_client
     reporter = become("user")
 
-    async def confident_ocr(_image: bytes, _content_type: str) -> dict:
+    async def confident_ocr(
+        _image: bytes, _content_type: str, **_kwargs: object
+    ) -> dict:
         return {
             "available": True,
             "service_error": False,

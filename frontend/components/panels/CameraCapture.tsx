@@ -195,7 +195,7 @@ export default function CameraCapture({
           );
         },
         "image/jpeg",
-        0.88,
+        0.82,
       );
     });
   }

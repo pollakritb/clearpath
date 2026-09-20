@@ -98,6 +98,40 @@ def test_ocr_sends_private_image_and_clamps_structured_result(monkeypatch):
     assert captured["json"]["store"] is False
 
 
+def test_ocr_compares_up_to_three_consecutive_frames(monkeypatch):
+    monkeypatch.setattr(settings, "openai_api_key", "server-key")
+    captured: dict = {}
+    response = _Response(_payload({"pm25": 23.4}))
+    monkeypatch.setattr(
+        ocr.httpx,
+        "AsyncClient",
+        lambda **_kwargs: _Client(response, captured),
+    )
+
+    result = asyncio.run(
+        ocr.read_pm25(
+            b"primary",
+            "image/jpeg",
+            additional_images=[
+                (b"second", "image/png"),
+                (b"third", "image/webp"),
+                (b"ignored", "image/jpeg"),
+            ],
+        )
+    )
+
+    assert result["pm25"] == 23.4
+    content = captured["json"]["input"][0]["content"]
+    assert [item["type"] for item in content] == [
+        "input_text",
+        "input_image",
+        "input_image",
+        "input_image",
+    ]
+    assert all(item["detail"] == "high" for item in content[1:])
+    assert "ห้ามใช้ค่า AQI" in content[0]["text"]
+
+
 def test_ocr_allows_null_reading_and_defaults_optional_values(monkeypatch):
     monkeypatch.setattr(settings, "openai_api_key", "server-key")
     response = _Response(_payload({"pm25": None}))

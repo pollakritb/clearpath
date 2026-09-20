@@ -1,4 +1,4 @@
-const MAX_CAPTURE_EDGE_PX = 1920;
+const MAX_CAPTURE_EDGE_PX = 1600;
 
 export function fitCaptureDimensions(
   width: number,

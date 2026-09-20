@@ -12,12 +12,12 @@ describe("fitCaptureDimensions", () => {
 
   it("bounds portrait and landscape captures while preserving aspect ratio", () => {
     expect(fitCaptureDimensions(4032, 3024)).toEqual({
-      width: 1920,
-      height: 1440,
+      width: 1600,
+      height: 1200,
     });
     expect(fitCaptureDimensions(3024, 4032)).toEqual({
-      width: 1440,
-      height: 1920,
+      width: 1200,
+      height: 1600,
     });
   });
 
