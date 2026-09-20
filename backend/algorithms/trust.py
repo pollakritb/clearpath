@@ -113,7 +113,7 @@ def calculate_trust_score(
         reasons.append("ผู้ดูแลอ่านค่าและยืนยันจากภาพแล้ว")
     elif verification_method == "automatic" and pm25 is not None:
         score += 20.0 + (5.0 * max(0.0, min(1.0, ocr_confidence)))
-        reasons.append("ระบบตรวจภาพและค่า OCR ผ่านเกณฑ์อนุมัติอัตโนมัติ")
+        reasons.append("OCR อ่านตัวเลข PM2.5 และระบบเผยแพร่อัตโนมัติ")
     elif verification_method == "rejected":
         reasons.append("หลักฐานไม่ผ่านเกณฑ์ตรวจอัตโนมัติ")
     else:
@@ -157,7 +157,7 @@ def calculate_trust_score(
         reasons.append("ระบบช่วยตรวจพบหน้าจอเครื่องวัดชัดเจน")
     elif ocr_confidence > 0:
         reasons.append(
-            f"OCR มั่นใจ {round(ocr_confidence * 100)}% แต่หลักฐานยังไม่ผ่านเกณฑ์อนุมัติ"
+            f"OCR confidence ที่เก็บไว้สำหรับ audit: {round(ocr_confidence * 100)}%"
         )
     else:
         reasons.append("OCR ไม่พร้อม ใช้การตรวจด้วยผู้ดูแล")

@@ -66,7 +66,7 @@ def test_corroboration_collapses_shared_device_and_replayed_image_across_account
     )
 
 
-def test_gap_fill_requires_corroboration_or_calibrated_high_trust():
+def test_gap_fill_requires_corroboration():
     common = dict(
         evidence_verified=True,
         report_fresh=True,
@@ -74,23 +74,18 @@ def test_gap_fill_requires_corroboration_or_calibrated_high_trust():
         near_emission_source=False,
         gps_accuracy_m=30,
     )
-    single = evaluate_gap_fill(
-        **common, trust_score=77, corroborated_reporters=1, device_calibrated=False
-    )
+    single = evaluate_gap_fill(**common, trust_score=77, corroborated_reporters=1)
     assert not single["eligible"]
-    corroborated = evaluate_gap_fill(
-        **common, trust_score=65, corroborated_reporters=2, device_calibrated=False
-    )
+    corroborated = evaluate_gap_fill(**common, trust_score=65, corroborated_reporters=2)
     assert corroborated == {
         "eligible": True,
         "basis": "corroborated",
         "reason": "มีผู้รายงานอิสระ 2 คนใน 2 กม./1 ชม.",
     }
-    calibrated = evaluate_gap_fill(
-        **common, trust_score=80, corroborated_reporters=1, device_calibrated=True
+    high_trust_single = evaluate_gap_fill(
+        **common, trust_score=100, corroborated_reporters=1
     )
-    assert calibrated["eligible"]
-    assert calibrated["basis"] == "calibrated_high_trust"
+    assert not high_trust_single["eligible"]
 
 
 def test_gap_fill_trust_boundaries_are_fail_closed():
@@ -105,25 +100,21 @@ def test_gap_fill_trust_boundaries_are_fail_closed():
         **common,
         trust_score=59,
         corroborated_reporters=2,
-        device_calibrated=False,
     )["eligible"]
     assert evaluate_gap_fill(
         **common,
         trust_score=60,
         corroborated_reporters=2,
-        device_calibrated=False,
     )["eligible"]
     assert not evaluate_gap_fill(
         **common,
         trust_score=79,
         corroborated_reporters=1,
-        device_calibrated=True,
     )["eligible"]
-    assert evaluate_gap_fill(
+    assert not evaluate_gap_fill(
         **common,
         trust_score=80,
         corroborated_reporters=1,
-        device_calibrated=True,
     )["eligible"]
 
 
@@ -134,7 +125,6 @@ def test_direct_emission_or_bad_gps_never_changes_surface():
         data_role="gap_fill",
         trust_score=95,
         corroborated_reporters=3,
-        device_calibrated=True,
         near_emission_source=True,
         gps_accuracy_m=20,
     )
@@ -148,7 +138,6 @@ def test_perceptual_duplicate_never_changes_surface():
         data_role="gap_fill",
         trust_score=100,
         corroborated_reporters=4,
-        device_calibrated=True,
         near_emission_source=False,
         gps_accuracy_m=10,
         duplicate_detected=True,

@@ -63,7 +63,9 @@ describe("AuthProvider", () => {
         <Probe />
       </AuthProvider>,
     );
-    expect(latestAuth).toMatchObject({ role: "admin", localDemo: true });
+    await waitFor(() =>
+      expect(latestAuth).toMatchObject({ role: "admin", localDemo: true }),
+    );
   });
 
   it("loads the server role and delegates sign-in and sign-out", async () => {

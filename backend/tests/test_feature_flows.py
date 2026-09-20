@@ -152,22 +152,24 @@ def _create_report(client: TestClient, seed: int = 1) -> dict:
     return report
 
 
-def test_high_confidence_report_is_automatically_approved(feature_client, monkeypatch):
+def test_numeric_ocr_report_is_published_without_other_ocr_gates(
+    feature_client, monkeypatch
+):
     client, become = feature_client
     become("user")
 
-    async def confident_ocr(_image: bytes, _content_type: str) -> dict:
+    async def numeric_ocr(_image: bytes, _content_type: str) -> dict:
         return {
             "available": True,
             "service_error": False,
             "pm25": 42.0,
-            "confidence": 0.98,
-            "device_detected": True,
-            "display_clear": True,
-            "raw_text": "PM2.5 42",
+            "confidence": 0.01,
+            "device_detected": False,
+            "display_clear": False,
+            "raw_text": "42.0",
         }
 
-    monkeypatch.setattr(ocr_service, "read_pm25", confident_ocr)
+    monkeypatch.setattr(ocr_service, "read_pm25", numeric_ocr)
     session = client.post("/api/community/capture-session").json()
     draft_response = client.post(
         "/api/community/report-drafts",
@@ -178,15 +180,12 @@ def test_high_confidence_report_is_automatically_approved(feature_client, monkey
             "camera_session_token": session["token"],
             "client_captured_at": session["issued_at"],
         },
-        files=[
-            ("image", ("meter.png", _meter_image(71), "image/png")),
-            ("burst_images", ("burst-1.png", _meter_image(72), "image/png")),
-            ("burst_images", ("burst-2.png", _meter_image(73), "image/png")),
-        ],
+        files={"image": ("meter.png", _meter_image(71), "image/png")},
     )
     assert draft_response.status_code == 201, draft_response.text
     draft = draft_response.json()
-    assert draft["ocr_status"] == "ready"
+    assert draft["ocr_pm25"] == 42.0
+    assert draft["ocr_status"] != "ready"
 
     submitted = client.post(
         f"/api/community/report-drafts/{draft['id']}/submit",
@@ -210,11 +209,10 @@ def test_high_confidence_report_is_automatically_approved(feature_client, monkey
     assert report["verified_pm25"] == 42.0
     assert report["verification_method"] == "automatic"
     assert report["admin_verified"] is False
-    assert report["moderation_checks"]["ocr_status_ready"] is True
-    assert report["moderation_checks"]["ocr_evidence_ready"] is True
+    assert report["moderation_checks"]["ocr_evidence_ready"] is False
     evidence = local_store.get_report_evidence(report["id"])
     assert evidence is not None
-    assert evidence["ocr_status"] == "ready"
+    assert evidence["ocr_status"] == draft["ocr_status"]
 
     retried = client.post(
         f"/api/community/report-drafts/{draft['id']}/submit",
@@ -234,7 +232,8 @@ def test_high_confidence_report_is_automatically_approved(feature_client, monkey
     assert "คำขอซ้ำ" in retried.json()["review_reasons"][0]
 
     public = client.get("/api/community/reports").json()["reports"]
-    assert any(item["id"] == report["id"] for item in public)
+    public_report = next(item for item in public if item["id"] == report["id"])
+    assert public_report["image_url"]
 
     become("admin")
     history = client.get("/api/admin/reports").json()["reports"]
@@ -285,7 +284,7 @@ def test_complete_automatic_review_rating_reward_and_privacy_flow(
     )
     assert entry["details"]["before"]["status"] == "pending"
     assert entry["details"]["after"]["status"] == "approved"
-    assert "automatic-review-v2" in entry["details"]["reason"]
+    assert "automatic-review-v3-ocr-number-only" in entry["details"]["reason"]
 
     public_reports = client.get("/api/community/reports").json()["reports"]
     public = next(item for item in public_reports if item["id"] == report_id)
@@ -498,7 +497,7 @@ def test_role_guards_and_report_rejection_flow(feature_client):
     report = _create_report(client, seed=41)
     report_id = report["id"]
     assert report["status"] == "rejected"
-    assert report["rejection_reason_code"] in {"image_unclear", "duplicate"}
+    assert report["rejection_reason_code"] == "invalid_measurement"
 
     become("moderator")
     assert client.post(f"/api/admin/reports/{report_id}/moderate").status_code == 404

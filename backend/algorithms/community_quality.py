@@ -138,7 +138,6 @@ def evaluate_gap_fill(
     data_role: str,
     trust_score: float,
     corroborated_reporters: int,
-    device_calibrated: bool,
     near_emission_source: bool,
     gps_accuracy_m: float | None,
     duplicate_detected: bool = False,
@@ -180,16 +179,10 @@ def evaluate_gap_fill(
             "basis": "corroborated",
             "reason": f"มีผู้รายงานอิสระ {corroborated_reporters} คนใน 2 กม./1 ชม.",
         }
-    if trust_score >= 80 and device_calibrated:
-        return {
-            "eligible": True,
-            "basis": "calibrated_high_trust",
-            "reason": "Trust ≥80 และเครื่องวัดมีข้อมูลสอบเทียบ",
-        }
     return {
         "eligible": False,
         "basis": "none",
-        "reason": "ต้องมี 2 ผู้รายงานที่ค่าใกล้กัน หรือ Trust ≥80 พร้อมเครื่องสอบเทียบ",
+        "reason": "ต้องมีผู้รายงานอิสระอย่างน้อย 2 คนที่ค่าใกล้กัน",
     }
 
 
@@ -203,7 +196,6 @@ def _report_weight(report: dict, *, now: datetime) -> float:
     if age_minutes > 180.0:
         return 0.0
     freshness = 1.0 - (0.5 * age_minutes / 180.0)
-    calibration = 1.2 if report.get("device_calibrated") else 1.0
     accuracy = report.get("gps_accuracy_m")
     gps = (
         1.0
@@ -212,7 +204,7 @@ def _report_weight(report: dict, *, now: datetime) -> float:
         if float(accuracy) <= 100
         else 0.75
     )
-    return trust * freshness * calibration * gps
+    return trust * freshness * gps
 
 
 def _weighted_median(values: list[tuple[float, float]]) -> float:
@@ -283,12 +275,7 @@ def aggregate_community_reports(
     result: list[dict] = []
     for members in groups.values():
         independent_users = {str(member.get("user_id")) for member in members}
-        single_allowed = (
-            len(members) == 1
-            and float(members[0].get("trust_score") or 0) >= 80
-            and bool(members[0].get("device_calibrated"))
-        )
-        if len(independent_users) < 2 and not single_allowed:
+        if len(independent_users) < 2:
             continue
         weighted = [
             (member, _report_weight(member, now=checked_at)) for member in members

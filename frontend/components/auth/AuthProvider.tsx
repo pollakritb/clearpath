@@ -8,6 +8,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import { getSupabaseBrowserClient } from "@/frontend/lib/supabase";
@@ -26,6 +27,7 @@ interface AuthState {
 }
 
 const AuthContext = createContext<AuthState | null>(null);
+const subscribeToHydration = () => () => undefined;
 
 async function fetchRole(session: Session | null): Promise<UserRole> {
   if (!session) return "user";
@@ -44,11 +46,19 @@ async function fetchRole(session: Session | null): Promise<UserRole> {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const client = getSupabaseBrowserClient();
   const localDemo = process.env.NEXT_PUBLIC_LOCAL_DEMO_MODE === "true";
+  const hydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<UserRole>(localDemo ? "admin" : "user");
+  const [role, setRole] = useState<UserRole>("user");
   const [loading, setLoading] = useState(Boolean(client));
 
   useEffect(() => {
+    // Local demo bypasses configured Supabase auth; its role is exposed only
+    // after hydration through useSyncExternalStore below.
+    if (localDemo) return;
     if (!client) return;
     let active = true;
     void client.auth.getSession().then(async ({ data }) => {
@@ -66,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       active = false;
       data.subscription.unsubscribe();
     };
-  }, [client]);
+  }, [client, localDemo]);
 
   const signInWithOtp = useCallback(
     async (email: string) => {
@@ -96,8 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthState>(
     () => ({
       user,
-      role,
-      loading,
+      role: localDemo && hydrated ? "admin" : role,
+      loading: localDemo && hydrated ? false : loading,
       configured: Boolean(client),
       localDemo,
       signInWithGoogle,
@@ -108,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       role,
       loading,
+      hydrated,
       client,
       localDemo,
       signInWithGoogle,

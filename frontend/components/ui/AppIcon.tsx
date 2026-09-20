@@ -6,7 +6,6 @@ export type AppIconName =
   | "alert"
   | "back"
   | "camera"
-  | "calibration"
   | "check"
   | "chevron"
   | "clock"
@@ -228,13 +227,6 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
         <>
           <path d="m3 11 18-8-7.5 18-3-7Z" />
           <path d="m10.5 14 4-4" />
-        </>
-      )}
-      {name === "calibration" && (
-        <>
-          <circle cx="12" cy="12" r="8" />
-          <path d="M12 7v2M7 12h2M15 12h2M12 15v2" />
-          <path d="m9.5 12 1.7 1.7 3.5-4" />
         </>
       )}
       {name === "close" && <path d="m6 6 12 12M18 6 6 18" />}

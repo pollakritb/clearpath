@@ -18,6 +18,7 @@ describe("community demo fixtures", () => {
 
     expect(first).toEqual(second);
     expect(first).toHaveLength(12);
+    expect(first[0].image_url).toBe("/demo-pm25-meter.svg");
     expect(first.every((report) => report.source_type === "individual")).toBe(
       true,
     );

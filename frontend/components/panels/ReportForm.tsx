@@ -36,11 +36,9 @@ const OCR_STATUS_MESSAGES: Record<ReportDraftResponse["ocr_status"], string> = {
     "ระบบไม่พบเครื่องวัดในภาพ กรุณาจัดเครื่องวัดให้อยู่กลางภาพแล้วถ่ายใหม่",
   unclear_display:
     "หน้าจอในภาพยังไม่ชัด กรุณาเช็ดหน้าจอ ลดแสงสะท้อน แล้วถ่ายใหม่",
-  no_reading:
-    "ระบบแยกค่า PM2.5 จากค่าอื่นไม่ได้ กรุณากรอกค่าตามหน้าจอเครื่องวัด",
-  low_confidence:
-    "ระบบอ่านค่าได้แต่ยังไม่มั่นใจ กรุณาเทียบกับหน้าจอและแก้ไขให้ตรงก่อนส่ง",
-  ready: "ระบบอ่านค่า PM2.5 ได้ กรุณาเทียบกับหน้าจอและแก้ไขให้ตรงก่อนส่ง",
+  no_reading: "ระบบอ่านตัวเลข PM2.5 ไม่ได้ กรุณาถ่ายภาพใหม่ให้เห็นตัวเลขชัดเจน",
+  low_confidence: "ระบบอ่านตัวเลข PM2.5 ไม่ได้ชัดเจน กรุณาถ่ายภาพใหม่",
+  ready: "ระบบอ่านตัวเลข PM2.5 ได้ และจะเผยแพร่ค่านี้เมื่อส่งรายงาน",
 };
 
 export default function ReportForm({
@@ -71,12 +69,12 @@ export default function ReportForm({
   );
   const canSubmit = Boolean(
     draft &&
+    draft.ocr_pm25 != null &&
     Number.isFinite(Number(claimedPm25)) &&
     Number(claimedPm25) >= 0 &&
     Number(claimedPm25) <= 1000 &&
     details.measurementStable &&
     details.deviceModel.trim() &&
-    (!details.deviceCalibrated || details.calibratedAt) &&
     !sending &&
     (auth.user || auth.localDemo),
   );
@@ -124,8 +122,8 @@ export default function ReportForm({
         user_claimed_pm25: Number(claimedPm25),
         hide_identity: !googleProfile || details.hideIdentity,
         device_model: details.deviceModel.trim(),
-        device_calibrated: details.deviceCalibrated,
-        calibrated_at: details.deviceCalibrated ? details.calibratedAt : null,
+        device_calibrated: false,
+        calibrated_at: null,
         measurement_environment: "outdoor",
         measurement_stable: true,
         near_emission_source: details.nearEmissionSource,
@@ -255,14 +253,6 @@ export default function ReportForm({
             <SourceBadge kind="individual" />
             <small>ข้อมูลจากหน้านี้เผยแพร่เป็นรายงานของบุคคลเสมอ</small>
           </div>
-          <div data-source="calibration">
-            <span className="cp-report-calibration-icon">
-              <AppIcon name="calibration" size={17} />
-            </span>
-            <small>
-              การสอบเทียบช่วยเพิ่มความน่าเชื่อถือ แต่ยังเป็นรายงานบุคคล
-            </small>
-          </div>
         </div>
       </details>
       <ol className="cp-report-progress" aria-label="ขั้นตอนส่งข้อมูล">
@@ -376,7 +366,7 @@ export default function ReportForm({
             </div>
             <div className="cp-report-fields">
               <label>
-                ค่า PM2.5 ที่เห็นบนเครื่อง (µg/m³)
+                ค่า PM2.5 ที่ OCR อ่านได้ (µg/m³)
                 <input
                   required
                   inputMode="decimal"
@@ -385,9 +375,9 @@ export default function ReportForm({
                   max="1000"
                   step="0.1"
                   value={claimedPm25}
-                  onChange={(event) => setClaimedPm25(event.target.value)}
+                  readOnly
                 />
-                <small>ตรวจให้ตรงกับตัวเลขในภาพก่อนส่ง</small>
+                <small>ระบบจะเผยแพร่ค่าที่อ่านจากภาพโดยอัตโนมัติ</small>
               </label>
               <div
                 className="cp-report-identity-choice"

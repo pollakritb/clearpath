@@ -59,11 +59,6 @@ class Settings(BaseSettings):
     capture_session_ttl_seconds: int = 300
     local_demo_mode: bool = False
 
-    # Automatic-only evidence review. Every submission ends approved/rejected;
-    # administrators receive a read-only evidence and audit log.
-    automatic_review_min_confidence: float = 0.92
-    automatic_review_max_gps_accuracy_m: float = 100.0
-
     # Cron auth
     cron_secret: str = ""
     # Independent token used by Supabase Cron. Keeping this separate lets the

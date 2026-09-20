@@ -2,7 +2,10 @@
 
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 # ClearPath — project conventions
@@ -26,10 +29,10 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 - Forecast/trust algorithms ต้องเป็น pure functions, อธิบายผลได้ และมี unit tests.
 - Kriging (scipy/pykrige) is `requirements-dev` only — NOT deployed (function size). Prod interpolation = IDW.
 - Supabase is source of truth; air4thai is hit only by the hourly cron `/api/cron/sync`.
-- Community reports ใช้ `pending` เป็นสถานะภายในชั่วคราวระหว่างบันทึกเท่านั้น; เมื่อส่งเสร็จระบบต้องอนุมัติหรือปฏิเสธอัตโนมัติทันที ห้ามรอ Admin ตัดสิน. เคสที่ไม่ชัดเจนต้อง fail closed เป็น `rejected` พร้อมเหตุผลและให้ผู้ใช้ถ่ายใหม่.
-- OCR เป็นสัญญาณหนึ่งในนโยบายตรวจอัตโนมัติ ไม่ใช่หลักฐานเดี่ยว; ค่า PM2.5 จะเผยแพร่ได้เมื่อ OCR/GPS/เวลา/ภาพต่อเนื่อง/ภาพซ้ำและค่าที่ยืนยันผ่านนโยบายทั้งชุด. Admin ดู log/รูป/รายละเอียดได้อย่างเดียว ไม่มีสิทธิ์อนุมัติหรือปฏิเสธรายงาน.
+- Community reports ใช้ `pending` เป็นสถานะภายในชั่วคราวระหว่างบันทึกเท่านั้น; เมื่อส่งเสร็จระบบต้องอนุมัติหรือปฏิเสธอัตโนมัติทันที ห้ามรอ Admin ตัดสิน.
+- Publication policy รุ่นปัจจุบันใช้ผล OCR แบบ number-only: ถ้าอ่านตัวเลข PM2.5 ได้ให้นำค่า OCR ขึ้นทันที; ถ้าอ่านไม่ได้ให้ `rejected` พร้อมเหตุผลและให้ผู้ใช้ถ่ายใหม่. Confidence, device/display flags, burst, เวลา, ภาพคล้าย และค่าที่ผู้ใช้ยืนยันเป็น audit metadata ไม่ใช่ approval gate. Exact duplicate และ GPS >200 ม. ยังถูกกันก่อน OCR. Admin ดู log/รูป/รายละเอียดได้อย่างเดียว ไม่มีสิทธิ์อนุมัติหรือปฏิเสธรายงาน.
 - Air4Thai ที่อายุไม่เกิน 1 ชั่วโมงภายใน 5 กม. เป็นข้อมูลหลัก; community เป็น supplementary.
-- Community เข้า IDW ได้เฉพาะ approved/fresh/Trust ≥60 และต้อง corroborated จากผู้ใช้คนละคน ≥2 ราย หรือ Trust ≥80 พร้อม calibrated device.
+- Community เข้า IDW ได้เฉพาะ approved/fresh/Trust ≥60 และ corroborated จากผู้ใช้คนละคนอย่างน้อย 2 ราย; ไม่มีทางลัดด้วยสถานะสอบเทียบเครื่อง.
 - Gap-fill ต้องมี GPS accuracy ≤200 ม., ไม่วัดติดแหล่งกำเนิดโดยตรง และไม่เป็นภาพซ้ำ.
 - Community gratitude แสดงเป็นคำขอบคุณพร้อมดาว 1–5; รับเฉพาะผู้ใช้ที่ส่ง GPS อยู่ภายใน 3 กม. รายงานอายุไม่เกิน 3 ชั่วโมง และเก็บ reason code ภายในที่สอดคล้องกับดาวเพื่อคำนวณ Trust.
 - พิกัดจริงเปิดเฉพาะ Admin; public coordinates ต้องผ่าน stable obfuscation 120–250 ม.

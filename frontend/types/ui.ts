@@ -10,8 +10,6 @@ export interface ReportLocation {
 export interface ReportDetails {
   hideIdentity: boolean;
   deviceModel: string;
-  deviceCalibrated: boolean;
-  calibratedAt: string;
   nearEmissionSource: boolean;
   measurementNote: string;
   measurementStable: boolean;
@@ -22,8 +20,6 @@ export interface ReportDetails {
 export const EMPTY_REPORT_DETAILS: ReportDetails = {
   hideIdentity: true,
   deviceModel: "",
-  deviceCalibrated: false,
-  calibratedAt: "",
   nearEmissionSource: false,
   measurementNote: "",
   measurementStable: false,

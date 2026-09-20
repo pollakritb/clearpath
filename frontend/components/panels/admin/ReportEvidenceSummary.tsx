@@ -1,6 +1,5 @@
 import Image from "next/image";
 
-import CalibrationBadge from "@/frontend/components/ui/CalibrationBadge";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { communitySourceKind } from "@/frontend/lib/source-kind";
 import { T } from "@/frontend/lib/ui";
@@ -66,11 +65,6 @@ export default function ReportEvidenceSummary({
         </EvidenceMetric>
         <EvidenceMetric label="เครื่องวัด">
           {report.device_model ?? "ไม่ระบุ"}
-          {report.device_calibrated ? (
-            <CalibrationBadge date={report.calibrated_at} />
-          ) : (
-            " · ไม่ระบุหลักฐานการสอบเทียบ"
-          )}
         </EvidenceMetric>
         <EvidenceMetric label="GPS จริงสำหรับ Admin">
           {report.lat.toFixed(5)}, {report.lon.toFixed(5)} · ±

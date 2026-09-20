@@ -1,9 +1,11 @@
 # OCR evaluation and model release gate
 
-ClearPath treats OCR as one evidence signal. A model result never bypasses GPS,
-capture time, burst continuity, duplicate-image checks, or the claimed-value
-comparison. Uncertain cases are automatically rejected with reason codes and
-the user is asked to capture new evidence.
+ClearPath's current publication policy uses OCR as a number-only gate. A numeric
+PM2.5 result is published as the verified value; `null` or a service failure is
+rejected and the user is asked to capture new evidence. Confidence,
+device/display classification, burst continuity, capture time, perceptual
+similarity, and claimed-value comparison remain audit signals, not publication
+gates. Exact duplicates and GPS accuracy over 200 m are rejected before OCR.
 
 ## Private dataset
 

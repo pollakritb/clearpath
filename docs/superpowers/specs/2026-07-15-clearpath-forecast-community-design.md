@@ -9,7 +9,7 @@
 - Fire layer: NASA FIRMS พร้อม acquisition time/confidence และแจ้งเตือนเฉพาะ hotspot ≤12 ชั่วโมง
 - Community evidence: `getUserMedia` camera, server-signed 5-minute session, GPS, private image
 - Explainable Trust Score + reputation-weighted gratitude/star feedback
-- Fail-closed automatic decision: approve complete high-confidence evidence or reject with reasons
+- OCR number-only automatic decision: publish a numeric PM2.5 reading or reject with reasons
 - Community announcements, activities, rewards and leaderboard
 
 ระบบนำทาง, ORS, Nominatim, route comparison และ route speech อยู่นอก scope และถูกถอดออก
@@ -18,8 +18,8 @@
 
 ```text
 camera + GPS → transient pending (never public) → automatic evidence review
-                    ├─ all high-confidence checks pass → approved → map → nearby gratitude + stars
-                    └─ uncertain/failure → rejected + reasons → user retakes evidence
+                    ├─ OCR returns numeric PM2.5 → approved → map + signed photo → gratitude + stars
+                    └─ OCR returns no number/fails → rejected + reasons → user retakes evidence
 ```
 
 คำขอบคุณพร้อมดาวไม่สามารถเผยแพร่รายงานเองได้ เปิดหลังรายงานผ่านการอนุมัติอัตโนมัติแล้ว และผู้ส่งคำขอบคุณต้องส่ง GPS
@@ -30,7 +30,7 @@ camera + GPS → transient pending (never public) → automatic evidence review
 
 - Air4Thai ที่สดใหม่ไม่เกิน 1 ชั่วโมงภายใน 5 กม. เป็นข้อมูลหลัก Community Report แสดงเป็น `supplementary`
 - หากไม่มี Air4Thai สดใหม่ภายใน 5 กม. รายงานที่ approved, อายุ ≤3 ชั่วโมง และ Trust ≥60 เป็นผู้สมัคร `gap_fill`
-- ผู้สมัครเข้า IDW ได้เมื่อมีรายงานที่เข้ากันได้จากผู้ใช้คนละคน ≥2 คน ภายใน 2 กม./60 นาที หรือ Trust ≥80 พร้อม calibrated device
+- ผู้สมัครเข้า IDW ได้เมื่อมีรายงานที่เข้ากันได้จากผู้ใช้คนละคน ≥2 คน ภายใน 2 กม./60 นาทีเท่านั้น
 - GPS accuracy ต้อง ≤200 เมตร และรายงานจากแหล่งกำเนิดโดยตรง/ภาพซ้ำไม่มีสิทธิ์เข้า IDW
 - IDW ใช้สถานี Air4Thai ทั้งหมดร่วมกับ `gap_fill` ที่ eligible เท่านั้น ไม่ใช้ supplementary แทนค่าทางการ
 - ความต่างสูงไม่ถูกซ่อน เพื่อให้เห็น local anomaly แต่ต้องแสดงแหล่งข้อมูลและ Trust ชัดเจน
@@ -51,9 +51,10 @@ camera + GPS → transient pending (never public) → automatic evidence review
 | agreement with nearby official station  |          15 |
 | reporter reputation                     |          10 |
 
-Automatic review อนุมัติเฉพาะเมื่อ OCR confidence ≥92%, device/display ชัดเจน, ค่าที่ผู้ใช้ยืนยันอยู่ใน tolerance,
-GPS ≤100 ม., เวลาปกติ, ไม่เป็นภาพซ้ำ และมี burst เสริม 2 เฟรม การไม่ผ่านเกณฑ์ใดๆ จะ fail closed
-เป็น `rejected` อัตโนมัติพร้อมเหตุผล ผู้ใช้ต้องถ่ายใหม่ และระบบเก็บเหตุผลของทุกผลตัดสินเพื่อ audit
+Publication policy ใช้ค่า OCR แบบ number-only: ถ้า OCR คืนตัวเลข PM2.5 ให้อนุมัติและเผยแพร่ค่านั้นทันที
+ถ้า OCR คืน `null` หรือ service error ให้ `rejected` พร้อมเหตุผลและผู้ใช้ต้องถ่ายใหม่ ส่วน confidence,
+device/display, burst, เวลา, ภาพคล้าย และค่าที่ผู้ใช้ยืนยันเก็บเป็น audit metadata แต่ไม่ใช่ approval gate
+ทั้งนี้ exact duplicate และ GPS >200 ม. ยังถูกปฏิเสธก่อน OCR
 ดาวที่แนบกับคำขอบคุณปรับเพิ่ม/ลด Trust ได้ไม่เกิน 8 คะแนน คะแนนทุกส่วนเก็บเหตุผลเพื่อให้ตรวจสอบได้
 GPS accuracy >200 เมตรและภาพ perceptually similar ถูกหักคะแนน ส่วน exact duplicate ถูกปฏิเสธ
 

@@ -123,15 +123,12 @@ def _qualified_community(official: list[dict]) -> list[dict]:
         except (KeyError, TypeError, ValueError):
             continue
         corroborated = int(report.get("corroboration_count") or 0) >= 2
-        high_trust_calibrated = float(report.get("trust_score") or 0) >= 80 and bool(
-            report.get("device_calibrated")
-        )
         gps_accuracy = report.get("gps_accuracy_m")
         if (
             report.get("status") == "approved"
             and report.get("is_fresh")
             and float(report.get("trust_score") or 0) >= 60
-            and (corroborated or high_trust_calibrated)
+            and corroborated
             and not report.get("near_emission_source")
             and not report.get("duplicate_detected")
             and gps_accuracy is not None

@@ -71,17 +71,7 @@ def test_ocr_sends_private_image_and_clamps_structured_result(monkeypatch):
     monkeypatch.setattr(settings, "openai_api_key", "server-key")
     monkeypatch.setattr(settings, "openai_ocr_model", "vision-model")
     captured: dict = {}
-    response = _Response(
-        _payload(
-            {
-                "pm25": 1200,
-                "confidence": 1.5,
-                "device_detected": 1,
-                "display_clear": True,
-                "raw_text": "x" * 700,
-            }
-        )
-    )
+    response = _Response(_payload({"pm25": 1200}))
     monkeypatch.setattr(
         ocr.httpx,
         "AsyncClient",
@@ -92,7 +82,15 @@ def test_ocr_sends_private_image_and_clamps_structured_result(monkeypatch):
 
     assert result["pm25"] == 1000.0
     assert result["confidence"] == 1.0
-    assert len(result["raw_text"]) == 500
+    assert result["raw_text"] == "1000.0"
+    assert result["device_detected"] is True
+    assert result["display_clear"] is True
+    assert captured["json"]["text"]["format"]["schema"] == {
+        "type": "object",
+        "properties": {"pm25": {"type": ["number", "null"]}},
+        "required": ["pm25"],
+        "additionalProperties": False,
+    }
     assert captured["url"] == ocr.RESPONSES_URL
     assert captured["headers"]["Authorization"] == "Bearer server-key"
     image_url = captured["json"]["input"][0]["content"][1]["image_url"]

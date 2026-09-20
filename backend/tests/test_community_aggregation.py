@@ -32,12 +32,14 @@ def test_weighted_cluster_resists_single_high_outlier():
     assert points[0]["reporter_count"] == 3
 
 
-def test_single_report_requires_calibrated_high_trust():
+def test_single_report_never_changes_surface_without_corroboration():
     assert aggregate_community_reports([_report("a", "a", 40)]) == []
-    points = aggregate_community_reports(
-        [_report("a", "a", 40, trust_score=80, device_calibrated=True)]
+    assert (
+        aggregate_community_reports(
+            [_report("a", "a", 40, trust_score=100, device_calibrated=True)]
+        )
+        == []
     )
-    assert len(points) == 1
 
 
 def test_expired_reading_is_excluded():

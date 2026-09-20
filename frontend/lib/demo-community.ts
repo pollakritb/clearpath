@@ -55,7 +55,6 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
   return LOCATIONS.map(([baseLat, baseLon, subdistrict, district], index) => {
     const ageMinutes = 8 + index * 7;
     const capturedAt = new Date(now - ageMinutes * 60_000).toISOString();
-    const calibrated = index % 4 === 0;
     const automatic = index % 3 !== 0;
     const pm25 = Math.round((9 + seeded(index, 2) * 38) * 10) / 10;
 
@@ -80,7 +79,7 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
       trust_reasons: ["ข้อมูลจำลองสำหรับนำเสนอ", "หลักฐานผ่านเกณฑ์ตัวอย่าง"],
       peer_up: Math.floor(seeded(index, 6) * 12),
       peer_down: 0,
-      image_url: null,
+      image_url: index < 3 ? "/demo-pm25-meter.svg" : null,
       admin_verified: !automatic,
       verification_method: automatic ? "automatic" : "admin",
       data_role: "supplementary",
@@ -92,8 +91,8 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
       location_precision_m: Math.round(120 + seeded(index, 7) * 130),
       device_model: DEVICES[index % DEVICES.length],
       source_type: "individual",
-      device_calibrated: calibrated,
-      calibrated_at: calibrated ? "2026-08-15" : null,
+      device_calibrated: false,
+      calibrated_at: null,
       measurement_environment: "outdoor",
       measurement_stable: true,
       near_emission_source: false,

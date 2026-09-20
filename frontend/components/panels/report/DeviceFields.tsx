@@ -105,36 +105,6 @@ export default function DeviceFields({ details, onChange }: DeviceFieldsProps) {
             </label>
           </div>
 
-          <label className="cp-report-confirmation">
-            <input
-              type="checkbox"
-              checked={details.deviceCalibrated}
-              onChange={(event) =>
-                onChange({ deviceCalibrated: event.target.checked })
-              }
-              style={CHECKBOX_STYLE}
-            />
-            <span>
-              <strong>เครื่องมีหลักฐานการสอบเทียบ</strong>
-              <small>
-                ช่วยประเมินคุณภาพของเครื่อง ไม่เปลี่ยนประเภทของรายงาน
-              </small>
-            </span>
-          </label>
-          {details.deviceCalibrated && (
-            <label>
-              วันที่สอบเทียบล่าสุด
-              <input
-                type="date"
-                required
-                value={details.calibratedAt}
-                onChange={(event) =>
-                  onChange({ calibratedAt: event.target.value })
-                }
-                style={{ ...FORM_CONTROL_STYLE, marginTop: ".3em" }}
-              />
-            </label>
-          )}
           <label>
             หมายเหตุสภาพแวดล้อม
             <textarea

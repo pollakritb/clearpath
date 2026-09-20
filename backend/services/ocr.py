@@ -1,9 +1,4 @@
-"""OCR/vision adapter สำหรับอ่านข้อความจากหน้าจอเครื่องวัด PM2.5.
-
-ใช้ OpenAI Responses API แบบ image input + Structured Outputs เมื่อมี key.
-ผล OCR เป็นสัญญาณหนึ่งของระบบตรวจหลักฐาน: เคสที่มั่นใจสูงอนุมัติอัตโนมัติ
-ส่วนเคสที่ไม่ชัดเจนจะ fail closed เป็นการปฏิเสธอัตโนมัติพร้อมเหตุผลให้ถ่ายใหม่.
-"""
+"""OCR adapter that extracts only the numeric PM2.5 value from a report image."""
 
 from __future__ import annotations
 
@@ -21,12 +16,8 @@ OCR_SCHEMA = {
     "type": "object",
     "properties": {
         "pm25": {"type": ["number", "null"]},
-        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-        "device_detected": {"type": "boolean"},
-        "display_clear": {"type": "boolean"},
-        "raw_text": {"type": "string"},
     },
-    "required": ["pm25", "confidence", "device_detected", "display_clear", "raw_text"],
+    "required": ["pm25"],
     "additionalProperties": False,
 }
 
@@ -66,11 +57,9 @@ async def read_pm25(image: bytes, content_type: str) -> dict:
                     {
                         "type": "input_text",
                         "text": (
-                            "อ่านข้อความบนหน้าจอเครื่องวัด PM2.5 จากภาพนี้เท่านั้น "
-                            "คืนค่า PM2.5 ที่แสดง ไม่ใช่ AQI หรืออุณหภูมิ "
-                            "ใช้เฉพาะตัวเลขที่มีป้ายกำกับ PM2.5 หรือหน่วย µg/m³ ชัดเจน "
-                            "ห้ามเดาจากสีหรือค่า AQI ถ้าไม่พบเครื่องวัด หน้าจอไม่ชัด "
-                            "หรือไม่แน่ใจว่าตัวเลขเป็น PM2.5 ให้ pm25 เป็น null และ confidence ต่ำ"
+                            "อ่านเฉพาะตัวเลขค่า PM2.5 จากภาพนี้ แล้วคืนในฟิลด์ pm25 "
+                            "ไม่ต้องอธิบายและห้ามคืนค่า AQI อุณหภูมิ หรือความชื้น "
+                            "ถ้าไม่มีตัวเลข PM2.5 ที่อ่านได้ให้คืน pm25 เป็น null"
                         ),
                     },
                     {"type": "input_image", "image_url": data_url, "detail": "high"},
@@ -105,12 +94,15 @@ async def read_pm25(image: bytes, content_type: str) -> dict:
     value = result.get("pm25")
     if value is not None:
         value = max(0.0, min(1000.0, float(value)))
+    reading_found = value is not None
     return {
         "available": True,
         "service_error": False,
         "pm25": value,
-        "confidence": max(0.0, min(1.0, float(result.get("confidence", 0.0)))),
-        "device_detected": bool(result.get("device_detected")),
-        "display_clear": bool(result.get("display_clear")),
-        "raw_text": str(result.get("raw_text") or "")[:500],
+        # Keep the storage/API shape stable while the publication policy uses
+        # only whether a numeric value was extracted.
+        "confidence": 1.0 if reading_found else 0.0,
+        "device_detected": reading_found,
+        "display_clear": reading_found,
+        "raw_text": "" if value is None else str(value),
     }

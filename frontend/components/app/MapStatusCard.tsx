@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import ReportEngagement from "@/frontend/components/community/ReportEngagement";
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import CalibrationBadge from "@/frontend/components/ui/CalibrationBadge";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
@@ -143,9 +142,6 @@ export default function MapStatusCard({
                 }`
             : `Air4Thai · กรมควบคุมมลพิษ${station?.province ? ` · ${station.province}` : ""}`}
         </p>
-        {report?.device_calibrated && (
-          <CalibrationBadge date={report.calibrated_at} />
-        )}
       </header>
 
       {source === "individual" && report && (

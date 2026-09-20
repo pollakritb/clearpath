@@ -11,7 +11,6 @@ import type { CommunityReport } from "@/frontend/types";
 function reportIcon(
   color: string,
   value: number,
-  calibrated: boolean,
   selected: boolean,
   avatarUrl: string | null,
 ) {
@@ -27,7 +26,7 @@ function reportIcon(
   }</span></span><b class="cp-community-marker__value" aria-hidden="true">${roundedValue}</b>`;
   return L.divIcon({
     className: "cp-marker cp-marker--community cp-marker--individual",
-    html: `<div class="cp-community-marker${selected ? " is-selected" : ""}" data-source="individual" data-profile="${Boolean(avatarUrl)}" data-calibrated="${calibrated}" style="--marker-aqi:${color};--marker-text:#07130f;--marker-size:${size}px">${content}${calibrated ? '<em aria-hidden="true">✓</em>' : ""}</div>`,
+    html: `<div class="cp-community-marker${selected ? " is-selected" : ""}" data-source="individual" data-profile="${Boolean(avatarUrl)}" style="--marker-aqi:${color};--marker-text:#07130f;--marker-size:${size}px">${content}</div>`,
     iconSize: [touchSize, touchSize],
     iconAnchor: [touchSize / 2, touchSize / 2 + size / 2 - 4],
   });
@@ -62,7 +61,6 @@ export default function ReportMarkers({
             icon={reportIcon(
               cls.color,
               report.pm25,
-              report.device_calibrated,
               report.id === selectedId,
               avatarUrl,
             )}

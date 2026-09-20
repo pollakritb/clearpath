@@ -6,35 +6,11 @@ import logging
 
 from ...algorithms.automatic_review import evaluate_automatic_review
 from ...algorithms.trust import calculate_trust_score
-from ...core.config import settings
 from .. import notifications, supabase_client
 from .constants import AUTOMATIC_REVIEW_POLICY
 from .presenter import present_report
 
 logger = logging.getLogger(__name__)
-
-
-def _automatic_rejection_reason(
-    draft: dict, claimed_pm25: float, maximum_gps_accuracy_m: float
-) -> str:
-    """Map machine-check failures to a stable, user-safe reason code."""
-    if draft.get("duplicate_of_report_id"):
-        return "duplicate"
-    if (
-        draft.get("clock_warning")
-        or float(draft.get("gps_accuracy_m") or 0) > maximum_gps_accuracy_m
-    ):
-        return "invalid_location"
-    ocr_pm25 = draft.get("ocr_pm25")
-    if ocr_pm25 is not None:
-        tolerance = max(
-            3.0, min(15.0, max(abs(float(ocr_pm25)), abs(claimed_pm25)) * 0.10)
-        )
-        if abs(float(ocr_pm25) - claimed_pm25) > tolerance:
-            return "value_mismatch"
-    if not draft.get("device_detected") or not draft.get("display_clear"):
-        return "image_unclear"
-    return "invalid_measurement"
 
 
 def finalize_automatic_review(
@@ -45,22 +21,7 @@ def finalize_automatic_review(
     official_stations: list[dict],
 ) -> tuple[dict, dict]:
     """Approve or reject immediately; never route evidence to an admin queue."""
-    decision = evaluate_automatic_review(
-        # Community submissions no longer have a human moderation fallback.
-        # The product workflow therefore always runs this deterministic policy.
-        enabled=True,
-        ocr_pm25=draft.get("ocr_pm25"),
-        ocr_confidence=float(draft.get("ocr_confidence") or 0),
-        device_detected=bool(draft.get("device_detected")),
-        display_clear=bool(draft.get("display_clear")),
-        claimed_pm25=claimed_pm25,
-        duplicate_detected=bool(draft.get("duplicate_of_report_id")),
-        clock_warning=bool(draft.get("clock_warning")),
-        gps_accuracy_m=float(draft.get("gps_accuracy_m") or 0),
-        burst_frame_count=len(draft.get("burst_hashes") or []),
-        minimum_confidence=settings.automatic_review_min_confidence,
-        maximum_gps_accuracy_m=settings.automatic_review_max_gps_accuracy_m,
-    )
+    decision = evaluate_automatic_review(ocr_pm25=draft.get("ocr_pm25"))
     approved = bool(decision["approved"])
     verified_pm25 = float(decision["verified_pm25"]) if approved else None
     profile = supabase_client.get_profile(str(report["user_id"]))
@@ -97,19 +58,10 @@ def finalize_automatic_review(
         "image_clear": bool(draft.get("display_clear")),
         "value_matches_display": reading_matches,
         "location_plausible": not bool(draft.get("clock_warning"))
-        and float(draft.get("gps_accuracy_m") or 0)
-        <= settings.automatic_review_max_gps_accuracy_m,
+        and float(draft.get("gps_accuracy_m") or 0) <= 200,
         "no_screen_recapture_signs": not bool(draft.get("unexpected_exif")),
     }
-    rejection_reason = (
-        None
-        if approved
-        else _automatic_rejection_reason(
-            draft,
-            claimed_pm25,
-            settings.automatic_review_max_gps_accuracy_m,
-        )
-    )
+    rejection_reason = None if approved else "invalid_measurement"
     outcome = "approve" if approved else "reject"
     reason_summary = "; ".join(str(reason) for reason in decision["reasons"])
     updated = supabase_client.moderate_report_transaction(
@@ -134,9 +86,9 @@ def finalize_automatic_review(
             event_type="report_status",
             title=("ระบบตรวจและเผยแพร่รายงานแล้ว" if approved else "ระบบตรวจรายงานแล้ว"),
             body=(
-                "หลักฐานผ่านเกณฑ์อัตโนมัติและเผยแพร่ค่า PM2.5 บนแผนที่แล้ว"
+                "OCR อ่านตัวเลข PM2.5 และเผยแพร่ค่าบนแผนที่แล้ว"
                 if approved
-                else "หลักฐานไม่ผ่านเกณฑ์อัตโนมัติ กรุณาดูเหตุผลและถ่ายภาพใหม่"
+                else "OCR อ่านตัวเลข PM2.5 ไม่ได้ กรุณาถ่ายภาพใหม่"
             ),
             url="/",
             entity_type="community_report",

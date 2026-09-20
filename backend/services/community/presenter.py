@@ -75,7 +75,6 @@ def present_report(
         data_role=role,
         trust_score=trust_score,
         corroborated_reporters=corroborated,
-        device_calibrated=bool(row.get("device_calibrated")),
         near_emission_source=bool(row.get("near_emission_source")),
         gps_accuracy_m=gps_accuracy,
         duplicate_detected=bool(row.get("duplicate_of_report_id")),

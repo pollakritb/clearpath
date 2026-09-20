@@ -6,9 +6,9 @@
 - Test at least one supported iPhone/Safari and Android/Chrome device.
 - Cover good/poor GPS, clear/blurred display, duplicate image, screen recapture,
   indoor reading, direct emission source, clock mismatch and interrupted upload.
-- Expected safety result: only high-confidence evidence may auto-approve; every
-  ambiguous case is automatically rejected with reasons and exposes neither
-  PM2.5, report image, nor exact location.
+- Expected product result: every numeric PM2.5 OCR result is published; `null`
+  or service failure is automatically rejected with reasons and exposes neither
+  PM2.5 nor the report image. Exact location remains private in every case.
 
 Record aggregate outcomes only: automatic approval rate, false approval count,
 false rejection count, OCR absolute error, GPS rejection rate and median flow time.

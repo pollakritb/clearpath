@@ -64,11 +64,17 @@ def test_community_sensor_never_exposes_personal_profile():
 
 
 def test_gap_fill_stops_when_a_fresh_official_station_returns():
-    report = _report(device_calibrated=True, trust_score=82)
+    report = _report(trust_score=82, device_model="Meter A")
+    companion = _report(
+        id="report-2",
+        user_id="user-2",
+        pm25=25.0,
+        device_model="Meter B",
+    )
     without_official = present_report(
         report,
         official_stations=[],
-        approved_reports=[report],
+        approved_reports=[report, companion],
         include_image=False,
     )
     assert without_official["data_role"] == "gap_fill"
@@ -85,7 +91,7 @@ def test_gap_fill_stops_when_a_fresh_official_station_returns():
                 "recorded_at": datetime.now(UTC).isoformat(),
             }
         ],
-        approved_reports=[report],
+        approved_reports=[report, companion],
         include_image=False,
     )
     assert with_official["data_role"] == "supplementary"

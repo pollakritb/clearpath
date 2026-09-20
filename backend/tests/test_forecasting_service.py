@@ -167,7 +167,7 @@ def test_station_forecast_keeps_external_result_when_optional_reads_fail(monkeyp
     }.issubset(response["warnings"])
 
 
-def test_qualified_community_fails_closed_and_accepts_policy_paths(monkeypatch):
+def test_qualified_community_fails_closed_and_requires_corroboration(monkeypatch):
     base = {
         "status": "approved",
         "is_fresh": True,
@@ -204,7 +204,7 @@ def test_qualified_community_fails_closed_and_accepts_policy_paths(monkeypatch):
 
     qualified = forecasting._qualified_community([])
 
-    assert [row["id"] for row in qualified] == ["corroborated", "calibrated"]
+    assert [row["id"] for row in qualified] == ["corroborated"]
 
 
 def test_persist_ledger_writes_only_the_served_forecast_run(monkeypatch):

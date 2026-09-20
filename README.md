@@ -10,8 +10,8 @@
 
 ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถานีทางการ, NASA FIRMS สำหรับจุดความร้อน
 และเปิดให้ประชาชนถ่ายภาพเครื่องวัด PM2.5 ผ่านกล้องภายในแพลตฟอร์ม เมื่อส่งภาพแล้ว
-ระบบจะตรวจ OCR, ภาพต่อเนื่อง, GPS, เวลา และภาพซ้ำร่วมกัน เคสที่มั่นใจสูงจะอนุมัติและ
-เผยแพร่อัตโนมัติ ส่วนเคสที่ไม่ชัดเจนจะถูกปฏิเสธอัตโนมัติพร้อมเหตุผลและให้ผู้ใช้ถ่ายใหม่
+ระบบ OCR จะอ่านเฉพาะตัวเลข PM2.5 จากภาพ ถ้าอ่านได้จะเผยแพร่ค่า OCR อัตโนมัติ
+ส่วนภาพที่อ่านเลขไม่ได้จะถูกปฏิเสธพร้อมเหตุผลและให้ผู้ใช้ถ่ายใหม่
 
 ## ฟีเจอร์หลัก
 
@@ -21,7 +21,7 @@ ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถ
 - กล้องในแอปด้วย `getUserMedia` ไม่มีตัวเลือกอัปโหลดจากแกลเลอรี
 - Camera session และ timestamp ที่ Server ลงนาม อายุไม่เกิน 5 นาที
 - ตรวจชนิด/ความสมบูรณ์ของไฟล์ภาพ, exact hash และ perceptual hash เพื่อกันภาพซ้ำ
-- OCR อ่านค่าหลังอัปโหลดเป็น draft ผู้ใช้ตรวจแก้ก่อนยืนยัน และระบบอนุมัติอัตโนมัติเมื่อหลักฐานทั้งชุดผ่านเกณฑ์
+- OCR อ่านเฉพาะตัวเลข PM2.5 หลังอัปโหลดเป็น draft และเผยแพร่ค่า OCR อัตโนมัติเมื่อผู้ใช้ส่งรายงาน
 - Air4Thai ภายใน 5 กม. เป็นค่าหลัก; Community Report เป็นข้อมูลเสริม
 - นอกระยะ 5 กม. รายงานต้องผ่านการตรวจอัตโนมัติ, Trust ≥60, อายุไม่เกิน 3 ชั่วโมง และผ่านกติกาหลายแหล่งก่อนเติม IDW
 - คำขอบคุณจากชุมชนพร้อมดาว 1–5 จำกัดผู้ใช้อยู่ภายใน 3 กม./GPS ≤200 ม. ดาวยังใช้ปรับ Trust เมื่อมีอย่างน้อย 3 คน และให้รางวัลเฉพาะความเห็นที่ตรง consensus
@@ -45,7 +45,7 @@ ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถ
 | Backend API           | Python 3.12, FastAPI, Pydantic v2 และ HTTPX                                                     |
 | Database/Auth/Storage | Supabase PostgreSQL, Supabase Auth, private Storage bucket และ Realtime invalidation events     |
 | External data         | Air4Thai, NASA FIRMS, CAMS/Open-Meteo, OpenWeather และ GISTDA แบบ legal-gated                   |
-| OCR/AI                | OpenAI Responses API; ตรวจหลักฐานทั้งชุดและอนุมัติหรือปฏิเสธอัตโนมัติแบบ fail closed            |
+| OCR/AI                | OpenAI Responses API แบบ number-only; อ่านได้เผยแพร่ทันที อ่านไม่ได้ให้ถ่ายใหม่                 |
 | Forecast              | External-first 3 แหล่ง, raw comparison, uncertainty envelope และ gated local/community fallback |
 | Notification          | In-App inbox, Web Push/VAPID, LINE Messaging API, signed webhook และ retryable outbox           |
 | Testing/quality       | Pytest, Ruff, ESLint, TypeScript strict checks, Prettier และ Next production build              |
@@ -130,18 +130,19 @@ server camera session → getUserMedia + GPS → private draft + OCR
                                                 │
                                                 ▼
                                user confirms value → automatic review
-                                                ├─ high confidence → approved map
-                                                └─ uncertain → rejected + reasons → retake
+                                                ├─ numeric PM2.5 → approved map
+                                                └─ no numeric reading → rejected + reasons → retake
                                                                      │
                                                                      ▼
                                                 nearby users rate proximity with 1–5 stars
 ```
 
-ระบบอนุมัติอัตโนมัติเฉพาะเมื่อ OCR confidence ≥92%, ตรวจพบเครื่องวัดและหน้าจอชัด, ค่าที่ผู้ใช้ยืนยันสอดคล้อง,
-GPS ≤100 ม., ไม่มี clock warning/ภาพซ้ำ และมีภาพต่อเนื่องเสริม 2 เฟรม หากไม่มี `OPENAI_API_KEY` หรือเกณฑ์ใดไม่ผ่าน
-ระบบจะ fail closed ด้วยการปฏิเสธอัตโนมัติพร้อมเหตุผล และจะไม่เปิดเผยค่า PM2.5 หรือภาพของรายงานที่ไม่ผ่าน
+ระบบเผยแพร่เมื่อ OCR คืนตัวเลข PM2.5 เท่านั้น โดยใช้ค่า OCR เป็นค่าที่ตรวจแล้ว Confidence, device/display,
+burst, เวลา, ภาพคล้าย และค่าที่ผู้ใช้ยืนยันเก็บไว้สำหรับ audit แต่ไม่ขวางการเผยแพร่ หากไม่มี `OPENAI_API_KEY`
+หรือ OCR อ่านเลขไม่ได้ ระบบจะปฏิเสธพร้อมเหตุผลและไม่เปิดเผยค่า PM2.5 หรือภาพ Exact duplicate และ GPS >200 ม.
+ยังถูกปฏิเสธก่อนเรียก OCR
 
-ก่อนส่ง ผู้ใช้ต้องระบุรุ่นเครื่อง, สถานะการสอบเทียบ, ความแม่นยำ GPS และยืนยันว่า
+ก่อนส่ง ผู้ใช้ต้องระบุรุ่นเครื่อง, ความแม่นยำ GPS และยืนยันว่า
 วัดกลางแจ้งหลังรอค่าคงที่แล้ว จุดที่อยู่ติดแหล่งกำเนิดโดยตรง เช่น ควันบุหรี่หรือท่อไอเสีย
 ยังแสดงเป็นหลักฐานชุมชนได้ แต่จะไม่ถูกนำไปเติมพื้นผิวค่าฝุ่น
 
@@ -150,7 +151,7 @@ GPS ≤100 ม., ไม่มี clock warning/ภาพซ้ำ และม�
 - ถ้ามี Air4Thai ภายใน 5 กม. ค่า Air4Thai เป็นข้อมูลหลัก ส่วนค่าประชาชนแสดงแยกเป็น `Community Report`
 - สถานีรัฐถือว่าใช้เป็นข้อมูลหลักได้เมื่ออายุไม่เกิน 90 นาที; ถ้า API ต้นทางล่มใช้ snapshot ล่าสุดพร้อมสถานะ delayed/expired
 - ถ้าไม่มี Air4Thai ที่สดใหม่ภายใน 5 กม. รายงานที่ระบบอนุมัติ, Trust ≥60 และอายุไม่เกิน 3 ชั่วโมงจะเป็นผู้สมัคร `gap_fill`
-- ผู้สมัครจะเข้า IDW ได้เมื่อมีผู้รายงานคนละคนอย่างน้อย 2 คน วัดใกล้กันภายใน 2 กม./60 นาทีและค่าเข้ากันได้ หรือผู้ส่งมี Trust ≥80 พร้อมเครื่องที่ระบุว่าสอบเทียบแล้ว
+- ผู้สมัครจะเข้า IDW ได้เมื่อมีผู้รายงานคนละคนอย่างน้อย 2 คน วัดใกล้กันภายใน 2 กม./60 นาทีและค่าเข้ากันได้เท่านั้น
 - รายงานต้องมี GPS accuracy ไม่เกิน 200 เมตร, ไม่เป็นภาพซ้ำ และไม่วัดติดแหล่งกำเนิดโดยตรง จึงจะเข้า IDW ได้
 - ค่าที่ต่างจาก Air4Thai มากจะไม่ถูกซ่อน แต่แสดงเป็นความผิดปกติเฉพาะจุดและรอ community verification
 - เกณฑ์สีใช้มาตรฐาน PCD พ.ศ. 2566: 0–15, 15.1–25, 25.1–37.5, 37.6–75 และ ≥75.1 µg/m³

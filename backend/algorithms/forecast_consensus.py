@@ -47,13 +47,12 @@ def provider_accuracy_weight(
 
 
 def report_quality_weight(report: dict) -> float:
-    """Quality weight from Trust, freshness, calibration, GPS and averaging period."""
+    """Quality weight from Trust, freshness, GPS and averaging period."""
     trust = max(0.0, min(100.0, float(report.get("trust_score") or 0.0))) / 100.0
     age_minutes = max(0.0, float(report.get("age_minutes") or 0.0))
     if age_minutes > 180.0:
         return 0.0
     freshness = 1.0 - (0.5 * age_minutes / 180.0)
-    calibration = 1.2 if report.get("device_calibrated") else 1.0
     accuracy = report.get("gps_accuracy_m")
     gps = (
         1.0
@@ -67,7 +66,7 @@ def report_quality_weight(report: dict) -> float:
         "1_minute": 0.75,
         "5_minutes": 1.0,
     }.get(str(report.get("averaging_period") or "instant"), 0.5)
-    return round(trust * freshness * calibration * gps * averaging, 6)
+    return round(trust * freshness * gps * averaging, 6)
 
 
 def community_residual(
