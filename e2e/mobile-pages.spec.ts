@@ -770,6 +770,7 @@ test("community marker opens a distinct privacy-safe report card", async ({
   await page.route("https://lh3.googleusercontent.com/**", (route) =>
     route.abort(),
   );
+  await page.route("https://storage.example.test/**", (route) => route.abort());
   await page.route(
     "**/api/community/reports/community-map-demo/engagement**",
     async (route) => {
@@ -834,9 +835,10 @@ test("community marker opens a distinct privacy-safe report card", async ({
             dislike_count: 1,
             comment_count: 0,
             device_model: "Xiaomi Air Monitor",
-            subdistrict: "ปทุมวัน",
-            district: "ปทุมวัน",
-            province: "กรุงเทพมหานคร",
+            image_url: "https://storage.example.test/report-meter.jpg",
+            subdistrict: null,
+            district: "เมืองนครปฐม",
+            province: "ต.นครปฐม อ.เมือง, นครปฐม",
           },
         ],
       }),
@@ -853,6 +855,7 @@ test("community marker opens a distinct privacy-safe report card", async ({
     "https://lh3.googleusercontent.com/a/clearpath-e2e-reporter",
   );
   await marker.click({ force: true });
+  await expect(marker).toHaveCSS("outline-style", "none");
 
   const card = page.getByRole("region", {
     name: "รายละเอียดรายงานจากบุคคล",
@@ -860,9 +863,30 @@ test("community marker opens a distinct privacy-safe report card", async ({
   await expect(card).toBeVisible();
   await expect(card.getByText(/Trust/i)).toHaveCount(0);
   await expect(card.getByText("รายงานจากบุคคล", { exact: true })).toBeVisible();
-  await expect(card.getByText(/ผู้รายงาน สมาชิกชุมชน/)).toBeVisible();
-  await expect(card.getByText(/สอบเทียบ/)).toBeVisible();
+  await expect(
+    card.getByRole("heading", {
+      name: "ต.นครปฐม · อ.เมือง · จ.นครปฐม",
+    }),
+  ).toBeVisible();
+  await expect(card.getByText("รายงานโดย", { exact: true })).toBeVisible();
+  await expect(card.getByText("สมาชิกชุมชน", { exact: true })).toBeVisible();
+  await expect(card.getByText("ภาพหลักฐานจากเครื่องวัด")).toBeVisible();
+  await expect(
+    card.getByRole("link", { name: "เปิดดูภาพเครื่องวัดจากรายงานนี้" }),
+  ).toHaveAttribute("href", "https://storage.example.test/report-meter.jpg");
   await expect(card.getByText(/พิกัดจริงประมาณ 180 ม./)).toBeVisible();
+  const readingComesFirst = await card.evaluate((element) => {
+    const reading = element.querySelector(".cp-map-selection-reading");
+    const profile = element.querySelector(".cp-map-reporter-profile");
+    return Boolean(
+      reading &&
+      profile &&
+      reading.compareDocumentPosition(profile) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+  expect(readingComesFirst).toBe(true);
+  await expectNoHorizontalPageOverflow(page);
   const like = card.getByRole("button", { name: /ถูกใจ 4/ });
   await expect(like).toBeVisible();
   await like.click();

@@ -78,5 +78,14 @@ describe("MapStatusCard", () => {
     expect(
       screen.getByAltText("ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"),
     ).not.toBeNull();
+    expect(screen.getByText("ภาพหลักฐานจากเครื่องวัด")).not.toBeNull();
+    expect(screen.getByText("แตะเพื่อเปิดดูภาพเต็ม")).not.toBeNull();
+
+    const reading = screen.getByText("42");
+    const reporter = screen.getByText("ไม่เปิดเผยตัวตน");
+    expect(
+      reading.compareDocumentPosition(reporter) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

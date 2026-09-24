@@ -4,6 +4,7 @@ import L from "leaflet";
 import { Marker } from "react-leaflet";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
+import { formatCommunityArea } from "@/frontend/lib/community-location";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
 import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
 import type { CommunityReport } from "@/frontend/types";
@@ -49,10 +50,7 @@ export default function ReportMarkers({
         if (source !== "individual") return null;
         const cls = classifyPm25(report.pm25);
         const avatarUrl = publicReporterAvatar(report);
-        const area =
-          [report.subdistrict, report.district, report.province]
-            .filter(Boolean)
-            .join(" ") || "พื้นที่โดยประมาณ";
+        const area = formatCommunityArea(report);
         const label = `${SOURCE_LABELS[source].label} ${area} PM2.5 ${report.pm25} ไมโครกรัมต่อลูกบาศก์เมตร ${cls.level}`;
         return (
           <Marker

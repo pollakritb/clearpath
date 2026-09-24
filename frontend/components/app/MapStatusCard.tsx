@@ -4,6 +4,7 @@ import ReportEngagement from "@/frontend/components/community/ReportEngagement";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
+import { formatCommunityArea } from "@/frontend/lib/community-location";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
 import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
 import type { CommunityReport, Station } from "@/frontend/types";
@@ -90,11 +91,7 @@ export default function MapStatusCard({
   const stationName = station
     ? (station.name_th ?? station.name_en ?? station.id)
     : "";
-  const communityArea = report
-    ? [report.subdistrict, report.district, report.province]
-        .filter(Boolean)
-        .join(" · ") || "พื้นที่รายงานโดยประมาณ"
-    : "";
+  const communityArea = report ? formatCommunityArea(report) : "";
   const href = station
     ? `/air?station=${encodeURIComponent(station.id)}`
     : "/community";
@@ -135,14 +132,26 @@ export default function MapStatusCard({
           {report
             ? source === "sensor"
               ? `${report.device_model ?? "ไม่ระบุรุ่นอุปกรณ์"} · อุปกรณ์ประจำจุดที่ลงทะเบียน`
-              : `${report.device_model ?? "ไม่ระบุรุ่นเครื่องวัด"} · ${
-                  showReporterProfile
-                    ? `ผู้รายงาน ${report.display_name ?? "สมาชิกชุมชน"}`
-                    : "ผู้รายงานไม่เปิดเผยตัวตน"
+              : `${report.device_model ?? "เครื่องวัดส่วนบุคคล"} · ${
+                  report.age_minutes == null
+                    ? "ไม่ทราบเวลาวัด"
+                    : `${Math.round(report.age_minutes)} นาทีที่แล้ว`
                 }`
             : `Air4Thai · กรมควบคุมมลพิษ${station?.province ? ` · ${station.province}` : ""}`}
         </p>
       </header>
+
+      <div className="cp-map-selection-reading">
+        <div>
+          <strong>{value ?? "—"}</strong>
+          <span>µg/m³</span>
+          <small>PM2.5</small>
+        </div>
+        <span className="cp-map-selection-reading__level">
+          <i aria-hidden>{classification.glyph}</i>
+          <strong>{classification.level}</strong>
+        </span>
+      </div>
 
       {source === "individual" && report && (
         <div
@@ -165,17 +174,12 @@ export default function MapStatusCard({
             </span>
           )}
           <div>
-            <small>ผู้แบ่งปันข้อมูล</small>
+            <small>รายงานโดย</small>
             <strong>
               {showReporterProfile
                 ? (report.display_name ?? "สมาชิกชุมชน")
                 : "ไม่เปิดเผยตัวตน"}
             </strong>
-            <p>
-              {showReporterProfile
-                ? "โปรไฟล์ Google ที่เจ้าของอนุญาตให้แสดงในรายงานนี้"
-                : "เจ้าของรายงานเลือกซ่อนชื่อและรูปโปรไฟล์"}
-            </p>
           </div>
         </div>
       )}
@@ -188,32 +192,23 @@ export default function MapStatusCard({
           className="cp-map-report-photo cp-focus"
           aria-label="เปิดดูภาพเครื่องวัดจากรายงานนี้"
         >
-          {/* The API exposes only a short-lived signed URL from private storage. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={report.image_url}
-            alt="ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
-          <span>
-            <AppIcon name="camera" size={17} />
-            แตะเพื่อดูภาพเครื่องวัด
+          <span className="cp-map-report-photo__thumb">
+            {/* The API exposes only a short-lived signed URL from private storage. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={report.image_url}
+              alt="ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
           </span>
+          <span className="cp-map-report-photo__copy">
+            <strong>ภาพหลักฐานจากเครื่องวัด</strong>
+            <small>แตะเพื่อเปิดดูภาพเต็ม</small>
+          </span>
+          <AppIcon name="chevron" size={19} />
         </a>
       )}
-
-      <div className="cp-map-selection-reading">
-        <div>
-          <strong>{value ?? "—"}</strong>
-          <span>µg/m³</span>
-          <small>PM2.5</small>
-        </div>
-        <span className="cp-map-selection-reading__level">
-          <i aria-hidden>{classification.glyph}</i>
-          <strong>{classification.level}</strong>
-        </span>
-      </div>
 
       <div className="cp-map-selection-meta">
         {isCommunity ? (
