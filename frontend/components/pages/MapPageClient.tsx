@@ -10,6 +10,10 @@ import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import ListView from "@/frontend/components/panels/ListView";
 import { useDisplayPreferences } from "@/frontend/components/settings/DisplayPreferencesProvider";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
+import {
+  useCurrentLocation,
+  type CurrentLocation,
+} from "@/frontend/hooks/useCurrentLocation";
 import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
 import { useMapHistory } from "@/frontend/hooks/useMapHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
@@ -38,6 +42,7 @@ export default function MapPageClient({
   const pm25 = usePm25();
   const firms = useFirms();
   const community = useCommunityMapData();
+  const currentLocation = useCurrentLocation(true);
   const mapHistory = useMapHistory();
   const display = useDisplayPreferences();
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
@@ -55,6 +60,9 @@ export default function MapPageClient({
     lat: number;
     lon: number;
   } | null>(null);
+  const [locatedManually, setLocatedManually] =
+    useState<CurrentLocation | null>(null);
+  const userLocation = locatedManually ?? currentLocation.location;
 
   const loadFires = firms.load;
   useEffect(() => {
@@ -119,6 +127,7 @@ export default function MapPageClient({
         fires={!historyEnabled && showFires ? firms.fires : []}
         reports={historyEnabled ? [] : community.reports}
         reportPin={null}
+        userLocation={userLocation}
         focusPoint={effectiveFocusPoint}
         showHeatmap={showHeatmap}
         showStations={showStations}
@@ -132,7 +141,10 @@ export default function MapPageClient({
         onSelectReport={selectReport}
         selectedStationId={selectedStation?.id}
         selectedReportId={selectedReport?.id}
-        onLocate={(lat, lon) => setFocusPoint({ lat, lon })}
+        onLocate={(lat, lon, accuracy = 0) => {
+          setLocatedManually({ lat, lon, accuracy });
+          setFocusPoint({ lat, lon });
+        }}
       />
       <MapChrome
         viewMode={viewMode}

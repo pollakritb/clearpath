@@ -7,3 +7,10 @@ export const REPORT_PIN_ICON = L.divIcon({
   iconAnchor: [14, 28],
   popupAnchor: [0, -26],
 });
+
+export const CURRENT_LOCATION_ICON = L.divIcon({
+  className: "cp-marker cp-marker--current-location",
+  html: '<span class="cp-current-location-marker" aria-hidden="true"><span class="cp-current-location-marker__dot"></span><span class="cp-current-location-marker__label">คุณอยู่ที่นี่</span></span>',
+  iconSize: [48, 48],
+  iconAnchor: [24, 24],
+});

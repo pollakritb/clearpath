@@ -17,7 +17,7 @@ import ClickHandler from "./ClickHandler";
 import FireLayer from "./FireLayer";
 import IdwSurface from "./IdwSurface";
 import MapControls from "./MapControls";
-import { REPORT_PIN_ICON } from "./map-icons";
+import { CURRENT_LOCATION_ICON, REPORT_PIN_ICON } from "./map-icons";
 import ReportMarkers from "./ReportMarkers";
 import StationMarkers from "./StationMarkers";
 import ViewportController from "./ViewportController";
@@ -29,6 +29,7 @@ export interface MapViewProps {
   fires: FirePoint[];
   reports: CommunityReport[];
   reportPin: { lat: number; lon: number } | null;
+  userLocation?: { lat: number; lon: number; accuracy: number } | null;
   focusPoint?: { lat: number; lon: number } | null;
   showHeatmap: boolean;
   showStations: boolean;
@@ -48,6 +49,7 @@ export default function MapView({
   fires,
   reports,
   reportPin,
+  userLocation = null,
   focusPoint = null,
   showHeatmap,
   showStations,
@@ -101,11 +103,20 @@ export default function MapView({
           icon={REPORT_PIN_ICON}
         />
       )}
+      {userLocation && (
+        <Marker
+          position={[userLocation.lat, userLocation.lon]}
+          icon={CURRENT_LOCATION_ICON}
+          title="ตำแหน่งปัจจุบันของคุณ"
+          alt="ตำแหน่งปัจจุบันของคุณ"
+          zIndexOffset={1000}
+        />
+      )}
 
       <AutoResize />
       <ViewportController target={focusPoint} />
       {onViewportChange && <ViewportReporter onChange={onViewportChange} />}
-      <MapControls onLocate={onLocate} />
+      <MapControls onLocate={onLocate} hasLocation={Boolean(userLocation)} />
       <ClickHandler onClick={onMapClick} />
     </MapContainer>
   );

@@ -29,7 +29,7 @@ function reportIcon(
     className: "cp-marker cp-marker--community cp-marker--individual",
     html: `<div class="cp-community-marker${selected ? " is-selected" : ""}" data-source="individual" data-profile="${Boolean(avatarUrl)}" style="--marker-aqi:${color};--marker-text:#07130f;--marker-size:${size}px">${content}</div>`,
     iconSize: [touchSize, touchSize],
-    iconAnchor: [touchSize / 2, touchSize / 2 + size / 2 - 4],
+    iconAnchor: [touchSize / 2, touchSize / 2],
   });
 }
 

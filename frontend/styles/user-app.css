@@ -337,6 +337,110 @@
   gap: 0.5em;
   align-items: center;
 }
+.cp-mapctrls__locate {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(29, 89, 151, 0.16);
+  border-radius: 999px;
+  padding: 5px 14px 5px 5px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 5px 18px rgba(17, 49, 79, 0.2);
+  color: #174f91;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+  backdrop-filter: blur(12px);
+}
+.cp-mapctrls__locate[data-active="true"] {
+  border-color: rgba(43, 122, 216, 0.35);
+  background: #f4f9ff;
+}
+.cp-mapctrls__locate-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: #eaf3ff;
+  color: #216bc1;
+}
+.cp-mapctrls__locate[data-active="true"] .cp-mapctrls__locate-icon {
+  background: #2479d6;
+  color: #fff;
+}
+.cp-mapctrls__locate:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+.cp-mapctrls__error {
+  position: absolute;
+  right: 0;
+  bottom: 56px;
+  width: max-content;
+  max-width: min(250px, calc(100vw - 24px));
+  margin: 0;
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: #fff;
+  box-shadow: 0 3px 14px rgba(13, 45, 62, 0.23);
+  color: #a33c2e;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.cp-current-location-marker {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(33, 102, 188, 0.2);
+  border-radius: 50%;
+  background: rgba(43, 127, 222, 0.19);
+  box-shadow:
+    0 0 0 5px rgba(43, 127, 222, 0.11),
+    0 4px 14px rgba(18, 69, 122, 0.15);
+}
+.cp-current-location-marker__dot {
+  width: 21px;
+  height: 21px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #2479d6;
+  box-shadow: 0 2px 8px rgba(18, 69, 122, 0.45);
+}
+.cp-current-location-marker__label {
+  position: absolute;
+  top: 51px;
+  left: 50%;
+  width: max-content;
+  border: 1px solid rgba(43, 122, 216, 0.22);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(18, 69, 122, 0.2);
+  color: #1459ac;
+  font-size: 0.72rem;
+  font-weight: 800;
+  transform: translateX(-50%);
+}
+.cp-current-location-marker__label::before {
+  position: absolute;
+  top: -5px;
+  left: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid rgba(43, 122, 216, 0.22);
+  border-left: 1px solid rgba(43, 122, 216, 0.22);
+  background: #fff;
+  content: "";
+  transform: rotate(45deg);
+}
 .cp-mobile-nav {
   display: none;
 }
@@ -4790,14 +4894,14 @@
   font-weight: 800;
 }
 
-.cp-report-comments form > div {
+.cp-report-comments__composer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 44px;
   gap: 5px;
 }
 
-.cp-report-comments input,
-.cp-report-comments form button {
+.cp-report-comments textarea,
+.cp-report-comments__composer button {
   min-width: 0;
   min-height: 44px;
   border: 1px solid var(--cp-line);
@@ -4806,16 +4910,59 @@
   font: inherit;
 }
 
-.cp-report-comments input {
-  padding: 0 10px;
-  font-size: 0.68rem;
+.cp-report-comments textarea {
+  padding: 10px;
+  font-size: 16px;
+  line-height: 1.5;
+  resize: vertical;
+  color: var(--cp-ink);
 }
 
-.cp-report-comments form button {
+.cp-report-comments__composer button {
   display: grid;
   place-items: center;
   background: #7048bb;
   color: #fff;
+}
+
+.cp-report-comments__hint {
+  margin: 0 0 8px;
+  color: var(--cp-subink);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.cp-report-comments__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.cp-report-comments__suggestions button {
+  min-height: 44px;
+  max-width: 100%;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: #fff;
+  color: var(--cp-ink);
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.cp-report-comments__suggestions button[aria-pressed="true"] {
+  border-color: #7048bb;
+  background: #f3edff;
+  color: #5b36a0;
+}
+
+.cp-report-comments button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .cp-report-comments ul {
@@ -4947,9 +5094,7 @@
   }
 
   .cp-mapctrls__locate {
-    width: 48px !important;
-    height: 48px !important;
-    background: rgba(255, 255, 255, 0.96) !important;
+    min-height: 48px;
   }
 
   .cp-map-current-dock {
@@ -5306,8 +5451,8 @@
 
 .cp-community-marker[data-source="individual"] > span {
   position: relative;
-  border-radius: 50%;
-  padding: 3px;
+  border-radius: 12px;
+  padding: 2px;
   background: var(--marker-aqi);
   box-shadow:
     0 0 0 1px rgba(7, 19, 15, 0.2),
@@ -5315,18 +5460,9 @@
   transform: none;
 }
 
-.cp-community-marker[data-source="individual"] > span::after {
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  z-index: -1;
-  width: 10px;
-  height: 10px;
-  border-right: 2px solid #fff;
-  border-bottom: 2px solid #fff;
-  background: var(--marker-aqi);
-  content: "";
-  transform: translateX(-50%) rotate(45deg);
+.cp-community-marker[data-source="individual"] {
+  width: 48px;
+  height: 48px;
 }
 
 .cp-community-marker[data-source="individual"] > span > span {
@@ -5340,21 +5476,27 @@
 }
 
 .cp-community-marker__portrait {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
   width: 100%;
   height: 100%;
   display: grid !important;
   place-items: center;
   overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
+  border: 0;
+  border-radius: 7px;
   background: color-mix(in srgb, var(--marker-aqi), #fff 45%);
 }
 
-.cp-community-marker__portrait img {
+.leaflet-container .cp-community-marker .cp-community-marker__portrait img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
+  object-position: center;
 }
 
 .cp-community-marker__portrait svg {
@@ -5383,10 +5525,10 @@
 .cp-community-marker[data-source="individual"].is-selected::before,
 .leaflet-marker-icon.cp-marker:focus-visible
   .cp-community-marker[data-source="individual"]::before {
-  inset: -5px;
-  border: 3px solid var(--cp-source-individual);
-  border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92);
+  inset: -3px;
+  border: 2px solid var(--cp-source-individual);
+  border-radius: 15px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.92);
 }
 
 .leaflet-marker-icon.cp-marker:focus-visible .cp-station-marker::before {
@@ -5466,6 +5608,7 @@
 }
 
 .cp-map-report-photo__thumb {
+  position: relative;
   height: 58px;
   display: grid;
   place-items: center;
@@ -5475,6 +5618,8 @@
 }
 
 .cp-map-report-photo__thumb img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -5489,15 +5634,13 @@
 }
 
 .cp-map-report-photo__copy strong {
-  overflow: hidden;
-  font-size: 0.7rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 .cp-map-report-photo__copy small {
   color: var(--cp-subink);
-  font-size: 0.59rem;
+  font-size: 0.7rem;
 }
 
 .cp-map-report-photo:hover .cp-map-report-photo__thumb img {

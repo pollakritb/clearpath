@@ -768,9 +768,19 @@ test("community marker opens a distinct privacy-safe report card", async ({
     comments: [],
   });
   await page.route("https://lh3.googleusercontent.com/**", (route) =>
-    route.abort(),
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="240"><rect width="120" height="240" fill="#438c83"/><circle cx="60" cy="80" r="35" fill="#fff"/></svg>',
+    }),
   );
-  await page.route("https://storage.example.test/**", (route) => route.abort());
+  await page.route(
+    "https://lh3.googleusercontent.com/report-meter-demo.svg",
+    (route) =>
+      route.fulfill({
+        contentType: "image/svg+xml",
+        body: '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="240"><rect width="120" height="240" fill="#263d38"/><text x="22" y="125" fill="white" font-size="50">42</text></svg>',
+      }),
+  );
   await page.route(
     "**/api/community/reports/community-map-demo/engagement**",
     async (route) => {
@@ -802,7 +812,7 @@ test("community marker opens a distinct privacy-safe report card", async ({
           user_id: "local-user",
           display_name: "ผู้ทดสอบ",
           avatar_url: null,
-          body: "ข้อมูลมีประโยชน์",
+          body: route.request().postDataJSON().body,
           created_at: new Date().toISOString(),
           is_own: true,
         }),
@@ -835,7 +845,8 @@ test("community marker opens a distinct privacy-safe report card", async ({
             dislike_count: 1,
             comment_count: 0,
             device_model: "Xiaomi Air Monitor",
-            image_url: "https://storage.example.test/report-meter.jpg",
+            image_url:
+              "https://lh3.googleusercontent.com/report-meter-demo.svg",
             subdistrict: null,
             district: "เมืองนครปฐม",
             province: "ต.นครปฐม อ.เมือง, นครปฐม",
@@ -856,6 +867,26 @@ test("community marker opens a distinct privacy-safe report card", async ({
   );
   await marker.click({ force: true });
   await expect(marker).toHaveCSS("outline-style", "none");
+  await expect(marker.locator(".cp-community-marker > span")).toHaveCSS(
+    "border-radius",
+    "12px",
+  );
+  const portrait = marker.locator(".cp-community-marker__portrait");
+  await expect(portrait.locator("img")).toHaveCSS("object-fit", "cover");
+  await expect
+    .poll(() =>
+      portrait.evaluate((element) => {
+        const image = element.querySelector("img")!;
+        const frame = element.getBoundingClientRect();
+        const bounds = image.getBoundingClientRect();
+        return (
+          image.naturalWidth > 0 &&
+          Math.abs(frame.width - bounds.width) < 1 &&
+          Math.abs(frame.height - bounds.height) < 1
+        );
+      }),
+    )
+    .toBe(true);
 
   const card = page.getByRole("region", {
     name: "รายละเอียดรายงานจากบุคคล",
@@ -873,7 +904,21 @@ test("community marker opens a distinct privacy-safe report card", async ({
   await expect(card.getByText("ภาพหลักฐานจากเครื่องวัด")).toBeVisible();
   await expect(
     card.getByRole("link", { name: "เปิดดูภาพเครื่องวัดจากรายงานนี้" }),
-  ).toHaveAttribute("href", "https://storage.example.test/report-meter.jpg");
+  ).toHaveAttribute(
+    "href",
+    "https://lh3.googleusercontent.com/report-meter-demo.svg",
+  );
+  await expect(card.locator(".cp-map-report-photo__thumb img")).toHaveCSS(
+    "object-fit",
+    "contain",
+  );
+  await expect
+    .poll(() =>
+      card
+        .locator(".cp-map-report-photo__thumb img")
+        .evaluate((image) => (image as HTMLImageElement).naturalWidth),
+    )
+    .toBeGreaterThan(0);
   await expect(card.getByText(/พิกัดจริงประมาณ 180 ม./)).toBeVisible();
   const readingComesFirst = await card.evaluate((element) => {
     const reading = element.querySelector(".cp-map-selection-reading");
@@ -895,11 +940,53 @@ test("community marker opens a distinct privacy-safe report card", async ({
     "true",
   );
   await card.getByRole("button", { name: /ความคิดเห็น 0/ }).click();
-  await card.getByLabel("เขียนความคิดเห็น").fill("ข้อมูลมีประโยชน์");
+  await card
+    .getByRole("button", { name: "ขอบคุณที่แบ่งปันข้อมูล", exact: true })
+    .click();
+  await expect(card.getByLabel("เขียนความคิดเห็น")).toHaveValue(
+    "ขอบคุณที่แบ่งปันข้อมูล",
+  );
+  await expect(card.locator(".cp-report-comments li")).toHaveCount(0);
+  await card
+    .getByLabel("เขียนความคิดเห็น")
+    .fill("ขอบคุณที่แบ่งปันข้อมูล ภาพชัดเจนครับ");
+  await expectNoHorizontalPageOverflow(page);
   await card.getByRole("button", { name: "ส่งความคิดเห็น" }).click();
   await expect(
-    card.getByText("ข้อมูลมีประโยชน์", { exact: true }),
+    card.getByText("ขอบคุณที่แบ่งปันข้อมูล ภาพชัดเจนครับ", { exact: true }),
   ).toBeVisible();
+  await page.screenshot({
+    path: `test-results/report-ui-${page.viewportSize()?.width}.png`,
+    fullPage: true,
+  });
+});
+
+test("map shows my location with a distinct marker and recenter control", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({
+    latitude: 13.7563,
+    longitude: 100.5018,
+    accuracy: 25,
+  });
+  await page.goto("/");
+
+  const marker = page.locator('[title="ตำแหน่งปัจจุบันของคุณ"]');
+  const locate = page.getByRole("button", { name: "ตำแหน่งของฉัน" });
+  await expect(marker).toBeVisible();
+  await expect(marker.locator(".cp-current-location-marker__label")).toHaveText(
+    "คุณอยู่ที่นี่",
+  );
+  await expect(locate).toHaveAttribute("data-active", "true");
+  await locate.click();
+  await expect(locate).toHaveAttribute("aria-busy", "false");
+  await expect(marker).toBeVisible();
+  await expectNoHorizontalPageOverflow(page);
+  if (page.viewportSize()?.width === 390) {
+    await page.screenshot({ path: "test-results/current-location-390.png" });
+  }
 });
 
 test("large text and high contrast remain mobile-safe", async ({ page }) => {

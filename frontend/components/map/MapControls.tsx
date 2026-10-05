@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, SyntheticEvent } from "react";
+import { useState, type CSSProperties, type SyntheticEvent } from "react";
 import { useMap } from "react-leaflet";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -21,19 +21,42 @@ const CONTROL_BUTTON_STYLE: CSSProperties = {
 
 interface MapControlsProps {
   onLocate?: (lat: number, lon: number, accuracy?: number) => void;
+  hasLocation?: boolean;
 }
 
-export default function MapControls({ onLocate }: MapControlsProps) {
+export default function MapControls({
+  onLocate,
+  hasLocation = false,
+}: MapControlsProps) {
   const map = useMap();
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const stopPropagation = (event: SyntheticEvent) => event.stopPropagation();
   const locate = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition((position) => {
-      const { latitude, longitude, accuracy } = position.coords;
-      map.flyTo([latitude, longitude], 13);
-      onLocate?.(latitude, longitude, accuracy);
-    });
+    if (!navigator.geolocation) {
+      setLocationError("อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง");
+      return;
+    }
+    setLocating(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        setLocating(false);
+        map.flyTo([latitude, longitude], Math.max(map.getZoom(), 15));
+        onLocate?.(latitude, longitude, accuracy);
+      },
+      (error) => {
+        setLocating(false);
+        setLocationError(
+          error.code === error.PERMISSION_DENIED
+            ? "อนุญาตการเข้าถึงตำแหน่งในเบราว์เซอร์ก่อนใช้งาน"
+            : "หาตำแหน่งไม่สำเร็จ ลองอีกครั้ง",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 0 },
+    );
   };
 
   return (
@@ -78,23 +101,21 @@ export default function MapControls({ onLocate }: MapControlsProps) {
         aria-label="ตำแหน่งของฉัน"
         className="cp-mapctrls__locate cp-focus"
         onClick={locate}
-        style={{
-          width: "2.9em",
-          height: "2.9em",
-          border: `1px solid ${T.line}`,
-          background: T.panel,
-          borderRadius: "50%",
-          boxShadow: "0 3px 12px rgba(0,0,0,.2)",
-          cursor: "pointer",
-          fontSize: "1.2em",
-          color: T.teal,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        title="ไปที่ตำแหน่งของฉัน"
+        data-active={hasLocation}
+        aria-busy={locating}
+        disabled={locating}
       >
-        <AppIcon name="location" size={20} />
+        <span className="cp-mapctrls__locate-icon" aria-hidden="true">
+          <AppIcon name="locate" size={19} />
+        </span>
+        <span>{locating ? "กำลังหาตำแหน่ง" : "ไปตำแหน่งฉัน"}</span>
       </button>
+      {locationError && (
+        <p className="cp-mapctrls__error" role="alert">
+          {locationError}
+        </p>
+      )}
     </div>
   );
 }

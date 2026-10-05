@@ -37,6 +37,7 @@ export type AppIconName =
   | "thumb-down"
   | "thumb-up"
   | "location"
+  | "locate"
   | "user";
 
 interface AppIconProps extends SVGProps<SVGSVGElement> {
@@ -106,6 +107,13 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
         <>
           <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
           <circle cx="12" cy="10" r="2.5" />
+        </>
+      )}
+      {name === "locate" && (
+        <>
+          <circle cx="12" cy="12" r="6" />
+          <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
         </>
       )}
       {name === "community" && (

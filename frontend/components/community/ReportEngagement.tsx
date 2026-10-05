@@ -12,6 +12,13 @@ import type {
   ReportEngagementResponse,
 } from "@/frontend/types";
 
+const COMMENT_SUGGESTIONS = [
+  "ขอบคุณที่แบ่งปันข้อมูล",
+  "ภาพเครื่องวัดอ่านได้ชัดเจน",
+  "ช่วยถ่ายภาพตัวเลขให้ชัดขึ้นได้ไหม",
+  "วัดในอาคารหรือกลางแจ้งครับ/คะ",
+];
+
 function initialEngagement(report: CommunityReport): ReportEngagementResponse {
   return {
     like_count: report.like_count ?? 0,
@@ -182,12 +189,39 @@ export default function ReportEngagement({
           {signedIn && (
             <form onSubmit={submitComment}>
               <label htmlFor={`comment-${report.id}`}>เขียนความคิดเห็น</label>
-              <div>
-                <input
+              <p
+                className="cp-report-comments__hint"
+                id={`comment-hint-${report.id}`}
+              >
+                เลือกข้อความแนะนำแล้วแก้ไขได้ กรุณาแสดงความคิดเห็นอย่างสุภาพ
+              </p>
+              <div
+                className="cp-report-comments__suggestions"
+                role="group"
+                aria-label="ข้อความแนะนำ"
+              >
+                {COMMENT_SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    className="cp-focus"
+                    disabled={pending}
+                    aria-pressed={comment === suggestion}
+                    onClick={() => setComment(suggestion)}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+              <div className="cp-report-comments__composer">
+                <textarea
                   id={`comment-${report.id}`}
+                  aria-describedby={`comment-hint-${report.id}`}
                   value={comment}
                   maxLength={500}
-                  placeholder="ข้อมูลนี้เป็นประโยชน์อย่างไร"
+                  rows={2}
+                  disabled={pending}
+                  placeholder="เลือกข้อความด้านบนหรือพิมพ์ความคิดเห็น"
                   onChange={(event) => setComment(event.target.value)}
                 />
                 <button
