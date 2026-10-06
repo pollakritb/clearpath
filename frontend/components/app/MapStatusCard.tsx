@@ -14,6 +14,7 @@ interface MapStatusCardProps {
   report: CommunityReport | null;
   updatedAt: string | null;
   onClose: () => void;
+  onBackToPlace?: () => void;
   onOpenHistory?: () => void;
   historicalAt?: string | null;
 }
@@ -39,6 +40,7 @@ export default function MapStatusCard({
   report,
   updatedAt,
   onClose,
+  onBackToPlace,
   onOpenHistory,
   historicalAt = null,
 }: MapStatusCardProps) {
@@ -116,6 +118,15 @@ export default function MapStatusCard({
       aria-live="polite"
     >
       <div className="cp-map-selection-card__handle" aria-hidden />
+      {onBackToPlace && (
+        <button
+          type="button"
+          className="cp-map-selection-card__back cp-focus"
+          onClick={onBackToPlace}
+        >
+          ← กลับไปยังสถานที่
+        </button>
+      )}
       <button
         type="button"
         className="cp-map-selection-card__close cp-focus"

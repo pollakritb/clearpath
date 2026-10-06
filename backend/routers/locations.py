@@ -1,18 +1,26 @@
-"""Privacy-safe location search using only the bundled Nakhon Pathom gazetteer."""
+"""Search places in Thailand without exposing the provider key to browsers."""
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 
 from ..models.locations import LocationSearchResponse, LocationSuggestion
-from ..services.gazetteer import search_locations
+from ..services.places import search_places
 
 router = APIRouter()
 
 
 @router.get("/locations/search", response_model=LocationSearchResponse)
-def location_search(
-    q: str = Query(..., min_length=2, max_length=100),
+async def location_search(
+    response: Response,
+    q: str = Query(..., min_length=3, max_length=100),
     limit: int = Query(10, ge=1, le=20),
 ):
+    locations, coverage = await search_places(q, limit)
+    response.headers["Cache-Control"] = (
+        "public, max-age=60, s-maxage=300"
+        if coverage == "nationwide"
+        else "public, max-age=15, s-maxage=30"
+    )
     return LocationSearchResponse(
-        locations=[LocationSuggestion(**row) for row in search_locations(q, limit)]
+        locations=[LocationSuggestion(**row) for row in locations],
+        coverage=coverage,
     )

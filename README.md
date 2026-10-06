@@ -198,6 +198,24 @@ $env:CAPTURE_SESSION_SECRET="local-only-secret-at-least-32-characters"
 ตั้ง `BACKEND_ORIGIN=http://127.0.0.1:8011` แล้วรัน `npm run dev` ตามปกติ
 ข้อมูล demo จะหายเมื่อปิด Backend และโหมดนี้จะไม่เปิดเองโดยอัตโนมัติใน production
 
+### Place search on the map
+
+Users explicitly submit a place search with Enter or the search button. In
+local development without `GEOAPIFY_API_KEY`, the server uses the public
+OpenStreetMap Nominatim service (cached, rate-limited to one request per second,
+with attribution). It must never be used for autocomplete, scheduled queries, or
+production traffic. Production place search requires a server-only
+`GEOAPIFY_API_KEY`; without one, the bundled gazetteer is the limited fallback.
+The browser only calls `/api/locations/search` and never receives a provider key.
+The OpenStreetMap/Leaflet map is retained; this feature does not use Google
+Places results on a non-Google map.
+
+Selecting a place enters a temporary 5 km focus mode. Its main PM2.5 value uses
+only fresh Air4Thai stations within that radius (one station as a reference,
+multiple via IDW). Community reports appear as supplementary evidence and do
+not generate a headline value on their own. Leaving focus mode restores the
+previous map layers and viewport.
+
 ## API
 
 | Method · Path                                     | หน้าที่                                                               |

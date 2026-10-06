@@ -1,7 +1,8 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { MapContainer, Marker, TileLayer } from "react-leaflet";
+import L from "leaflet";
+import { Circle, MapContainer, Marker, TileLayer } from "react-leaflet";
 
 import {
   DEFAULT_ZOOM,
@@ -31,6 +32,7 @@ export interface MapViewProps {
   reportPin: { lat: number; lon: number } | null;
   userLocation?: { lat: number; lon: number; accuracy: number } | null;
   focusPoint?: { lat: number; lon: number } | null;
+  placePoint?: { lat: number; lon: number; radiusKm: number } | null;
   showHeatmap: boolean;
   showStations: boolean;
   showIndividualReports: boolean;
@@ -51,6 +53,7 @@ export default function MapView({
   reportPin,
   userLocation = null,
   focusPoint = null,
+  placePoint = null,
   showHeatmap,
   showStations,
   showIndividualReports,
@@ -77,6 +80,34 @@ export default function MapView({
       scrollWheelZoom
     >
       <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
+
+      {placePoint && (
+        <>
+          <Circle
+            center={[placePoint.lat, placePoint.lon]}
+            radius={placePoint.radiusKm * 1000}
+            pathOptions={{
+              color: "#35706c",
+              weight: 2,
+              dashArray: "7 6",
+              fillColor: "#d7ebe8",
+              fillOpacity: 0.13,
+            }}
+          />
+          <Marker
+            position={[placePoint.lat, placePoint.lon]}
+            icon={L.divIcon({
+              className: "cp-place-marker",
+              html: '<span class="cp-place-marker__symbol" aria-hidden="true">⌖</span>',
+              iconSize: [42, 42],
+              iconAnchor: [21, 21],
+            })}
+            title="สถานที่ที่เลือก"
+            alt="สถานที่ที่เลือก"
+            zIndexOffset={1200}
+          />
+        </>
+      )}
 
       {showHeatmap && (
         <IdwSurface stations={surfaceStations} min={pmMin} max={pmMax} />
@@ -114,7 +145,7 @@ export default function MapView({
       )}
 
       <AutoResize />
-      <ViewportController target={focusPoint} />
+      <ViewportController target={focusPoint} radiusKm={placePoint?.radiusKm} />
       {onViewportChange && <ViewportReporter onChange={onViewportChange} />}
       <MapControls onLocate={onLocate} hasLocation={Boolean(userLocation)} />
       <ClickHandler onClick={onMapClick} />

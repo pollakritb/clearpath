@@ -80,7 +80,7 @@ export default function MapChrome({
       <div className="cp-map-actions" aria-label="เครื่องมือแผนที่">
         <MapAction
           icon="search"
-          label="ค้นหาสถานีหรือพื้นที่"
+          label="ค้นหาสถานที่หรือสถานี"
           panelId="cp-map-search-panel"
           active={openPanel === "search"}
           onClick={() => togglePanel("search")}

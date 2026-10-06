@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import MapChrome from "@/frontend/components/app/MapChrome";
 import MapStatusCard from "@/frontend/components/app/MapStatusCard";
+import PlaceAirCard from "@/frontend/components/app/PlaceAirCard";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import ListView from "@/frontend/components/panels/ListView";
@@ -18,6 +19,7 @@ import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
 import { useMapHistory } from "@/frontend/hooks/useMapHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
+import { assessPlaceAir, PLACE_RADIUS_KM } from "@/frontend/lib/place-air";
 import {
   buildCurrentSurfaceStations,
   countCommunitySources,
@@ -49,6 +51,10 @@ export default function MapPageClient({
   const [selectedReport, setSelectedReport] = useState<CommunityReport | null>(
     null,
   );
+  const [selectedPlace, setSelectedPlace] = useState<LocationSuggestion | null>(
+    null,
+  );
+  const [placeClock, setPlaceClock] = useState(() => Date.now());
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showStations, setShowStations] = useState(true);
   const [showIndividualReports, setShowIndividualReports] = useState(true);
@@ -63,6 +69,23 @@ export default function MapPageClient({
   const [locatedManually, setLocatedManually] =
     useState<CurrentLocation | null>(null);
   const userLocation = locatedManually ?? currentLocation.location;
+
+  useEffect(() => {
+    if (!selectedPlace) return;
+    const refreshPlace = () => {
+      setPlaceClock(Date.now());
+      void pm25.refresh();
+      void community.refresh();
+    };
+    const clock = window.setInterval(() => setPlaceClock(Date.now()), 60_000);
+    const refreshTimer = window.setInterval(refreshPlace, 5 * 60_000);
+    return () => {
+      window.clearInterval(clock);
+      window.clearInterval(refreshTimer);
+    };
+    // Keep polling tied to focus-mode changes, not hook object identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlace?.id]);
 
   const loadFires = firms.load;
   useEffect(() => {
@@ -102,6 +125,27 @@ export default function MapPageClient({
   const visibleSurfaceStations = historyEnabled
     ? visibleStations.filter((station) => station.eligible_for_surface)
     : currentSurfaceStations;
+  const placeAir = useMemo(
+    () =>
+      selectedPlace
+        ? assessPlaceAir(
+            selectedPlace.lat,
+            selectedPlace.lon,
+            serviceAreaStations,
+            community.reports,
+            new Date(placeClock),
+          )
+        : null,
+    [selectedPlace, serviceAreaStations, community.reports, placeClock],
+  );
+  const mapStations = placeAir
+    ? placeAir.stations.map(({ station }) => station)
+    : visibleStations;
+  const mapReports = placeAir
+    ? placeAir.reports.map(({ report }) => report)
+    : historyEnabled
+      ? []
+      : community.reports;
 
   const refresh = useCallback(() => {
     const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
@@ -122,18 +166,31 @@ export default function MapPageClient({
   const map = (
     <main className="cp-map">
       <MapView
-        stations={visibleStations}
+        stations={mapStations}
         surfaceStations={visibleSurfaceStations}
-        fires={!historyEnabled && showFires ? firms.fires : []}
-        reports={historyEnabled ? [] : community.reports}
+        fires={
+          !selectedPlace && !historyEnabled && showFires ? firms.fires : []
+        }
+        reports={mapReports}
         reportPin={null}
         userLocation={userLocation}
         focusPoint={effectiveFocusPoint}
-        showHeatmap={showHeatmap}
-        showStations={showStations}
-        showIndividualReports={!historyEnabled && showIndividualReports}
+        placePoint={
+          selectedPlace
+            ? {
+                lat: selectedPlace.lat,
+                lon: selectedPlace.lon,
+                radiusKm: PLACE_RADIUS_KM,
+              }
+            : null
+        }
+        showHeatmap={!selectedPlace && showHeatmap}
+        showStations={Boolean(selectedPlace) || showStations}
+        showIndividualReports={
+          Boolean(selectedPlace) || (!historyEnabled && showIndividualReports)
+        }
         onMapClick={(lat, lon) => {
-          setFocusPoint({ lat, lon });
+          if (!selectedPlace) setFocusPoint({ lat, lon });
           setSelectedStation(null);
           setSelectedReport(null);
         }}
@@ -142,6 +199,7 @@ export default function MapPageClient({
         selectedStationId={selectedStation?.id}
         selectedReportId={selectedReport?.id}
         onLocate={(lat, lon, accuracy = 0) => {
+          setSelectedPlace(null);
           setLocatedManually({ lat, lon, accuracy });
           setFocusPoint({ lat, lon });
         }}
@@ -170,10 +228,19 @@ export default function MapPageClient({
         }
         onToggleFires={() => setShowFires((value) => !value)}
         onLocationSelect={(location: LocationSuggestion) => {
+          void pm25.refresh();
+          void community.refresh();
+          setPlaceClock(Date.now());
+          setHistoryEnabled(false);
+          mapHistory.clear();
+          setSelectedStation(null);
+          setSelectedReport(null);
+          setSelectedPlace(location);
           setFocusPoint({ lat: location.lat, lon: location.lon });
           setViewMode("map");
         }}
         onStationSelect={(station) => {
+          setSelectedPlace(null);
           selectStation(station);
           setFocusPoint({ lat: station.lat, lon: station.lon });
           setViewMode("map");
@@ -181,14 +248,27 @@ export default function MapPageClient({
       />
       {viewMode === "list" && (
         <ListView
-          stations={visibleStations}
+          stations={mapStations}
           onSelectStation={(station) => {
             selectStation(station);
             setViewMode("map");
           }}
         />
       )}
-      {historyEnabled && !selectedStation ? (
+      {selectedPlace && placeAir && !selectedStation && !selectedReport ? (
+        <PlaceAirCard
+          place={selectedPlace}
+          air={placeAir}
+          onSelectStation={selectStation}
+          onSelectReport={selectReport}
+          loading={pm25.loading}
+          dataError={pm25.error}
+          onClose={() => {
+            setSelectedPlace(null);
+            setFocusPoint(null);
+          }}
+        />
+      ) : historyEnabled && !selectedStation ? (
         <MapHistoryControls
           offsetHours={historyOffsetHours}
           targetAt={mapHistory.targetAt}
@@ -213,7 +293,7 @@ export default function MapPageClient({
           updatedAt={pm25.updatedAt}
           historicalAt={historyEnabled ? mapHistory.targetAt : null}
           onOpenHistory={
-            historyEnabled
+            historyEnabled || selectedPlace
               ? undefined
               : () => {
                   setHistoryEnabled(true);
@@ -225,6 +305,14 @@ export default function MapPageClient({
             setSelectedStation(null);
             setSelectedReport(null);
           }}
+          onBackToPlace={
+            selectedPlace
+              ? () => {
+                  setSelectedStation(null);
+                  setSelectedReport(null);
+                }
+              : undefined
+          }
         />
       )}
     </main>

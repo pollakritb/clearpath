@@ -1,12 +1,14 @@
 export interface LocationSuggestion {
   id: string;
   name: string;
-  district: string;
-  kind: "district" | "subdistrict";
+  address: string;
+  kind: string;
+  source: "geoapify" | "openstreetmap" | "local";
   lat: number;
   lon: number;
 }
 
 export interface LocationSearchResponse {
   locations: LocationSuggestion[];
+  coverage: "nationwide" | "limited";
 }

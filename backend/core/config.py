@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     # External APIs
     openweather_api_key: str = ""
+    geoapify_api_key: str = ""
     firms_map_key: str = ""
     air4thai_url: str = "http://air4thai.pcd.go.th/services/getNewAQI_JSON.php"
     openweather_air_enabled: bool = True
