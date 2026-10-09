@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createPendingReport } from "./support/community-report";
+import { submitUnreadableReport } from "./support/community-report";
 
 test("readiness verifies a fresh local source of truth", async ({
   request,
@@ -12,11 +12,11 @@ test("readiness verifies a fresh local source of truth", async ({
   expect(body.fresh_station_count).toBeGreaterThan(0);
 });
 
-test("uncertain report remains private and enters the exception queue @stateful-360", async ({
+test("unreadable report is rejected automatically and remains private @stateful-360", async ({
   request,
 }) => {
-  const report = await createPendingReport(request);
-  expect(report.status).toBe("pending");
+  const report = await submitUnreadableReport(request);
+  expect(report.status).toBe("rejected");
   expect(report.pm25).toBeNull();
 
   const publicResponse = await request.get("/api/community/reports");

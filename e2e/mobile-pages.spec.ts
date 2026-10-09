@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-import { createPendingReport } from "./support/community-report";
+import { submitUnreadableReport } from "./support/community-report";
 
 const pages = [
   { path: "/", text: "คุณภาพอากาศทั่วไทย" },
@@ -1083,57 +1083,40 @@ test("admin triages a data issue and sees its audit trail @stateful-360", async 
   await expect(page.getByText("data_issue_transitioned").first()).toBeVisible();
 });
 
-test("admin approves and rejects exception reports with evidence @stateful-360", async ({
+test("admin can inspect an automatically rejected OCR report without review controls @stateful-360", async ({
   page,
   request,
 }) => {
   const suffix = Date.now();
-  const approved = await createPendingReport(request, {
-    deviceModel: `Approve Meter ${suffix}`,
-    pm25: 38.4,
-  });
-  const rejected = await createPendingReport(request, {
+  const rejected = await submitUnreadableReport(request, {
     deviceModel: `Reject Meter ${suffix}`,
     pm25: 91.2,
   });
+  expect(rejected.status).toBe("rejected");
 
   await page.goto("/admin");
-  await page.getByRole("button", { name: /ข้อยกเว้น OCR|OCR/ }).click();
-
-  const approveCard = page
-    .locator(".cp-admin-report-card")
-    .filter({ hasText: `Approve Meter ${suffix}` });
-  await expect(approveCard).toBeVisible();
-  for (const checkbox of await approveCard.getByRole("checkbox").all()) {
-    await checkbox.check();
-  }
-  await approveCard.getByLabel("ค่า PM2.5 ที่ Admin อ่านจากภาพ").fill("39.1");
-  await approveCard
-    .getByLabel(/ผลตรวจและเหตุผล/)
-    .fill("ตรวจภาพ ตำแหน่ง เวลา และค่าบนหน้าจอครบแล้ว");
-  await approveCard.getByRole("button", { name: "อนุมัติค่าที่กรอก" }).click();
-  await expect(approveCard).toHaveCount(0);
+  await page
+    .getByRole("navigation", { name: "เมนูผู้ดูแล" })
+    .getByRole("button")
+    .filter({ hasText: "รายงาน" })
+    .click();
 
   const rejectCard = page
     .locator(".cp-admin-report-card")
     .filter({ hasText: `Reject Meter ${suffix}` });
   await expect(rejectCard).toBeVisible();
-  await rejectCard
-    .getByLabel("เหตุผลเมื่อปฏิเสธ")
-    .selectOption("image_unclear");
-  await rejectCard
-    .getByLabel(/ผลตรวจและเหตุผล/)
-    .fill("ตัวเลขบนหน้าจอไม่ชัดพอสำหรับยืนยันค่า");
-  await rejectCard.getByRole("button", { name: "ปฏิเสธ" }).click();
-  await expect(rejectCard).toHaveCount(0);
+  await expect(rejectCard.getByText("ไม่ผ่านเกณฑ์")).toBeVisible();
+  await expect(rejectCard.getByText("ไม่เผยแพร่บนแผนที่")).toBeVisible();
+  await expect(rejectCard.getByText(rejected.id)).toBeVisible();
+  await expect(
+    rejectCard.getByRole("button", { name: /อนุมัติ|ปฏิเสธ/ }),
+  ).toHaveCount(0);
 
   const publicReports = await request.get("/api/community/reports");
   expect(publicReports.status()).toBe(200);
   const rows = (await publicReports.json()).reports as Array<{
     id: string;
-    pm25: number;
   }>;
-  expect(rows.find((row) => row.id === approved.id)?.pm25).toBe(39.1);
   expect(rows.some((row) => row.id === rejected.id)).toBe(false);
 });
 

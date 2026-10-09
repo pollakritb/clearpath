@@ -29,7 +29,7 @@ function uniquePngEvidence(value: string): Buffer {
   return Buffer.concat([image.subarray(0, -12), chunk, image.subarray(-12)]);
 }
 
-export async function createPendingReport(
+export async function submitUnreadableReport(
   request: APIRequestContext,
   options: { deviceModel?: string; pm25?: number } = {},
 ): Promise<{ id: string; status: string; pm25: number | null }> {
@@ -64,8 +64,6 @@ export async function createPendingReport(
         user_claimed_pm25: options.pm25 ?? 42.5,
         hide_identity: true,
         device_model: options.deviceModel ?? "Acceptance Meter",
-        device_calibrated: true,
-        calibrated_at: "2026-07-01",
         measurement_environment: "outdoor",
         measurement_stable: true,
         near_emission_source: false,
