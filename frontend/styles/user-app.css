@@ -4175,17 +4175,10 @@
 }
 
 .cp-place-marker__symbol {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border: 3px solid #fff;
-  border-radius: 14px;
-  background: #124f4b;
-  box-shadow: 0 4px 15px rgba(9, 49, 46, 0.38);
-  color: #fff;
-  font-size: 1.8rem;
-  font-weight: 800;
+  width: 48px;
+  height: 56px;
+  display: block;
+  filter: drop-shadow(0 5px 8px rgba(9, 49, 46, 0.32));
 }
 
 .cp-place-card {
@@ -4288,6 +4281,53 @@
   flex: none;
 }
 
+.cp-place-card__details {
+  margin-top: 11px;
+  border-top: 1px solid #e4eeea;
+  padding-top: 10px;
+}
+
+.cp-place-card__details-toggle {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 5px 8px;
+  color: #275e59;
+  cursor: pointer;
+  list-style: none;
+}
+
+.cp-place-card__details-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.cp-place-card__details-toggle > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cp-place-card__details-toggle strong {
+  font-size: 0.78rem;
+}
+
+.cp-place-card__details-toggle small {
+  color: var(--cp-subink);
+  font-size: 0.67rem;
+}
+
+.cp-place-card__details-toggle svg {
+  flex: none;
+  transition: transform 180ms ease;
+}
+
+.cp-place-card__details[open] .cp-place-card__details-toggle svg {
+  transform: rotate(90deg);
+}
+
 .cp-place-card__sources h2 {
   display: flex;
   justify-content: space-between;
@@ -4382,7 +4422,7 @@
 
 .cp-place-card__attribution {
   display: block;
-  margin-top: 9px;
+  margin-top: 6px;
   color: var(--cp-subink);
   font-size: 0.6rem;
 }

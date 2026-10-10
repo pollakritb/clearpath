@@ -109,9 +109,9 @@ export default function MapView({
             position={[placePoint.lat, placePoint.lon]}
             icon={L.divIcon({
               className: "cp-place-marker",
-              html: '<span class="cp-place-marker__symbol" aria-hidden="true">⌖</span>',
-              iconSize: [42, 42],
-              iconAnchor: [21, 21],
+              html: '<span class="cp-place-marker__symbol" aria-hidden="true"><svg viewBox="0 0 48 56" width="48" height="56" fill="none"><path d="M24 2C11.85 2 3 11.15 3 22.75c0 15.5 21 30.5 21 30.5s21-15 21-30.5C45 11.15 36.15 2 24 2Z" fill="#195D58" stroke="white" stroke-width="3"/><circle cx="24" cy="23" r="8" fill="white"/><circle cx="24" cy="23" r="3.5" fill="#195D58"/></svg></span>',
+              iconSize: [48, 56],
+              iconAnchor: [24, 53],
             })}
             title="สถานที่ที่เลือก"
             alt="สถานที่ที่เลือก"

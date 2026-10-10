@@ -78,14 +78,6 @@ export default function PlaceAirCard({
               ไม่มีสถานี Air4Thai ที่ข้อมูลสดภายใน {PLACE_RADIUS_KM} กม.
             </span>
           </>
-        ) : place.source === "openstreetmap" ? (
-          <a
-            href="https://www.openstreetmap.org/copyright"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            © OpenStreetMap contributors
-          </a>
         ) : (
           <>
             <small>
@@ -112,88 +104,102 @@ export default function PlaceAirCard({
         คือระยะค้นหาข้อมูล ไม่ใช่พื้นที่ที่ฝุ่นมีค่าเท่ากัน
       </p>
 
-      <div className="cp-place-card__sources">
-        <h2>
-          สถานีตรวจวัด <small>{air.stations.length} แห่งในวง</small>
-        </h2>
-        {air.stations.length ? (
-          air.stations.map(({ station, distanceKm, ageMinutes, usable }) => (
-            <button
-              key={station.id}
-              type="button"
-              className="cp-place-card__source cp-focus"
-              onClick={() => onSelectStation(station)}
-            >
-              <span className="cp-place-card__source-icon" data-kind="official">
-                <AppIcon name="station" size={17} />
-              </span>
-              <span className="cp-place-card__source-copy">
-                <strong>
-                  {station.name_th ?? station.name_en ?? station.id}
-                </strong>
-                <small>
-                  {distance(distanceKm)} · {age(ageMinutes)} ·{" "}
-                  {usable
-                    ? "ใช้ประเมิน"
-                    : station.pm25 == null
-                      ? "ไม่มีค่าฝุ่น"
-                      : "ข้อมูลไม่สด"}
-                </small>
-              </span>
-              <b>{station.pm25 == null ? "—" : station.pm25.toFixed(1)}</b>
-            </button>
-          ))
-        ) : (
-          <p className="cp-place-card__empty">
-            ไม่มีสถานีในวงนี้
-            {air.nearestStation
-              ? ` · ใกล้สุด ${distance(air.nearestStation.distanceKm)}`
-              : ""}
-          </p>
-        )}
+      <details className="cp-place-card__details">
+        <summary className="cp-place-card__details-toggle cp-focus">
+          <span>
+            <strong>ดูข้อมูลภายในวง {PLACE_RADIUS_KM} กม.</strong>
+            <small>
+              {air.stations.length} สถานี · {air.reports.length} รายงานจากบุคคล
+            </small>
+          </span>
+          <AppIcon name="chevron" size={19} />
+        </summary>
+        <div className="cp-place-card__sources">
+          <h2>
+            สถานีตรวจวัด <small>{air.stations.length} แห่งในวง</small>
+          </h2>
+          {air.stations.length ? (
+            air.stations.map(({ station, distanceKm, ageMinutes, usable }) => (
+              <button
+                key={station.id}
+                type="button"
+                className="cp-place-card__source cp-focus"
+                onClick={() => onSelectStation(station)}
+              >
+                <span
+                  className="cp-place-card__source-icon"
+                  data-kind="official"
+                >
+                  <AppIcon name="station" size={17} />
+                </span>
+                <span className="cp-place-card__source-copy">
+                  <strong>
+                    {station.name_th ?? station.name_en ?? station.id}
+                  </strong>
+                  <small>
+                    {distance(distanceKm)} · {age(ageMinutes)} ·{" "}
+                    {usable
+                      ? "ใช้ประเมิน"
+                      : station.pm25 == null
+                        ? "ไม่มีค่าฝุ่น"
+                        : "ข้อมูลไม่สด"}
+                  </small>
+                </span>
+                <b>{station.pm25 == null ? "—" : station.pm25.toFixed(1)}</b>
+              </button>
+            ))
+          ) : (
+            <p className="cp-place-card__empty">
+              ไม่มีสถานีในวงนี้
+              {air.nearestStation
+                ? ` · ใกล้สุด ${distance(air.nearestStation.distanceKm)}`
+                : ""}
+            </p>
+          )}
 
-        <h2>
-          รายงานจากบุคคล <small>{air.reports.length} รายงานในวง</small>
-        </h2>
-        <p className="cp-place-card__note">
-          ข้อมูลประกอบ ไม่ได้นำมาคำนวณค่าหลัก · ระยะจากพิกัดสาธารณะโดยประมาณ
-        </p>
-        {air.reports.length ? (
-          air.reports.map(({ report, distanceKm, ageMinutes }) => (
-            <button
-              key={report.id}
-              type="button"
-              className="cp-place-card__source cp-focus"
-              onClick={() => onSelectReport(report)}
-            >
-              <span className="cp-place-card__source-icon" data-kind="report">
-                <AppIcon name="user" size={17} />
-              </span>
-              <span className="cp-place-card__source-copy">
-                <strong>
-                  {report.show_reporter_profile
-                    ? (report.display_name ?? "ผู้รายงาน")
-                    : "ผู้รายงานไม่เปิดเผยตัวตน"}
-                </strong>
-                <small>
-                  {distance(distanceKm, true)} · {age(ageMinutes)} ·
-                  ดูภาพและรายละเอียด
-                </small>
-              </span>
-              <b>{report.pm25?.toFixed(1)}</b>
-            </button>
-          ))
-        ) : (
-          <p className="cp-place-card__empty">ไม่มีรายงานที่เผยแพร่ในวงนี้</p>
-        )}
-      </div>
-      <button
-        type="button"
-        className="cp-place-card__reset cp-focus"
-        onClick={onClose}
-      >
-        กลับสู่แผนที่รวม
-      </button>
+          <h2>
+            รายงานจากบุคคล <small>{air.reports.length} รายงานในวง</small>
+          </h2>
+          <p className="cp-place-card__note">
+            ข้อมูลประกอบ ไม่ได้นำมาคำนวณค่าหลัก · ระยะจากพิกัดสาธารณะโดยประมาณ
+          </p>
+          {air.reports.length ? (
+            air.reports.map(({ report, distanceKm, ageMinutes }) => (
+              <button
+                key={report.id}
+                type="button"
+                className="cp-place-card__source cp-focus"
+                onClick={() => onSelectReport(report)}
+              >
+                <span className="cp-place-card__source-icon" data-kind="report">
+                  <AppIcon name="user" size={17} />
+                </span>
+                <span className="cp-place-card__source-copy">
+                  <strong>
+                    {report.show_reporter_profile
+                      ? (report.display_name ?? "ผู้รายงาน")
+                      : "ผู้รายงานไม่เปิดเผยตัวตน"}
+                  </strong>
+                  <small>
+                    {distance(distanceKm, true)} · {age(ageMinutes)} ·
+                    ดูภาพและรายละเอียด
+                  </small>
+                </span>
+                <b>{report.pm25?.toFixed(1)}</b>
+              </button>
+            ))
+          ) : (
+            <p className="cp-place-card__empty">ไม่มีรายงานที่เผยแพร่ในวงนี้</p>
+          )}
+        </div>
+        <button
+          type="button"
+          className="cp-place-card__reset cp-focus"
+          onClick={onClose}
+        >
+          กลับสู่แผนที่รวม
+        </button>
+      </details>
       <small className="cp-place-card__attribution">
         ข้อมูลสถานที่:{" "}
         {place.source === "geoapify" ? (
@@ -203,6 +209,14 @@ export default function PlaceAirCard({
             rel="noopener noreferrer"
           >
             Powered by Geoapify
+          </a>
+        ) : place.source === "openstreetmap" ? (
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            © OpenStreetMap contributors
           </a>
         ) : (
           "ข้อมูลท้องถิ่น ClearPath"
