@@ -27,11 +27,10 @@ test("place focus shows a five-kilometre evidence area and restores the map", as
   await page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี" }).click();
   await page
     .getByPlaceholder("ชื่อสถานที่ ที่อยู่ หรือสถานี")
-    .fill("สถานที่ทดสอบ");
-  await expect(page.getByRole("button", { name: /สถานที่ทดสอบ/ })).toHaveCount(
-    0,
-  );
-  await page.getByRole("button", { name: "ค้นหา", exact: true }).click();
+    .fill("สถานที่ทด");
+  await expect(
+    page.getByRole("button", { name: /สถานที่ทดสอบ/ }),
+  ).toBeVisible();
   await page.getByRole("button", { name: /สถานที่ทดสอบ/ }).click();
 
   const card = page.getByRole("region", { name: "ค่าฝุ่นรอบสถานที่ที่เลือก" });

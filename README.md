@@ -196,12 +196,13 @@ $env:CAPTURE_SESSION_SECRET="local-only-secret-at-least-32-characters"
 
 ### Place search on the map
 
-Users explicitly submit a place search with Enter or the search button. In
-local development without `GEOAPIFY_API_KEY`, the server uses the public
-OpenStreetMap Nominatim service (cached, rate-limited to one request per second,
-with attribution). It must never be used for autocomplete, scheduled queries, or
-production traffic. Production place search requires a server-only
-`GEOAPIFY_API_KEY`; without one, the bundled gazetteer is the limited fallback.
+Place suggestions appear after typing at least three characters (450 ms debounce);
+Enter and the search button also work. The server uses Geoapify when a server-only
+`GEOAPIFY_API_KEY` is configured. Otherwise it uses the public Photon demo API
+for partial-name search in Thailand, with one-hour caching and OpenStreetMap
+attribution. Photon has no availability guarantee and may rate-limit traffic;
+configure Geoapify for reliable production scale. If the provider is unavailable,
+the bundled gazetteer is a limited fallback.
 The browser only calls `/api/locations/search` and never receives a provider key.
 The OpenStreetMap/Leaflet map is retained; this feature does not use Google
 Places results on a non-Google map.

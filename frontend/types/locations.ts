@@ -3,7 +3,7 @@ export interface LocationSuggestion {
   name: string;
   address: string;
   kind: string;
-  source: "geoapify" | "openstreetmap" | "local";
+  source: "geoapify" | "openstreetmap" | "photon" | "local";
   lat: number;
   lon: number;
 }

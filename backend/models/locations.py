@@ -10,7 +10,7 @@ class LocationSuggestion(BaseModel):
     name: str
     address: str
     kind: str
-    source: Literal["geoapify", "openstreetmap", "local"]
+    source: Literal["geoapify", "openstreetmap", "photon", "local"]
     lat: float
     lon: float
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api } from "@/frontend/lib/api-client";
@@ -14,6 +14,7 @@ interface MapSearchPanelProps {
 }
 
 const MINIMUM_QUERY_LENGTH = 3;
+const SEARCH_DEBOUNCE_MS = 450;
 
 export default function MapSearchPanel({
   stations,
@@ -31,15 +32,16 @@ export default function MapSearchPanel({
   const [searchFailed, setSearchFailed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchSequence = useRef(0);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const normalizedQuery = query.trim().toLocaleLowerCase("th");
   const canSearch = normalizedQuery.length >= MINIMUM_QUERY_LENGTH;
   const visibleLocations = canSearch ? locations : [];
-  const stationMatches = searchedQuery
+  const stationMatches = canSearch
     ? stations
         .filter((station) =>
           `${station.id} ${station.name_th ?? ""} ${station.name_en ?? ""} ${station.province ?? ""}`
             .toLocaleLowerCase("th")
-            .includes(searchedQuery.toLocaleLowerCase("th")),
+            .includes(normalizedQuery),
         )
         .slice(0, 6)
     : [];
@@ -48,10 +50,7 @@ export default function MapSearchPanel({
     searchRef.current?.focus();
   }, []);
 
-  async function submitSearch(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canSearch) return;
-    const submitted = query.trim();
+  const runSearch = useCallback(async (submitted: string) => {
     const sequence = ++searchSequence.current;
     setSearchedQuery(submitted);
     setSearchFailed(false);
@@ -69,6 +68,27 @@ export default function MapSearchPanel({
     } finally {
       if (sequence === searchSequence.current) setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    if (query.trim().length < MINIMUM_QUERY_LENGTH) return;
+    searchTimer.current = setTimeout(() => {
+      searchTimer.current = null;
+      void runSearch(query.trim());
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      searchTimer.current = null;
+      searchSequence.current += 1;
+    };
+  }, [query, runSearch]);
+
+  function submitSearch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canSearch) return;
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = null;
+    void runSearch(query.trim());
   }
 
   function selectStation(station: Station) {
@@ -121,6 +141,8 @@ export default function MapSearchPanel({
             onChange={(event) => updateQuery(event.target.value)}
             placeholder="ชื่อสถานที่ ที่อยู่ หรือสถานี"
             aria-label="คำค้นหา"
+            autoComplete="off"
+            type="search"
           />
         </label>
         <button
@@ -131,9 +153,9 @@ export default function MapSearchPanel({
           ค้นหา
         </button>
       </form>
-      {!searchedQuery && canSearch && (
+      {!searchedQuery && canSearch && !stationMatches.length && (
         <p className="cp-map-search-panel__hint">
-          กดค้นหาหรือ Enter เพื่อค้นหาสถานที่จริงทั่วไทย
+          พิมพ์ชื่อสถานที่บางส่วน แล้วเลือกจากคำแนะนำ
         </p>
       )}
 
@@ -145,12 +167,12 @@ export default function MapSearchPanel({
           กำลังค้นหาสถานที่…
         </p>
       )}
-      {searchedQuery && !loading && coverage === "limited" && (
+      {searchedQuery === query.trim() && !loading && coverage === "limited" && (
         <p className="cp-map-search-panel__hint" role="status">
           ค้นหาสถานที่ได้จำกัดเฉพาะข้อมูลท้องถิ่นในขณะนี้
         </p>
       )}
-      {searchedQuery &&
+      {searchedQuery === query.trim() &&
         !loading &&
         coverage &&
         !locations.length &&
@@ -161,7 +183,7 @@ export default function MapSearchPanel({
         )}
       {searchFailed && (
         <p className="cp-map-search-panel__hint" role="alert">
-          ค้นหาสถานที่ไม่สำเร็จ กรุณาลองอีกครั้ง
+          ค้นหาสถานที่ไม่สำเร็จ กรุณาลองอีกครั้งหรือกดค้นหา
         </p>
       )}
       {(stationMatches.length > 0 || visibleLocations.length > 0) && (
@@ -214,18 +236,14 @@ export default function MapSearchPanel({
         <a
           className="cp-map-search-attribution"
           href={
-            visibleLocations.some(
-              (location) => location.source === "openstreetmap",
-            )
+            visibleLocations.some((location) => location.source === "photon")
               ? "https://www.openstreetmap.org/copyright"
               : "https://www.geoapify.com/"
           }
           target="_blank"
           rel="noopener noreferrer"
         >
-          {visibleLocations.some(
-            (location) => location.source === "openstreetmap",
-          )
+          {visibleLocations.some((location) => location.source === "photon")
             ? "© OpenStreetMap contributors"
             : "Powered by Geoapify"}
         </a>
