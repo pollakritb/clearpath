@@ -100,6 +100,21 @@ export interface CommunityReport {
 export interface CommunityReportsResponse {
   reports: CommunityReport[];
   count: number;
+  stacks: CommunityReportStack[];
+}
+
+export interface CommunityReportStack {
+  id: string;
+  lat: number;
+  lon: number;
+  report_ids: string[];
+  report_count: number;
+  reporter_count: number;
+  latest_captured_at: string;
+  pm25: number | null;
+  value_status: "average" | "single" | "mixed" | "older";
+  contributing_count: number;
+  contributing_report_ids: string[];
 }
 
 export interface CommunityMapPoint {

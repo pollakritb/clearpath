@@ -13,6 +13,7 @@ import type {
   Announcement,
   CommunityMapPoint,
   CommunityReport,
+  CommunityReportStack,
   LeaderboardEntry,
 } from "@/frontend/types";
 
@@ -22,7 +23,11 @@ async function loadCommunityMapData(includeReports: boolean) {
   return Promise.allSettled([
     includeReports
       ? api.communityReports()
-      : Promise.resolve({ reports: [] as CommunityReport[], count: 0 }),
+      : Promise.resolve({
+          reports: [] as CommunityReport[],
+          stacks: [],
+          count: 0,
+        }),
     api.communityMapPoints(),
   ]);
 }
@@ -32,6 +37,7 @@ export function useCommunityMapData({
   includeReports = true,
 }: { includeReports?: boolean } = {}) {
   const [reports, setReports] = useState<CommunityReport[]>([]);
+  const [stacks, setStacks] = useState<CommunityReportStack[]>([]);
   const [mapPoints, setMapPoints] = useState<CommunityMapPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +50,11 @@ export function useCommunityMapData({
       if (includeReports && (results[0].status === "fulfilled" || demo)) {
         const liveReports =
           results[0].status === "fulfilled" ? results[0].value.reports : [];
+        setStacks(
+          results[0].status === "fulfilled"
+            ? (results[0].value.stacks ?? [])
+            : [],
+        );
         setReports(
           demo ? [...buildDemoCommunityReports(), ...liveReports] : liveReports,
         );
@@ -105,7 +116,7 @@ export function useCommunityMapData({
     };
   }, [applyResults, includeReports]);
 
-  return { reports, mapPoints, loading, error, demoMode, refresh };
+  return { reports, stacks, mapPoints, loading, error, demoMode, refresh };
 }
 
 /** News feed data; it deliberately does not load map, rewards, or leaderboard. */

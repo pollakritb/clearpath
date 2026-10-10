@@ -9,7 +9,7 @@ from .engagement import (
     set_reaction,
 )
 from .feedback import create_data_issue
-from .presenter import list_reports, list_reviewable_reports
+from .presenter import list_public_map_reports, list_reports, list_reviewable_reports
 from .reviews import rate_report
 
 __all__ = [
@@ -19,6 +19,7 @@ __all__ = [
     "clear_reaction",
     "discard_draft",
     "list_reports",
+    "list_public_map_reports",
     "list_reviewable_reports",
     "get_engagement",
     "rate_report",

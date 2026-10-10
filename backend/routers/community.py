@@ -17,6 +17,7 @@ from ..models.schemas import (
     CommunityProfileResponse,
     CommunityReport,
     CommunityReportsResponse,
+    CommunityReportStack,
     DataIssueCreate,
     LeaderboardEntry,
     LeaderboardResponse,
@@ -90,9 +91,13 @@ async def local_image(image_path: str, token: str = Query(...)):
 
 @router.get("/community/reports", response_model=CommunityReportsResponse)
 async def reports(limit: int = Query(200, ge=1, le=500)):
-    rows = await run_in_threadpool(community_service.list_reports, "approved", limit)
+    rows, stacks = await run_in_threadpool(
+        community_service.list_public_map_reports, limit
+    )
     return CommunityReportsResponse(
-        reports=[CommunityReport(**r) for r in rows], count=len(rows)
+        reports=[CommunityReport(**r) for r in rows],
+        count=len(rows),
+        stacks=[CommunityReportStack(**stack) for stack in stacks],
     )
 
 

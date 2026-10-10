@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import MapChrome from "@/frontend/components/app/MapChrome";
 import MapStatusCard from "@/frontend/components/app/MapStatusCard";
 import PlaceAirCard from "@/frontend/components/app/PlaceAirCard";
+import ReportStackCard from "@/frontend/components/app/ReportStackCard";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import ListView from "@/frontend/components/panels/ListView";
@@ -26,6 +27,7 @@ import {
 } from "@/frontend/lib/dashboard";
 import type {
   CommunityReport,
+  CommunityReportStack,
   LocationSuggestion,
   Station,
 } from "@/frontend/types";
@@ -51,6 +53,7 @@ export default function MapPageClient({
   const [selectedReport, setSelectedReport] = useState<CommunityReport | null>(
     null,
   );
+  const [selectedStackId, setSelectedStackId] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<LocationSuggestion | null>(
     null,
   );
@@ -113,6 +116,12 @@ export default function MapPageClient({
     () => countCommunitySources(community.reports),
     [community.reports],
   );
+  const selectedStack =
+    community.stacks.find((stack) => stack.id === selectedStackId) ?? null;
+  const groupedReportIds = useMemo(
+    () => new Set(community.stacks.flatMap((stack) => stack.report_ids)),
+    [community.stacks],
+  );
   const effectiveFocusPoint =
     focusPoint ?? (community.demoMode ? DEMO_COMMUNITY_CENTER : null);
   const currentSurfaceStations = useMemo(
@@ -145,7 +154,13 @@ export default function MapPageClient({
     ? placeAir.reports.map(({ report }) => report)
     : historyEnabled
       ? []
-      : community.reports;
+      : community.reports.filter((report) => !groupedReportIds.has(report.id));
+  const mapStacks = historyEnabled || placeAir ? [] : community.stacks;
+  const selectedStackReports = selectedStack
+    ? selectedStack.report_ids
+        .map((id) => community.reports.find((report) => report.id === id))
+        .filter((report): report is CommunityReport => Boolean(report))
+    : [];
 
   const refresh = useCallback(() => {
     const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
@@ -156,10 +171,18 @@ export default function MapPageClient({
   const selectStation = useCallback((station: Station) => {
     setSelectedStation(station);
     setSelectedReport(null);
+    setSelectedStackId(null);
   }, []);
 
   const selectReport = useCallback((report: CommunityReport) => {
     setSelectedReport(report);
+    setSelectedStation(null);
+    setSelectedStackId(null);
+  }, []);
+
+  const selectStack = useCallback((stack: CommunityReportStack) => {
+    setSelectedStackId(stack.id);
+    setSelectedReport(null);
     setSelectedStation(null);
   }, []);
 
@@ -172,6 +195,7 @@ export default function MapPageClient({
           !selectedPlace && !historyEnabled && showFires ? firms.fires : []
         }
         reports={mapReports}
+        reportStacks={mapStacks}
         reportPin={null}
         userLocation={userLocation}
         focusPoint={effectiveFocusPoint}
@@ -193,13 +217,18 @@ export default function MapPageClient({
           if (!selectedPlace) setFocusPoint({ lat, lon });
           setSelectedStation(null);
           setSelectedReport(null);
+          setSelectedStackId(null);
         }}
         onSelectStation={selectStation}
         onSelectReport={selectReport}
+        onSelectReportStack={selectStack}
         selectedStationId={selectedStation?.id}
         selectedReportId={selectedReport?.id}
+        selectedReportStackId={selectedStack?.id}
         onLocate={(lat, lon, accuracy = 0) => {
           setSelectedPlace(null);
+          setSelectedStackId(null);
+          setSelectedReport(null);
           setLocatedManually({ lat, lon, accuracy });
           setFocusPoint({ lat, lon });
         }}
@@ -235,6 +264,7 @@ export default function MapPageClient({
           mapHistory.clear();
           setSelectedStation(null);
           setSelectedReport(null);
+          setSelectedStackId(null);
           setSelectedPlace(location);
           setFocusPoint({ lat: location.lat, lon: location.lon });
           setViewMode("map");
@@ -267,6 +297,13 @@ export default function MapPageClient({
             setSelectedPlace(null);
             setFocusPoint(null);
           }}
+        />
+      ) : selectedStack && !selectedReport && !selectedStation ? (
+        <ReportStackCard
+          stack={selectedStack}
+          reports={selectedStackReports}
+          onSelectReport={(report) => setSelectedReport(report)}
+          onClose={() => setSelectedStackId(null)}
         />
       ) : historyEnabled && !selectedStation ? (
         <MapHistoryControls
@@ -306,13 +343,16 @@ export default function MapPageClient({
             setSelectedReport(null);
           }}
           onBackToPlace={
-            selectedPlace
-              ? () => {
-                  setSelectedStation(null);
-                  setSelectedReport(null);
-                }
-              : undefined
+            selectedStack && selectedReport
+              ? () => setSelectedReport(null)
+              : selectedPlace
+                ? () => {
+                    setSelectedStation(null);
+                    setSelectedReport(null);
+                  }
+                : undefined
           }
+          backLabel={selectedStack ? "กลับไปยังกลุ่มรายงาน" : undefined}
         />
       )}
     </main>

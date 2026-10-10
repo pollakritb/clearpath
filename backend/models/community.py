@@ -99,9 +99,24 @@ class CommunityReport(BaseModel):
     comment_count: int = 0
 
 
+class CommunityReportStack(BaseModel):
+    id: str
+    lat: float
+    lon: float
+    report_ids: list[str]
+    report_count: int
+    reporter_count: int
+    latest_captured_at: str
+    pm25: float | None = None
+    value_status: Literal["average", "single", "mixed", "older"]
+    contributing_count: int
+    contributing_report_ids: list[str]
+
+
 class CommunityReportsResponse(BaseModel):
     reports: list[CommunityReport]
     count: int
+    stacks: list[CommunityReportStack] = Field(default_factory=list)
 
 
 class CommunityMapPoint(BaseModel):

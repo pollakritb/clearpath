@@ -15,6 +15,7 @@ interface MapStatusCardProps {
   updatedAt: string | null;
   onClose: () => void;
   onBackToPlace?: () => void;
+  backLabel?: string;
   onOpenHistory?: () => void;
   historicalAt?: string | null;
 }
@@ -41,6 +42,7 @@ export default function MapStatusCard({
   updatedAt,
   onClose,
   onBackToPlace,
+  backLabel = "กลับไปยังสถานที่",
   onOpenHistory,
   historicalAt = null,
 }: MapStatusCardProps) {
@@ -124,7 +126,7 @@ export default function MapStatusCard({
           className="cp-map-selection-card__back cp-focus"
           onClick={onBackToPlace}
         >
-          ← กลับไปยังสถานที่
+          ← {backLabel}
         </button>
       )}
       <button

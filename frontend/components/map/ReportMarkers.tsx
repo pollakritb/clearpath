@@ -7,7 +7,7 @@ import { classifyPm25 } from "@/frontend/lib/aqi";
 import { formatCommunityArea } from "@/frontend/lib/community-location";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
 import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
-import type { CommunityReport } from "@/frontend/types";
+import type { CommunityReport, CommunityReportStack } from "@/frontend/types";
 
 function reportIcon(
   color: string,
@@ -33,17 +33,50 @@ function reportIcon(
   });
 }
 
+function stackIcon(stack: CommunityReportStack, selected: boolean) {
+  const color = stack.pm25 == null ? "#58716d" : classifyPm25(stack.pm25).color;
+  const value = stack.pm25 == null ? "—" : String(Math.round(stack.pm25));
+  return L.divIcon({
+    className: "cp-marker cp-marker--report-stack",
+    html: `<div class="cp-report-stack-marker${selected ? " is-selected" : ""}" style="--marker-aqi:${color}"><strong>${value}</strong><span>${stack.report_count} รายงาน</span></div>`,
+    iconSize: [60, 60],
+    iconAnchor: [30, 30],
+  });
+}
+
 export default function ReportMarkers({
   reports,
+  stacks,
   onSelect,
+  onSelectStack,
   selectedId,
+  selectedStackId,
 }: {
   reports: CommunityReport[];
+  stacks: CommunityReportStack[];
   onSelect?: (report: CommunityReport) => void;
+  onSelectStack?: (stack: CommunityReportStack) => void;
   selectedId?: string | null;
+  selectedStackId?: string | null;
 }) {
   return (
     <>
+      {stacks.map((stack) => (
+        <Marker
+          key={stack.id}
+          position={[stack.lat, stack.lon]}
+          icon={stackIcon(stack, stack.id === selectedStackId)}
+          title={`${stack.report_count} รายงานจาก ${stack.reporter_count} คน${stack.pm25 == null ? "" : ` · PM2.5 ${stack.pm25} µg/m³`}`}
+          alt={`${stack.report_count} รายงานในบริเวณเดียวกัน`}
+          zIndexOffset={1500}
+          eventHandlers={{
+            click: (event) => {
+              L.DomEvent.stopPropagation(event.originalEvent);
+              onSelectStack?.(stack);
+            },
+          }}
+        />
+      ))}
       {reports.map((report) => {
         if (report.pm25 == null) return null;
         const source = communitySourceKind(report);

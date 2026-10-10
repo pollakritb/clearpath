@@ -6,6 +6,7 @@ from ...algorithms.community_quality import (
     obfuscate_coordinates,
 )
 from ...algorithms.distance import haversine_km
+from ...algorithms.report_stacks import group_report_stacks
 from ...algorithms.trust import (
     capture_age_minutes,
     is_report_fresh,
@@ -245,6 +246,30 @@ def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
     if status != "approved":
         return reports
     return [report for report in reports if report["is_fresh"]]
+
+
+def list_public_map_reports(limit: int = 200) -> tuple[list[dict], list[dict]]:
+    """Return public reports and stacks built from private coordinates in one snapshot."""
+    raw = supabase_client.list_community_reports("approved", limit)
+    official = supabase_client.get_stations()
+    reports = [
+        present_report(
+            row,
+            official_stations=official,
+            approved_reports=raw,
+            include_image=True,
+            include_exact_location=False,
+        )
+        for row in raw
+    ]
+    reports = [report for report in reports if report["is_fresh"]]
+    public_by_id = {report["id"]: report for report in reports}
+    stacks = group_report_stacks([row for row in raw if str(row["id"]) in public_by_id])
+    # A stack uses an already-public obfuscated pin, never its raw centroid.
+    for stack in stacks:
+        anchor = public_by_id[stack["report_ids"][0]]
+        stack["lat"], stack["lon"] = anchor["lat"], anchor["lon"]
+    return reports, stacks
 
 
 def list_reviewable_reports(

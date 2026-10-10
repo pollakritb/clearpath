@@ -10,7 +10,12 @@ import {
   OSM_ATTRIBUTION,
   OSM_TILE_URL,
 } from "@/frontend/lib/constants";
-import type { CommunityReport, FirePoint, Station } from "@/frontend/types";
+import type {
+  CommunityReport,
+  CommunityReportStack,
+  FirePoint,
+  Station,
+} from "@/frontend/types";
 import type { ViewportBounds } from "@/frontend/types/ui";
 
 import AutoResize from "./AutoResize";
@@ -29,6 +34,7 @@ export interface MapViewProps {
   surfaceStations: Station[];
   fires: FirePoint[];
   reports: CommunityReport[];
+  reportStacks: CommunityReportStack[];
   reportPin: { lat: number; lon: number } | null;
   userLocation?: { lat: number; lon: number; accuracy: number } | null;
   focusPoint?: { lat: number; lon: number } | null;
@@ -39,8 +45,10 @@ export interface MapViewProps {
   onMapClick: (lat: number, lon: number) => void;
   onSelectStation: (s: Station) => void;
   onSelectReport: (report: CommunityReport) => void;
+  onSelectReportStack: (stack: CommunityReportStack) => void;
   selectedStationId?: string | null;
   selectedReportId?: string | null;
+  selectedReportStackId?: string | null;
   onLocate?: (lat: number, lon: number, accuracy?: number) => void;
   onViewportChange?: (bounds: ViewportBounds) => void;
 }
@@ -50,6 +58,7 @@ export default function MapView({
   surfaceStations,
   fires,
   reports,
+  reportStacks,
   reportPin,
   userLocation = null,
   focusPoint = null,
@@ -60,8 +69,10 @@ export default function MapView({
   onMapClick,
   onSelectStation,
   onSelectReport,
+  onSelectReportStack,
   selectedStationId = null,
   selectedReportId = null,
+  selectedReportStackId = null,
   onLocate,
   onViewportChange,
 }: MapViewProps) {
@@ -122,8 +133,11 @@ export default function MapView({
       {showIndividualReports && (
         <ReportMarkers
           reports={reports}
+          stacks={reportStacks}
           onSelect={onSelectReport}
+          onSelectStack={onSelectReportStack}
           selectedId={selectedReportId}
+          selectedStackId={selectedReportStackId}
         />
       )}
       {fires.length > 0 && <FireLayer fires={fires} />}
