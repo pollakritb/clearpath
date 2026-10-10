@@ -5,7 +5,7 @@ GitHub Actions and Supabase Cron use independent server-only bearer tokens.
 
 import hmac
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import uuid4
 
@@ -70,6 +70,34 @@ def _verify_cron(authorization: str | None) -> SchedulerSource:
 @router.get("/cron/sync")
 async def cron_sync(authorization: str | None = Header(default=None)):
     scheduler = _verify_cron(authorization)
+    if scheduler == "github_backup":
+        try:
+            latest_primary = await run_in_threadpool(
+                supabase_client.latest_primary_sync_run
+            )
+            completed_at = (
+                latest_primary.get("completed_at") if latest_primary else None
+            )
+            if completed_at:
+                primary_time = datetime.fromisoformat(
+                    str(completed_at).replace("Z", "+00:00")
+                )
+                if primary_time.tzinfo is None:
+                    primary_time = primary_time.replace(tzinfo=UTC)
+                age = datetime.now(UTC) - primary_time.astimezone(UTC)
+                if timedelta(0) <= age < timedelta(minutes=30):
+                    return {
+                        "ok": True,
+                        "skipped": True,
+                        "reason": "recent_primary_sync",
+                        "last_primary_completed_at": completed_at,
+                    }
+        except (ValueError, TypeError):
+            logger.warning("invalid_primary_sync_timestamp")
+        except Exception:
+            # A failed status lookup must never disable the independent backup.
+            logger.exception("primary_sync_status_unavailable")
+
     run_id = str(uuid4())
     started_at = datetime.now(UTC).isoformat()
     await run_in_threadpool(

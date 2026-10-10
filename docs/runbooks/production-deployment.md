@@ -8,9 +8,9 @@ from being mistaken for a healthy data pipeline.
 1. Use separate Supabase projects for staging and production.
 2. Vercel Hobby is supported. `vercel.json` intentionally contains no Vercel
    cron entries because Hobby permits each cron only once per day. Supabase Cron
-   invokes Air4Thai sync every 15 minutes; the
-   `.github/workflows/production-scheduler.yml` workflow invokes all protected
-   production jobs twice hourly as an independent backup. Monitor GitHub Actions
+   invokes Air4Thai sync every 30 minutes; the
+   `.github/workflows/production-scheduler.yml` workflow checks sync twice hourly
+   but fetches Air4Thai only when the primary sync is not recent. Monitor GitHub Actions
    usage when the repository is private; public repositories use standard
    runners for free.
 3. Give production access only to named owners. Enable MFA on GitHub, Vercel,
@@ -216,9 +216,10 @@ project only:
 3. Store a different random bearer token as
    `clearpath_supabase_cron_secret`, and put the same value in Vercel Production
    as `SUPABASE_CRON_SECRET`.
-4. Apply `20260910_supabase_air4thai_cron.sql`. Confirm the active job
-   `clearpath-air4thai-sync-15m` has schedule `2,17,32,47 * * * *` and inspect
-   its run history.
+4. Apply `20260910_supabase_air4thai_cron.sql`, then
+   `20261010_air4thai_sync_30m.sql`. Confirm the only active Air4Thai job is
+   `clearpath-air4thai-sync-30m` with schedule `2,32 * * * *` and inspect its
+   run history.
 
 Then configure GitHub → repository Settings → Secrets and variables → Actions
 as the twice-hourly backup:
@@ -228,9 +229,9 @@ as the twice-hourly backup:
 2. Add repository secret `CRON_SECRET` with exactly the same value as the
    Vercel Production environment variable. Never store it as a plain variable.
 3. Open Actions → Production backup scheduler → Run workflow once. The run must
-   complete sync, alerts and evaluation with 2xx responses. Provider endpoints
-   also run every 3 hours for GISTDA (safe no-op while disabled), every 8 hours
-   for OpenWeather and every 12 hours for CAMS/Open-Meteo.
+   complete the conditional backup sync and alerts with 2xx responses. A recent
+   successful primary sync returns `skipped: true` instead of fetching Air4Thai
+   again; forecast provider jobs remain paused.
 4. Confirm the backup workflow is enabled on the default branch and runs at
    minutes 7 and 37 each hour. GitHub schedules may be delayed under load, so monitor
    the last successful run rather than expecting exact-to-the-minute execution.

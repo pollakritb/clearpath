@@ -5,6 +5,9 @@ import { useCallback, useEffect, useState } from "react";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { Station, StationsResponse } from "@/frontend/types";
 
+// Browser reads Supabase-backed API only; it never polls Air4Thai directly.
+const STATION_REFRESH_MS = 5 * 60 * 1000;
+
 export function usePm25() {
   const [stations, setStations] = useState<Station[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -35,6 +38,15 @@ export function usePm25() {
     }
   }, [applyResponse]);
 
+  const refreshSilently = useCallback(async () => {
+    try {
+      applyResponse(await api.pm25Current());
+      setError(null);
+    } catch (error) {
+      setError(apiErrorMessage(error, "โหลดข้อมูล PM2.5 ไม่สำเร็จ"));
+    }
+  }, [applyResponse]);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -53,6 +65,18 @@ export function usePm25() {
       cancelled = true;
     };
   }, [applyResponse]);
+
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") void refreshSilently();
+    };
+    const timer = window.setInterval(refreshIfVisible, STATION_REFRESH_MS);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+    };
+  }, [refreshSilently]);
 
   return { stations, updatedAt, counts, loading, error, refresh };
 }

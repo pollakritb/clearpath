@@ -3,7 +3,7 @@
 
 -- ───────────────────────────────────────────────────────────
 -- stations: ข้อมูลสถานี + ค่า PM2.5 "ปัจจุบัน" (denormalized)
---   cron upsert ทุกชั่วโมง → /api/pm25/current อ่านตารางนี้ตรงๆ (เร็ว)
+--   cron upsert ทุก 30 นาที → /api/pm25/current อ่านตารางนี้ตรงๆ (เร็ว)
 -- ───────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS stations (
   id           TEXT PRIMARY KEY,          -- stationID จาก air4thai (เช่น "01t")

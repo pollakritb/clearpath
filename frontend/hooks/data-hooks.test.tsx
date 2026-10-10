@@ -79,6 +79,38 @@ describe("data hooks", () => {
     expect(result.current.error).toBe("station offline");
   });
 
+  it("refreshes Supabase-backed stations while visible without a loading flash", async () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => usePm25());
+    await act(async () => {});
+    expect(result.current.loading).toBe(false);
+
+    apiMocks.pm25Current.mockResolvedValue({
+      ...stationsResponse,
+      updated_at: "2026-09-16T00:30:00Z",
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(5 * 60 * 1000));
+    expect(apiMocks.pm25Current).toHaveBeenCalledTimes(2);
+    expect(result.current.updatedAt).toBe("2026-09-16T00:30:00Z");
+    expect(result.current.loading).toBe(false);
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(5 * 60 * 1000));
+    expect(apiMocks.pm25Current).toHaveBeenCalledTimes(2);
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    await act(async () =>
+      document.dispatchEvent(new Event("visibilitychange")),
+    );
+    expect(apiMocks.pm25Current).toHaveBeenCalledTimes(3);
+  });
+
   it("loads and clears forecast, weather, and history states", async () => {
     apiMocks.forecast.mockResolvedValue({ station_id: "station-1" });
     apiMocks.weather.mockResolvedValue({ temperature: 30 });

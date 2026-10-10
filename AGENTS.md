@@ -28,7 +28,7 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 - IDW uses **haversine** (not Euclidean). ใช้สำหรับพื้นผิวค่าฝุ่นและ validation.
 - Forecast/trust algorithms ต้องเป็น pure functions, อธิบายผลได้ และมี unit tests.
 - Kriging (scipy/pykrige) is `requirements-dev` only — NOT deployed (function size). Prod interpolation = IDW.
-- Supabase is source of truth; air4thai is hit only by the hourly cron `/api/cron/sync`.
+- Supabase is source of truth; Air4Thai is hit by the 30-minute primary cron `/api/cron/sync` (GitHub backup runs only after a missed primary sync).
 - Community reports ใช้ `pending` เป็นสถานะภายในชั่วคราวระหว่างบันทึกเท่านั้น; เมื่อส่งเสร็จระบบต้องอนุมัติหรือปฏิเสธอัตโนมัติทันที ห้ามรอ Admin ตัดสิน.
 - Publication policy รุ่นปัจจุบันใช้ผล OCR แบบ number-only: ถ้าอ่านตัวเลข PM2.5 ได้ให้นำค่า OCR ขึ้นทันที; ถ้าอ่านไม่ได้ให้ `rejected` พร้อมเหตุผลและให้ผู้ใช้ถ่ายใหม่. Confidence, device/display flags, burst, เวลา, ภาพคล้าย และค่าที่ผู้ใช้ยืนยันเป็น audit metadata ไม่ใช่ approval gate. Exact duplicate และ GPS >200 ม. ยังถูกกันก่อน OCR. Admin ดู log/รูป/รายละเอียดได้อย่างเดียว ไม่มีสิทธิ์อนุมัติหรือปฏิเสธรายงาน.
 - Air4Thai ที่อายุไม่เกิน 1 ชั่วโมงภายใน 5 กม. เป็นข้อมูลหลัก; community เป็น supplementary.

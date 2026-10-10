@@ -1,6 +1,6 @@
 """GET /api/pm25/current — สถานี + ค่า PM2.5 ล่าสุด
 
-อ่านจาก Supabase ที่ sync จาก air4thai รายชั่วโมง เพื่อให้ข้อมูลทุกฟีเจอร์เป็น snapshot เดียวกัน
+อ่านจาก Supabase ที่ sync จาก Air4Thai ทุก 30 นาที เพื่อให้ข้อมูลทุกฟีเจอร์เป็น snapshot เดียวกัน
 """
 
 from fastapi import APIRouter

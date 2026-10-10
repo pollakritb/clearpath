@@ -1,4 +1,4 @@
-"""ดึงสถานี PM2.5 ปัจจุบันจาก Supabase ซึ่ง sync จาก Air4Thai รายชั่วโมง.
+"""ดึงสถานี PM2.5 ปัจจุบันจาก Supabase ซึ่ง sync จาก Air4Thai ทุก 30 นาที.
 
 Air4Thai ถูกเรียกเฉพาะ cron เพื่อให้ Supabase เป็น source of truth และทุกฟีเจอร์
 (แผนที่, history, forecast, trust comparison) เห็น snapshot ชุดเดียวกัน.

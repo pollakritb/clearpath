@@ -805,6 +805,33 @@ def list_sync_runs(limit: int = 50) -> list[dict]:
     ).data or []
 
 
+def latest_primary_sync_run() -> dict | None:
+    """Latest successful Air4Thai primary sync, for backup deduplication."""
+    if settings.local_demo_mode:
+        return next(
+            (
+                row
+                for row in local_store.list_sync_runs(100)
+                if row.get("source") == "air4thai_supabase_primary"
+                and row.get("status") == "success"
+            ),
+            None,
+        )
+    rows = (
+        get_client()
+        .table("sync_runs")
+        .select("completed_at")
+        .eq("source", "air4thai_supabase_primary")
+        .eq("status", "success")
+        .order("completed_at", desc=True)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else None
+
+
 # Notification channels, preferences, and delivery outbox
 
 

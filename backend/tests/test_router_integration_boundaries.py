@@ -179,6 +179,7 @@ def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch)
         "create_sync_run",
         lambda row: sync_runs.append(row) or row,
     )
+    monkeypatch.setattr(cron.supabase_client, "latest_primary_sync_run", lambda: None)
     monkeypatch.setattr(cron.supabase_client, "upsert_stations", lambda rows: len(rows))
     monkeypatch.setattr(cron.supabase_client, "insert_readings", lambda rows: len(rows))
     monkeypatch.setattr(
@@ -209,6 +210,34 @@ def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch)
     assert sync_runs[-1]["source"] == "air4thai_github_backup"
     assert sync_updates[-1]["status"] == "success"
     assert sync_updates[-1]["source_recorded_at"] == recorded_at
+
+
+def test_github_backup_skips_air4thai_when_primary_sync_is_recent(monkeypatch):
+    monkeypatch.setattr(settings, "local_demo_mode", False)
+    monkeypatch.setattr(settings, "cron_secret", "cron-secret-value")
+    monkeypatch.setattr(settings, "supabase_cron_secret", "primary-secret-value")
+    completed_at = datetime.now(UTC).isoformat()
+    monkeypatch.setattr(
+        cron.supabase_client,
+        "latest_primary_sync_run",
+        lambda: {"completed_at": completed_at},
+    )
+
+    async def unexpected_fetch():
+        raise AssertionError("backup fetched Air4Thai after a recent primary sync")
+
+    monkeypatch.setattr(cron.air4thai, "fetch_stations", unexpected_fetch)
+    response = TestClient(create_app()).get(
+        "/api/cron/sync", headers={"Authorization": "Bearer cron-secret-value"}
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ok": True,
+        "skipped": True,
+        "reason": "recent_primary_sync",
+        "last_primary_completed_at": completed_at,
+    }
 
 
 def test_cron_job_routes_delegate_to_alert_evaluation_and_provider_services(
@@ -354,6 +383,7 @@ def test_forecast_maintenance_keeps_air4thai_sync_and_skips_forecast_writes(
         },
     )
     monkeypatch.setattr(cron.supabase_client, "create_sync_run", lambda row: row)
+    monkeypatch.setattr(cron.supabase_client, "latest_primary_sync_run", lambda: None)
     monkeypatch.setattr(cron.supabase_client, "upsert_stations", lambda rows: len(rows))
     monkeypatch.setattr(cron.supabase_client, "insert_readings", lambda rows: len(rows))
     monkeypatch.setattr(cron.supabase_client, "update_sync_run", lambda *_args: None)
