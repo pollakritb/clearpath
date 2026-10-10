@@ -217,9 +217,10 @@ project only:
    `clearpath_supabase_cron_secret`, and put the same value in Vercel Production
    as `SUPABASE_CRON_SECRET`.
 4. Apply `20260910_supabase_air4thai_cron.sql`, then
-   `20261010_air4thai_sync_30m.sql`. Confirm the only active Air4Thai job is
-   `clearpath-air4thai-sync-30m` with schedule `2,32 * * * *` and inspect its
-   run history.
+   `20261010_air4thai_sync_30m.sql` and
+   `20261010_air4thai_sync_source_aligned.sql`. Confirm the only active Air4Thai
+   job is `clearpath-air4thai-sync-30m` with schedule `17,47 * * * *` and inspect
+   its run history. This offset follows the usual Air4Thai publication lag.
 
 Then configure GitHub → repository Settings → Secrets and variables → Actions
 as the twice-hourly backup:
