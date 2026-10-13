@@ -99,8 +99,8 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
     const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
     if (selectedStation) {
       tasks.push(
-        weather.load(selectedStation.lat, selectedStation.lon),
-        forecast.load(selectedStation.id, 24),
+        weather.load(selectedStation.lat, selectedStation.lon, true),
+        forecast.load(selectedStation.id, 24, true),
       );
       if (showHistory) tasks.push(history.load(selectedStation.id, 24));
     }

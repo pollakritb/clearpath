@@ -7,28 +7,48 @@ import {
   buildDemoCommunityReports,
   isCommunityDemoMode,
 } from "@/frontend/lib/demo-community";
+import {
+  cachedPublicValue,
+  loadPublicData,
+  PUBLIC_DATA_KEYS,
+} from "@/frontend/lib/public-data-cache";
 import { getSupabaseBrowserClient } from "@/frontend/lib/supabase";
 import type {
   Activity,
   Announcement,
   CommunityMapPoint,
+  CommunityMapPointsResponse,
   CommunityReport,
   CommunityReportStack,
+  CommunityReportsResponse,
   LeaderboardEntry,
+  AnnouncementsResponse,
 } from "@/frontend/types";
 
 const MAP_FALLBACK_REFRESH_MS = 5 * 60_000;
+const REPORT_CACHE_MS = 2 * 60_000;
+const ANNOUNCEMENT_CACHE_MS = 10 * 60_000;
 
-async function loadCommunityMapData(includeReports: boolean) {
+async function loadCommunityMapData(includeReports: boolean, force = false) {
   return Promise.allSettled([
     includeReports
-      ? api.communityReports()
+      ? loadPublicData(
+          PUBLIC_DATA_KEYS.reports,
+          REPORT_CACHE_MS,
+          api.communityReports,
+          force,
+        )
       : Promise.resolve({
           reports: [] as CommunityReport[],
           stacks: [],
           count: 0,
         }),
-    api.communityMapPoints(),
+    loadPublicData(
+      PUBLIC_DATA_KEYS.mapPoints,
+      REPORT_CACHE_MS,
+      api.communityMapPoints,
+      force,
+    ),
   ]);
 }
 
@@ -36,10 +56,29 @@ async function loadCommunityMapData(includeReports: boolean) {
 export function useCommunityMapData({
   includeReports = true,
 }: { includeReports?: boolean } = {}) {
-  const [reports, setReports] = useState<CommunityReport[]>([]);
-  const [stacks, setStacks] = useState<CommunityReportStack[]>([]);
-  const [mapPoints, setMapPoints] = useState<CommunityMapPoint[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [reports, setReports] = useState<CommunityReport[]>(() => {
+    const cached = cachedPublicValue<CommunityReportsResponse>(
+      PUBLIC_DATA_KEYS.reports,
+    );
+    return includeReports ? (cached?.reports ?? []) : [];
+  });
+  const [stacks, setStacks] = useState<CommunityReportStack[]>(
+    () =>
+      (includeReports
+        ? cachedPublicValue<CommunityReportsResponse>(PUBLIC_DATA_KEYS.reports)
+            ?.stacks
+        : null) ?? [],
+  );
+  const [mapPoints, setMapPoints] = useState<CommunityMapPoint[]>(
+    () =>
+      cachedPublicValue<CommunityMapPointsResponse>(PUBLIC_DATA_KEYS.mapPoints)
+        ?.points ?? [],
+  );
+  const [loading, setLoading] = useState(
+    () =>
+      cachedPublicValue(PUBLIC_DATA_KEYS.mapPoints) === null ||
+      (includeReports && cachedPublicValue(PUBLIC_DATA_KEYS.reports) === null),
+  );
   const [error, setError] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
 
@@ -74,16 +113,16 @@ export function useCommunityMapData({
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const results = await loadCommunityMapData(includeReports);
+    const results = await loadCommunityMapData(includeReports, true);
     applyResults(results);
     setLoading(false);
   }, [applyResults, includeReports]);
 
   useEffect(() => {
     let cancelled = false;
-    const reload = () => {
+    const reload = (force = false) => {
       if (document.visibilityState === "hidden") return;
-      void loadCommunityMapData(includeReports).then((results) => {
+      void loadCommunityMapData(includeReports, force).then((results) => {
         if (!cancelled) {
           applyResults(results);
           setLoading(false);
@@ -92,7 +131,7 @@ export function useCommunityMapData({
     };
 
     reload();
-    const timer = window.setInterval(reload, MAP_FALLBACK_REFRESH_MS);
+    const timer = window.setInterval(() => reload(), MAP_FALLBACK_REFRESH_MS);
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") reload();
     };
@@ -104,7 +143,7 @@ export function useCommunityMapData({
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "public_map_events" },
-        reload,
+        () => reload(true),
       )
       .subscribe();
 
@@ -121,15 +160,26 @@ export function useCommunityMapData({
 
 /** News feed data; it deliberately does not load map, rewards, or leaderboard. */
 export function useAnnouncements() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [announcements, setAnnouncements] = useState<Announcement[]>(
+    () =>
+      cachedPublicValue<AnnouncementsResponse>(PUBLIC_DATA_KEYS.announcements)
+        ?.announcements ?? [],
+  );
+  const [loading, setLoading] = useState(
+    () => cachedPublicValue(PUBLIC_DATA_KEYS.announcements) === null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.announcements();
+      const response = await loadPublicData(
+        PUBLIC_DATA_KEYS.announcements,
+        ANNOUNCEMENT_CACHE_MS,
+        api.announcements,
+        true,
+      );
       setAnnouncements(response.announcements);
     } catch (cause) {
       setError(apiErrorMessage(cause, "โหลดข่าวสารไม่สำเร็จ"));
@@ -140,8 +190,11 @@ export function useAnnouncements() {
 
   useEffect(() => {
     let cancelled = false;
-    void api
-      .announcements()
+    void loadPublicData(
+      PUBLIC_DATA_KEYS.announcements,
+      ANNOUNCEMENT_CACHE_MS,
+      api.announcements,
+    )
       .then((response) => {
         if (!cancelled) setAnnouncements(response.announcements);
       })

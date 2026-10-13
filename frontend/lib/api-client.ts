@@ -56,6 +56,10 @@ import type {
   ViewportBounds,
 } from "@/frontend/types/ui";
 import { getAccessToken } from "@/frontend/lib/supabase";
+import {
+  invalidatePublicData,
+  PUBLIC_DATA_KEYS,
+} from "@/frontend/lib/public-data-cache";
 
 export class ApiError extends Error {
   status: number;
@@ -97,6 +101,12 @@ async function http<T>(url: string, init?: HttpOptions): Promise<T> {
     throw new ApiError(detail, res.status);
   }
   return (await res.json()) as T;
+}
+
+async function invalidateAfter<T>(request: Promise<T>, ...keys: string[]) {
+  const result = await request;
+  invalidatePublicData(...keys);
+  return result;
 }
 
 export const api = {
@@ -176,13 +186,17 @@ export const api = {
     }),
 
   submitReportDraft: (draftId: string, body: ReportDraftSubmit) =>
-    http<ReportCreateResponse>(
-      `/api/community/report-drafts/${draftId}/submit`,
-      {
-        method: "POST",
-        body: JSON.stringify(body),
-        auth: true,
-      },
+    invalidateAfter(
+      http<ReportCreateResponse>(
+        `/api/community/report-drafts/${draftId}/submit`,
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+          auth: true,
+        },
+      ),
+      PUBLIC_DATA_KEYS.reports,
+      PUBLIC_DATA_KEYS.mapPoints,
     ),
 
   deleteReportDraft: (draftId: string) =>
@@ -192,11 +206,14 @@ export const api = {
     }),
 
   rateReport: (reportId: string, body: ReportRatingRequest) =>
-    http<RatingResult>(`/api/community/reports/${reportId}/ratings`, {
-      method: "POST",
-      body: JSON.stringify(body),
-      auth: true,
-    }),
+    invalidateAfter(
+      http<RatingResult>(`/api/community/reports/${reportId}/ratings`, {
+        method: "POST",
+        body: JSON.stringify(body),
+        auth: true,
+      }),
+      PUBLIC_DATA_KEYS.reports,
+    ),
 
   reportEngagement: (reportId: string) =>
     http<ReportEngagementResponse>(
@@ -210,28 +227,40 @@ export const api = {
     ),
 
   setReportReaction: (reportId: string, body: ReportReactionRequest) =>
-    http<ReportEngagementResponse>(
-      `/api/community/reports/${reportId}/reaction`,
-      { method: "PUT", body: JSON.stringify(body), auth: true },
+    invalidateAfter(
+      http<ReportEngagementResponse>(
+        `/api/community/reports/${reportId}/reaction`,
+        { method: "PUT", body: JSON.stringify(body), auth: true },
+      ),
+      PUBLIC_DATA_KEYS.reports,
     ),
 
   clearReportReaction: (reportId: string) =>
-    http<ReportEngagementResponse>(
-      `/api/community/reports/${reportId}/reaction`,
-      { method: "DELETE", auth: true },
+    invalidateAfter(
+      http<ReportEngagementResponse>(
+        `/api/community/reports/${reportId}/reaction`,
+        { method: "DELETE", auth: true },
+      ),
+      PUBLIC_DATA_KEYS.reports,
     ),
 
   addReportComment: (reportId: string, body: ReportCommentCreate) =>
-    http<ReportComment>(`/api/community/reports/${reportId}/comments`, {
-      method: "POST",
-      body: JSON.stringify(body),
-      auth: true,
-    }),
+    invalidateAfter(
+      http<ReportComment>(`/api/community/reports/${reportId}/comments`, {
+        method: "POST",
+        body: JSON.stringify(body),
+        auth: true,
+      }),
+      PUBLIC_DATA_KEYS.reports,
+    ),
 
   removeReportComment: (reportId: string, commentId: string) =>
-    http<OperationResponse>(
-      `/api/community/reports/${reportId}/comments/${commentId}`,
-      { method: "DELETE", auth: true },
+    invalidateAfter(
+      http<OperationResponse>(
+        `/api/community/reports/${reportId}/comments/${commentId}`,
+        { method: "DELETE", auth: true },
+      ),
+      PUBLIC_DATA_KEYS.reports,
     ),
 
   announcements: () =>
@@ -329,27 +358,36 @@ export const api = {
     }),
 
   createAnnouncement: (body: AnnouncementCreate) =>
-    http<Announcement>("/api/admin/announcements", {
-      method: "POST",
-      body: JSON.stringify(body),
-      auth: true,
-    }),
+    invalidateAfter(
+      http<Announcement>("/api/admin/announcements", {
+        method: "POST",
+        body: JSON.stringify(body),
+        auth: true,
+      }),
+      PUBLIC_DATA_KEYS.announcements,
+    ),
 
   adminAnnouncements: () =>
     http<AnnouncementsResponse>("/api/admin/announcements", { auth: true }),
 
   updateAnnouncement: (announcementId: string, body: AnnouncementUpdate) =>
-    http<Announcement>(`/api/admin/announcements/${announcementId}`, {
-      method: "PATCH",
-      body: JSON.stringify(body),
-      auth: true,
-    }),
+    invalidateAfter(
+      http<Announcement>(`/api/admin/announcements/${announcementId}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+        auth: true,
+      }),
+      PUBLIC_DATA_KEYS.announcements,
+    ),
 
   archiveAnnouncement: (announcementId: string) =>
-    http<Announcement>(`/api/admin/announcements/${announcementId}`, {
-      method: "DELETE",
-      auth: true,
-    }),
+    invalidateAfter(
+      http<Announcement>(`/api/admin/announcements/${announcementId}`, {
+        method: "DELETE",
+        auth: true,
+      }),
+      PUBLIC_DATA_KEYS.announcements,
+    ),
 
   uploadAnnouncementImage: (image: File) => {
     const form = new FormData();

@@ -36,6 +36,7 @@ import { useForecastSurface } from "./useForecastSurface";
 import { useHistory } from "./useHistory";
 import { usePm25 } from "./usePm25";
 import { useWeather } from "./useWeather";
+import { clearPublicDataCache } from "@/frontend/lib/public-data-cache";
 
 const stationsResponse = {
   source: "air4thai",
@@ -50,6 +51,7 @@ const stationsResponse = {
 describe("data hooks", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    clearPublicDataCache();
     Object.defineProperty(document, "visibilityState", {
       configurable: true,
       value: "visible",
@@ -77,6 +79,21 @@ describe("data hooks", () => {
     apiMocks.pm25Current.mockRejectedValueOnce(new Error("station offline"));
     await act(async () => result.current.refresh());
     expect(result.current.error).toBe("station offline");
+  });
+
+  it("reuses fresh public data across page remounts and still honors manual refresh", async () => {
+    const first = renderHook(() => usePm25());
+    await waitFor(() => expect(first.result.current.loading).toBe(false));
+    first.unmount();
+
+    const second = renderHook(() => usePm25());
+    expect(second.result.current.loading).toBe(false);
+    expect(second.result.current.stations).toHaveLength(1);
+    await act(async () => {});
+    expect(apiMocks.pm25Current).toHaveBeenCalledTimes(1);
+
+    await act(async () => second.result.current.refresh());
+    expect(apiMocks.pm25Current).toHaveBeenCalledTimes(2);
   });
 
   it("refreshes Supabase-backed stations while visible without a loading flash", async () => {
@@ -178,13 +195,13 @@ describe("data hooks", () => {
       max_age_hours: 12,
       message: "provider unavailable",
     });
-    await act(async () => result.current.load());
+    await act(async () => result.current.load(1, true));
     expect(result.current.error).toBeNull();
     expect(result.current.status).toBe("unavailable");
     expect(result.current.message).toBe("provider unavailable");
 
     apiMocks.firms.mockRejectedValueOnce(new Error("satellite failed"));
-    await act(async () => result.current.load());
+    await act(async () => result.current.load(1, true));
     expect(result.current.error).toBe("satellite failed");
     expect(result.current.status).toBe("failed");
   });
@@ -257,6 +274,49 @@ describe("data hooks", () => {
     apiMocks.communityMapPoints.mockRejectedValueOnce(new Error("map failed"));
     await act(async () => withoutReports.result.current.refresh());
     expect(withoutReports.result.current.error).toBe("map failed");
+  });
+
+  it("restores map and news data immediately when their pages remount", async () => {
+    const firstMap = renderHook(() => useCommunityMapData());
+    const firstNews = renderHook(() => useAnnouncements());
+    await waitFor(() => expect(firstMap.result.current.loading).toBe(false));
+    await waitFor(() => expect(firstNews.result.current.loading).toBe(false));
+    firstMap.unmount();
+    firstNews.unmount();
+
+    const secondMap = renderHook(() => useCommunityMapData());
+    const secondNews = renderHook(() => useAnnouncements());
+    expect(secondMap.result.current.loading).toBe(false);
+    expect(secondNews.result.current.loading).toBe(false);
+    await act(async () => {});
+    expect(apiMocks.communityReports).toHaveBeenCalledTimes(1);
+    expect(apiMocks.communityMapPoints).toHaveBeenCalledTimes(1);
+    expect(apiMocks.announcements).toHaveBeenCalledTimes(1);
+  });
+
+  it("reuses weather and forecast for the same station but not on forced refresh", async () => {
+    apiMocks.weather.mockResolvedValue({ temperature: 30 });
+    apiMocks.forecast.mockResolvedValue({ station_id: "station-1" });
+    const firstWeather = renderHook(() => useWeather());
+    const firstForecast = renderHook(() => useForecast());
+    await act(async () => firstWeather.result.current.load(13.8, 100.1));
+    await act(async () => firstForecast.result.current.load("station-1", 24));
+    firstWeather.unmount();
+    firstForecast.unmount();
+
+    const nextWeather = renderHook(() => useWeather());
+    const nextForecast = renderHook(() => useForecast());
+    await act(async () => nextWeather.result.current.load(13.8, 100.1));
+    await act(async () => nextForecast.result.current.load("station-1", 24));
+    expect(apiMocks.weather).toHaveBeenCalledTimes(1);
+    expect(apiMocks.forecast).toHaveBeenCalledTimes(1);
+
+    await act(async () => nextWeather.result.current.load(13.8, 100.1, true));
+    await act(async () =>
+      nextForecast.result.current.load("station-1", 24, true),
+    );
+    expect(apiMocks.weather).toHaveBeenCalledTimes(2);
+    expect(apiMocks.forecast).toHaveBeenCalledTimes(2);
   });
 
   it("loads announcements and community reward summaries defensively", async () => {

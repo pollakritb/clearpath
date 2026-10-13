@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAccessToken } from "./supabase";
+import {
+  cachedPublicValue,
+  clearPublicDataCache,
+  loadPublicData,
+  PUBLIC_DATA_KEYS,
+} from "./public-data-cache";
 
 vi.mock("./supabase", () => ({
   getAccessToken: vi.fn(),
@@ -20,12 +26,44 @@ function jsonResponse(body: unknown = { ok: true }, status = 200) {
 describe("api client", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    clearPublicDataCache();
     vi.stubGlobal("navigator", { userAgent: "ClearPath unit test" });
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => jsonResponse()),
     );
     mockedGetAccessToken.mockResolvedValue("access-token");
+  });
+
+  it("invalidates affected public data only after successful writes", async () => {
+    await loadPublicData(PUBLIC_DATA_KEYS.reports, 60_000, async () => ({
+      count: 1,
+    }));
+    await loadPublicData(PUBLIC_DATA_KEYS.mapPoints, 60_000, async () => ({
+      count: 1,
+    }));
+    await loadPublicData(PUBLIC_DATA_KEYS.announcements, 60_000, async () => ({
+      count: 1,
+    }));
+
+    await api.submitReportDraft("draft-1", {} as never);
+    expect(cachedPublicValue(PUBLIC_DATA_KEYS.reports)).toBeNull();
+    expect(cachedPublicValue(PUBLIC_DATA_KEYS.mapPoints)).toBeNull();
+    expect(cachedPublicValue(PUBLIC_DATA_KEYS.announcements)).not.toBeNull();
+
+    await api.createAnnouncement({} as never);
+    expect(cachedPublicValue(PUBLIC_DATA_KEYS.announcements)).toBeNull();
+
+    await loadPublicData(PUBLIC_DATA_KEYS.reports, 60_000, async () => ({
+      count: 2,
+    }));
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ detail: "failed" }, 500),
+    );
+    await expect(
+      api.setReportReaction("report-1", {} as never),
+    ).rejects.toThrow();
+    expect(cachedPublicValue(PUBLIC_DATA_KEYS.reports)).toEqual({ count: 2 });
   });
 
   it("keeps every frontend request on the same-origin API boundary", async () => {

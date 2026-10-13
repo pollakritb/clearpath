@@ -75,17 +75,8 @@ export default function MapPageClient({
 
   useEffect(() => {
     if (!selectedPlace) return;
-    const refreshPlace = () => {
-      setPlaceClock(Date.now());
-      void pm25.refresh();
-      void community.refresh();
-    };
     const clock = window.setInterval(() => setPlaceClock(Date.now()), 60_000);
-    const refreshTimer = window.setInterval(refreshPlace, 5 * 60_000);
-    return () => {
-      window.clearInterval(clock);
-      window.clearInterval(refreshTimer);
-    };
+    return () => window.clearInterval(clock);
     // Keep polling tied to focus-mode changes, not hook object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlace?.id]);
@@ -94,7 +85,10 @@ export default function MapPageClient({
   useEffect(() => {
     if (!showFires) return;
     if (!firms.loaded) void loadFires(1);
-    const timer = window.setInterval(() => void loadFires(1), FIRMS_REFRESH_MS);
+    const timer = window.setInterval(
+      () => void loadFires(1, true),
+      FIRMS_REFRESH_MS,
+    );
     return () => window.clearInterval(timer);
   }, [firms.loaded, loadFires, showFires]);
 
@@ -257,8 +251,6 @@ export default function MapPageClient({
         }
         onToggleFires={() => setShowFires((value) => !value)}
         onLocationSelect={(location: LocationSuggestion) => {
-          void pm25.refresh();
-          void community.refresh();
           setPlaceClock(Date.now());
           setHistoryEnabled(false);
           mapHistory.clear();

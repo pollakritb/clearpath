@@ -3,56 +3,56 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
-import type { Station, StationsResponse } from "@/frontend/types";
+import {
+  cachedPublicValue,
+  loadPublicData,
+  PUBLIC_DATA_KEYS,
+} from "@/frontend/lib/public-data-cache";
+import type { StationsResponse } from "@/frontend/types";
 
 // Browser reads Supabase-backed API only; it never polls Air4Thai directly.
 const STATION_REFRESH_MS = 5 * 60 * 1000;
+const STATION_CACHE_KEY = PUBLIC_DATA_KEYS.pm25;
+
+const loadStations = (force = false) =>
+  loadPublicData(STATION_CACHE_KEY, STATION_REFRESH_MS, api.pm25Current, force);
 
 export function usePm25() {
-  const [stations, setStations] = useState<Station[]>([]);
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [snapshot, setSnapshot] = useState<StationsResponse | null>(() =>
+    cachedPublicValue(STATION_CACHE_KEY),
+  );
+  const [loading, setLoading] = useState(
+    () => cachedPublicValue(STATION_CACHE_KEY) === null,
+  );
   const [error, setError] = useState<string | null>(null);
-  const [counts, setCounts] = useState({ fresh: 0, delayed: 0, expired: 0 });
-
-  const applyResponse = useCallback((response: StationsResponse) => {
-    setStations(response.stations);
-    setUpdatedAt(response.updated_at);
-    setCounts({
-      fresh: response.fresh_count,
-      delayed: response.delayed_count,
-      expired: response.expired_count,
-    });
-  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.pm25Current();
-      applyResponse(res);
+      setSnapshot(await loadStations(true));
     } catch (error) {
       setError(apiErrorMessage(error, "โหลดข้อมูล PM2.5 ไม่สำเร็จ"));
     } finally {
       setLoading(false);
     }
-  }, [applyResponse]);
+  }, []);
 
   const refreshSilently = useCallback(async () => {
     try {
-      applyResponse(await api.pm25Current());
+      setSnapshot(await loadStations());
       setError(null);
     } catch (error) {
       setError(apiErrorMessage(error, "โหลดข้อมูล PM2.5 ไม่สำเร็จ"));
     }
-  }, [applyResponse]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const response = await api.pm25Current();
-        if (!cancelled) applyResponse(response);
+        const response = await loadStations();
+        if (!cancelled) setSnapshot(response);
       } catch (error) {
         if (!cancelled) {
           setError(apiErrorMessage(error, "โหลดข้อมูล PM2.5 ไม่สำเร็จ"));
@@ -64,7 +64,7 @@ export function usePm25() {
     return () => {
       cancelled = true;
     };
-  }, [applyResponse]);
+  }, []);
 
   useEffect(() => {
     const refreshIfVisible = () => {
@@ -78,5 +78,16 @@ export function usePm25() {
     };
   }, [refreshSilently]);
 
-  return { stations, updatedAt, counts, loading, error, refresh };
+  return {
+    stations: snapshot?.stations ?? [],
+    updatedAt: snapshot?.updated_at ?? null,
+    counts: {
+      fresh: snapshot?.fresh_count ?? 0,
+      delayed: snapshot?.delayed_count ?? 0,
+      expired: snapshot?.expired_count ?? 0,
+    },
+    loading,
+    error,
+    refresh,
+  };
 }
