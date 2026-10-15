@@ -132,11 +132,18 @@ export const api = {
     });
   },
 
-  forecast: (stationId: string, hours = 12) =>
-    http<ForecastResponse>(
-      `/api/forecast?station_id=${encodeURIComponent(stationId)}&hours=${hours}`,
-      { cache: "no-store" },
-    ),
+  forecast: (target: string | { lat: number; lon: number }, hours = 12) => {
+    const params = new URLSearchParams({ hours: String(hours) });
+    if (typeof target === "string") {
+      params.set("station_id", target);
+    } else {
+      params.set("lat", target.lat.toFixed(2));
+      params.set("lon", target.lon.toFixed(2));
+    }
+    return http<ForecastResponse>(`/api/forecast?${params}`, {
+      cache: "no-store",
+    });
+  },
 
   forecastSurface: (horizon = 12, gridSize = 12, bounds?: ViewportBounds) => {
     const params = new URLSearchParams({

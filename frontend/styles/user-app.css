@@ -4420,6 +4420,14 @@
   cursor: pointer;
 }
 
+.cp-place-card__forecast-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
 .cp-place-card__attribution {
   display: block;
   margin-top: 6px;

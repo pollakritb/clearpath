@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     # Global maintenance gate. Keep enabled until clearpath-self-forecast-v1
     # has a reviewed specification, backtest, and release decision.
     forecast_system_paused: bool = True
+    # Isolated forecast evidence collection. No production schedule is registered.
+    forecast_validation_enabled: bool = False
 
     # OCR ภาพหน้าจอเครื่องวัด (OpenAI Responses API, server only)
     openai_api_key: str = ""

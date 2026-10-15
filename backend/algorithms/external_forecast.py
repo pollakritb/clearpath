@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from math import ceil
+from math import ceil, isfinite
 
 
 def select_horizon_rows(
@@ -28,7 +28,7 @@ def select_horizon_rows(
             pm25 = float(row["pm25"])
         except (KeyError, TypeError, ValueError):
             continue
-        if pm25 < 0:
+        if not isfinite(pm25) or pm25 < 0:
             continue
         candidates.append((timestamp.astimezone(UTC), {**row, "pm25": pm25}))
 
@@ -77,15 +77,18 @@ def select_hourly_rows(
             pm25 = float(row["pm25"])
         except (KeyError, TypeError, ValueError):
             continue
-        if timestamp <= reference or pm25 < 0:
+        if timestamp <= reference or not isfinite(pm25) or pm25 < 0:
             continue
         candidates.append((timestamp, {**row, "pm25": pm25}))
 
     selected: list[dict] = []
     seen: set[datetime] = set()
+    expected = reference.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     for timestamp, row in sorted(candidates, key=lambda item: item[0]):
         if timestamp in seen:
             continue
+        if timestamp != expected:
+            break
         seen.add(timestamp)
         selected.append(
             {
@@ -96,6 +99,7 @@ def select_hourly_rows(
                 "forecast_at": timestamp.isoformat(),
             }
         )
+        expected += timedelta(hours=1)
         if len(selected) == limit:
             break
     return selected

@@ -16,6 +16,7 @@ export interface ForecastQuality {
 export interface ForecastPoint {
   horizon_hours: number;
   forecast_at: string;
+  valid_at: string | null;
   pm25: number;
   lower: number;
   upper: number;
@@ -101,7 +102,13 @@ export interface ForecastCommunityContext {
 }
 
 export interface ForecastResponse {
-  station_id: string;
+  station_id: string | null;
+  target_kind: "station" | "area";
+  requested_lat: number | null;
+  requested_lon: number | null;
+  grid_lat: number | null;
+  grid_lon: number | null;
+  fetched_at: string | null;
   generated_at: string;
   source_recorded_at: string | null;
   horizon_hours: number;

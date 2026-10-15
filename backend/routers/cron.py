@@ -20,6 +20,7 @@ from ..services import (
     forecast_evaluation,
     forecast_reconciliation,
     forecast_status,
+    forecast_validation,
     notifications,
     provider_sync,
     retention,
@@ -201,6 +202,14 @@ async def cron_forecast_evaluation(authorization: str | None = Header(default=No
             extra={"source": "forecast-evaluation", "alert_codes": alert_codes},
         )
     return result
+
+
+@router.get("/cron/forecast-validation")
+async def cron_forecast_validation(authorization: str | None = Header(default=None)):
+    _verify_cron(authorization)
+    if not settings.forecast_validation_enabled:
+        return {"status": "disabled", "reason": "forecast_validation_not_enabled"}
+    return await forecast_validation.collect_snapshots()
 
 
 @router.get("/cron/forecast-providers/openweather")

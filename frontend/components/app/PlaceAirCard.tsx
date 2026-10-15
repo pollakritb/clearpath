@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { PLACE_RADIUS_KM, type PlaceAir } from "@/frontend/lib/place-air";
@@ -103,6 +105,14 @@ export default function PlaceAirCard({
         <AppIcon name="info" size={16} /> วง {PLACE_RADIUS_KM} กม.
         คือระยะค้นหาข้อมูล ไม่ใช่พื้นที่ที่ฝุ่นมีค่าเท่ากัน
       </p>
+
+      <Link
+        className="cp-place-card__reset cp-place-card__forecast-link cp-focus"
+        href={`/air?lat=${place.lat.toFixed(2)}&lon=${place.lon.toFixed(2)}&place=${encodeURIComponent(place.name)}`}
+      >
+        ดูพยากรณ์ PM2.5 สำหรับบริเวณนี้
+        <AppIcon name="chevron" size={18} />
+      </Link>
 
       <details className="cp-place-card__details">
         <summary className="cp-place-card__details-toggle cp-focus">

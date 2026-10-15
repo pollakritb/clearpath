@@ -43,8 +43,10 @@ def test_openweather_air_normalizes_pm25(monkeypatch):
 
 def test_openmeteo_air_maps_batch_results_to_station_ids(monkeypatch):
     monkeypatch.setattr(openmeteo_air.settings, "openmeteo_air_enabled", True)
+    requested = []
 
-    async def fake_get(*_args, **_kwargs):
+    async def fake_get(*_args, **kwargs):
+        requested.append(kwargs.get("params", {}))
         return _Response(
             [
                 {
@@ -71,6 +73,10 @@ def test_openmeteo_air_maps_batch_results_to_station_ids(monkeypatch):
     )
     assert result["a"][0]["pm25"] == 10
     assert result["b"][0]["pm25"] == 20
+    assert requested[0]["domains"] == "cams_global"
+    assert result["a"][0]["requested_lat"] == 13
+    assert result["a"][0]["source_lat"] == 13
+    assert result["a"][0]["valid_at"] == "2026-08-04T01:00:00+00:00"
 
 
 def test_gistda_normalizes_three_hour_prediction(monkeypatch):

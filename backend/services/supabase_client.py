@@ -163,6 +163,29 @@ def get_station_by_id(station_id: str) -> dict | None:
     return rows[0] if rows else None
 
 
+def upsert_forecast_validation_snapshots(rows: list[dict]) -> int:
+    """Write only the isolated field-test table, never the public forecast tables."""
+
+    if not rows:
+        return 0
+    if settings.local_demo_mode:
+        return 0
+    get_client().table("forecast_validation_snapshots").upsert(
+        rows, on_conflict="station_id,collection_slot,valid_at"
+    ).execute()
+    return len(rows)
+
+
+def prune_forecast_validation_snapshots(cutoff: str) -> None:
+    """Keep this experimental evidence table at or below 90 days."""
+
+    if settings.local_demo_mode:
+        return
+    get_client().table("forecast_validation_snapshots").delete().lt(
+        "collection_slot", cutoff
+    ).execute()
+
+
 def get_history(station_id: str, hours: int = 24) -> list[dict]:
     if settings.local_demo_mode:
         return local_store.get_history(station_id, hours)

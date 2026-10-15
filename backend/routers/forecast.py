@@ -15,13 +15,24 @@ router = APIRouter()
 async def forecast(
     background_tasks: BackgroundTasks,
     response: Response,
-    station_id: str = Query(...),
+    station_id: str | None = Query(default=None),
+    lat: float | None = Query(default=None, ge=-90, le=90),
+    lon: float | None = Query(default=None, ge=-180, le=180),
     hours: int = Query(12, ge=1, le=24),
 ):
+    has_area = lat is not None or lon is not None
+    if bool(station_id) == has_area or (has_area and (lat is None or lon is None)):
+        raise HTTPException(422, detail="forecast_target_invalid")
+    if has_area and not (5 <= lat <= 21 and 97 <= lon <= 106):
+        raise HTTPException(422, detail="forecast_area_outside_thailand")
     if settings.external_forecast_enabled:
         response.headers["Cache-Control"] = "no-store, max-age=0"
         try:
-            result = await external_forecast.station_forecast(station_id, hours)
+            result = (
+                await external_forecast.station_forecast(station_id, hours)
+                if station_id
+                else await external_forecast.area_forecast(lat, lon, hours)
+            )
         except ValueError as exc:
             raise HTTPException(422, detail=str(exc)) from exc
         response.headers["Cache-Control"] = (
@@ -32,8 +43,10 @@ async def forecast(
     response.headers["CDN-Cache-Control"] = "no-store"
     if settings.forecast_system_paused:
         return ForecastResponse(
-            **forecast_status.unavailable_station_response(station_id, hours)
+            **forecast_status.unavailable_station_response(station_id or "area", hours)
         )
+    if not station_id:
+        raise HTTPException(422, detail="station_target_required_for_local_forecast")
     try:
         response, ledger = await run_in_threadpool(
             forecasting.station_forecast, station_id, hours

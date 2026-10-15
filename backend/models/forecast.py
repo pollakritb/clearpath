@@ -25,6 +25,7 @@ class ForecastQuality(BaseModel):
 class ForecastPoint(BaseModel):
     horizon_hours: int
     forecast_at: str
+    valid_at: str | None = None
     pm25: float
     lower: float
     upper: float
@@ -107,7 +108,13 @@ class ForecastCommunityContext(BaseModel):
 
 
 class ForecastResponse(BaseModel):
-    station_id: str
+    station_id: str | None
+    target_kind: Literal["station", "area"] = "station"
+    requested_lat: float | None = None
+    requested_lon: float | None = None
+    grid_lat: float | None = None
+    grid_lon: float | None = None
+    fetched_at: str | None = None
     generated_at: str
     source_recorded_at: str | None = None
     horizon_hours: int

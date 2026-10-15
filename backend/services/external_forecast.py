@@ -90,15 +90,32 @@ async def station_forecast(station_id: str, hours: int) -> dict:
     if station.get("lat") is None or station.get("lon") is None:
         raise ValueError("station_coordinates_missing")
 
+    return await _target_forecast(
+        station_id, float(station["lat"]), float(station["lon"]), hours
+    )
+
+
+async def area_forecast(lat: float, lon: float, hours: int) -> dict:
+    return await _target_forecast(None, lat, lon, hours)
+
+
+async def _target_forecast(
+    station_id: str | None, lat: float, lon: float, hours: int
+) -> dict:
     requested_hours = max(1, min(24, hours))
     result = await openmeteo_air.get_forecasts(
-        [{"id": station_id, "lat": station["lat"], "lon": station["lon"]}],
-        forecast_hours=requested_hours + 2,
+        [{"id": "target", "lat": lat, "lon": lon}],
+        forecast_hours=requested_hours + 3,
     )
     generated_at = datetime.now(UTC).isoformat()
-    selected = select_hourly_rows(result.get(station_id, []), requested_hours)
+    selected = select_hourly_rows(result.get("target", []), requested_hours)
     if not selected:
         raise UpstreamError("Open-Meteo/CAMS returned no usable PM2.5 forecast")
+    fetched_at = selected[0].get("fetched_at") or generated_at
+    partial = len(selected) < requested_hours
+    limitation_codes = ["single_external_provider"]
+    if partial:
+        limitation_codes.append("external_provider_partial_horizon")
 
     points = []
     sources = []
@@ -107,6 +124,7 @@ async def station_forecast(station_id: str, hours: int) -> dict:
         common = {
             "horizon_hours": row["horizon_hours"],
             "forecast_at": row["forecast_at"],
+            "valid_at": row["forecast_at"],
             "pm25": value,
         }
         points.append(
@@ -128,26 +146,32 @@ async def station_forecast(station_id: str, hours: int) -> dict:
                 "source": PROVIDER,
                 "weight": 1,
                 "available": True,
-                "issued_at": generated_at,
+                "issued_at": fetched_at,
             }
         )
 
     return {
         "station_id": station_id,
+        "target_kind": "station" if station_id else "area",
+        "requested_lat": lat,
+        "requested_lon": lon,
+        "grid_lat": selected[0].get("source_lat"),
+        "grid_lon": selected[0].get("source_lon"),
+        "fetched_at": fetched_at,
         "generated_at": generated_at,
-        "source_recorded_at": generated_at,
+        "source_recorded_at": fetched_at,
         "horizon_hours": requested_hours,
         "method": "raw_openmeteo_cams",
         "source_points": len(points),
         "coverage_target": 0,
         "data_quality": "limited",
-        "quality": _quality(len(points), generated_at),
+        "quality": _quality(len(points), fetched_at),
         "fallback_reason": None,
         "fallback_reason_codes": [],
-        "warnings": ["single_external_provider"],
+        "warnings": limitation_codes,
         "points": points,
         "forecast_status": "limited",
-        "limitation_reason_codes": ["single_external_provider"],
+        "limitation_reason_codes": limitation_codes,
         "unavailable_reason_codes": [],
         "agreement": None,
         "provider_count": 1,
@@ -157,11 +181,14 @@ async def station_forecast(station_id: str, hours: int) -> dict:
             "provider_url": ATTRIBUTION_URL,
             "source_lat": selected[0].get("source_lat"),
             "source_lon": selected[0].get("source_lon"),
+            "requested_lat": lat,
+            "requested_lon": lon,
+            "domain": "cams_global",
             "value_policy": "raw_provider_value",
         },
         "forecast_mode": "external_provider",
         "recommended_source": PROVIDER,
-        "providers": [_provider_summary(generated_at, len(points))],
+        "providers": [_provider_summary(fetched_at, len(points))],
         "selection_evidence": _selection_evidence(),
         "community_context": _community_context(),
     }

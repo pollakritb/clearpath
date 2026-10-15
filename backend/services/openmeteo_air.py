@@ -35,6 +35,7 @@ async def get_forecasts(
                     "latitude": ",".join(str(float(row["lat"])) for row in batch),
                     "longitude": ",".join(str(float(row["lon"])) for row in batch),
                     "hourly": "pm2_5",
+                    "domains": "cams_global",
                     "timezone": "UTC",
                 }
                 if forecast_hours is None:
@@ -50,15 +51,21 @@ async def get_forecasts(
                 if len(locations) != len(batch):
                     raise ValueError("openmeteo_location_count_mismatch")
                 for station, location in zip(batch, locations, strict=True):
+                    fetched_at = datetime.now(UTC).isoformat()
                     hourly = location.get("hourly") or {}
                     times = hourly.get("time") or []
                     values = hourly.get("pm2_5") or []
                     result[str(station["id"])] = [
                         {
                             "forecast_at": _as_utc(str(at)),
+                            "valid_at": _as_utc(str(at)),
                             "pm25": float(value),
                             "source_lat": location.get("latitude"),
                             "source_lon": location.get("longitude"),
+                            "requested_lat": float(station["lat"]),
+                            "requested_lon": float(station["lon"]),
+                            "fetched_at": fetched_at,
+                            "domain": "cams_global",
                         }
                         for at, value in zip(times, values, strict=False)
                         if value is not None

@@ -47,7 +47,13 @@ function nearestReferenceStation(
   return nearest?.station ?? null;
 }
 
-export default function TodayPageClient({ stationId }: { stationId?: string }) {
+export default function TodayPageClient({
+  stationId,
+  area,
+}: {
+  stationId?: string;
+  area?: { lat: number; lon: number; name?: string };
+}) {
   const router = useRouter();
   const pm25 = usePm25();
   const weather = useWeather();
@@ -75,16 +81,43 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
     [currentLocation.location, serviceAreaStations],
   );
   const selectedStation = routeStation ?? automaticStation;
+  const forecastTarget = useMemo(() => {
+    if (stationId) return routeStation?.id ?? null;
+    if (area) return { lat: area.lat, lon: area.lon };
+    if (currentLocation.location) {
+      return {
+        lat: currentLocation.location.lat,
+        lon: currentLocation.location.lon,
+      };
+    }
+    return null;
+  }, [area, currentLocation.location, routeStation?.id, stationId]);
+  const forecastForCurrentTarget =
+    forecast.data && forecastTarget
+      ? typeof forecastTarget === "string"
+        ? forecast.data.station_id === forecastTarget
+          ? forecast.data
+          : null
+        : forecast.data.target_kind === "area" &&
+            forecast.data.requested_lat ===
+              Number(forecastTarget.lat.toFixed(2)) &&
+            forecast.data.requested_lon ===
+              Number(forecastTarget.lon.toFixed(2))
+          ? forecast.data
+          : null
+      : null;
 
   const weatherLoad = weather.load;
   const forecastLoad = forecast.load;
   useEffect(() => {
-    if (!selectedStation) return;
-    void Promise.allSettled([
-      weatherLoad(selectedStation.lat, selectedStation.lon),
-      forecastLoad(selectedStation.id, 24),
-    ]);
-  }, [forecastLoad, selectedStation, weatherLoad]);
+    if (!forecastTarget) return;
+    void forecastLoad(forecastTarget, 24);
+  }, [forecastLoad, forecastTarget]);
+  useEffect(() => {
+    const position = area ?? currentLocation.location ?? selectedStation;
+    if (!position) return;
+    void weatherLoad(position.lat, position.lon);
+  }, [area, currentLocation.location, selectedStation, weatherLoad]);
 
   const toggleHistory = useCallback(() => {
     setShowHistory((previous) => {
@@ -97,18 +130,21 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
   const refresh = useCallback(() => {
     currentLocation.request();
     const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
+    if (forecastTarget) tasks.push(forecast.load(forecastTarget, 24, true));
+    const weatherPosition = area ?? currentLocation.location ?? selectedStation;
+    if (weatherPosition) {
+      tasks.push(weather.load(weatherPosition.lat, weatherPosition.lon, true));
+    }
     if (selectedStation) {
-      tasks.push(
-        weather.load(selectedStation.lat, selectedStation.lon, true),
-        forecast.load(selectedStation.id, 24, true),
-      );
       if (showHistory) tasks.push(history.load(selectedStation.id, 24));
     }
     void Promise.allSettled(tasks);
   }, [
     community,
     currentLocation,
+    area,
     forecast,
+    forecastTarget,
     history,
     pm25,
     selectedStation,
@@ -156,8 +192,17 @@ export default function TodayPageClient({ stationId }: { stationId?: string }) {
           onOpenMap={() => router.push("/")}
         />
         <ForecastPanel
-          station={selectedStation}
-          data={forecast.data}
+          station={stationId ? routeStation : null}
+          areaLabel={
+            stationId
+              ? undefined
+              : area
+                ? (area.name ?? "บริเวณที่เลือก")
+                : currentLocation.location
+                  ? "ตำแหน่งของคุณ"
+                  : undefined
+          }
+          data={forecastForCurrentTarget}
           loading={forecast.loading}
           error={forecast.error}
         />

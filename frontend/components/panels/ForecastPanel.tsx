@@ -117,11 +117,13 @@ function ForecastPausedPreview() {
 
 export default function ForecastPanel({
   station,
+  areaLabel,
   data,
   loading,
   error,
 }: {
   station: Station | null;
+  areaLabel?: string;
   data: ForecastResponse | null;
   loading: boolean;
   error: string | null;
@@ -183,15 +185,22 @@ export default function ForecastPanel({
     data.provider_count === 1;
   const unavailable = data?.forecast_status === "unavailable";
   const previewMode = FORECAST_SYSTEM_PAUSED || unavailable;
+  const hasTarget = Boolean(station || areaLabel);
 
   return (
     <section className="cp-forecast-card" aria-labelledby="forecast-title">
       <div className="cp-forecast-card__heading">
         <div>
           <span className="cp-eyebrow">Forecast · พยากรณ์ล่วงหน้า</span>
-          <h2 id="forecast-title">PM2.5 ในพื้นที่นี้</h2>
+          <h2 id="forecast-title">
+            {station
+              ? "พยากรณ์ PM2.5 บริเวณสถานี"
+              : "พยากรณ์ PM2.5 สำหรับบริเวณนี้"}
+          </h2>
           <p>
-            {station ? station.name_th || station.name_en : "เลือกสถานีก่อน"}
+            {station
+              ? station.name_th || station.name_en
+              : areaLabel || "เลือกบริเวณก่อน"}
           </p>
         </div>
         {(previewMode || data) && (
@@ -208,9 +217,9 @@ export default function ForecastPanel({
         )}
       </div>
 
-      {!station && (
+      {!hasTarget && (
         <div className="cp-forecast-empty">
-          แตะหมุดสถานี แล้วเปิดหน้าอากาศเพื่อดูพยากรณ์
+          อนุญาตตำแหน่งหรือเลือกสถานที่บนแผนที่เพื่อดูพยากรณ์
         </div>
       )}
       {loading && !previewMode && (
@@ -224,18 +233,23 @@ export default function ForecastPanel({
         </div>
       )}
 
-      {station && !previewMode && timelinePoints.length > 0 && (
+      {hasTarget && !previewMode && timelinePoints.length > 0 && (
         <div className="cp-forecast-timeline-wrap">
           <div
             className="cp-forecast-timeline"
             role="group"
             aria-label="พยากรณ์ตามเวลา"
           >
-            <div className="cp-forecast-timeline__now" aria-label="ค่าปัจจุบัน">
-              <span>ตอนนี้</span>
-              <strong>{station.pm25 ?? "—"}</strong>
-              <small>ค่าตรวจวัด</small>
-            </div>
+            {station && (
+              <div
+                className="cp-forecast-timeline__now"
+                aria-label="ค่าปัจจุบัน"
+              >
+                <span>ตอนนี้</span>
+                <strong>{station.pm25 ?? "—"}</strong>
+                <small>ค่าตรวจวัด</small>
+              </div>
+            )}
             {timelinePoints.map((point) => {
               const slot = formatForecastTimelineTime(point.forecast_at);
               const active = selected?.forecast_at === point.forecast_at;
@@ -244,7 +258,7 @@ export default function ForecastPanel({
                   key={point.forecast_at}
                   type="button"
                   className="cp-focus"
-                  aria-label={`${slot.day ? `${slot.day} ` : ""}${slot.time} PM2.5 ${point.pm25} ไมโครกรัมต่อลูกบาศก์เมตร`}
+                  aria-label={`พยากรณ์สำหรับ ${slot.day ? `${slot.day} ` : ""}${slot.time} PM2.5 ${point.pm25} ไมโครกรัมต่อลูกบาศก์เมตร`}
                   aria-pressed={active}
                   data-active={active}
                   onClick={() => {
@@ -267,10 +281,14 @@ export default function ForecastPanel({
             onClick={() => setShowHourly((value) => !value)}
           >
             <AppIcon name="clock" size={16} />
-            {showHourly ? "แสดงทุก 3 ชั่วโมง" : "ดูรายชั่วโมงครบ 24 ชม."}
+            {showHourly
+              ? "แสดงทุก 3 ชั่วโมง"
+              : `ดูรายชั่วโมง ${horizonPoints.length} ช่วงเวลา`}
           </button>
           <p className="cp-forecast-timeline-note">
-            “ตอนนี้” คือค่าตรวจวัดจริง · เวลาถัดไปคือค่าดิบจาก CAMS/Open‑Meteo
+            {station ? "“ตอนนี้” คือค่าตรวจวัดจริง · " : ""}
+            เวลาถัดไปคือค่าพยากรณ์จาก CAMS Global ผ่าน Open‑Meteo
+            ไม่ใช่ค่าที่สถานีจะวัดได้
           </p>
         </div>
       )}
@@ -304,7 +322,7 @@ export default function ForecastPanel({
                   size={16}
                 />
                 {showingRecommendation
-                  ? formatForecastTime(selected.forecast_at)
+                  ? `พยากรณ์สำหรับ ${formatForecastTime(selected.valid_at ?? selected.forecast_at)}`
                   : "กำลังดูค่าจากแหล่งนี้"}
               </span>
               <small>
@@ -316,7 +334,7 @@ export default function ForecastPanel({
             {showingRecommendation && externalOnly ? (
               <div className="cp-forecast-interval">
                 <span>แหล่งพยากรณ์</span>
-                <strong>CAMS / Open-Meteo</strong>
+                <strong>CAMS Global / Open-Meteo</strong>
                 <small>
                   แสดงค่าจากผู้ให้บริการโดยตรง ไม่มีการเฉลี่ยหรือปรับค่าด้วยสูตร
                   ClearPath
@@ -438,7 +456,7 @@ export default function ForecastPanel({
                 target="_blank"
                 rel="noreferrer"
               >
-                ข้อมูล CAMS ENSEMBLE ผ่าน Open-Meteo · CC BY 4.0
+                ข้อมูล CAMS Global ผ่าน Open-Meteo · CC BY 4.0
               </a>
             </p>
           )}
@@ -458,9 +476,12 @@ export default function ForecastPanel({
                 </strong>
                 <span>
                   {data.forecast_mode === "external_provider"
-                    ? data.selection_evidence.basis === "retrospective_accuracy"
-                      ? `เลือกจากผลเทียบค่าจริงย้อนหลัง ${data.selection_evidence.window_days} วัน และไม่แก้ค่าดิบของผู้ให้บริการ`
-                      : "หลักฐานย้อนหลังยังไม่พอ จึงเลือกข้อมูลที่ดึงมาใหม่ที่สุดชั่วคราว โดยไม่แก้ค่าดิบ"
+                    ? externalOnly
+                      ? "แสดงค่าดิบ CAMS Global ผ่าน Open-Meteo; ยังไม่มีหลักฐานความแม่นยำรายสถานีเพียงพอ"
+                      : data.selection_evidence.basis ===
+                          "retrospective_accuracy"
+                        ? `เลือกจากผลเทียบค่าจริงย้อนหลัง ${data.selection_evidence.window_days} วัน และไม่แก้ค่าดิบของผู้ให้บริการ`
+                        : "หลักฐานย้อนหลังยังไม่พอ จึงเลือกข้อมูลที่ดึงมาใหม่ที่สุดชั่วคราว โดยไม่แก้ค่าดิบ"
                     : "ใช้เฉพาะเมื่อยังไม่มีพยากรณ์ภายนอกที่สด"}
                 </span>
               </div>
@@ -506,13 +527,26 @@ export default function ForecastPanel({
               <dl className="cp-forecast-times">
                 <div>
                   <dt>พยากรณ์สำหรับ</dt>
-                  <dd>{formatProviderTime(selected.forecast_at)}</dd>
+                  <dd>
+                    {formatProviderTime(
+                      selected.valid_at ?? selected.forecast_at,
+                    )}
+                  </dd>
                 </div>
                 <div>
-                  <dt>ประมวลผลล่าสุด</dt>
-                  <dd>{formatProviderTime(data.generated_at)}</dd>
+                  <dt>ดึงข้อมูลเมื่อ</dt>
+                  <dd>
+                    {formatProviderTime(data.fetched_at ?? data.generated_at)}
+                  </dd>
                 </div>
               </dl>
+              {data.grid_lat != null && data.grid_lon != null && (
+                <p className="cp-forecast-disclaimer">
+                  แบบจำลองใช้ grid ใกล้พิกัดที่เลือก ({data.grid_lat.toFixed(2)}
+                  , {data.grid_lon.toFixed(2)}) · ความละเอียดพื้นที่ประมาณ 45
+                  กม. จึงไม่ยืนยันสภาพฝุ่นเฉพาะจุด
+                </p>
+              )}
               {!!data.limitation_reason_codes.length && (
                 <div className="cp-forecast-notice">
                   {data.limitation_reason_codes
