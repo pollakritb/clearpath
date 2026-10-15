@@ -29,5 +29,7 @@ jobs:
           response=$(curl --fail --silent --show-error --max-time 90 \
             -H "Authorization: Bearer $CRON_SECRET" \
             https://clearpath-gray.vercel.app/api/cron/cams-snapshots)
+          printf '%s\n' "$response" | jq -c \
+            '{status, reason, station_count, snapshot_count, missing_station_count, retention}'
           printf '%s\n' "$response" | jq -e \
             '.status == "success" or .status == "partial" or .status == "not_due" or .status == "in_progress"'

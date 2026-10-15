@@ -217,6 +217,11 @@ async def cron_cams_snapshots(authorization: str | None = Header(default=None)):
     _verify_cron(authorization)
     if not settings.cams_snapshot_collection_enabled:
         return {"status": "disabled", "reason": "cams_snapshot_collection_not_enabled"}
+    expected_ref = settings.cams_snapshot_expected_supabase_ref.strip()
+    if not expected_ref:
+        return {"status": "disabled", "reason": "supabase_project_ref_not_configured"}
+    if settings.supabase_url.rstrip("/") != f"https://{expected_ref}.supabase.co":
+        return {"status": "disabled", "reason": "supabase_project_ref_mismatch"}
     return await provider_sync.collect_openmeteo_snapshots()
 
 

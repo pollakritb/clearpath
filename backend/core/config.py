@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     forecast_validation_enabled: bool = False
     # Storage-only CAMS collection; independent of the paused model pipeline.
     cams_snapshot_collection_enabled: bool = False
+    cams_snapshot_expected_supabase_ref: str = ""
     # Exact, pre-reviewed station IDs from the private hourly-completeness scan.
     forecast_validation_cohort_ids: str = ""
 

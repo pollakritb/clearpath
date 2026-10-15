@@ -165,6 +165,25 @@ def test_cams_snapshot_route_is_authenticated_and_off_by_default(monkeypatch):
     }
 
 
+def test_cams_snapshot_route_requires_exact_supabase_project(monkeypatch):
+    monkeypatch.setattr(settings, "cron_secret", "cams-test-secret")
+    monkeypatch.setattr(settings, "supabase_cron_secret", "")
+    monkeypatch.setattr(settings, "cams_snapshot_collection_enabled", True)
+    monkeypatch.setattr(
+        settings, "cams_snapshot_expected_supabase_ref", "clearpath-ref"
+    )
+    monkeypatch.setattr(settings, "supabase_url", "https://other-ref.supabase.co")
+    client = TestClient(app)
+    result = client.get(
+        "/api/cron/cams-snapshots",
+        headers={"Authorization": "Bearer cams-test-secret"},
+    )
+    assert result.json() == {
+        "status": "disabled",
+        "reason": "supabase_project_ref_mismatch",
+    }
+
+
 def test_cams_retention_is_provider_scoped_and_bounded(monkeypatch):
     calls = []
 
