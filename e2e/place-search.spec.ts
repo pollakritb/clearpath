@@ -77,6 +77,27 @@ test("place focus shows a compact three-kilometre evidence area and restores the
   }));
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
 
+  await page.setViewportSize({ width: 680, height: 1240 });
+  await expect(card).toHaveAttribute("data-expanded", "true");
+  const expandedBounds = await card.boundingBox();
+  expect(expandedBounds).not.toBeNull();
+  expect(expandedBounds!.height).toBeGreaterThan(1100);
+  await page.screenshot({ path: "test-results/place-focus-details-680.png" });
+  await card.getByRole("button", { name: "กลับไปดูแบบย่อ" }).click();
+  const compactBounds = await card.boundingBox();
+  const navBounds = await page.locator(".cp-mobile-nav").boundingBox();
+  expect(compactBounds).not.toBeNull();
+  expect(navBounds).not.toBeNull();
+  expect(compactBounds!.width).toBeGreaterThan(600);
+  expect(compactBounds!.y + compactBounds!.height).toBeLessThan(navBounds!.y);
+  await page.screenshot({ path: "test-results/place-focus-compact-680.png" });
+  await card
+    .getByRole("button", { name: /ดูรายละเอียดค่าฝุ่นและแหล่งข้อมูล/ })
+    .click();
+  await expect(
+    card.getByRole("link", { name: /ดูพยากรณ์ PM2.5/ }),
+  ).toBeVisible();
+
   await card.getByRole("button", { name: "กลับสู่แผนที่รวม" }).last().click();
   await expect(card).toHaveCount(0);
   await expect(page.locator(".cp-place-marker")).toHaveCount(0);

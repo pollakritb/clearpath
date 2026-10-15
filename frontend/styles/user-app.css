@@ -4405,7 +4405,7 @@
   line-height: 1.25;
 }
 
-.cp-place-card__compact-value {
+.cp-place-card__compact-reading strong.cp-place-card__compact-value {
   font: 900 1.75rem/1 var(--font-mono);
   letter-spacing: -0.05em;
 }
@@ -4711,18 +4711,39 @@
   cursor: pointer;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .cp-place-card {
-    right: 10px;
-    bottom: calc(var(--cp-mobile-nav-h) + 10px);
-    left: 10px;
-    width: auto;
-    max-height: min(62dvh, 560px);
+    right: 12px;
+    bottom: calc(var(--cp-mobile-nav-h) + 12px);
+    left: 12px;
+    width: min(640px, calc(100% - 24px));
+    max-height: min(68dvh, 640px);
+    margin-inline: auto;
   }
 
   .cp-place-card--compact {
-    right: auto;
-    width: min(350px, calc(100% - 20px));
+    max-height: min(44dvh, 280px);
+  }
+
+  .cp-place-card[data-expanded="true"] {
+    position: fixed;
+    z-index: 1600;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-top: 4px solid #34736e;
+    border-radius: 0;
+    padding: max(15px, env(safe-area-inset-top)) 16px
+      calc(24px + env(safe-area-inset-bottom));
+    background: #f7faf9;
+    overflow-y: auto;
+  }
+
+  .cp-place-card[data-expanded="true"] .cp-map-selection-card__handle {
+    display: none;
   }
 }
 
