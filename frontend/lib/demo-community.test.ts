@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildDemoCommunityReports,
+  buildDemoStackScenario,
   DEMO_COMMUNITY_CENTER,
   isCommunityDemoMode,
+  isCommunityStackDemoMode,
 } from "./demo-community";
 
 describe("community demo fixtures", () => {
@@ -54,6 +56,25 @@ describe("community demo fixtures", () => {
 
     vi.stubGlobal("window", { location: { search: "?demo=other" } });
     expect(isCommunityDemoMode()).toBe(false);
+
+    vi.stubGlobal("window", { location: { search: "?demo=stack" } });
+    expect(isCommunityDemoMode()).toBe(true);
+    expect(isCommunityStackDemoMode()).toBe(true);
+  });
+
+  it("shows one nearby stack with a per-person average and one separate report", () => {
+    const scenario = buildDemoStackScenario(Date.parse("2026-10-16T10:00:00Z"));
+    expect(scenario.reports).toHaveLength(4);
+    expect(scenario.stacks).toHaveLength(1);
+    expect(scenario.stacks[0]).toMatchObject({
+      report_count: 3,
+      reporter_count: 2,
+      pm25: 22,
+      value_status: "average",
+      contributing_report_ids: ["demo-stack-1", "demo-stack-2"],
+    });
+    expect(scenario.reports[0].user_id).toBe(scenario.reports[2].user_id);
+    expect(scenario.stacks[0].report_ids).not.toContain(scenario.reports[3].id);
   });
 
   it("never enables mock reports on a normal Production build", () => {
@@ -61,5 +82,8 @@ describe("community demo fixtures", () => {
     vi.stubEnv("NEXT_PUBLIC_LOCAL_DEMO_MODE", "false");
     vi.stubGlobal("window", { location: { search: "?demo=community" } });
     expect(isCommunityDemoMode()).toBe(false);
+
+    vi.stubGlobal("window", { location: { search: "?demo=stack" } });
+    expect(isCommunityStackDemoMode()).toBe(false);
   });
 });

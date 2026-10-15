@@ -1,4 +1,4 @@
-import type { CommunityReport } from "@/frontend/types";
+import type { CommunityReport, CommunityReportStack } from "@/frontend/types";
 
 export const DEMO_COMMUNITY_CENTER = { lat: 13.8199, lon: 100.0622 } as const;
 
@@ -74,8 +74,15 @@ export function isCommunityDemoMode() {
   ) {
     return false;
   }
+  return ["community", "stack"].includes(
+    new URLSearchParams(window.location.search).get("demo") ?? "",
+  );
+}
+
+export function isCommunityStackDemoMode() {
   return (
-    new URLSearchParams(window.location.search).get("demo") === "community"
+    isCommunityDemoMode() &&
+    new URLSearchParams(window.location.search).get("demo") === "stack"
   );
 }
 
@@ -152,4 +159,58 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
       comment_count: Math.floor(seeded(index, 12) * 5),
     };
   });
+}
+
+/** Local-only scenario: three nearby reports, two people, and one distant pin. */
+export function buildDemoStackScenario(now = Date.now()): {
+  reports: CommunityReport[];
+  stacks: CommunityReportStack[];
+} {
+  const base = buildDemoCommunityReports(now);
+  const readings = [20, 24, 18] as const;
+  const reporters = ["demo-alice", "demo-bob", "demo-alice"] as const;
+  const names = ["กานต์", "มินตรา", "กานต์"] as const;
+  const offsets = [
+    [0, 0],
+    [0.00025, 0.0002],
+    [-0.0002, 0.00015],
+  ] as const;
+  const nearby = base.slice(0, 3).map((report, index) => {
+    const pm25 = readings[index];
+    const capturedAt = new Date(now - (10 + index * 5) * 60_000).toISOString();
+    return {
+      ...report,
+      id: `demo-stack-${index + 1}`,
+      user_id: reporters[index],
+      display_name: names[index],
+      reporter_avatar_url:
+        index === 1 ? "/demo/avatar-mint.svg" : "/demo/avatar-kan.svg",
+      show_reporter_profile: true,
+      lat: DEMO_COMMUNITY_CENTER.lat + offsets[index][0],
+      lon: DEMO_COMMUNITY_CENTER.lon + offsets[index][1],
+      pm25,
+      verified_pm25: pm25,
+      ocr_pm25: pm25,
+      image_url: demoMeterImage(pm25),
+      captured_at: capturedAt,
+      created_at: capturedAt,
+      age_minutes: 10 + index * 5,
+      gps_accuracy_m: 25,
+      measurement_note: "ข้อมูลจำลองสำหรับทดสอบหมุดรวม",
+    } satisfies CommunityReport;
+  });
+  const stack: CommunityReportStack = {
+    id: "stack:demo-stack-1",
+    lat: nearby[0].lat,
+    lon: nearby[0].lon,
+    report_ids: nearby.map((report) => report.id),
+    report_count: nearby.length,
+    reporter_count: 2,
+    latest_captured_at: nearby[0].captured_at,
+    pm25: 22,
+    value_status: "average",
+    contributing_count: 2,
+    contributing_report_ids: [nearby[0].id, nearby[1].id],
+  };
+  return { reports: [...nearby, base[3]], stacks: [stack] };
 }

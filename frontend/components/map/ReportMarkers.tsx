@@ -5,6 +5,7 @@ import { Marker } from "react-leaflet";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { formatCommunityArea } from "@/frontend/lib/community-location";
+import { isCommunityStackDemoMode } from "@/frontend/lib/demo-community";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
 import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
 import type { CommunityReport, CommunityReportStack } from "@/frontend/types";
@@ -33,12 +34,60 @@ function reportIcon(
   });
 }
 
-function stackIcon(stack: CommunityReportStack, selected: boolean) {
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[character];
+  });
+}
+
+function stackIcon(
+  stack: CommunityReportStack,
+  reports: CommunityReport[],
+  selected: boolean,
+) {
   const color = stack.pm25 == null ? "#58716d" : classifyPm25(stack.pm25).color;
   const value = stack.pm25 == null ? "—" : String(Math.round(stack.pm25));
+  const uniqueReporters = new Map<string, CommunityReport>();
+  for (const id of stack.report_ids) {
+    const report = reports.find((entry) => entry.id === id);
+    if (report && !uniqueReporters.has(report.user_id)) {
+      uniqueReporters.set(report.user_id, report);
+    }
+  }
+  const faces = [...uniqueReporters.values()]
+    .slice(0, 3)
+    .map((report, index) => {
+      const demoAvatar =
+        isCommunityStackDemoMode() &&
+        report.policy_version === "demo-v1" &&
+        ["/demo/avatar-kan.svg", "/demo/avatar-mint.svg"].includes(
+          report.reporter_avatar_url ?? "",
+        )
+          ? report.reporter_avatar_url
+          : null;
+      const avatar = publicReporterAvatar(report) ?? demoAvatar;
+      const initial = report.show_reporter_profile
+        ? (report.display_name?.trim().charAt(0) ?? "")
+        : "";
+      const content = avatar
+        ? `<img src="${escapeHtml(avatar)}" alt="" referrerpolicy="no-referrer">`
+        : initial
+          ? `<b>${escapeHtml(initial)}</b>`
+          : '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.3"/><path d="M5 21c.5-4.5 2.8-6.5 7-6.5s6.5 2 7 6.5"/></svg>';
+      return `<span class="cp-report-stack-marker__face cp-report-stack-marker__face--${index + 1}">${content}</span>`;
+    })
+    .join("");
+  const overflow = Math.max(0, stack.reporter_count - 3);
   return L.divIcon({
     className: "cp-marker cp-marker--report-stack",
-    html: `<div class="cp-report-stack-marker${selected ? " is-selected" : ""}" style="--marker-aqi:${color}"><strong>${value}</strong><span>${stack.report_count} รายงาน</span></div>`,
+    html: `<div class="cp-report-stack-marker${selected ? " is-selected" : ""}" style="--marker-aqi:${color}"><span class="cp-report-stack-marker__faces cp-report-stack-marker__faces--${Math.min(uniqueReporters.size, 3)}" aria-hidden="true">${faces}</span><strong class="cp-report-stack-marker__value">${value}</strong><span class="cp-report-stack-marker__count">${overflow > 0 ? `+${overflow} คน · ` : ""}${stack.report_count} รายงาน</span></div>`,
     iconSize: [60, 60],
     iconAnchor: [30, 30],
   });
@@ -59,13 +108,14 @@ export default function ReportMarkers({
   selectedId?: string | null;
   selectedStackId?: string | null;
 }) {
+  const groupedReportIds = new Set(stacks.flatMap((stack) => stack.report_ids));
   return (
     <>
       {stacks.map((stack) => (
         <Marker
           key={stack.id}
           position={[stack.lat, stack.lon]}
-          icon={stackIcon(stack, stack.id === selectedStackId)}
+          icon={stackIcon(stack, reports, stack.id === selectedStackId)}
           title={`${stack.report_count} รายงานจาก ${stack.reporter_count} คน${stack.pm25 == null ? "" : ` · PM2.5 ${stack.pm25} µg/m³`}`}
           alt={`${stack.report_count} รายงานในบริเวณเดียวกัน`}
           zIndexOffset={1500}
@@ -78,7 +128,7 @@ export default function ReportMarkers({
         />
       ))}
       {reports.map((report) => {
-        if (report.pm25 == null) return null;
+        if (report.pm25 == null || groupedReportIds.has(report.id)) return null;
         const source = communitySourceKind(report);
         if (source !== "individual") return null;
         const cls = classifyPm25(report.pm25);

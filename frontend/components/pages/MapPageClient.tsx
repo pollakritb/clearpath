@@ -163,10 +163,6 @@ export default function MapPageClient({
   );
   const selectedStack =
     community.stacks.find((stack) => stack.id === selectedStackId) ?? null;
-  const groupedReportIds = useMemo(
-    () => new Set(community.stacks.flatMap((stack) => stack.report_ids)),
-    [community.stacks],
-  );
   const effectiveFocusPoint =
     focusPoint ?? (community.demoMode ? DEMO_COMMUNITY_CENTER : null);
   const currentSurfaceStations = useMemo(
@@ -199,7 +195,7 @@ export default function MapPageClient({
     ? placeAir.reports.map(({ report }) => report)
     : historyEnabled
       ? []
-      : community.reports.filter((report) => !groupedReportIds.has(report.id));
+      : community.reports;
   const mapStacks = historyEnabled || placeAir ? [] : community.stacks;
   const selectedStackReports = selectedStack
     ? selectedStack.report_ids

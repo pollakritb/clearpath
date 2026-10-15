@@ -5,7 +5,9 @@ import { useCallback, useEffect, useState } from "react";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import {
   buildDemoCommunityReports,
+  buildDemoStackScenario,
   isCommunityDemoMode,
+  isCommunityStackDemoMode,
 } from "@/frontend/lib/demo-community";
 import {
   cachedPublicValue,
@@ -85,18 +87,27 @@ export function useCommunityMapData({
   const applyResults = useCallback(
     (results: Awaited<ReturnType<typeof loadCommunityMapData>>) => {
       const demo = isCommunityDemoMode();
+      const stackDemo = isCommunityStackDemoMode();
       setDemoMode(demo);
       if (includeReports && (results[0].status === "fulfilled" || demo)) {
-        const liveReports =
-          results[0].status === "fulfilled" ? results[0].value.reports : [];
-        setStacks(
-          results[0].status === "fulfilled"
-            ? (results[0].value.stacks ?? [])
-            : [],
-        );
-        setReports(
-          demo ? [...buildDemoCommunityReports(), ...liveReports] : liveReports,
-        );
+        if (stackDemo) {
+          const scenario = buildDemoStackScenario();
+          setReports(scenario.reports);
+          setStacks(scenario.stacks);
+        } else {
+          const liveReports =
+            results[0].status === "fulfilled" ? results[0].value.reports : [];
+          setStacks(
+            results[0].status === "fulfilled"
+              ? (results[0].value.stacks ?? [])
+              : [],
+          );
+          setReports(
+            demo
+              ? [...buildDemoCommunityReports(), ...liveReports]
+              : liveReports,
+          );
+        }
       }
       if (results[1].status === "fulfilled") {
         setMapPoints(results[1].value.points);

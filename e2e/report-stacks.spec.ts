@@ -1,5 +1,58 @@
 import { expect, test } from "@playwright/test";
 
+test("local stack demo shows grouped reports and their individual details", async ({
+  page,
+}) => {
+  await page.goto("/?demo=stack");
+  const marker = page.locator(".cp-marker--report-stack");
+  await expect(marker).toHaveCount(1);
+  await expect(marker.locator(".cp-report-stack-marker__face")).toHaveCount(2);
+  await expect(marker.locator(".cp-report-stack-marker__face img")).toHaveCount(
+    2,
+  );
+  await expect
+    .poll(() =>
+      marker
+        .locator(".cp-report-stack-marker__face img")
+        .evaluateAll((images) =>
+          images.every((image) => (image as HTMLImageElement).naturalWidth > 0),
+        ),
+    )
+    .toBe(true);
+  await expect(page.locator(".cp-marker--individual")).toHaveCount(1);
+  await page.screenshot({ path: "test-results/demo-stack-map-mobile.png" });
+  await marker.click();
+  const card = page.getByRole("region", {
+    name: "รายงานค่าฝุ่นในบริเวณเดียวกัน",
+  });
+  await expect(
+    card.getByRole("heading", { name: "3 รายงานจาก 2 คน" }),
+  ).toBeVisible();
+  await expect(
+    card.getByText("ค่าเฉลี่ยจาก 2 คนใน 60 นาทีล่าสุด"),
+  ).toBeVisible();
+  await expect(card).toHaveAttribute("data-expanded", "false");
+  expect(
+    await card.evaluate((element) => element.getBoundingClientRect().height),
+  ).toBeLessThan(240);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await page.screenshot({ path: "test-results/demo-stack-compact-mobile.png" });
+  await card.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }).click();
+  await expect(card.locator(".cp-report-stack-card__item")).toHaveCount(3);
+  await expect(card.getByText("ใช้ในค่าเฉลี่ย")).toHaveCount(2);
+  await page.screenshot({ path: "test-results/demo-stack-mobile.png" });
+
+  await card.getByRole("button", { name: /มินตรา/ }).click();
+  const detail = page.getByRole("region", {
+    name: "รายละเอียดรายงานจากบุคคล",
+  });
+  await expect(detail.getByText("24")).toBeVisible();
+  await detail.getByRole("button", { name: "กลับไปยังกลุ่มรายงาน" }).click();
+  await expect(card).toBeVisible();
+});
+
 test("nearby user reports share a marker and preserve each photo/detail", async ({
   page,
 }) => {
@@ -60,6 +113,7 @@ test("nearby user reports share a marker and preserve each photo/detail", async 
   await page.goto("/");
   const marker = page.locator(".cp-marker--report-stack");
   await expect(marker).toHaveCount(1);
+  await expect(marker.locator(".cp-report-stack-marker__face")).toHaveCount(2);
   await expect(page.locator(".cp-marker--individual")).toHaveCount(0);
   await marker.click();
   await expect(marker.locator(".cp-report-stack-marker")).toHaveClass(
@@ -74,6 +128,7 @@ test("nearby user reports share a marker and preserve each photo/detail", async 
   await expect(
     card.getByText("ค่าเฉลี่ยจาก 2 คนใน 60 นาทีล่าสุด"),
   ).toBeVisible();
+  await card.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }).click();
   await expect(card.getByText("ใช้ในค่าเฉลี่ย")).toHaveCount(2);
   await expect(card.locator(".cp-report-stack-card__item")).toHaveCount(3);
   await card.getByRole("button", { name: /มินตรา/ }).click();
