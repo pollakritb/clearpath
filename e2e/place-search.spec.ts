@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("place focus shows a five-kilometre evidence area and restores the map", async ({
+test("place focus shows a compact three-kilometre evidence area and restores the map", async ({
   page,
 }) => {
   await page.route("**/api/locations/search?*", async (route) => {
@@ -33,11 +33,12 @@ test("place focus shows a five-kilometre evidence area and restores the map", as
   ).toBeVisible();
   await page.getByRole("button", { name: /สถานที่ทดสอบ/ }).click();
 
-  const card = page.getByRole("region", { name: "ค่าฝุ่นรอบสถานที่ที่เลือก" });
+  const card = page.locator(".cp-place-card");
   await expect(card).toBeVisible();
+  await expect(card).toHaveAttribute("data-expanded", "false");
   await expect(card.getByText("สถานที่ทดสอบ")).toBeVisible();
-  await expect(card.locator(".cp-place-card__radius")).toContainText(
-    "วง 5 กม.",
+  await expect(card.locator(".cp-place-card__eyebrow")).toContainText(
+    "วง 3 กม.",
   );
   await expect(page.locator(".cp-place-marker")).toHaveCount(1);
   await expect(
@@ -50,7 +51,13 @@ test("place focus shows a five-kilometre evidence area and restores the map", as
   expect(marker!.y + marker!.height).toBeLessThan(collapsedCard!.y);
   await page.screenshot({ path: "test-results/place-focus-mobile.png" });
 
-  await card.getByText("ดูข้อมูลภายในวง 5 กม.").click();
+  await card
+    .getByRole("button", { name: /ดูรายละเอียดค่าฝุ่นและแหล่งข้อมูล/ })
+    .click();
+  await expect(card).toHaveAttribute("data-expanded", "true");
+  await expect(card.locator(".cp-place-card__radius")).toContainText(
+    "วง 3 กม.",
+  );
   await expect(
     card.getByRole("link", { name: /ดูพยากรณ์ PM2.5 สำหรับบริเวณนี้/ }),
   ).toHaveAttribute("href", /\/air\?lat=13\.82&lon=100\.06/);
@@ -103,7 +110,10 @@ test("OpenStreetMap place keeps its PM2.5 reading and credits the place source",
     .getByPlaceholder("ชื่อสถานที่ ที่อยู่ หรือสถานี")
     .fill("สถานที่ทด");
   await page.getByRole("button", { name: /สถานที่ทดสอบ OSM/ }).click();
-  const card = page.getByRole("region", { name: "ค่าฝุ่นรอบสถานที่ที่เลือก" });
+  const card = page.locator(".cp-place-card");
+  await card
+    .getByRole("button", { name: /ดูรายละเอียดค่าฝุ่นและแหล่งข้อมูล/ })
+    .click();
   await expect(card.locator(".cp-place-card__reading strong")).toContainText(
     /\d+\.\d/,
   );

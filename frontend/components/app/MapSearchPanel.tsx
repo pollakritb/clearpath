@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api } from "@/frontend/lib/api-client";
+import { PLACE_RADIUS_KM } from "@/frontend/lib/place-air";
 import type { LocationSuggestion, Station } from "@/frontend/types";
 
 interface MapSearchPanelProps {
@@ -120,7 +121,7 @@ export default function MapSearchPanel({
       <div className="cp-map-flyout__heading">
         <div>
           <strong>ค้นหาสถานที่</strong>
-          <small>ดูค่าฝุ่นและแหล่งข้อมูลในระยะ 5 กม.</small>
+          <small>ดูค่าฝุ่นและแหล่งข้อมูลในระยะ {PLACE_RADIUS_KM} กม.</small>
         </div>
         <button
           type="button"

@@ -31,7 +31,11 @@ const report = {
 } as CommunityReport;
 
 describe("place air assessment", () => {
-  it("uses a fresh official station within 5 km and keeps reports supplementary", () => {
+  it("uses a 3 km search radius", () => {
+    expect(PLACE_RADIUS_KM).toBe(3);
+  });
+
+  it("uses a fresh official station within 3 km and keeps reports supplementary", () => {
     const result = assessPlaceAir(
       13.8,
       100.1,

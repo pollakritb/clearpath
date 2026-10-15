@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { classifyPm25 } from "@/frontend/lib/aqi";
@@ -38,12 +41,87 @@ export default function PlaceAirCard({
   loading,
   dataError,
 }: PlaceAirCardProps) {
+  const [expanded, setExpanded] = useState(false);
   const classification = classifyPm25(air.value);
   const usableCount = air.usedStationCount;
 
+  const readingStyle = {
+    "--place-color": air.value == null ? "#476b69" : classification.color,
+    "--place-tint": air.value == null ? "#edf4f2" : classification.tint,
+  } as React.CSSProperties;
+
+  if (!expanded) {
+    return (
+      <section
+        className="cp-place-card cp-place-card--compact"
+        aria-label={`ค่าฝุ่นรอบ ${place.name}`}
+        data-expanded="false"
+        style={readingStyle}
+      >
+        <div className="cp-map-selection-card__handle" aria-hidden />
+        <button
+          type="button"
+          className="cp-map-selection-card__close cp-focus"
+          onClick={onClose}
+          aria-label="ปิดสถานที่ที่เลือก"
+        >
+          <AppIcon name="close" size={19} />
+        </button>
+        <div className="cp-place-card__heading">
+          <span className="cp-place-card__eyebrow">
+            <AppIcon name="location" size={15} /> สถานที่ที่เลือก · วง{" "}
+            {PLACE_RADIUS_KM} กม.
+          </span>
+          <h1>{place.name}</h1>
+        </div>
+        <div className="cp-place-card__compact-reading" aria-live="polite">
+          {loading && air.stations.length === 0 ? (
+            <strong>กำลังโหลดค่าฝุ่น…</strong>
+          ) : air.value == null ? (
+            <>
+              <strong>ยังไม่มีค่าฝุ่นที่ประเมินได้</strong>
+              <span>ไม่มีสถานีข้อมูลสดในวง</span>
+            </>
+          ) : (
+            <>
+              <strong className="cp-place-card__compact-value">
+                {air.value.toFixed(1)} <small>µg/m³</small>
+              </strong>
+              <span>{classification.level}</span>
+            </>
+          )}
+        </div>
+        <button
+          type="button"
+          className="cp-place-card__open cp-focus"
+          onClick={() => setExpanded(true)}
+          aria-label={`ดูรายละเอียดค่าฝุ่นและแหล่งข้อมูลรอบ ${place.name}`}
+        >
+          <span>
+            ดูรายละเอียด · {air.stations.length} สถานี · {air.reports.length}{" "}
+            รายงาน
+          </span>
+          <AppIcon name="chevron" size={18} />
+        </button>
+      </section>
+    );
+  }
+
   return (
-    <section className="cp-place-card" aria-label="ค่าฝุ่นรอบสถานที่ที่เลือก">
+    <section
+      className="cp-place-card"
+      aria-label={`รายละเอียดค่าฝุ่นรอบ ${place.name}`}
+      data-expanded="true"
+      style={readingStyle}
+    >
       <div className="cp-map-selection-card__handle" aria-hidden />
+      <button
+        type="button"
+        className="cp-map-selection-card__collapse cp-focus"
+        onClick={() => setExpanded(false)}
+      >
+        ← กลับไปดูแบบย่อ
+      </button>
       <button
         type="button"
         className="cp-map-selection-card__close cp-focus"
@@ -60,17 +138,7 @@ export default function PlaceAirCard({
         <p>{place.address}</p>
       </div>
 
-      <div
-        className="cp-place-card__reading"
-        aria-live="polite"
-        style={
-          {
-            "--place-color":
-              air.value == null ? "#476b69" : classification.color,
-            "--place-tint": air.value == null ? "#edf4f2" : classification.tint,
-          } as React.CSSProperties
-        }
-      >
+      <div className="cp-place-card__reading" aria-live="polite">
         {loading && air.stations.length === 0 ? (
           <strong>กำลังโหลดข้อมูลค่าฝุ่น…</strong>
         ) : air.value == null ? (
@@ -106,16 +174,13 @@ export default function PlaceAirCard({
         คือระยะค้นหาข้อมูล ไม่ใช่พื้นที่ที่ฝุ่นมีค่าเท่ากัน
       </p>
 
-      <details className="cp-place-card__details">
-        <summary className="cp-place-card__details-toggle cp-focus">
-          <span>
-            <strong>ดูข้อมูลภายในวง {PLACE_RADIUS_KM} กม.</strong>
-            <small>
-              {air.stations.length} สถานี · {air.reports.length} รายงานจากบุคคล
-            </small>
-          </span>
-          <AppIcon name="chevron" size={19} />
-        </summary>
+      <div className="cp-place-card__details">
+        <h2 className="cp-place-card__details-title">
+          แหล่งข้อมูลในวง {PLACE_RADIUS_KM} กม.
+          <small>
+            {air.stations.length} สถานี · {air.reports.length} รายงาน
+          </small>
+        </h2>
         <div className="cp-place-card__sources">
           <Link
             className="cp-place-card__reset cp-place-card__forecast-link cp-focus"
@@ -208,7 +273,7 @@ export default function PlaceAirCard({
         >
           กลับสู่แผนที่รวม
         </button>
-      </details>
+      </div>
       <small className="cp-place-card__attribution">
         ข้อมูลสถานที่:{" "}
         {place.source === "geoapify" ? (

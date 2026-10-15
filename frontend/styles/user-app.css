@@ -4370,6 +4370,87 @@
   scrollbar-width: thin;
 }
 
+.cp-place-card--compact {
+  width: min(350px, calc(100% - 32px));
+  overflow: hidden;
+  padding: 10px 13px 8px;
+}
+
+.cp-place-card--compact .cp-map-selection-card__handle {
+  margin-bottom: 6px;
+}
+
+.cp-place-card--compact h1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-place-card__compact-reading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  margin-top: 8px;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: var(--place-tint);
+}
+
+.cp-place-card__compact-reading strong {
+  min-width: 0;
+  color: var(--place-color);
+  font-size: 0.83rem;
+  line-height: 1.25;
+}
+
+.cp-place-card__compact-value {
+  font: 900 1.75rem/1 var(--font-mono);
+  letter-spacing: -0.05em;
+}
+
+.cp-place-card__compact-reading strong small {
+  color: #49615f;
+  font: 600 0.65rem var(--font-sans);
+  letter-spacing: 0;
+}
+
+.cp-place-card__compact-reading > span {
+  flex: none;
+  max-width: 38%;
+  color: #35514f;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.cp-place-card__open {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 10px;
+  padding: 5px 7px;
+  background: transparent;
+  color: #275e59;
+  cursor: pointer;
+  font: 800 0.69rem var(--font-sans);
+  text-align: left;
+}
+
+.cp-place-card__open:hover {
+  background: #eef6f4;
+}
+
+.cp-place-card__open svg {
+  flex: none;
+}
+
 .cp-place-card__heading {
   padding-right: 45px;
 }
@@ -4455,6 +4536,21 @@
   margin-top: 11px;
   border-top: 1px solid #e4eeea;
   padding-top: 10px;
+}
+
+.cp-place-card__details-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.cp-place-card__details-title small {
+  color: var(--cp-subink);
+  font-size: 0.67rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .cp-place-card__details-toggle {
@@ -4622,6 +4718,11 @@
     left: 10px;
     width: auto;
     max-height: min(62dvh, 560px);
+  }
+
+  .cp-place-card--compact {
+    right: auto;
+    width: min(350px, calc(100% - 20px));
   }
 }
 
