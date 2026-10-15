@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import Header from "@/frontend/components/panels/Header";
@@ -10,6 +10,8 @@ import { DASHBOARD_COPY, SHEET_Y } from "@/frontend/lib/dashboard";
 import type { DashboardTab, SheetSnap } from "@/frontend/types/ui";
 
 import DashboardSidebar from "./DashboardSidebar";
+
+const sheetSnapByTab: Partial<Record<DashboardTab, SheetSnap>> = {};
 
 interface HeaderState {
   title?: string;
@@ -41,7 +43,12 @@ export default function UserPageShell({
 }: UserPageShellProps) {
   const auth = useAuth();
   const display = useDisplayPreferences();
-  const [snap, setSnap] = useState<SheetSnap>("half");
+  const [snap, setSnap] = useState<SheetSnap>(
+    () => sheetSnapByTab[tab] ?? "half",
+  );
+  useEffect(() => {
+    sheetSnapByTab[tab] = snap;
+  }, [tab, snap]);
   const copy = DASHBOARD_COPY[tab];
   const canModerate = ["moderator", "admin"].includes(auth.role);
   const rootStyle = {

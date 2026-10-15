@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Noto_Sans_Thai } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/frontend/components/auth/AuthProvider";
 import { LoginPromptProvider } from "@/frontend/components/auth/LoginPromptProvider";
 import PwaRegistrar from "@/frontend/components/app/PwaRegistrar";
+import PersistentMapPage from "@/frontend/components/app/PersistentMapPage";
 import { DisplayPreferencesProvider } from "@/frontend/components/settings/DisplayPreferencesProvider";
 
 // UI font — variable font, all weights 400–800 available
@@ -44,7 +46,12 @@ export default function RootLayout({
       <body>
         <DisplayPreferencesProvider>
           <AuthProvider>
-            <LoginPromptProvider>{children}</LoginPromptProvider>
+            <LoginPromptProvider>
+              <Suspense fallback={null}>
+                <PersistentMapPage />
+              </Suspense>
+              {children}
+            </LoginPromptProvider>
           </AuthProvider>
         </DisplayPreferencesProvider>
         <PwaRegistrar />

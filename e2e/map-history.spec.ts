@@ -28,7 +28,19 @@ test("historical map timeline is usable on mobile", async ({ page }) => {
   }));
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
 
-  const station = page.getByRole("button", { name: /PM2\.5/ }).first();
+  const markers = page.locator(".cp-marker--station");
+  await expect(markers.first()).toBeVisible();
+  const markerIndex = await markers.evaluateAll((elements) =>
+    elements.findIndex((element) => {
+      const bounds = element.getBoundingClientRect();
+      const x = bounds.left + bounds.width / 2;
+      const y = bounds.top + bounds.height / 2;
+      const top = document.elementFromPoint(x, y);
+      return top === element || element.contains(top);
+    }),
+  );
+  expect(markerIndex).toBeGreaterThanOrEqual(0);
+  const station = markers.nth(markerIndex);
   await expect(station).toBeVisible();
   await station.click();
   await expect(page.getByText("ค่าตรวจวัดย้อนหลัง").last()).toBeVisible();

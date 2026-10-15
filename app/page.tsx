@@ -1,10 +1,4 @@
-import MapPageClient from "@/frontend/components/pages/MapPageClient";
-
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ layer?: string | string[] }>;
-}) {
-  const { layer } = await searchParams;
-  return <MapPageClient showFiresInitially={layer === "fires"} />;
+// The map lives in the shared layout so navigation does not remount Leaflet.
+export default function HomePage() {
+  return null;
 }

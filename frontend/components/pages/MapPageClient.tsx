@@ -76,6 +76,7 @@ export default function MapPageClient({
   const [forecastDiagnostic, setForecastDiagnostic] =
     useState<ForecastResponse | null>(null);
   const [inspectionOpen, setInspectionOpen] = useState(false);
+  const [resetViewSignal, setResetViewSignal] = useState(0);
   const userLocation = locatedManually ?? currentLocation.location;
   const inspectionTarget = selectedStation
     ? {
@@ -116,6 +117,12 @@ export default function MapPageClient({
   const updateInspectionOpen = useCallback((value: boolean) => {
     setInspectionOpen(value);
   }, []);
+
+  useEffect(() => {
+    if (!showFiresInitially) return;
+    const frame = window.requestAnimationFrame(() => setShowFires(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [showFiresInitially]);
 
   useEffect(() => {
     if (!selectedPlace) return;
@@ -247,6 +254,7 @@ export default function MapPageClient({
             : null
         }
         forecastDiagnostic={forecastDiagnostic}
+        resetViewSignal={resetViewSignal}
         showHeatmap={!selectedPlace && showHeatmap}
         showStations={Boolean(selectedPlace) || showStations}
         showIndividualReports={
@@ -270,6 +278,16 @@ export default function MapPageClient({
           setSelectedReport(null);
           setLocatedManually({ lat, lon, accuracy });
           setFocusPoint({ lat, lon });
+        }}
+        onResetView={() => {
+          setSelectedStation(null);
+          setSelectedReport(null);
+          setSelectedStackId(null);
+          setSelectedPlace(null);
+          setFocusPoint(null);
+          setForecastDiagnostic(null);
+          setViewMode("map");
+          setResetViewSignal((value) => value + 1);
         }}
       />
       <MapChrome

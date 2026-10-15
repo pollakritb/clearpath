@@ -42,6 +42,7 @@ export interface MapViewProps {
   focusPoint?: { lat: number; lon: number } | null;
   placePoint?: { lat: number; lon: number; radiusKm: number } | null;
   forecastDiagnostic?: ForecastResponse | null;
+  resetViewSignal?: number;
   showHeatmap: boolean;
   showStations: boolean;
   showIndividualReports: boolean;
@@ -53,6 +54,7 @@ export interface MapViewProps {
   selectedReportId?: string | null;
   selectedReportStackId?: string | null;
   onLocate?: (lat: number, lon: number, accuracy?: number) => void;
+  onResetView?: () => void;
   onViewportChange?: (bounds: ViewportBounds) => void;
 }
 
@@ -67,6 +69,7 @@ export default function MapView({
   focusPoint = null,
   placePoint = null,
   forecastDiagnostic = null,
+  resetViewSignal = 0,
   showHeatmap,
   showStations,
   showIndividualReports,
@@ -78,6 +81,7 @@ export default function MapView({
   selectedReportId = null,
   selectedReportStackId = null,
   onLocate,
+  onResetView,
   onViewportChange,
 }: MapViewProps) {
   const pmVals = surfaceStations
@@ -166,9 +170,17 @@ export default function MapView({
       )}
 
       <AutoResize />
-      <ViewportController target={focusPoint} radiusKm={placePoint?.radiusKm} />
+      <ViewportController
+        target={focusPoint}
+        radiusKm={placePoint?.radiusKm}
+        resetViewSignal={resetViewSignal}
+      />
       {onViewportChange && <ViewportReporter onChange={onViewportChange} />}
-      <MapControls onLocate={onLocate} hasLocation={Boolean(userLocation)} />
+      <MapControls
+        onLocate={onLocate}
+        onResetView={onResetView}
+        hasLocation={Boolean(userLocation)}
+      />
       <ClickHandler onClick={onMapClick} />
     </MapContainer>
   );

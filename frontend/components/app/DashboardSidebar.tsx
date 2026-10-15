@@ -44,6 +44,8 @@ const TABS: Array<{
   },
 ];
 
+const scrollPositionByTab: Partial<Record<DashboardTab, number>> = {};
+
 interface DashboardSidebarProps {
   tab: DashboardTab;
   snap: SheetSnap;
@@ -70,7 +72,23 @@ export default function DashboardSidebar({
   const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bodyRef.current?.scrollTo({ top: 0 });
+    const body = bodyRef.current;
+    if (!body) return;
+    const savedPosition = scrollPositionByTab[tab] ?? 0;
+    const restore = () => {
+      if (body.scrollTop < savedPosition)
+        body.scrollTo({ top: savedPosition, behavior: "instant" });
+    };
+    const frame = window.requestAnimationFrame(restore);
+    const delayedRestore = window.setTimeout(restore, 150);
+    const observer = new ResizeObserver(restore);
+    if (body.firstElementChild) observer.observe(body.firstElementChild);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(delayedRestore);
+      observer.disconnect();
+      if (body.scrollTop > 0) scrollPositionByTab[tab] = body.scrollTop;
+    };
   }, [tab]);
 
   return (
@@ -145,7 +163,14 @@ export default function DashboardSidebar({
           <span />
         </button>
         <div className="cp-header">{header}</div>
-        <div ref={bodyRef} className="cp-aside__body cp-scroll">
+        <div
+          ref={bodyRef}
+          className="cp-aside__body cp-scroll"
+          onScroll={(event) => {
+            if (event.currentTarget.getClientRects().length > 0)
+              scrollPositionByTab[tab] = event.currentTarget.scrollTop;
+          }}
+        >
           {children}
         </div>
       </aside>

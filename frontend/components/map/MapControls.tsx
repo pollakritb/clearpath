@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties, type SyntheticEvent } from "react";
-import { useMap } from "react-leaflet";
+import { useMap, useMapEvents } from "react-leaflet";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { T } from "@/frontend/lib/ui";
@@ -21,14 +21,18 @@ const CONTROL_BUTTON_STYLE: CSSProperties = {
 
 interface MapControlsProps {
   onLocate?: (lat: number, lon: number, accuracy?: number) => void;
+  onResetView?: () => void;
   hasLocation?: boolean;
 }
 
 export default function MapControls({
   onLocate,
+  onResetView,
   hasLocation = false,
 }: MapControlsProps) {
   const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+  useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -62,6 +66,9 @@ export default function MapControls({
   return (
     <div
       className="cp-mapctrls"
+      role="group"
+      aria-label={`ควบคุมแผนที่ ระดับซูม ${zoom}`}
+      data-zoom={zoom}
       onMouseDown={stopPropagation}
       onDoubleClick={stopPropagation}
     >
@@ -96,6 +103,18 @@ export default function MapControls({
           −
         </button>
       </div>
+      {onResetView && (
+        <button
+          type="button"
+          aria-label="กลับมุมมองแผนที่กว้าง"
+          className="cp-mapctrls__overview cp-focus"
+          onClick={onResetView}
+          title="กลับไปดูแผนที่ประเทศไทย"
+        >
+          <AppIcon name="map" size={19} />
+          <span>มุมกว้าง</span>
+        </button>
+      )}
       <button
         type="button"
         aria-label="ตำแหน่งของฉัน"
