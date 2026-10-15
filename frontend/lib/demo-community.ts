@@ -44,8 +44,36 @@ function seeded(index: number, salt: number) {
   return value - Math.floor(value);
 }
 
+function demoMeterImage(pm25: number) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" role="img" aria-label="Demo PM2.5 meter reading ${pm25}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#dcebe7"/><stop offset="1" stop-color="#9fc5ba"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="22" stdDeviation="20" flood-color="#173d36" flood-opacity=".25"/></filter>
+  </defs>
+  <rect width="960" height="640" fill="url(#bg)"/>
+  <circle cx="105" cy="105" r="170" fill="#fff" opacity=".16"/><circle cx="865" cy="575" r="230" fill="#fff" opacity=".12"/>
+  <g filter="url(#shadow)"><rect x="185" y="65" width="590" height="510" rx="46" fill="#f8fbfa"/>
+    <rect x="225" y="110" width="510" height="330" rx="28" fill="#172925"/>
+    <text x="480" y="165" fill="#b8d2cb" font-family="Arial, sans-serif" font-size="28" text-anchor="middle">PM2.5</text>
+    <text x="480" y="325" fill="#6fd19f" font-family="Arial, sans-serif" font-size="155" font-weight="700" text-anchor="middle">${pm25}</text>
+    <text x="480" y="382" fill="#b8d2cb" font-family="Arial, sans-serif" font-size="28" text-anchor="middle">ug/m3</text>
+    <circle cx="480" cy="505" r="31" fill="#e9f1ef" stroke="#9eb5af" stroke-width="4"/>
+    <path d="M480 487v20m-12-14a18 18 0 1 0 24 0" fill="none" stroke="#52726a" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <rect x="28" y="566" width="320" height="48" rx="24" fill="#fff" opacity=".92"/>
+  <text x="188" y="598" fill="#315b52" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle">CLEARPATH - DEMO IMAGE</text>
+</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 export function isCommunityDemoMode() {
   if (typeof window === "undefined") return false;
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PUBLIC_LOCAL_DEMO_MODE !== "true"
+  ) {
+    return false;
+  }
   return (
     new URLSearchParams(window.location.search).get("demo") === "community"
   );
@@ -55,7 +83,6 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
   return LOCATIONS.map(([baseLat, baseLon, subdistrict, district], index) => {
     const ageMinutes = 8 + index * 7;
     const capturedAt = new Date(now - ageMinutes * 60_000).toISOString();
-    const automatic = index % 3 !== 0;
     const pm25 = Math.round((9 + seeded(index, 2) * 38) * 10) / 10;
 
     return {
@@ -68,10 +95,10 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
       lon: baseLon + (seeded(index, 4) - 0.5) * 0.002,
       pm25,
       verified_pm25: pm25,
-      ocr_pm25: null,
+      ocr_pm25: pm25,
       user_claimed_pm25: null,
       admin_verified_pm25: null,
-      ocr_confidence: 0,
+      ocr_confidence: 0.9,
       captured_at: capturedAt,
       created_at: capturedAt,
       status: "approved",
@@ -79,9 +106,9 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
       trust_reasons: ["ข้อมูลจำลองสำหรับนำเสนอ", "หลักฐานผ่านเกณฑ์ตัวอย่าง"],
       peer_up: Math.floor(seeded(index, 6) * 12),
       peer_down: 0,
-      image_url: index < 3 ? "/demo-pm25-meter.svg" : null,
-      admin_verified: !automatic,
-      verification_method: automatic ? "automatic" : "admin",
+      image_url: demoMeterImage(pm25),
+      admin_verified: false,
+      verification_method: "automatic",
       data_role: "supplementary",
       nearest_official_distance_km: null,
       nearest_official_pm25: null,
@@ -111,7 +138,7 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
       camera_session_issued_at: null,
       client_captured_at: null,
       server_received_at: null,
-      moderated_at: automatic ? null : capturedAt,
+      moderated_at: null,
       clock_warning: false,
       ocr_mismatch: false,
       rejection_reason_code: null,

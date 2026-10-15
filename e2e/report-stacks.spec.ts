@@ -80,9 +80,34 @@ test("nearby user reports share a marker and preserve each photo/detail", async 
   const detail = page.getByRole("region", {
     name: "รายละเอียดรายงานจากบุคคล",
   });
+  await expect(detail.getByText("24")).toBeVisible();
+  await expect(detail.getByRole("region", { name: "ผู้รายงาน" })).toHaveCount(
+    0,
+  );
+  await detail
+    .getByRole("button", { name: "ดูรายละเอียดรายงานและผู้รายงาน" })
+    .click();
   await expect(
-    detail.getByRole("link", { name: "เปิดดูภาพเครื่องวัดจากรายงานนี้" }),
-  ).toHaveAttribute("href", "https://example.com/near-b.svg");
+    detail.getByRole("button", { name: "เปิดดูภาพเครื่องวัดจากรายงานนี้" }),
+  ).toBeVisible();
+  await detail
+    .getByRole("button", { name: "เปิดดูภาพเครื่องวัดจากรายงานนี้" })
+    .click();
+  const photoDialog = page.getByRole("dialog", {
+    name: "ภาพเครื่องวัดจากรายงานนี้",
+  });
+  await expect(photoDialog).toBeVisible();
+  await expect(
+    photoDialog.getByRole("img", {
+      name: "ภาพเครื่องวัด PM2.5 ฉบับเต็มจากผู้รายงาน",
+    }),
+  ).toHaveAttribute("src", "https://example.com/near-b.svg");
+  await photoDialog.getByRole("button", { name: "ปิดภาพเครื่องวัด" }).click();
+  await expect(photoDialog).not.toBeVisible();
+  await expect(
+    detail.getByRole("region", { name: "ข้อมูลรายงานค่าฝุ่น" }),
+  ).toBeVisible();
+  await expect(detail.getByRole("region", { name: "ผู้รายงาน" })).toBeVisible();
   await detail.getByRole("button", { name: "กลับไปยังกลุ่มรายงาน" }).click();
   await expect(card).toBeVisible();
   const widths = await page.evaluate(() => [
@@ -91,4 +116,36 @@ test("nearby user reports share a marker and preserve each photo/detail", async 
   ]);
   expect(widths[1]).toBeLessThanOrEqual(widths[0]);
   await page.screenshot({ path: "test-results/report-stack-mobile.png" });
+});
+
+test("local demo report opens as a compact card before full details", async ({
+  page,
+}) => {
+  await page.goto("/?demo=community");
+  const marker = page.locator(".cp-marker--individual").first();
+  await expect(marker).toBeVisible();
+  await marker.click();
+
+  const card = page.getByRole("region", { name: "รายละเอียดรายงานจากบุคคล" });
+  await expect(card).toHaveAttribute("data-expanded", "false");
+  await expect(card.getByText("ข้อมูลตัวอย่าง")).toBeVisible();
+  const compactHeight = await card.evaluate(
+    (element) => element.getBoundingClientRect().height,
+  );
+  expect(compactHeight).toBeLessThan(220);
+  await page.screenshot({
+    path: "test-results/demo-report-compact-mobile.png",
+  });
+
+  await card
+    .getByRole("button", { name: "ดูรายละเอียดรายงานและผู้รายงาน" })
+    .click();
+  await expect(card).toHaveAttribute("data-expanded", "true");
+  await expect(card.getByRole("region", { name: "ผู้รายงาน" })).toBeVisible();
+  await expect(
+    card.getByRole("region", { name: "ข้อมูลรายงานค่าฝุ่น" }),
+  ).toBeVisible();
+  await page.screenshot({ path: "test-results/demo-report-detail-mobile.png" });
+  await card.getByRole("button", { name: /กลับไปแผนที่/ }).click();
+  await expect(card).toHaveAttribute("data-expanded", "false");
 });

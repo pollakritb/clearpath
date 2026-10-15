@@ -387,6 +387,7 @@ export default function MapPageClient({
           />
         ) : (
           <MapStatusCard
+            key={selectedReport?.id ?? selectedStation?.id ?? "map-current"}
             station={selectedStation}
             report={selectedReport}
             updatedAt={pm25.updatedAt}

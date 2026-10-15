@@ -9,6 +9,7 @@ import {
 describe("community demo fixtures", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it("builds deterministic, fresh individual reports near Nakhon Pathom", () => {
@@ -18,11 +19,21 @@ describe("community demo fixtures", () => {
 
     expect(first).toEqual(second);
     expect(first).toHaveLength(12);
-    expect(first[0].image_url).toBe("/demo-pm25-meter.svg");
+    expect(first[0].image_url).toContain("data:image/svg+xml,");
     expect(first.every((report) => report.source_type === "individual")).toBe(
       true,
     );
     expect(first.every((report) => report.status === "approved")).toBe(true);
+    expect(
+      first.every((report) =>
+        decodeURIComponent(report.image_url ?? "").includes(
+          `>${report.pm25}</text>`,
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      first.every((report) => report.verification_method === "automatic"),
+    ).toBe(true);
     expect(
       first.every(
         (report) =>
@@ -42,6 +53,13 @@ describe("community demo fixtures", () => {
     expect(isCommunityDemoMode()).toBe(true);
 
     vi.stubGlobal("window", { location: { search: "?demo=other" } });
+    expect(isCommunityDemoMode()).toBe(false);
+  });
+
+  it("never enables mock reports on a normal Production build", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_LOCAL_DEMO_MODE", "false");
+    vi.stubGlobal("window", { location: { search: "?demo=community" } });
     expect(isCommunityDemoMode()).toBe(false);
   });
 });
