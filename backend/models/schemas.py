@@ -56,6 +56,7 @@ from .forecast import (
     ForecastSourcePoint,
     ForecastSurfaceCell,
     ForecastSurfaceResponse,
+    ForecastValidationSummary,
 )
 from .locations import LocationSearchResponse, LocationSuggestion
 from .meta import ReadinessResponse
@@ -98,6 +99,7 @@ __all__ = [
     "ForecastCommunityContext",
     "ForecastQuality",
     "ForecastResponse",
+    "ForecastValidationSummary",
     "ForecastSourcePoint",
     "ForecastSurfaceCell",
     "ForecastSurfaceResponse",

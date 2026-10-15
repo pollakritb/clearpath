@@ -37,6 +37,21 @@ class Settings(BaseSettings):
     forecast_system_paused: bool = True
     # Isolated forecast evidence collection. No production schedule is registered.
     forecast_validation_enabled: bool = False
+    # Exact, pre-reviewed station IDs from the private hourly-completeness scan.
+    forecast_validation_cohort_ids: str = ""
+
+    @property
+    def validation_cohort_ids(self) -> list[str]:
+        return [
+            value.strip()
+            for value in self.forecast_validation_cohort_ids.split(",")
+            if value.strip()
+        ]
+
+    # Private evidence can be summarized publicly only after source/window review.
+    forecast_validation_public_metrics_enabled: bool = False
+    # Reserved for a future reviewed offline winner; never alters public CAMS.
+    cams_shadow_adjustment_enabled: bool = False
 
     # OCR ภาพหน้าจอเครื่องวัด (OpenAI Responses API, server only)
     openai_api_key: str = ""

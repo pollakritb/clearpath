@@ -5,10 +5,33 @@ from starlette.concurrency import run_in_threadpool
 
 from ..algorithms.distance import haversine_km
 from ..core.config import settings
-from ..models.schemas import ForecastResponse, ForecastSurfaceResponse
-from ..services import external_forecast, forecast_status, forecasting
+from ..models.schemas import (
+    ForecastResponse,
+    ForecastSurfaceResponse,
+    ForecastValidationSummary,
+)
+from ..services import (
+    external_forecast,
+    forecast_status,
+    forecast_validation,
+    forecasting,
+)
 
 router = APIRouter()
+
+
+@router.get("/forecast/validation-summary", response_model=ForecastValidationSummary)
+async def validation_summary(station_id: str = Query(min_length=1, max_length=50)):
+    if (
+        settings.is_production
+        or not settings.forecast_validation_public_metrics_enabled
+    ):
+        return ForecastValidationSummary(station_id=station_id)
+    return ForecastValidationSummary(
+        **await run_in_threadpool(
+            forecast_validation.validated_station_summary, station_id
+        )
+    )
 
 
 @router.get("/forecast", response_model=ForecastResponse)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from math import isfinite
+from statistics import median
 
 from .distance import haversine_km
 
@@ -52,6 +53,63 @@ def collection_slot(now: datetime) -> datetime:
     )
 
 
+def forecast_rows_status(
+    rows: list[dict], expected_count: int, provider_rows: list[dict] | None = None
+) -> str | None:
+    """Explain incomplete provider coverage without inventing missing hours."""
+
+    times = [str(row.get("forecast_at")) for row in (provider_rows or rows)]
+    if len(times) != len(set(times)):
+        return "duplicate_provider_valid_at"
+    if not rows:
+        return "no_future_pm25"
+    if len(rows) < expected_count:
+        return "partial_horizon"
+    return None
+
+
+def survey_summary(rows: list[dict]) -> dict:
+    """Summarise one spatial survey, including shared provider grid cells."""
+
+    grids: dict[tuple[float, float], list[str]] = {}
+    status_counts: dict[str, int] = {}
+    distances = []
+    anomalies = []
+    for row in rows:
+        status = str(row.get("status") or "unknown")
+        status_counts[status] = status_counts.get(status, 0) + 1
+        station_id = str(row["station_id"])
+        grid_lat, grid_lon = row.get("grid_lat"), row.get("grid_lon")
+        if grid_lat is None or grid_lon is None:
+            anomalies.append(
+                {
+                    "station_id": station_id,
+                    "reason": row.get("reason") or "grid_missing",
+                }
+            )
+            continue
+        key = (float(grid_lat), float(grid_lon))
+        grids.setdefault(key, []).append(station_id)
+        distance = haversine_km(
+            float(row["requested_lat"]), float(row["requested_lon"]), *key
+        )
+        distances.append(distance)
+        if distance > 75:
+            anomalies.append({"station_id": station_id, "reason": "grid_over_75km"})
+    return {
+        "station_count": len(rows),
+        "status_counts": status_counts,
+        "unique_grid_count": len(grids),
+        "shared_grids": [ids for ids in grids.values() if len(ids) > 1],
+        "distance_km": {
+            "min": min(distances) if distances else None,
+            "median": median(distances) if distances else None,
+            "max": max(distances) if distances else None,
+        },
+        "anomalies": anomalies,
+    }
+
+
 def validation_pairs(snapshots: list[dict], observations: list[dict]) -> list[dict]:
     """Pair only forecasts made before a matching, explicit 1h observation."""
 
@@ -74,10 +132,18 @@ def validation_pairs(snapshots: list[dict], observations: list[dict]) -> list[di
         if (
             row.get("average_period_minutes") != 60
             or row.get("source") != "air4thai_official_hourly"
+            or row.get("timestamp_semantics_verified") is not True
         ):
             continue
         hour = utc_hour(row.get("valid_at"))
-        if hour is not None:
+        start = utc_hour(row.get("window_start_at"))
+        end = utc_hour(row.get("window_end_at"))
+        if (
+            hour is not None
+            and start is not None
+            and end == hour
+            and (end - start).total_seconds() == 3600
+        ):
             observed[(str(row["station_id"]), hour)] = row
     pairs = []
     for row in snapshots:
@@ -105,15 +171,24 @@ def validation_pairs(snapshots: list[dict], observations: list[dict]) -> list[di
             or measured < 0
         ):
             continue
-        hours = int((hour - fetched).total_seconds() // 3600) + 1
-        if not 1 <= hours <= 24:
+        lead_hours = (hour - fetched).total_seconds() / 3600
+        if not 0 < lead_hours <= 24:
             continue
         pairs.append(
             {
                 "station_id": key[0],
                 "valid_at": hour.isoformat(),
-                "horizon_band": "1-6h" if hours <= 6 else "7-24h",
+                "fetched_at": fetched.astimezone(UTC).isoformat(),
+                "lead_hours": lead_hours,
+                "horizon_band": "1-6h" if lead_hours <= 6 else "7-24h",
+                "forecast_pm25": forecast,
+                "observed_pm25": measured,
+                "observation_fetched_at": actual.get("fetched_at"),
+                "requested_lat": row.get("requested_lat"),
+                "requested_lon": row.get("requested_lon"),
+                "region": row.get("region") or "unknown",
                 "error": forecast - measured,
+                "observation_definition": "official_one_hour_mean_ending_at_valid_at_vs_cams_point_at_valid_at",
             }
         )
     return pairs

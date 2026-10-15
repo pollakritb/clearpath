@@ -164,16 +164,33 @@ def get_station_by_id(station_id: str) -> dict | None:
 
 
 def upsert_forecast_validation_snapshots(rows: list[dict]) -> int:
-    """Write only the isolated field-test table, never the public forecast tables."""
+    """Insert immutable evidence; a retry never overwrites an earlier forecast."""
 
     if not rows:
         return 0
     if settings.local_demo_mode:
         return 0
-    get_client().table("forecast_validation_snapshots").upsert(
-        rows, on_conflict="station_id,collection_slot,valid_at"
+    result = (
+        get_client()
+        .table("forecast_validation_snapshots")
+        .upsert(
+            rows,
+            on_conflict="station_id,collection_slot,valid_at",
+            ignore_duplicates=True,
+        )
+        .execute()
+    )
+    return len(result.data or [])
+
+
+def upsert_forecast_validation_collection_run(row: dict) -> None:
+    """Keep the latest execution diagnostic for an idempotent six-hour slot."""
+
+    if settings.local_demo_mode:
+        return
+    get_client().table("forecast_validation_collection_runs").upsert(
+        row, on_conflict="collection_slot"
     ).execute()
-    return len(rows)
 
 
 def prune_forecast_validation_snapshots(cutoff: str) -> None:

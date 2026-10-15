@@ -1,0 +1,42 @@
+name: CAMS validation evidence (staging only)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cams-validation-staging
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    # No scheduler effect until the separate ClearPath staging environment and
+    # its migration/source review are ready. Never target Production.
+    if: ${{ vars.CLEARPATH_FORECAST_VALIDATION_STAGING_ENABLED == 'true' }}
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      STAGING_API_BASE_URL: ${{ secrets.STAGING_API_BASE_URL }}
+      STAGING_CRON_SECRET: ${{ secrets.STAGING_CRON_SECRET }}
+    steps:
+      - name: Collect private CAMS evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$STAGING_API_BASE_URL"
+          test -n "$STAGING_CRON_SECRET"
+          case "$STAGING_API_BASE_URL" in
+            https://clearpath-gray.vercel.app*|https://clearpath-gray-git-main-*)
+              echo "Production URL is forbidden for staging evidence" >&2
+              exit 1 ;;
+            https://*) ;;
+            *) echo "Staging HTTPS URL is required" >&2; exit 1 ;;
+          esac
+          curl --fail --silent --show-error --max-time 180 \
+            -H "Authorization: Bearer $STAGING_CRON_SECRET" \
+            "$STAGING_API_BASE_URL/api/cron/forecast-validation"

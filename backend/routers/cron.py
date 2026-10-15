@@ -207,7 +207,7 @@ async def cron_forecast_evaluation(authorization: str | None = Header(default=No
 @router.get("/cron/forecast-validation")
 async def cron_forecast_validation(authorization: str | None = Header(default=None)):
     _verify_cron(authorization)
-    if not settings.forecast_validation_enabled:
+    if settings.is_production or not settings.forecast_validation_enabled:
         return {"status": "disabled", "reason": "forecast_validation_not_enabled"}
     return await forecast_validation.collect_snapshots()
 

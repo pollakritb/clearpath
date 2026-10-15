@@ -144,6 +144,19 @@ class ForecastResponse(BaseModel):
     community_context: ForecastCommunityContext
 
 
+class ForecastValidationSummary(BaseModel):
+    available: bool = False
+    reason: str = "not_evaluated"
+    station_id: str
+    sample_count: int = 0
+    distinct_station_hours: int = 0
+    from_valid_at: str | None = None
+    through_valid_at: str | None = None
+    mae: float | None = None
+    signed_bias: float | None = None
+    observation_definition: str | None = None
+
+
 class ForecastSurfaceCell(BaseModel):
     lat: float
     lon: float

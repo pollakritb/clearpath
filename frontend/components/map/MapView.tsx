@@ -14,6 +14,7 @@ import type {
   CommunityReport,
   CommunityReportStack,
   FirePoint,
+  ForecastResponse,
   Station,
 } from "@/frontend/types";
 import type { ViewportBounds } from "@/frontend/types/ui";
@@ -21,6 +22,7 @@ import type { ViewportBounds } from "@/frontend/types/ui";
 import AutoResize from "./AutoResize";
 import ClickHandler from "./ClickHandler";
 import FireLayer from "./FireLayer";
+import ForecastDiagnosticLayer from "./ForecastDiagnosticLayer";
 import IdwSurface from "./IdwSurface";
 import MapControls from "./MapControls";
 import { CURRENT_LOCATION_ICON, REPORT_PIN_ICON } from "./map-icons";
@@ -39,6 +41,7 @@ export interface MapViewProps {
   userLocation?: { lat: number; lon: number; accuracy: number } | null;
   focusPoint?: { lat: number; lon: number } | null;
   placePoint?: { lat: number; lon: number; radiusKm: number } | null;
+  forecastDiagnostic?: ForecastResponse | null;
   showHeatmap: boolean;
   showStations: boolean;
   showIndividualReports: boolean;
@@ -63,6 +66,7 @@ export default function MapView({
   userLocation = null,
   focusPoint = null,
   placePoint = null,
+  forecastDiagnostic = null,
   showHeatmap,
   showStations,
   showIndividualReports,
@@ -156,6 +160,9 @@ export default function MapView({
           alt="ตำแหน่งปัจจุบันของคุณ"
           zIndexOffset={1000}
         />
+      )}
+      {forecastDiagnostic && (
+        <ForecastDiagnosticLayer forecast={forecastDiagnostic} />
       )}
 
       <AutoResize />

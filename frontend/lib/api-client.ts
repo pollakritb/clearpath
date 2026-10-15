@@ -16,6 +16,7 @@ import type {
   FirmsResponse,
   ForecastResponse,
   ForecastSurfaceResponse,
+  ForecastValidationSummary,
   HistoryResponse,
   MapHistoryResponse,
   LineLinkCodeResponse,
@@ -144,6 +145,12 @@ export const api = {
       cache: "no-store",
     });
   },
+
+  forecastValidationSummary: (stationId: string) =>
+    http<ForecastValidationSummary>(
+      `/api/forecast/validation-summary?station_id=${encodeURIComponent(stationId)}`,
+      { cache: "no-store" },
+    ),
 
   forecastSurface: (horizon = 12, gridSize = 12, bounds?: ViewportBounds) => {
     const params = new URLSearchParams({

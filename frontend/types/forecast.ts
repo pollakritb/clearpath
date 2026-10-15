@@ -138,6 +138,19 @@ export interface ForecastResponse {
   community_context: ForecastCommunityContext;
 }
 
+export interface ForecastValidationSummary {
+  available: boolean;
+  reason: string;
+  station_id: string;
+  sample_count: number;
+  distinct_station_hours: number;
+  from_valid_at: string | null;
+  through_valid_at: string | null;
+  mae: number | null;
+  signed_bias: number | null;
+  observation_definition: string | null;
+}
+
 export interface ForecastSurfaceCell {
   lat: number;
   lon: number;

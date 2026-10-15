@@ -51,6 +51,7 @@ yarn-error.log*
 /field-comparison*.csv
 /field-comparison*.json
 /.forecast-reset-backups/
+/.forecast-validation/
 /data/private/ocr-evaluation/
 /ocr-evaluation-results*.json
 
