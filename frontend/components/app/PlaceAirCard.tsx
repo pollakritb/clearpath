@@ -106,14 +106,6 @@ export default function PlaceAirCard({
         คือระยะค้นหาข้อมูล ไม่ใช่พื้นที่ที่ฝุ่นมีค่าเท่ากัน
       </p>
 
-      <Link
-        className="cp-place-card__reset cp-place-card__forecast-link cp-focus"
-        href={`/air?lat=${place.lat.toFixed(2)}&lon=${place.lon.toFixed(2)}&place=${encodeURIComponent(place.name)}`}
-      >
-        ดูพยากรณ์ PM2.5 สำหรับบริเวณนี้
-        <AppIcon name="chevron" size={18} />
-      </Link>
-
       <details className="cp-place-card__details">
         <summary className="cp-place-card__details-toggle cp-focus">
           <span>
@@ -125,6 +117,13 @@ export default function PlaceAirCard({
           <AppIcon name="chevron" size={19} />
         </summary>
         <div className="cp-place-card__sources">
+          <Link
+            className="cp-place-card__reset cp-place-card__forecast-link cp-focus"
+            href={`/air?lat=${place.lat.toFixed(2)}&lon=${place.lon.toFixed(2)}&place=${encodeURIComponent(place.name)}`}
+          >
+            ดูพยากรณ์ PM2.5 สำหรับบริเวณนี้
+            <AppIcon name="chevron" size={18} />
+          </Link>
           <h2>
             สถานีตรวจวัด <small>{air.stations.length} แห่งในวง</small>
           </h2>

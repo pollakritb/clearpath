@@ -52,6 +52,9 @@ test("place focus shows a five-kilometre evidence area and restores the map", as
 
   await card.getByText("ดูข้อมูลภายในวง 5 กม.").click();
   await expect(
+    card.getByRole("link", { name: /ดูพยากรณ์ PM2.5 สำหรับบริเวณนี้/ }),
+  ).toHaveAttribute("href", /\/air\?lat=13\.82&lon=100\.06/);
+  await expect(
     card.getByRole("heading", { name: "สถานีตรวจวัด" }),
   ).toBeVisible();
   await expect(
