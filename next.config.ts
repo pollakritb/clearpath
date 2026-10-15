@@ -37,6 +37,8 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Keep `next build`/Playwright output from invalidating a running dev server.
+  distDir: isDev ? ".next-dev" : ".next",
   // ปิด StrictMode: react-leaflet จะ throw "Map container is being reused"
   // เมื่อ StrictMode double-mount ใน dev (prod ไม่กระทบ — flag นี้มีผลเฉพาะ dev)
   reactStrictMode: false,
