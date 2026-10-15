@@ -19,6 +19,10 @@ test("map keeps its Leaflet instance, zoom and selected station across tabs", as
   const navigation = page.locator(".cp-mobile-nav");
   await navigation.getByRole("link", { name: "วันนี้" }).click();
   await expect(page).toHaveURL(/\/air$/);
+  await expect(page.locator('.cp-app[data-tab="overview"]')).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "เปิดหน้านี้ไม่สำเร็จ" }),
+  ).toHaveCount(0);
   await expect(page.locator(".leaflet-container")).toHaveCount(1);
   await navigation.getByRole("link", { name: "แผนที่" }).click();
   await expect(page).toHaveURL(/\/$/);

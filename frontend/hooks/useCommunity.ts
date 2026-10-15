@@ -138,8 +138,12 @@ export function useCommunityMapData({
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     const client = getSupabaseBrowserClient();
+    // RealtimeClient reuses channels by topic. Map and Today can now stay
+    // mounted together, so each hook instance needs its own topic.
     const channel = client
-      ?.channel("public-map-invalidation")
+      ?.channel(
+        `public-map-invalidation-${Math.random().toString(36).slice(2)}`,
+      )
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "public_map_events" },

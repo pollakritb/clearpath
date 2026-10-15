@@ -15,6 +15,8 @@ const apiMocks = vi.hoisted(() => ({
   weather: vi.fn(),
 }));
 
+const realtimeMocks = vi.hoisted(() => ({ client: null as unknown }));
+
 vi.mock("@/frontend/lib/api-client", () => ({
   api: apiMocks,
   apiErrorMessage: (error: unknown, fallback: string) =>
@@ -22,7 +24,7 @@ vi.mock("@/frontend/lib/api-client", () => ({
 }));
 
 vi.mock("@/frontend/lib/supabase", () => ({
-  getSupabaseBrowserClient: () => null,
+  getSupabaseBrowserClient: () => realtimeMocks.client,
 }));
 
 import {
@@ -51,6 +53,7 @@ const stationsResponse = {
 describe("data hooks", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    realtimeMocks.client = null;
     clearPublicDataCache();
     Object.defineProperty(document, "visibilityState", {
       configurable: true,
@@ -292,6 +295,40 @@ describe("data hooks", () => {
     expect(apiMocks.communityReports).toHaveBeenCalledTimes(1);
     expect(apiMocks.communityMapPoints).toHaveBeenCalledTimes(1);
     expect(apiMocks.announcements).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses separate Realtime channels while map and Today are mounted together", async () => {
+    const channels = new Map<string, object>();
+    const client = {
+      channel: vi.fn((topic: string) => {
+        const existing = channels.get(topic);
+        if (existing) return existing;
+        const channel = { on: vi.fn(), subscribe: vi.fn() };
+        channel.on.mockImplementation(() => {
+          if (channel.subscribe.mock.calls.length > 0) {
+            throw new Error("cannot add postgres_changes after subscribe");
+          }
+          return channel;
+        });
+        channel.subscribe.mockImplementation(() => channel);
+        channels.set(topic, channel);
+        return channel;
+      }),
+      removeChannel: vi.fn(async () => "ok"),
+    };
+    realtimeMocks.client = client;
+
+    const map = renderHook(() => useCommunityMapData());
+    const today = renderHook(() =>
+      useCommunityMapData({ includeReports: false }),
+    );
+    expect(client.channel).toHaveBeenCalledTimes(2);
+    expect(
+      new Set(client.channel.mock.calls.map(([topic]) => topic)).size,
+    ).toBe(2);
+    map.unmount();
+    today.unmount();
+    expect(client.removeChannel).toHaveBeenCalledTimes(2);
   });
 
   it("reuses weather and forecast for the same station but not on forced refresh", async () => {
