@@ -7,10 +7,11 @@ import logging
 import math
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from ..algorithms.distance import haversine_km
+from ..algorithms.external_forecast import select_hourly_rows
 from ..algorithms.forecast_selection import provider_circuit_open, provider_sync_due
 from ..core.config import settings
 from ..core.errors import UpstreamError
@@ -25,6 +26,32 @@ PROVIDER_SYNC_INTERVAL_HOURS = {
     "openweather": 8,
     "openmeteo_cams": 12,
 }
+CAMS_SNAPSHOT_INTERVAL_HOURS = 6
+CAMS_RETENTION_BATCH_SIZE = 1000
+CAMS_RETENTION_MAX_BATCHES = 6
+
+
+def _cleanup_cams_history() -> dict:
+    """Bound CAMS-only storage growth without touching other forecast providers."""
+
+    now = datetime.now(UTC)
+    snapshot_cutoff = (
+        now - timedelta(days=max(2, settings.forecast_provider_snapshot_retention_days))
+    ).isoformat()
+    run_cutoff = (
+        now - timedelta(days=max(7, settings.forecast_provider_run_retention_days))
+    ).isoformat()
+    deleted_snapshots = 0
+    deleted_runs = 0
+    for _ in range(CAMS_RETENTION_MAX_BATCHES):
+        snapshots, runs = supabase_client.delete_cams_history_before(
+            snapshot_cutoff, run_cutoff, batch_size=CAMS_RETENTION_BATCH_SIZE
+        )
+        deleted_snapshots += snapshots
+        deleted_runs += runs
+        if snapshots < CAMS_RETENTION_BATCH_SIZE and runs < CAMS_RETENTION_BATCH_SIZE:
+            break
+    return {"deleted_snapshots": deleted_snapshots, "deleted_runs": deleted_runs}
 
 
 async def _sync_if_due(
@@ -139,6 +166,9 @@ def _snapshots(
                     "issued_time_kind": "retrieved_at",
                     "requested_lat": station_lat,
                     "requested_lon": station_lon,
+                    "grid_lat": row.get("source_lat"),
+                    "grid_lon": row.get("source_lon"),
+                    "fetched_at": row.get("fetched_at"),
                     "source_distance_km": (
                         round(source_distance_km, 3)
                         if source_distance_km is not None
@@ -148,6 +178,117 @@ def _snapshots(
             }
         )
     return result
+
+
+async def collect_openmeteo_snapshots() -> dict:
+    """Store raw CAMS station forecasts only; never create local predictions."""
+
+    latest = supabase_client.get_latest_provider_sync_run("openmeteo_cams")
+    interval = CAMS_SNAPSHOT_INTERVAL_HOURS
+    if latest and not provider_sync_due(latest, interval):
+        return {
+            "status": "not_due",
+            "interval_hours": interval,
+            "latest_completed_at": latest.get("completed_at"),
+        }
+    if latest and latest.get("status") == "running":
+        try:
+            started = datetime.fromisoformat(
+                str(latest["started_at"]).replace("Z", "+00:00")
+            )
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=UTC)
+            if (datetime.now(UTC) - started).total_seconds() < 20 * 60:
+                return {"status": "in_progress", "snapshot_count": 0}
+        except (KeyError, TypeError, ValueError):
+            pass
+    stations = _valid_stations()
+    if not stations:
+        return {"status": "no_stations", "snapshot_count": 0}
+
+    run_id = str(uuid4())
+    retrieved_at = datetime.now(UTC).replace(microsecond=0)
+    supabase_client.create_provider_sync_run(
+        {
+            "id": run_id,
+            "provider": "openmeteo_cams",
+            "status": "running",
+            "station_count": len(stations),
+            "started_at": retrieved_at.isoformat(),
+            "metadata": {"mode": "raw_cams_storage_only", "horizon_hours": 24},
+        }
+    )
+    try:
+        forecasts = await openmeteo_air.get_forecasts(stations, forecast_hours=28)
+        snapshots = []
+        incomplete_station_ids = []
+        for station in stations:
+            rows = forecasts.get(station["id"], [])
+            fetched_reference = retrieved_at
+            if rows:
+                try:
+                    fetched_reference = datetime.fromisoformat(
+                        str(rows[0]["fetched_at"]).replace("Z", "+00:00")
+                    )
+                    if fetched_reference.tzinfo is None:
+                        fetched_reference = fetched_reference.replace(tzinfo=UTC)
+                    fetched_reference = max(retrieved_at, fetched_reference)
+                except (KeyError, TypeError, ValueError):
+                    pass
+            selected = select_hourly_rows(rows, 24, now=fetched_reference)
+            normalized = _snapshots(
+                provider="openmeteo_cams",
+                run_id=run_id,
+                issued_at=retrieved_at,
+                station_id=station["id"],
+                station_lat=float(station["lat"]),
+                station_lon=float(station["lon"]),
+                rows=selected,
+            )
+            if len(normalized) != 24:
+                incomplete_station_ids.append(station["id"])
+            snapshots.extend(normalized)
+        count = sum(
+            supabase_client.upsert_provider_snapshots(snapshots[offset : offset + 500])
+            for offset in range(0, len(snapshots), 500)
+        )
+        missing = len(incomplete_station_ids)
+        status = (
+            "success" if count and not missing else "partial" if count else "failed"
+        )
+        supabase_client.update_provider_sync_run(
+            run_id,
+            {
+                "status": status,
+                "snapshot_count": count,
+                "error_count": missing,
+                "metadata": {
+                    "mode": "raw_cams_storage_only",
+                    "horizon_hours": 24,
+                    "incomplete_station_ids": incomplete_station_ids,
+                },
+                "completed_at": datetime.now(UTC).isoformat(),
+            },
+        )
+        try:
+            retention = _cleanup_cams_history()
+        except Exception:
+            logger.exception("cams_snapshot_retention_failed")
+            retention = {"status": "failed"}
+        return {
+            "status": status,
+            "station_count": len(stations),
+            "snapshot_count": count,
+            "missing_station_count": missing,
+            "run_id": run_id,
+            "retention": retention,
+        }
+    except Exception:
+        supabase_client.update_provider_sync_run(
+            run_id,
+            {"status": "failed", "completed_at": datetime.now(UTC).isoformat()},
+        )
+        raise
 
 
 def _persist_provider_evidence(

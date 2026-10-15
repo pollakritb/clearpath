@@ -349,6 +349,55 @@ def delete_provider_history_before(
     return len(snapshot_rows), len(run_rows)
 
 
+def delete_cams_history_before(
+    snapshot_cutoff_at: str, run_cutoff_at: str, *, batch_size: int = 1000
+) -> tuple[int, int]:
+    """Remove one bounded batch of expired CAMS evidence, never other providers."""
+
+    if settings.local_demo_mode:
+        return local_store.delete_cams_history_before(
+            snapshot_cutoff_at, run_cutoff_at, batch_size=batch_size
+        )
+    client = get_client()
+    snapshot_ids = [
+        row["id"]
+        for row in (
+            client.table("forecast_provider_snapshots")
+            .select("id")
+            .eq("provider", "openmeteo_cams")
+            .lt("issued_at", snapshot_cutoff_at)
+            .order("issued_at")
+            .limit(batch_size)
+            .execute()
+            .data
+            or []
+        )
+    ]
+    if snapshot_ids:
+        client.table("forecast_provider_snapshots").delete().in_(
+            "id", snapshot_ids
+        ).execute()
+    run_ids = [
+        row["id"]
+        for row in (
+            client.table("forecast_provider_sync_runs")
+            .select("id")
+            .eq("provider", "openmeteo_cams")
+            .lt("completed_at", run_cutoff_at)
+            .order("completed_at")
+            .limit(batch_size)
+            .execute()
+            .data
+            or []
+        )
+    ]
+    if run_ids:
+        client.table("forecast_provider_sync_runs").delete().in_(
+            "id", run_ids
+        ).execute()
+    return len(snapshot_ids), len(run_ids)
+
+
 def upsert_forecast_consensus(
     row: dict, sources: list[dict], feature: dict | None = None
 ) -> None:

@@ -212,6 +212,14 @@ async def cron_forecast_validation(authorization: str | None = Header(default=No
     return await forecast_validation.collect_snapshots()
 
 
+@router.get("/cron/cams-snapshots")
+async def cron_cams_snapshots(authorization: str | None = Header(default=None)):
+    _verify_cron(authorization)
+    if not settings.cams_snapshot_collection_enabled:
+        return {"status": "disabled", "reason": "cams_snapshot_collection_not_enabled"}
+    return await provider_sync.collect_openmeteo_snapshots()
+
+
 @router.get("/cron/forecast-providers/openweather")
 async def cron_openweather_air(
     authorization: str | None = Header(default=None), only_if_due: bool = False

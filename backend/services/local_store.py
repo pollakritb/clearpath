@@ -126,6 +126,30 @@ def delete_provider_history_before(
         return snapshot_count - len(_FORECAST_PROVIDER_SNAPSHOTS), len(expired_runs)
 
 
+def delete_cams_history_before(
+    snapshot_cutoff_at: str, run_cutoff_at: str, *, batch_size: int = 1000
+) -> tuple[int, int]:
+    with _LOCK:
+        expired_snapshots = [
+            row
+            for row in _FORECAST_PROVIDER_SNAPSHOTS
+            if row.get("provider") == "openmeteo_cams"
+            and str(row.get("issued_at") or "") < snapshot_cutoff_at
+        ][:batch_size]
+        for row in expired_snapshots:
+            _FORECAST_PROVIDER_SNAPSHOTS.remove(row)
+        expired_runs = [
+            run_id
+            for run_id, row in _FORECAST_PROVIDER_SYNC_RUNS.items()
+            if row.get("provider") == "openmeteo_cams"
+            and row.get("completed_at")
+            and str(row["completed_at"]) < run_cutoff_at
+        ][:batch_size]
+        for run_id in expired_runs:
+            _FORECAST_PROVIDER_SYNC_RUNS.pop(run_id, None)
+        return len(expired_snapshots), len(expired_runs)
+
+
 def upsert_forecast_consensus(
     row: dict, sources: list[dict], feature: dict | None
 ) -> None:

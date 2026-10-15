@@ -20,6 +20,12 @@ evaluation job, and ML path. The frontend gate in
 `frontend/lib/forecast-state.ts` is disabled so the raw provider values can be
 shown.
 
+An isolated storage-only CAMS snapshot collector is prepared separately behind
+`CAMS_SNAPSHOT_COLLECTION_ENABLED=false` and a disabled-by-variable Production
+workflow. It may later populate `forecast_provider_snapshots` without enabling
+the legacy provider-sync, model, or evaluation pipeline. See
+`docs/forecast-field-validation.md` for activation and quota checks.
+
 ## Paused producers
 
 - OpenWeather air-quality forecast provider sync

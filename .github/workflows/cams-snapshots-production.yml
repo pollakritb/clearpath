@@ -1,0 +1,33 @@
+name: CAMS snapshots (ClearPath Production)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 0,6,12,18 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clearpath-cams-snapshots-production
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    # Inert until the ClearPath-only rollout has verified DB target and quota.
+    if: ${{ github.repository == 'pollakritb/clearpath' && vars.CLEARPATH_CAMS_SNAPSHOTS_PRODUCTION_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Collect raw CAMS snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CRON_SECRET"
+          response=$(curl --fail --silent --show-error --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://clearpath-gray.vercel.app/api/cron/cams-snapshots)
+          printf '%s\n' "$response" | jq -e \
+            '.status == "success" or .status == "partial" or .status == "not_due" or .status == "in_progress"'
