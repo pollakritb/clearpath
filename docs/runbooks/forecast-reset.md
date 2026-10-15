@@ -6,7 +6,8 @@ ClearPath now serves raw PM2.5 forecasts from CAMS through Open-Meteo for the
 1, 3, 6, 12, and 24-hour product horizons. The public endpoints request the
 provider on demand and do not blend sources, calculate a local fallback, apply
 bias correction, use community reports, run an ML artifact, or persist a
-forecast ledger/provider snapshot.
+forecast ledger. Raw provider evidence is collected by a separate job and is
+not used as a local forecast.
 
 The map continues to show current Air4Thai and eligible community data. Forecast
 horizon controls show the raw CAMS surface; provider comparison is omitted
@@ -20,10 +21,11 @@ evaluation job, and ML path. The frontend gate in
 `frontend/lib/forecast-state.ts` is disabled so the raw provider values can be
 shown.
 
-An isolated storage-only CAMS snapshot collector is prepared separately behind
-`CAMS_SNAPSHOT_COLLECTION_ENABLED=false` and a disabled-by-variable Production
-workflow. It may later populate `forecast_provider_snapshots` without enabling
-the legacy provider-sync, model, or evaluation pipeline. See
+An isolated storage-only CAMS snapshot collector is active in ClearPath
+Production behind `CAMS_SNAPSHOT_COLLECTION_ENABLED=true`, an exact Supabase
+project-ref guard, and a separately gated six-hour GitHub workflow. It populates
+`forecast_provider_snapshots` without enabling the legacy provider-sync,
+model, or evaluation pipeline. See
 `docs/forecast-field-validation.md` for activation and quota checks.
 
 ## Paused producers
@@ -41,7 +43,7 @@ the legacy provider-sync, model, or evaluation pipeline. See
 
 The protected cron routes are retained and return `status: paused` so they can
 be re-enabled deliberately later. The production scheduler continues to call
-only Air4Thai sync and alerts.
+Air4Thai sync and alerts; a separate bounded job collects raw CAMS evidence only.
 
 ## Preserved data
 
