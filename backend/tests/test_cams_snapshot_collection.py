@@ -2,10 +2,13 @@
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
 
 from backend.core.config import settings
+from backend.core.errors import UpstreamError
 from backend.main import app
 from backend.services import provider_sync, supabase_client
 
@@ -82,6 +85,52 @@ def test_collect_cams_snapshots_skips_recent_completed_run(monkeypatch):
     )
     result = asyncio.run(provider_sync.collect_openmeteo_snapshots())
     assert result["status"] == "not_due"
+
+
+def test_cams_batch_collects_only_its_stations(monkeypatch):
+    now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+    stations = [
+        {"id": f"station-{index:02d}", "lat": 13.7, "lon": 100.5} for index in range(12)
+    ]
+    selected_ids = []
+    runs = []
+    monkeypatch.setattr(provider_sync, "_valid_stations", lambda: stations)
+    monkeypatch.setattr(
+        supabase_client,
+        "get_latest_provider_sync_run",
+        lambda _provider, *, batch_index: None,
+    )
+    monkeypatch.setattr(
+        supabase_client, "create_provider_sync_run", lambda row: runs.append(row)
+    )
+    monkeypatch.setattr(supabase_client, "update_provider_sync_run", lambda *_: None)
+    monkeypatch.setattr(
+        supabase_client, "upsert_provider_snapshots", lambda rows: len(rows)
+    )
+    monkeypatch.setattr(provider_sync, "_cleanup_cams_history", lambda: {})
+
+    async def forecasts(batch, *, forecast_hours):
+        assert forecast_hours == 28
+        selected_ids.extend(row["id"] for row in batch)
+        return {
+            row["id"]: [
+                {
+                    "forecast_at": (now + timedelta(hours=hour)).isoformat(),
+                    "pm25": 10.0,
+                    "source_lat": 13.8,
+                    "source_lon": 100.6,
+                    "fetched_at": now.isoformat(),
+                }
+                for hour in range(1, 29)
+            ]
+            for row in batch
+        }
+
+    monkeypatch.setattr(provider_sync.openmeteo_air, "get_forecasts", forecasts)
+    result = asyncio.run(provider_sync.collect_openmeteo_snapshots(batch_index=2))
+    assert selected_ids == ["station-02", "station-08"]
+    assert result["snapshot_count"] == 48
+    assert runs[0]["metadata"]["batch_index"] == 2
 
 
 def test_collect_cams_snapshots_marks_missing_hour_partial(monkeypatch):
@@ -196,3 +245,29 @@ def test_cams_retention_is_provider_scoped_and_bounded(monkeypatch):
     assert result == {"deleted_snapshots": 1003, "deleted_runs": 1}
     assert len(calls) == 2
     assert all(batch_size == 1000 for _, _, batch_size in calls)
+
+
+def test_supabase_provider_writes_reject_silent_reset_trigger(monkeypatch):
+    class EmptyWrite:
+        def insert(self, _row):
+            return self
+
+        def upsert(self, _rows, *, on_conflict):
+            assert on_conflict == "station_id,provider,issued_at,forecast_at"
+            return self
+
+        def execute(self):
+            return SimpleNamespace(data=[])
+
+    monkeypatch.setattr(settings, "local_demo_mode", False)
+    monkeypatch.setattr(
+        supabase_client,
+        "get_client",
+        lambda: SimpleNamespace(table=lambda _name: EmptyWrite()),
+    )
+    with pytest.raises(UpstreamError, match="forecast_provider_run_write_blocked"):
+        supabase_client.create_provider_sync_run({"id": "test"})
+    with pytest.raises(
+        UpstreamError, match="forecast_provider_snapshot_write_incomplete"
+    ):
+        supabase_client.upsert_provider_snapshots([{"id": "test"}])

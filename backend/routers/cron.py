@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Query
 from starlette.concurrency import run_in_threadpool
 
 from ..core.config import settings
@@ -213,7 +213,10 @@ async def cron_forecast_validation(authorization: str | None = Header(default=No
 
 
 @router.get("/cron/cams-snapshots")
-async def cron_cams_snapshots(authorization: str | None = Header(default=None)):
+async def cron_cams_snapshots(
+    authorization: str | None = Header(default=None),
+    batch_index: int | None = Query(default=None, ge=0, lt=6),
+):
     _verify_cron(authorization)
     if not settings.cams_snapshot_collection_enabled:
         return {"status": "disabled", "reason": "cams_snapshot_collection_not_enabled"}
@@ -222,7 +225,7 @@ async def cron_cams_snapshots(authorization: str | None = Header(default=None)):
         return {"status": "disabled", "reason": "supabase_project_ref_not_configured"}
     if settings.supabase_url.rstrip("/") != f"https://{expected_ref}.supabase.co":
         return {"status": "disabled", "reason": "supabase_project_ref_mismatch"}
-    return await provider_sync.collect_openmeteo_snapshots()
+    return await provider_sync.collect_openmeteo_snapshots(batch_index=batch_index)
 
 
 @router.get("/cron/forecast-providers/openweather")

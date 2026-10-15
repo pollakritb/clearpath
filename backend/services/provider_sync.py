@@ -27,6 +27,7 @@ PROVIDER_SYNC_INTERVAL_HOURS = {
     "openmeteo_cams": 12,
 }
 CAMS_SNAPSHOT_INTERVAL_HOURS = 6
+CAMS_SNAPSHOT_BATCH_COUNT = 6
 CAMS_RETENTION_BATCH_SIZE = 1000
 CAMS_RETENTION_MAX_BATCHES = 6
 
@@ -180,10 +181,18 @@ def _snapshots(
     return result
 
 
-async def collect_openmeteo_snapshots() -> dict:
+async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
     """Store raw CAMS station forecasts only; never create local predictions."""
 
-    latest = supabase_client.get_latest_provider_sync_run("openmeteo_cams")
+    if batch_index is not None and not 0 <= batch_index < CAMS_SNAPSHOT_BATCH_COUNT:
+        raise ValueError("invalid_cams_batch_index")
+    latest = (
+        supabase_client.get_latest_provider_sync_run("openmeteo_cams")
+        if batch_index is None
+        else supabase_client.get_latest_provider_sync_run(
+            "openmeteo_cams", batch_index=batch_index
+        )
+    )
     interval = CAMS_SNAPSHOT_INTERVAL_HOURS
     if latest and not provider_sync_due(latest, interval):
         return {
@@ -203,6 +212,10 @@ async def collect_openmeteo_snapshots() -> dict:
         except (KeyError, TypeError, ValueError):
             pass
     stations = _valid_stations()
+    if batch_index is not None:
+        stations = sorted(stations, key=lambda row: row["id"])[
+            batch_index::CAMS_SNAPSHOT_BATCH_COUNT
+        ]
     if not stations:
         return {"status": "no_stations", "snapshot_count": 0}
 
@@ -215,7 +228,14 @@ async def collect_openmeteo_snapshots() -> dict:
             "status": "running",
             "station_count": len(stations),
             "started_at": retrieved_at.isoformat(),
-            "metadata": {"mode": "raw_cams_storage_only", "horizon_hours": 24},
+            "metadata": {
+                "mode": "raw_cams_storage_only",
+                "horizon_hours": 24,
+                "batch_index": batch_index,
+                "batch_count": CAMS_SNAPSHOT_BATCH_COUNT
+                if batch_index is not None
+                else 1,
+            },
         }
     )
     try:
@@ -265,6 +285,10 @@ async def collect_openmeteo_snapshots() -> dict:
                 "metadata": {
                     "mode": "raw_cams_storage_only",
                     "horizon_hours": 24,
+                    "batch_index": batch_index,
+                    "batch_count": CAMS_SNAPSHOT_BATCH_COUNT
+                    if batch_index is not None
+                    else 1,
                     "incomplete_station_ids": incomplete_station_ids,
                 },
                 "completed_at": datetime.now(UTC).isoformat(),
@@ -281,6 +305,7 @@ async def collect_openmeteo_snapshots() -> dict:
             "snapshot_count": count,
             "missing_station_count": missing,
             "run_id": run_id,
+            "batch_index": batch_index,
             "retention": retention,
         }
     except Exception:

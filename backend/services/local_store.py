@@ -192,12 +192,18 @@ def list_provider_sync_runs(limit: int = 20) -> list[dict]:
         return [dict(row) for row in rows[:limit]]
 
 
-def get_latest_provider_sync_run(provider: str) -> dict | None:
+def get_latest_provider_sync_run(
+    provider: str, batch_index: int | None = None
+) -> dict | None:
     with _LOCK:
         rows = [
             row
             for row in _FORECAST_PROVIDER_SYNC_RUNS.values()
             if str(row.get("provider")) == provider
+            and (
+                batch_index is None
+                or (row.get("metadata") or {}).get("batch_index") == batch_index
+            )
         ]
         if not rows:
             return None

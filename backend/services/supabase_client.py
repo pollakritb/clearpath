@@ -17,7 +17,7 @@ import httpx
 from supabase import Client, ClientOptions, create_client
 
 from ..core.config import settings
-from ..core.errors import ConfigurationError
+from ..core.errors import ConfigurationError, UpstreamError
 from . import local_store
 
 _client: Client | None = None
@@ -253,7 +253,9 @@ def create_provider_sync_run(row: dict) -> dict:
         get_client().table("forecast_provider_sync_runs").insert(row).execute().data
         or []
     )
-    return rows[0] if rows else row
+    if not rows:
+        raise UpstreamError("forecast_provider_run_write_blocked")
+    return rows[0]
 
 
 def update_provider_sync_run(run_id: str, values: dict) -> dict:
@@ -268,26 +270,29 @@ def update_provider_sync_run(run_id: str, values: dict) -> dict:
         .data
         or []
     )
-    return rows[0] if rows else {"id": run_id, **values}
+    if not rows:
+        raise UpstreamError("forecast_provider_run_update_blocked")
+    return rows[0]
 
 
-def get_latest_provider_sync_run(provider: str) -> dict | None:
+def get_latest_provider_sync_run(
+    provider: str, batch_index: int | None = None
+) -> dict | None:
     if settings.local_demo_mode:
-        return local_store.get_latest_provider_sync_run(provider)
-    rows = (
-        _execute_read(
-            lambda: (
-                get_client()
-                .table("forecast_provider_sync_runs")
-                .select("*")
-                .eq("provider", provider)
-                .order("started_at", desc=True)
-                .limit(1)
-                .execute()
-            )
-        ).data
-        or []
-    )
+        return local_store.get_latest_provider_sync_run(provider, batch_index)
+
+    def read():
+        query = (
+            get_client()
+            .table("forecast_provider_sync_runs")
+            .select("*")
+            .eq("provider", provider)
+        )
+        if batch_index is not None:
+            query = query.contains("metadata", {"batch_index": batch_index})
+        return query.order("started_at", desc=True).limit(1).execute()
+
+    rows = _execute_read(read).data or []
     return rows[0] if rows else None
 
 
@@ -296,10 +301,17 @@ def upsert_provider_snapshots(rows: list[dict]) -> int:
         return 0
     if settings.local_demo_mode:
         return local_store.upsert_provider_snapshots(rows)
-    get_client().table("forecast_provider_snapshots").upsert(
-        rows, on_conflict="station_id,provider,issued_at,forecast_at"
-    ).execute()
-    return len(rows)
+    persisted = (
+        get_client()
+        .table("forecast_provider_snapshots")
+        .upsert(rows, on_conflict="station_id,provider,issued_at,forecast_at")
+        .execute()
+        .data
+        or []
+    )
+    if len(persisted) != len(rows):
+        raise UpstreamError("forecast_provider_snapshot_write_incomplete")
+    return len(persisted)
 
 
 def get_provider_snapshots(station_id: str) -> list[dict]:

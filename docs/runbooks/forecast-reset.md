@@ -29,8 +29,10 @@ the legacy provider-sync, model, or evaluation pipeline. See
 ## Paused producers
 
 - OpenWeather air-quality forecast provider sync
-- Open-Meteo/CAMS forecast provider sync and database snapshots (public reads
-  call the provider directly instead)
+- Legacy Open-Meteo/CAMS provider sync (public reads call the provider directly).
+  Raw CAMS snapshots are a narrow, storage-only exception after applying
+  `20261016_allow_raw_cams_evidence_during_forecast_reset.sql`; no generated
+  forecast or evaluation table is reopened.
 - GISTDA forecast provider sync
 - station and map-surface forecast generation
 - forecast evaluation and drift snapshots

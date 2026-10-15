@@ -17,7 +17,7 @@ jobs:
     # Inert until the ClearPath-only rollout has verified DB target and quota.
     if: ${{ github.repository == 'pollakritb/clearpath' && vars.CLEARPATH_CAMS_SNAPSHOTS_PRODUCTION_ENABLED == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
     env:
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
@@ -26,10 +26,12 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$CRON_SECRET"
-          response=$(curl --fail --silent --show-error --max-time 90 \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            https://clearpath-gray.vercel.app/api/cron/cams-snapshots)
-          printf '%s\n' "$response" | jq -c \
-            '{status, reason, station_count, snapshot_count, missing_station_count, retention}'
-          printf '%s\n' "$response" | jq -e \
-            '.status == "success" or .status == "partial" or .status == "not_due" or .status == "in_progress"'
+          for batch_index in 0 1 2 3 4 5; do
+            response=$(curl --fail --silent --show-error --max-time 58 \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              "https://clearpath-gray.vercel.app/api/cron/cams-snapshots?batch_index=$batch_index")
+            printf '%s\n' "$response" | jq -c \
+              '{status, reason, batch_index, station_count, snapshot_count, missing_station_count, retention}'
+            printf '%s\n' "$response" | jq -e \
+              '.status == "success" or .status == "partial" or .status == "not_due"' >/dev/null
+          done
