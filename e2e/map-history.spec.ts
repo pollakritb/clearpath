@@ -43,6 +43,7 @@ test("historical map timeline is usable on mobile", async ({ page }) => {
   const station = markers.nth(markerIndex);
   await expect(station).toBeVisible();
   await station.click();
+  await page.getByRole("button", { name: "ดูรายละเอียดสถานี" }).click();
   await expect(page.getByText("ค่าตรวจวัดย้อนหลัง").last()).toBeVisible();
 
   await page.getByRole("button", { name: "ปิดรายละเอียดจุดบนแผนที่" }).click();

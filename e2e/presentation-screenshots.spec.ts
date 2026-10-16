@@ -32,9 +32,22 @@ test.describe("presentation screenshots @presentation", () => {
     await capture(page, "02-map-layer-types.png");
     await page.getByRole("button", { name: "ปิดตัวเลือกข้อมูล" }).click();
 
-    const stationMarker = page.locator(".cp-marker--station").first();
+    const stationMarkers = page.locator(".cp-marker--station");
+    const visibleIndex = await stationMarkers.evaluateAll((elements) =>
+      elements.findIndex((element) => {
+        const bounds = element.getBoundingClientRect();
+        const top = document.elementFromPoint(
+          bounds.left + bounds.width / 2,
+          bounds.top + bounds.height / 2,
+        );
+        return top === element || element.contains(top);
+      }),
+    );
+    expect(visibleIndex).toBeGreaterThanOrEqual(0);
+    const stationMarker = stationMarkers.nth(visibleIndex);
     await expect(stationMarker).toBeVisible();
-    await stationMarker.click({ force: true });
+    await stationMarker.click();
+    await page.getByRole("button", { name: "ดูรายละเอียดสถานี" }).click();
     await expect(
       page.getByRole("region", { name: "รายละเอียดสถานีตรวจวัดทางการ" }),
     ).toBeVisible();

@@ -893,21 +893,22 @@ test("community marker opens a distinct privacy-safe report card", async ({
   });
   await expect(card).toBeVisible();
   await expect(card.getByText(/Trust/i)).toHaveCount(0);
+  await card
+    .getByRole("button", { name: "ดูรายละเอียดรายงานและผู้รายงาน" })
+    .click();
   await expect(card.getByText("รายงานจากบุคคล", { exact: true })).toBeVisible();
   await expect(
     card.getByRole("heading", {
       name: "ต.นครปฐม · อ.เมือง · จ.นครปฐม",
     }),
   ).toBeVisible();
-  await expect(card.getByText("รายงานโดย", { exact: true })).toBeVisible();
+  await expect(card.getByText("แสดงตัวตนตามที่ผู้รายงานเลือก")).toBeVisible();
   await expect(card.getByText("สมาชิกชุมชน", { exact: true })).toBeVisible();
-  await expect(card.getByText("ภาพหลักฐานจากเครื่องวัด")).toBeVisible();
-  await expect(
-    card.getByRole("link", { name: "เปิดดูภาพเครื่องวัดจากรายงานนี้" }),
-  ).toHaveAttribute(
-    "href",
-    "https://lh3.googleusercontent.com/report-meter-demo.svg",
-  );
+  await expect(card.getByText("หลักฐานและการตรวจวัด")).toBeVisible();
+  const photoButton = card.getByRole("button", {
+    name: "เปิดดูภาพเครื่องวัดจากรายงานนี้",
+  });
+  await expect(photoButton).toBeVisible();
   await expect(card.locator(".cp-map-report-photo__thumb img")).toHaveCSS(
     "object-fit",
     "contain",
@@ -919,7 +920,19 @@ test("community marker opens a distinct privacy-safe report card", async ({
         .evaluate((image) => (image as HTMLImageElement).naturalWidth),
     )
     .toBeGreaterThan(0);
-  await expect(card.getByText(/พิกัดจริงประมาณ 180 ม./)).toBeVisible();
+  await photoButton.click();
+  const photoDialog = page.getByRole("dialog", {
+    name: "ภาพเครื่องวัดจากรายงานนี้",
+  });
+  await expect(photoDialog).toBeVisible();
+  await expect(
+    photoDialog.getByRole("img", {
+      name: "ภาพเครื่องวัด PM2.5 ฉบับเต็มจากผู้รายงาน",
+    }),
+  ).toBeVisible();
+  await photoDialog.getByRole("button", { name: "ปิดภาพเครื่องวัด" }).click();
+  await expect(photoDialog).not.toBeVisible();
+  await expect(card.getByText(/เลื่อนจากจุดจริงราว 180 ม./)).toBeVisible();
   const readingComesFirst = await card.evaluate((element) => {
     const reading = element.querySelector(".cp-map-selection-reading");
     const profile = element.querySelector(".cp-map-reporter-profile");
