@@ -10,5 +10,9 @@ Set-Location -LiteralPath $trialRoot
 "$(Get-Date -Format o) collector started" | Out-File -FilePath $trialLog -Append -Encoding utf8
 & $trialPython -m scripts.collect_independent_cams_trial 2>&1 | Out-File -FilePath $trialLog -Append -Encoding utf8
 $trialExitCode = $LASTEXITCODE
+if ($trialExitCode -eq 0) {
+    & $trialPython -m scripts.summarize_independent_cams_trial 2>&1 | Out-File -FilePath $trialLog -Append -Encoding utf8
+    $trialExitCode = $LASTEXITCODE
+}
 "$(Get-Date -Format o) collector exited: $trialExitCode" | Out-File -FilePath $trialLog -Append -Encoding utf8
 exit $trialExitCode
