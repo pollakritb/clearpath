@@ -20,6 +20,7 @@ import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
 import { useMapHistory } from "@/frontend/hooks/useMapHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
+import { haversineKm } from "@/frontend/lib/distance";
 import { nearestHeatmapPoint } from "@/frontend/lib/nearest-surface";
 import { assessPlaceAir, PLACE_RADIUS_KM } from "@/frontend/lib/place-air";
 import { countCommunitySources } from "@/frontend/lib/dashboard";
@@ -138,6 +139,15 @@ export default function MapPageClient({
       community.reports,
     ],
   );
+  const heatmapDistanceKm =
+    heatmapReference && heatmapPoint
+      ? haversineKm(
+          heatmapReference.lat,
+          heatmapReference.lon,
+          heatmapPoint.lat,
+          heatmapPoint.lon,
+        )
+      : null;
   const placeAir = useMemo(
     () =>
       selectedPlace
@@ -264,6 +274,7 @@ export default function MapPageClient({
         stations={serviceAreaStations}
         bigText={display.bigText}
         showHeatmap={showHeatmap}
+        heatmapDistanceKm={heatmapDistanceKm}
         heatmapStatus={
           userLocation
             ? heatmapPoint

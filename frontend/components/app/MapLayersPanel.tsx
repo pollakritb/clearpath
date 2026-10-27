@@ -14,6 +14,7 @@ interface MapLayersPanelProps {
   fireStatus: FirmsLoadStatus;
   bigText: boolean;
   showHeatmap: boolean;
+  heatmapDistanceKm: number | null;
   heatmapStatus:
     | "ready"
     | "no_data"
@@ -41,6 +42,7 @@ export default function MapLayersPanel({
   fireStatus,
   bigText,
   showHeatmap,
+  heatmapDistanceKm,
   heatmapStatus,
   showStations,
   showIndividualReports,
@@ -53,6 +55,13 @@ export default function MapLayersPanel({
   onToggleIndividualReports,
   onToggleFires,
 }: MapLayersPanelProps) {
+  const distanceLabel =
+    heatmapDistanceKm == null
+      ? null
+      : heatmapDistanceKm < 0.1
+        ? "น้อยกว่า 0.1 กม."
+        : `${heatmapDistanceKm.toFixed(1)} กม.`;
+
   return (
     <section
       id="cp-map-layers-panel"
@@ -95,19 +104,19 @@ export default function MapLayersPanel({
         <LayerButton
           active={showHeatmap}
           symbolClass="cp-layer-symbol--surface"
-          title="พื้นผิวค่าฝุ่น"
+          title="ค่าฝุ่นจากจุดใกล้สุด"
           description={
             heatmapStatus === "location_denied"
               ? "GPS ไม่พร้อม · แตะแผนที่หรือค้นหาสถานที่แทน"
               : heatmapStatus === "location_unavailable"
                 ? "GPS ไม่พร้อม · แตะแผนที่หรือค้นหาสถานที่แทน"
                 : heatmapStatus === "manual_reference"
-                  ? "จุดใกล้ตำแหน่งที่เลือกบนแผนที่ · รัศมี 15 กม."
+                  ? `ห่างจากจุดที่เลือก ${distanceLabel} · วงสีรัศมี 12 กม.`
                   : heatmapStatus === "no_location"
                     ? "เปิด GPS หรือแตะแผนที่เพื่อเลือกตำแหน่ง"
                     : heatmapStatus === "no_data"
                       ? "ยังไม่มีจุดข้อมูลบนแผนที่"
-                      : "จุดข้อมูลใกล้ GPS ที่สุด · วงสีรัศมี 15 กม."
+                      : `ห่างจาก GPS ${distanceLabel} · วงสีรัศมี 12 กม.`
           }
           onClick={onToggleHeatmap}
         />
@@ -162,7 +171,7 @@ export default function MapLayersPanel({
         </Link>
       </div>
       <p className="cp-map-layer-note">
-        สีหมุดบอกระดับ PM2.5 ทั้ง 5 ระดับ ·
+        สีหมุดและวงสีบอกระดับ PM2.5 ที่จุดตรวจ ·
         วงสีรอบจุดใกล้ที่สุดไม่ใช่ค่าประมาณทั้งพื้นที่
       </p>
     </section>

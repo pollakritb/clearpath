@@ -19,6 +19,7 @@ interface MapChromeProps {
   stations: Station[];
   bigText: boolean;
   showHeatmap: boolean;
+  heatmapDistanceKm: number | null;
   heatmapStatus:
     | "ready"
     | "no_data"
@@ -51,6 +52,7 @@ export default function MapChrome({
   stations,
   bigText,
   showHeatmap,
+  heatmapDistanceKm,
   heatmapStatus,
   showStations,
   showIndividualReports,
@@ -119,6 +121,7 @@ export default function MapChrome({
           fireStatus={fireStatus}
           bigText={bigText}
           showHeatmap={showHeatmap}
+          heatmapDistanceKm={heatmapDistanceKm}
           heatmapStatus={heatmapStatus}
           showStations={showStations}
           showIndividualReports={showIndividualReports}
