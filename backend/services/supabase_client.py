@@ -961,60 +961,6 @@ def latest_primary_sync_run() -> dict | None:
 # Notification channels, preferences, and delivery outbox
 
 
-def upsert_push_subscription(row: dict) -> dict:
-    if settings.local_demo_mode:
-        return local_store.upsert_push_subscription(row)
-    rows = (
-        get_client()
-        .table("push_subscriptions")
-        .upsert(row, on_conflict="endpoint")
-        .execute()
-        .data
-        or []
-    )
-    return rows[0] if rows else row
-
-
-def deactivate_push_subscription(endpoint: str, user_id: str | None = None) -> None:
-    if settings.local_demo_mode:
-        local_store.deactivate_push_subscription(endpoint, user_id)
-        return
-    query = (
-        get_client()
-        .table("push_subscriptions")
-        .update({"active": False})
-        .eq("endpoint", endpoint)
-    )
-    if user_id:
-        query = query.eq("user_id", user_id)
-    query.execute()
-
-
-def deactivate_user_push_subscriptions(user_id: str) -> int:
-    if settings.local_demo_mode:
-        return local_store.deactivate_user_push_subscriptions(user_id)
-    rows = (
-        get_client()
-        .table("push_subscriptions")
-        .update({"active": False, "updated_at": datetime.now(UTC).isoformat()})
-        .eq("user_id", user_id)
-        .eq("active", True)
-        .execute()
-        .data
-        or []
-    )
-    return len(rows)
-
-
-def list_push_subscriptions(user_id: str | None = None) -> list[dict]:
-    if settings.local_demo_mode:
-        return local_store.list_push_subscriptions(user_id)
-    query = get_client().table("push_subscriptions").select("*").eq("active", True)
-    if user_id:
-        query = query.eq("user_id", user_id)
-    return query.execute().data or []
-
-
 def upsert_line_notification_link(user_id: str, values: dict) -> dict:
     row = {
         "user_id": user_id,

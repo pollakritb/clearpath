@@ -622,38 +622,8 @@ def test_announcement_activity_notification_preferences_and_push_contract(
     assert all(item["id"] != announcement_id for item in public_archived)
 
     become("user", user_id=member.id)
-    config = client.get("/api/notifications/config")
-    assert config.status_code == 200
-    assert config.json() == {"enabled": False, "public_key": None}
-    subscription = {
-        "endpoint": f"https://push.example.test/{uuid4()}",
-        "keys": {"p256dh": "test-p256dh-key-material", "auth": "test-auth"},
-        "user_agent": "pytest",
-    }
-    disabled_subscription = client.post(
-        "/api/notifications/subscriptions", json=subscription
-    )
-    assert disabled_subscription.status_code == 503
-    monkeypatch.setattr(settings, "push_enabled", True)
-    monkeypatch.setattr(settings, "vapid_public_key", "test-public-key")
-    monkeypatch.setattr(settings, "vapid_private_key", "test-private-key")
-    monkeypatch.setattr(settings, "vapid_subject", "mailto:test@example.com")
-    assert client.get("/api/notifications/config").json() == {
-        "enabled": True,
-        "public_key": "test-public-key",
-    }
-    assert (
-        client.post("/api/notifications/subscriptions", json=subscription).status_code
-        == 200
-    )
-    assert (
-        client.request(
-            "DELETE",
-            "/api/notifications/subscriptions",
-            json={"endpoint": subscription["endpoint"]},
-        ).status_code
-        == 200
-    )
+    assert client.get("/api/notifications/config").status_code == 404
+    assert client.post("/api/notifications/subscriptions", json={}).status_code == 404
 
 
 def test_line_account_link_webhook_and_delivery(feature_client, monkeypatch):

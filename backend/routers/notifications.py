@@ -1,22 +1,17 @@
-"""Authenticated PWA Web Push API."""
+"""Authenticated notification inbox and LINE settings API."""
 
 from datetime import UTC, datetime
-from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
 from ..core.auth import AuthenticatedUser, require_user
-from ..core.config import settings
 from ..models.schemas import (
     LineLinkCodeResponse,
     LineNotificationStatus,
     NotificationPreferences,
     NotificationsResponse,
     OperationResponse,
-    PushConfigResponse,
-    PushSubscriptionRequest,
-    PushUnsubscribeRequest,
     UserNotification,
 )
 from ..services import line_messaging, supabase_client
@@ -58,63 +53,6 @@ async def mark_all_read(user: AuthenticatedUser = Depends(require_user)):
     return OperationResponse(ok=True, message=f"ทำเครื่องหมายอ่านแล้ว {count} รายการ")
 
 
-@router.get("/notifications/config", response_model=PushConfigResponse)
-async def push_config():
-    enabled = settings.web_push_ready
-    return PushConfigResponse(
-        enabled=enabled,
-        public_key=settings.vapid_public_key if enabled else None,
-    )
-
-
-@router.post("/notifications/subscriptions", response_model=OperationResponse)
-async def subscribe(
-    body: PushSubscriptionRequest,
-    user: AuthenticatedUser = Depends(require_user),
-):
-    if not settings.web_push_ready:
-        raise HTTPException(503, detail="Server ยังไม่ได้เปิด Web Push")
-    await run_in_threadpool(
-        supabase_client.upsert_push_subscription,
-        {
-            "id": str(uuid4()),
-            "user_id": user.id,
-            "endpoint": body.endpoint,
-            "p256dh": body.keys.p256dh,
-            "auth_secret": body.keys.auth,
-            "user_agent": body.user_agent,
-            "active": True,
-            "updated_at": datetime.now(UTC).isoformat(),
-        },
-    )
-    await run_in_threadpool(
-        supabase_client.upsert_notification_preferences,
-        user.id,
-        {
-            "web_push_enabled": True,
-            "consent_granted": True,
-            "consent_granted_at": datetime.now(UTC).isoformat(),
-        },
-    )
-    return OperationResponse(ok=True, message="เปิด Web Push แล้ว")
-
-
-@router.delete("/notifications/subscriptions", response_model=OperationResponse)
-async def unsubscribe(
-    body: PushUnsubscribeRequest,
-    user: AuthenticatedUser = Depends(require_user),
-):
-    await run_in_threadpool(
-        supabase_client.deactivate_push_subscription, body.endpoint, user.id
-    )
-    await run_in_threadpool(
-        supabase_client.upsert_notification_preferences,
-        user.id,
-        {"web_push_enabled": False},
-    )
-    return OperationResponse(ok=True, message="ปิด Web Push แล้ว")
-
-
 @router.get("/notifications/preferences", response_model=NotificationPreferences)
 async def get_preferences(user: AuthenticatedUser = Depends(require_user)):
     row = await run_in_threadpool(supabase_client.get_notification_preferences, user.id)
@@ -132,10 +70,6 @@ async def update_preferences(
     if not values["consent_granted"]:
         values["consent_granted_at"] = None
         values["line_enabled"] = False
-        values["web_push_enabled"] = False
-        await run_in_threadpool(
-            supabase_client.deactivate_user_push_subscriptions, user.id
-        )
         await run_in_threadpool(line_messaging.disconnect, user.id)
     row = await run_in_threadpool(
         supabase_client.upsert_notification_preferences,
@@ -159,7 +93,7 @@ async def test_notification(user: AuthenticatedUser = Depends(require_user)):
         force=True,
     )
     if delivered == 0:
-        raise HTTPException(422, detail="ไม่พบ Web Push หรือ LINE ที่เชื่อมไว้")
+        raise HTTPException(422, detail="ไม่พบ LINE ที่เชื่อมไว้")
     return OperationResponse(ok=True, message="ส่งการแจ้งเตือนทดสอบแล้ว")
 
 

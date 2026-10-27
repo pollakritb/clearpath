@@ -89,13 +89,6 @@ describe("api client", () => {
       () => api.announcements(),
       () => api.activities(),
       () => api.leaderboard(),
-      () => api.pushConfig(),
-      () =>
-        api.subscribePush({
-          endpoint: "https://push.example/subscription",
-          keys: { auth: "auth", p256dh: "p256dh" },
-        }),
-      () => api.unsubscribePush("https://push.example/subscription"),
       () => api.notificationPreferences(),
       () => api.updateNotificationPreferences({} as never),
       () => api.testNotification(),

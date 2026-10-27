@@ -28,7 +28,8 @@ def test_new_product_api_surface_and_no_navigation_api():
     assert "/api/community/activities" in paths
     assert "/api/community/leaderboard" in paths
     assert "/api/community/me" in paths
-    assert "/api/notifications/subscriptions" in paths
+    assert "/api/notifications/subscriptions" not in paths
+    assert "/api/notifications/config" not in paths
     assert "/api/notifications/preferences" in paths
     assert "/api/notifications" in paths
     assert "/api/notifications/line/test" in paths

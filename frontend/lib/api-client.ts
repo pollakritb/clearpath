@@ -22,7 +22,6 @@ import type {
   NotificationPreferences,
   NotificationsResponse,
   OperationResponse,
-  PushConfigResponse,
   LeaderboardResponse,
   ReportCreateResponse,
   ReportComment,
@@ -259,26 +258,6 @@ export const api = {
   activities: () => http<ActivitiesResponse>("/api/community/activities"),
 
   leaderboard: () => http<LeaderboardResponse>("/api/community/leaderboard"),
-
-  pushConfig: () => http<PushConfigResponse>("/api/notifications/config"),
-
-  subscribePush: (subscription: PushSubscriptionJSON) =>
-    http<OperationResponse>("/api/notifications/subscriptions", {
-      method: "POST",
-      auth: true,
-      body: JSON.stringify({
-        endpoint: subscription.endpoint,
-        keys: subscription.keys,
-        user_agent: navigator.userAgent,
-      }),
-    }),
-
-  unsubscribePush: (endpoint: string) =>
-    http<OperationResponse>("/api/notifications/subscriptions", {
-      method: "DELETE",
-      auth: true,
-      body: JSON.stringify({ endpoint }),
-    }),
 
   notificationPreferences: () =>
     http<NotificationPreferences>("/api/notifications/preferences", {

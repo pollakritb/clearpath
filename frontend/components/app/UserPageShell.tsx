@@ -4,7 +4,6 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import Header from "@/frontend/components/panels/Header";
-import { useDisplayPreferences } from "@/frontend/components/settings/DisplayPreferencesProvider";
 import type { AppIconName } from "@/frontend/components/ui/AppIcon";
 import { DASHBOARD_COPY, SHEET_Y } from "@/frontend/lib/dashboard";
 import type { DashboardTab, SheetSnap } from "@/frontend/types/ui";
@@ -42,7 +41,6 @@ export default function UserPageShell({
   header = {},
 }: UserPageShellProps) {
   const auth = useAuth();
-  const display = useDisplayPreferences();
   const [snap, setSnap] = useState<SheetSnap>(
     () => sheetSnapByTab[tab] ?? "half",
   );
@@ -52,18 +50,16 @@ export default function UserPageShell({
   const copy = DASHBOARD_COPY[tab];
   const canModerate = ["moderator", "admin"].includes(auth.role);
   const rootStyle = {
-    fontSize: display.bigText ? "18px" : "15px",
+    fontSize: "15px",
     lineHeight: 1.45,
     fontFamily: "var(--font-noto-thai), system-ui, sans-serif",
-    "--cp-aside-w": display.bigText ? "460px" : "420px",
+    "--cp-aside-w": "420px",
     "--cp-sheet-y": SHEET_Y[snap],
   } as React.CSSProperties;
 
   return (
     <div
       className="cp-app"
-      data-contrast={display.contrast}
-      data-reduce-motion={display.reduceMotion}
       data-tab={tab}
       data-sheet-snap={snap}
       style={rootStyle}

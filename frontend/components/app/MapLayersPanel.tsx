@@ -12,7 +12,6 @@ interface MapLayersPanelProps {
   individualReportCount: number;
   fireCount: number;
   fireStatus: FirmsLoadStatus;
-  bigText: boolean;
   showHeatmap: boolean;
   heatmapDistanceKm: number | null;
   heatmapStatus:
@@ -27,7 +26,6 @@ interface MapLayersPanelProps {
   showFires: boolean;
   onClose: () => void;
   onViewModeChange: (mode: ViewMode) => void;
-  onToggleBigText: () => void;
   onToggleHeatmap: () => void;
   onToggleStations: () => void;
   onToggleIndividualReports: () => void;
@@ -40,7 +38,6 @@ export default function MapLayersPanel({
   individualReportCount,
   fireCount,
   fireStatus,
-  bigText,
   showHeatmap,
   heatmapDistanceKm,
   heatmapStatus,
@@ -49,7 +46,6 @@ export default function MapLayersPanel({
   showFires,
   onClose,
   onViewModeChange,
-  onToggleBigText,
   onToggleHeatmap,
   onToggleStations,
   onToggleIndividualReports,
@@ -154,16 +150,6 @@ export default function MapLayersPanel({
         >
           <AppIcon name={viewMode === "map" ? "menu" : "map"} size={19} />
           {viewMode === "map" ? "ดูรายการสถานี" : "กลับไปแผนที่"}
-        </button>
-        <button
-          type="button"
-          className="cp-focus"
-          data-active={bigText}
-          aria-pressed={bigText}
-          onClick={onToggleBigText}
-        >
-          <span aria-hidden>ก</span>
-          ตัวอักษรใหญ่
         </button>
         <Link href="/settings" className="cp-focus">
           <AppIcon name="settings" size={19} />

@@ -1,4 +1,4 @@
-"""Scheduled PM2.5 and NASA FIRMS Web Push alert workflow."""
+"""Scheduled PM2.5 and NASA FIRMS notification alert workflow."""
 
 from __future__ import annotations
 

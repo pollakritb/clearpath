@@ -1,26 +1,10 @@
-"""PWA Web Push subscription and preference contracts."""
+"""Notification preferences and inbox contracts."""
 
 from pydantic import BaseModel, Field
 
 
-class PushKeys(BaseModel):
-    p256dh: str = Field(min_length=20, max_length=512)
-    auth: str = Field(min_length=8, max_length=256)
-
-
-class PushSubscriptionRequest(BaseModel):
-    endpoint: str = Field(min_length=20, max_length=2048)
-    keys: PushKeys
-    user_agent: str | None = Field(default=None, max_length=500)
-
-
-class PushUnsubscribeRequest(BaseModel):
-    endpoint: str = Field(min_length=20, max_length=2048)
-
-
 class NotificationPreferences(BaseModel):
     line_enabled: bool = True
-    web_push_enabled: bool = True
     district: str | None = Field(default=None, max_length=100)
     subdistrict: str | None = Field(default=None, max_length=100)
     radius_km: float | None = Field(default=None, ge=1, le=50)
@@ -62,11 +46,6 @@ class UserNotification(BaseModel):
 class NotificationsResponse(BaseModel):
     notifications: list[UserNotification]
     unread_count: int
-
-
-class PushConfigResponse(BaseModel):
-    enabled: bool
-    public_key: str | None = None
 
 
 class LineNotificationStatus(BaseModel):

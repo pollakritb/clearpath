@@ -48,16 +48,6 @@
   box-sizing: border-box;
 }
 
-/* high-contrast: deepen ink + lines, flatten tints */
-[data-contrast="true"] {
-  --cp-ink: #06110f;
-  --cp-subink: #33433f;
-  --cp-line: #7d8a87;
-  --cp-appbg: #ffffff;
-  --cp-chip: #eef1ef;
-  --cp-input: #ffffff;
-}
-
 html,
 body {
   height: 100%;

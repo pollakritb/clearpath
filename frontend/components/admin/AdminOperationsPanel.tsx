@@ -156,7 +156,7 @@ export default function AdminOperationsPanel({
           <div className="cp-admin-card-heading">
             <div>
               <h3>การส่งแจ้งเตือน</h3>
-              <p>สถานะ LINE และ Web Push จากคิวส่งข้อความ</p>
+              <p>สถานะ LINE จากคิวส่งข้อความ</p>
             </div>
             <span>{notificationProblemCount ?? "—"} มีปัญหา</span>
           </div>

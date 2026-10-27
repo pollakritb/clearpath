@@ -1,15 +1,11 @@
-"""PWA Web Push delivery and alert-event deduplication."""
+"""LINE delivery and alert-event deduplication."""
 
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from pywebpush import WebPushException, webpush
-
 from ..algorithms.notification_policy import is_quiet_hour
-from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
 from . import line_messaging, supabase_client
 
@@ -18,54 +14,6 @@ MAX_OUTBOX_ATTEMPTS = 8
 
 class NotificationDeferred(Exception):
     """A delivery that must remain queued until its quiet window ends."""
-
-
-def send_to_subscription(subscription: dict, payload: dict) -> bool:
-    if not settings.web_push_ready:
-        raise ConfigurationError("Web Push ยังไม่เปิดใช้งาน")
-    if not settings.vapid_private_key or not settings.vapid_subject:
-        raise ConfigurationError("ยังไม่ได้ตั้งค่า VAPID_PRIVATE_KEY/VAPID_SUBJECT")
-    try:
-        webpush(
-            subscription_info={
-                "endpoint": subscription["endpoint"],
-                "keys": {
-                    "p256dh": subscription["p256dh"],
-                    "auth": subscription["auth_secret"],
-                },
-            },
-            data=json.dumps(payload, ensure_ascii=False),
-            vapid_private_key=settings.vapid_private_key,
-            vapid_claims={"sub": settings.vapid_subject},
-            ttl=3600,
-        )
-        return True
-    except WebPushException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        if status in {404, 410}:
-            supabase_client.deactivate_push_subscription(subscription["endpoint"])
-            return False
-        raise UpstreamError("Web Push provider ส่งข้อความไม่สำเร็จ") from exc
-    except (KeyError, TypeError, ValueError):
-        # A malformed or obsolete subscription must not abort alerts for
-        # every other recipient in the scheduled batch.
-        supabase_client.deactivate_push_subscription(
-            str(subscription.get("endpoint") or "")
-        )
-        return False
-
-
-def send_to_user(user_id: str, payload: dict) -> int:
-    delivered = 0
-    provider_failed = False
-    for subscription in supabase_client.list_push_subscriptions(user_id):
-        try:
-            delivered += int(send_to_subscription(subscription, payload))
-        except UpstreamError:
-            provider_failed = True
-    if provider_failed and delivered == 0:
-        raise UpstreamError("Web Push provider ส่งข้อความไม่สำเร็จ")
-    return delivered
 
 
 def _delivery_preferences(user_id: str) -> dict:
@@ -94,10 +42,9 @@ def deliver_to_channel(
     preferences = _delivery_preferences(user_id)
     if not _enforce_delivery_policy(preferences, force=force):
         return 0
+    # Retired push jobs may still exist in the historical outbox.
     if channel == "web_push":
-        if preferences.get("web_push_enabled", True) is False:
-            return 0
-        return send_to_user(user_id, payload) if settings.web_push_ready else 0
+        return 0
     if channel == "line":
         if preferences.get("line_enabled", True) is False:
             return 0
@@ -109,7 +56,7 @@ def deliver_to_user(user_id: str, payload: dict, *, force: bool = False) -> int:
     """Deliver through linked channels without one provider blocking another."""
     delivered = 0
     provider_failed = False
-    for channel in ("web_push", "line"):
+    for channel in ("line",):
         try:
             delivered += deliver_to_channel(user_id, payload, channel, force=force)
         except NotificationDeferred:
@@ -133,7 +80,7 @@ def enqueue_user_notification(
     entity_id: str | None = None,
     payload: dict | None = None,
 ) -> dict:
-    """Persist the in-app item first, then enqueue idempotent Web Push delivery."""
+    """Persist the in-app item first, then enqueue idempotent LINE delivery."""
     preference_key = {
         "report_status": "report_status_alerts",
         "rating": "rating_alerts",
@@ -164,11 +111,10 @@ def enqueue_user_notification(
         }
     )
     channels = []
-    if preferences.get("consent_granted") is True:
-        if preferences.get("web_push_enabled", True):
-            channels.append("web_push")
-        if preferences.get("line_enabled", True):
-            channels.append("line")
+    if preferences.get("consent_granted") is True and preferences.get(
+        "line_enabled", True
+    ):
+        channels.append("line")
     for channel in channels:
         supabase_client.create_outbox_event(
             {

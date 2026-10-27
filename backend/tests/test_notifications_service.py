@@ -1,118 +1,8 @@
 from __future__ import annotations
 
-import json
-
 import pytest
 
-from backend.core.config import settings
-from backend.core.errors import ConfigurationError
 from backend.services import notifications
-
-
-def _subscription(**overrides):
-    return {
-        "endpoint": "https://push.example/subscription",
-        "p256dh": "public-key",
-        "auth_secret": "auth-secret",
-        **overrides,
-    }
-
-
-def _configure_web_push(monkeypatch, enabled: bool) -> None:
-    monkeypatch.setattr(settings, "push_enabled", enabled)
-    monkeypatch.setattr(settings, "vapid_public_key", "public-key" if enabled else "")
-    monkeypatch.setattr(settings, "vapid_private_key", "private-key" if enabled else "")
-    monkeypatch.setattr(
-        settings, "vapid_subject", "mailto:admin@example.com" if enabled else ""
-    )
-
-
-def test_web_push_requires_complete_server_configuration(monkeypatch):
-    _configure_web_push(monkeypatch, False)
-    with pytest.raises(ConfigurationError):
-        notifications.send_to_subscription(_subscription(), {"title": "test"})
-
-    monkeypatch.setattr(settings, "push_enabled", True)
-    monkeypatch.setattr(settings, "vapid_public_key", "public-key")
-    monkeypatch.setattr(settings, "vapid_private_key", "")
-    monkeypatch.setattr(settings, "vapid_subject", "")
-    with pytest.raises(ConfigurationError):
-        notifications.send_to_subscription(_subscription(), {"title": "test"})
-
-
-def test_web_push_serializes_payload_without_leaking_server_key(monkeypatch):
-    _configure_web_push(monkeypatch, True)
-    captured: dict = {}
-    monkeypatch.setattr(
-        notifications, "webpush", lambda **kwargs: captured.update(kwargs)
-    )
-
-    assert notifications.send_to_subscription(_subscription(), {"title": "แจ้งเตือน"})
-    assert captured["subscription_info"]["endpoint"].startswith("https://push")
-    assert json.loads(captured["data"])["title"] == "แจ้งเตือน"
-    assert captured["vapid_private_key"] == "private-key"
-    assert captured["ttl"] == 3600
-
-
-def test_web_push_deactivates_expired_and_malformed_subscriptions(monkeypatch):
-    _configure_web_push(monkeypatch, True)
-    deactivated: list[str] = []
-    monkeypatch.setattr(
-        notifications.supabase_client,
-        "deactivate_push_subscription",
-        deactivated.append,
-    )
-
-    class PushFailure(Exception):
-        def __init__(self, status_code: int):
-            self.response = type("Response", (), {"status_code": status_code})()
-
-    monkeypatch.setattr(notifications, "WebPushException", PushFailure)
-    monkeypatch.setattr(
-        notifications,
-        "webpush",
-        lambda **_kwargs: (_ for _ in ()).throw(PushFailure(410)),
-    )
-    assert notifications.send_to_subscription(_subscription(), {}) is False
-    assert deactivated == ["https://push.example/subscription"]
-
-    monkeypatch.setattr(notifications, "webpush", lambda **_kwargs: None)
-    assert notifications.send_to_subscription({"endpoint": "broken"}, {}) is False
-    assert deactivated[-1] == "broken"
-
-    monkeypatch.setattr(
-        notifications,
-        "webpush",
-        lambda **_kwargs: (_ for _ in ()).throw(PushFailure(429)),
-    )
-    with pytest.raises(notifications.UpstreamError):
-        notifications.send_to_subscription(_subscription(), {})
-    assert deactivated == ["https://push.example/subscription", "broken"]
-
-
-def test_user_delivery_combines_enabled_channels(monkeypatch):
-    monkeypatch.setattr(
-        notifications.supabase_client,
-        "get_notification_preferences",
-        lambda _user_id: {"consent_granted": True},
-    )
-    monkeypatch.setattr(
-        notifications.supabase_client,
-        "list_push_subscriptions",
-        lambda _user_id: [_subscription(), _subscription(endpoint="second")],
-    )
-    monkeypatch.setattr(
-        notifications,
-        "send_to_subscription",
-        lambda item, _payload: item["endpoint"] != "second",
-    )
-    assert notifications.send_to_user("user-1", {}) == 1
-
-    _configure_web_push(monkeypatch, False)
-    monkeypatch.setattr(notifications.line_messaging, "send_to_user", lambda *_args: 1)
-    assert notifications.deliver_to_user("user-1", {}) == 1
-    _configure_web_push(monkeypatch, True)
-    assert notifications.deliver_to_user("user-1", {}) == 2
 
 
 def test_enqueue_respects_preferences_and_persists_idempotent_outbox(monkeypatch):
@@ -160,7 +50,6 @@ def test_enqueue_respects_preferences_and_persists_idempotent_outbox(monkeypatch
     assert result["user_id"] == "user-1"
     assert rows[0]["payload"] == {"kind": "news"}
     assert {row["event_key"] for row in outbox} == {
-        "announcement:1:web_push",
         "announcement:1:line",
     }
     assert all(row["status"] == "pending" for row in outbox)
@@ -203,8 +92,6 @@ def test_outbox_marks_success_and_schedules_bounded_retry(monkeypatch):
 
 
 def test_channel_preferences_quiet_hours_and_consent(monkeypatch):
-    _configure_web_push(monkeypatch, True)
-    monkeypatch.setattr(notifications, "send_to_user", lambda *_args: 1)
     monkeypatch.setattr(notifications.line_messaging, "send_to_user", lambda *_args: 1)
 
     monkeypatch.setattr(
@@ -235,22 +122,20 @@ def test_channel_preferences_quiet_hours_and_consent(monkeypatch):
         notifications.deliver_to_user("user-1", {})
 
 
-def test_partial_provider_failure_does_not_block_other_channel(monkeypatch):
+def test_retired_push_jobs_never_send(monkeypatch):
+    monkeypatch.setattr(
+        notifications.supabase_client,
+        "get_notification_preferences",
+        lambda _user_id: {"consent_granted": True, "web_push_enabled": True},
+    )
+    assert notifications.deliver_to_channel("user-1", {}, "web_push", force=True) == 0
+
+
+def test_line_delivery_still_works(monkeypatch):
     monkeypatch.setattr(
         notifications.supabase_client,
         "get_notification_preferences",
         lambda _user_id: {"consent_granted": True},
-    )
-    monkeypatch.setattr(settings, "push_enabled", True)
-    monkeypatch.setattr(settings, "vapid_public_key", "public")
-    monkeypatch.setattr(settings, "vapid_private_key", "private")
-    monkeypatch.setattr(settings, "vapid_subject", "mailto:test@example.com")
-    monkeypatch.setattr(
-        notifications,
-        "send_to_user",
-        lambda *_args: (_ for _ in ()).throw(
-            notifications.UpstreamError("web push unavailable")
-        ),
     )
     monkeypatch.setattr(notifications.line_messaging, "send_to_user", lambda *_args: 1)
     assert notifications.deliver_to_user("user-1", {}) == 1

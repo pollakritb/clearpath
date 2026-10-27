@@ -49,7 +49,7 @@ ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถ
 | External data         | Air4Thai, NASA FIRMS, CAMS/Open-Meteo, OpenWeather และ GISTDA แบบ legal-gated                   |
 | OCR/AI                | OpenAI Responses API แบบ number-only; อ่านได้เผยแพร่ทันที อ่านไม่ได้ให้ถ่ายใหม่                 |
 | Forecast              | External-first 3 แหล่ง, raw comparison, uncertainty envelope และ gated local/community fallback |
-| Notification          | In-App inbox, Web Push/VAPID, LINE Messaging API, signed webhook และ retryable outbox           |
+| Notification          | In-App inbox, LINE Messaging API, signed webhook และ retryable outbox                           |
 | Testing/quality       | Pytest, Ruff, ESLint, TypeScript strict checks, Prettier และ Next production build              |
 | Deployment            | Vercel Hobby + Supabase Cron ทุก 30 นาที และ GitHub Actions สำรองเมื่อรอบหลักไม่สำเร็จ          |
 
@@ -64,7 +64,7 @@ Next.js 16 / React 19 ── /api/* ── FastAPI
                                   Supabase + private image bucket
 ```
 
-Frontend รู้จักเฉพาะ `/api/*`; service-role, OpenAI, VAPID private key และ cron secret
+Frontend รู้จักเฉพาะ `/api/*`; service-role, OpenAI และ cron secret
 อยู่ฝั่ง server เท่านั้น การส่งรายงาน/ส่งคำขอบคุณพร้อมดาวใช้ Supabase Email OTP และ Admin API แบบอ่านอย่างเดียวใช้ role
 `moderator`/`admin` จากตาราง `profiles` โดยไม่รับ user id หรือ admin key จาก browser
 
@@ -246,7 +246,6 @@ previous map layers and viewport.
 | `PUT /api/admin/forecast-false-safe-cases/…`      | บันทึกสาเหตุ/หลักฐานการตรวจ false-safe                                |
 | `GET /api/admin/forecast-release-decisions`       | ประวัติ shadow/canary/promote/rollback/reject                         |
 | `GET/PUT /api/notifications/preferences`          | พื้นที่ รัศมี และเกณฑ์แจ้งเตือนของผู้ใช้                              |
-| `POST /api/notifications/subscriptions`           | ลงทะเบียน PWA Web Push                                                |
 | `GET /api/notifications`                          | กล่องแจ้งเตือนในแอป                                                   |
 | `GET/POST/DELETE /api/notifications/line`         | สถานะ สร้างรหัส และยกเลิกการเชื่อม LINE                               |
 | `POST /api/notifications/line/test`               | ส่งข้อความทดสอบเข้า LINE ที่เชื่อมไว้                                 |
@@ -255,7 +254,7 @@ previous map layers and viewport.
 | `GET /api/history`                                | ประวัติรายสถานี                                                       |
 | `GET /api/validate`                               | LOOCV ของ interpolation                                               |
 | `GET /api/cron/sync`                              | Air4Thai → Supabase                                                   |
-| `GET /api/cron/alerts`                            | ตรวจ PM2.5/FIRMS และส่ง Web Push/LINE แบบ deduplicate                 |
+| `GET /api/cron/alerts`                            | ตรวจ PM2.5/FIRMS และส่ง LINE แบบ deduplicate                          |
 | `GET /api/cron/forecast-evaluation`               | Settle prediction, aggregate metrics และ drift                        |
 
 ## Verification
@@ -302,7 +301,7 @@ CI รัน quality gate ชุดเดียวกัน รวม dependency
 
 ระบบปัจจุบันใช้ Supabase Auth/RBAC, distributed database rate limit, one-time capture,
 private signed image, audit log, retention 30 วันสำหรับ rejected/180 วันสำหรับ approved,
-PWA Web Push deduplication และ fail-closed model gate แล้ว ก่อนเปิดสาธารณะยังควรเพิ่ม malware scan,
+notification deduplication และ fail-closed model gate แล้ว ก่อนเปิดสาธารณะยังควรเพิ่ม malware scan,
 device attestation/advanced image forensics, consent text ที่ผ่านฝ่ายกฎหมาย, incident monitoring
 และ backtest หลายฤดูกาลด้วยข้อมูลภาคสนามจริง
 

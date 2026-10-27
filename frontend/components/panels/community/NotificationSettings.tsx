@@ -12,7 +12,6 @@ import LineNotificationCard from "./LineNotificationCard";
 
 const DEFAULTS: NotificationPreferences = {
   line_enabled: true,
-  web_push_enabled: true,
   district: null,
   subdistrict: null,
   radius_km: 10,
@@ -44,100 +43,27 @@ const ALERT_OPTIONS = [
   ["announcement_alerts", "ประกาศสำคัญ", "ข่าวสารที่ควรรู้จาก ClearPath"],
 ] as const;
 
-function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
-  const padding = "=".repeat((4 - (value.length % 4)) % 4);
-  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(base64);
-  return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
-}
-
 export default function NotificationSettings() {
   const auth = useAuth();
   const loginPrompt = useLoginPrompt();
   const [preferences, setPreferences] = useState(DEFAULTS);
-  const [subscription, setSubscription] = useState<PushSubscription | null>(
-    null,
-  );
   const [editingConditions, setEditingConditions] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission | null>(
-    null,
-  );
 
   useEffect(() => {
-    if ("Notification" in window) {
-      queueMicrotask(() => setPermission(Notification.permission));
-    }
     if (!auth.user && !auth.localDemo) return;
     void api
       .notificationPreferences()
       .then(setPreferences)
       .catch(() => undefined);
-    if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.ready
-        .then((registration) => registration.pushManager.getSubscription())
-        .then(setSubscription)
-        .catch(() => undefined);
-    }
   }, [auth.user, auth.localDemo]);
 
   const activeAlertCount = useMemo(
     () => ALERT_OPTIONS.filter(([key]) => preferences[key]).length,
     [preferences],
   );
-
-  async function enablePush() {
-    setSaving(true);
-    setError(null);
-    try {
-      if (
-        !("serviceWorker" in navigator) ||
-        !("PushManager" in window) ||
-        !("Notification" in window)
-      ) {
-        throw new Error("Browser นี้ไม่รองรับ Web Push");
-      }
-      const config = await api.pushConfig();
-      if (!config.enabled || !config.public_key) {
-        throw new Error("Server ยังไม่ได้เปิด Web Push");
-      }
-      const nextPermission = await Notification.requestPermission();
-      setPermission(nextPermission);
-      if (nextPermission !== "granted") {
-        throw new Error(
-          nextPermission === "denied"
-            ? "เบราว์เซอร์บล็อกการแจ้งเตือน กรุณาเปิดสิทธิ์ใน Settings"
-            : "ยังไม่ได้รับสิทธิ์แจ้งเตือน",
-        );
-      }
-      const registration = await navigator.serviceWorker.ready;
-      const next =
-        (await registration.pushManager.getSubscription()) ??
-        (await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(config.public_key),
-        }));
-      await api.subscribePush(next.toJSON());
-      setSubscription(next);
-      setPreferences((current) => ({
-        ...current,
-        web_push_enabled: true,
-        consent_granted: true,
-      }));
-      setMessage("เปิด Web Push แล้ว");
-    } catch (cause) {
-      setError(
-        apiErrorMessage(
-          cause,
-          cause instanceof Error ? cause.message : "เปิดแจ้งเตือนไม่สำเร็จ",
-        ),
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
 
   function useCurrentArea() {
     setError(null);
@@ -165,32 +91,6 @@ export default function NotificationSettings() {
     } finally {
       setSaving(false);
     }
-  }
-
-  async function testPush() {
-    setSaving(true);
-    setError(null);
-    try {
-      const result = await api.testNotification();
-      setMessage(result.message);
-    } catch (cause) {
-      setError(apiErrorMessage(cause, "ทดสอบแจ้งเตือนไม่สำเร็จ"));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function disablePush() {
-    if (!subscription) return;
-    const endpoint = subscription.endpoint;
-    await subscription.unsubscribe();
-    await api.unsubscribePush(endpoint);
-    setSubscription(null);
-    setPreferences((current) => ({
-      ...current,
-      web_push_enabled: false,
-    }));
-    setMessage("ปิด Web Push แล้ว");
   }
 
   if (!auth.user && !auth.localDemo) {
@@ -234,74 +134,17 @@ export default function NotificationSettings() {
           <small>ขั้นตอนที่ 1</small>
           <h3>ช่องทางรับแจ้งเตือน</h3>
         </div>
-        <span>เลือกได้มากกว่า 1 ช่องทาง</span>
+        <span>แจ้งเตือนผ่าน LINE</span>
       </div>
 
       <LineNotificationCard />
-
-      <section
-        className="cp-push-channel"
-        aria-labelledby="web-push-channel-title"
-      >
-        <header>
-          <span className="cp-push-channel__icon" aria-hidden="true">
-            <AppIcon name="alert" size={22} />
-          </span>
-          <span className="cp-push-channel__copy">
-            <h3 id="web-push-channel-title">Web Push</h3>
-            <small>แจ้งเตือนบนอุปกรณ์เครื่องนี้</small>
-          </span>
-          <span
-            className="cp-channel-status"
-            data-active={subscription !== null}
-          >
-            {subscription ? "เปิดแล้ว" : "ยังไม่เปิด"}
-          </span>
-        </header>
-
-        {!subscription ? (
-          <>
-            <p className="cp-push-channel__hint">
-              iPhone/iPad ต้องเพิ่ม ClearPath ไปที่หน้าจอโฮม
-              แล้วเปิดจากไอคอนนั้น
-            </p>
-            <button
-              type="button"
-              onClick={() => void enablePush()}
-              disabled={saving}
-              className="cp-focus cp-channel-button cp-channel-button--secondary"
-            >
-              เปิด Web Push
-            </button>
-          </>
-        ) : (
-          <div className="cp-push-channel__actions">
-            <button
-              type="button"
-              onClick={() => void testPush()}
-              disabled={saving}
-              className="cp-focus cp-channel-button cp-channel-button--secondary"
-            >
-              ส่งข้อความทดสอบ
-            </button>
-            <button
-              type="button"
-              onClick={() => void disablePush()}
-              disabled={saving}
-              className="cp-focus cp-channel-button cp-channel-button--quiet"
-            >
-              ปิด Web Push
-            </button>
-          </div>
-        )}
-      </section>
 
       <div className="cp-notification-section-heading">
         <div>
           <small>ขั้นตอนที่ 2</small>
           <h3>เงื่อนไขแจ้งเตือน</h3>
         </div>
-        <span>ใช้ร่วมกันทุกช่องทาง</span>
+        <span>ปรับเงื่อนไขสำหรับ LINE</span>
       </div>
 
       <section className="cp-notification-conditions">
@@ -457,22 +300,6 @@ export default function NotificationSettings() {
                   <small>ใช้เมื่อเชื่อมบัญชี LINE แล้ว</small>
                 </span>
               </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={preferences.web_push_enabled}
-                  onChange={(event) =>
-                    setPreferences((current) => ({
-                      ...current,
-                      web_push_enabled: event.target.checked,
-                    }))
-                  }
-                />
-                <span>
-                  <strong>Web Push</strong>
-                  <small>ใช้กับอุปกรณ์ที่กดอนุญาตแล้ว</small>
-                </span>
-              </label>
               <div className="cp-notification-time-grid">
                 <label>
                   <span>เริ่มไม่รบกวน</span>
@@ -540,7 +367,7 @@ export default function NotificationSettings() {
             )}
             {!preferences.consent_granted && (
               <small className="cp-notification-save-hint">
-                เมื่อบันทึกโดยไม่ยินยอม ระบบจะปิด LINE และ Web Push ของบัญชีนี้
+                เมื่อบันทึกโดยไม่ยินยอม ระบบจะปิด LINE ของบัญชีนี้
               </small>
             )}
           </div>
@@ -548,11 +375,6 @@ export default function NotificationSettings() {
       </section>
 
       <div className="cp-notification-feedback" aria-live="polite">
-        {permission === "denied" && (
-          <p role="alert" data-kind="error">
-            สิทธิ์แจ้งเตือนถูกบล็อกอยู่ ต้องเปิดใน Settings ของอุปกรณ์ก่อน
-          </p>
-        )}
         {message && (
           <p role="status" data-kind="success">
             {message}

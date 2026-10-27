@@ -1,8 +1,3 @@
-export interface PushConfigResponse {
-  enabled: boolean;
-  public_key: string | null;
-}
-
 export interface LineNotificationStatus {
   enabled: boolean;
   linked: boolean;
@@ -19,7 +14,6 @@ export interface LineLinkCodeResponse {
 
 export interface NotificationPreferences {
   line_enabled: boolean;
-  web_push_enabled: boolean;
   district: string | null;
   subdistrict: string | null;
   radius_km: number | null;

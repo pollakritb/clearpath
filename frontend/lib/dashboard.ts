@@ -33,7 +33,7 @@ export const DASHBOARD_COPY: Record<DashboardTab, DashboardCopy> = {
   },
   settings: {
     title: "การตั้งค่า",
-    description: "ปรับการแสดงผล การแจ้งเตือน และบัญชีของคุณ",
+    description: "จัดการการแจ้งเตือนและบัญชีของคุณ",
   },
 };
 

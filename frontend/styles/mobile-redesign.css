@@ -523,14 +523,12 @@
   line-height: 1.45;
 }
 
-.cp-app .cp-settings-switches,
 .cp-app .cp-settings-links {
   overflow: hidden;
   border: 1px solid var(--cp-line);
   border-radius: 14px;
 }
 
-.cp-app .cp-settings-switch,
 .cp-app .cp-settings-row {
   width: 100%;
   min-height: 64px;
@@ -548,25 +546,21 @@
   cursor: pointer;
 }
 
-.cp-app .cp-settings-switch + .cp-settings-switch,
 .cp-app .cp-settings-row + .cp-settings-row {
   border-top: 1px solid var(--cp-line);
 }
 
-.cp-app .cp-settings-switch > span:nth-child(2),
 .cp-app .cp-settings-row > span:nth-child(2) {
   min-width: 0;
   display: grid;
   gap: 2px;
 }
 
-.cp-app .cp-settings-switch strong,
 .cp-app .cp-settings-row strong,
 .cp-app .cp-settings-permissions strong {
   font-size: 0.76rem;
 }
 
-.cp-app .cp-settings-switch small,
 .cp-app .cp-settings-row small,
 .cp-app .cp-settings-permissions small {
   color: var(--cp-subink);
@@ -574,7 +568,6 @@
   line-height: 1.45;
 }
 
-.cp-app .cp-settings-switch__symbol,
 .cp-app .cp-settings-row__icon {
   width: 38px;
   height: 38px;
@@ -585,35 +578,6 @@
   color: var(--cp-teal);
   font-size: 0.76rem;
   font-weight: 900;
-}
-
-.cp-app .cp-switch {
-  width: 42px;
-  height: 24px;
-  position: relative;
-  border-radius: 999px;
-  background: #c8d2cf;
-  transition: background-color 160ms ease;
-}
-
-.cp-app .cp-switch i {
-  width: 18px;
-  height: 18px;
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(15, 49, 44, 0.25);
-  transition: transform 160ms ease;
-}
-
-.cp-app .cp-switch[data-active="true"] {
-  background: var(--cp-teal);
-}
-
-.cp-app .cp-switch[data-active="true"] i {
-  transform: translateX(18px);
 }
 
 .cp-app .cp-settings-auth {
@@ -902,15 +866,6 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-.cp-app[data-reduce-motion="true"] *,
-.cp-app[data-reduce-motion="true"] *::before,
-.cp-app[data-reduce-motion="true"] *::after {
-  scroll-behavior: auto !important;
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
 }
 
 /* Route-scoped feedback and report completion states. */

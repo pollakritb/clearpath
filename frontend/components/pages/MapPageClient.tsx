@@ -10,7 +10,6 @@ import ReportStackCard from "@/frontend/components/app/ReportStackCard";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import ListView from "@/frontend/components/panels/ListView";
-import { useDisplayPreferences } from "@/frontend/components/settings/DisplayPreferencesProvider";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
 import {
   useCurrentLocation,
@@ -47,7 +46,6 @@ export default function MapPageClient({
   const community = useCommunityMapData();
   const currentLocation = useCurrentLocation(true);
   const mapHistory = useMapHistory();
-  const display = useDisplayPreferences();
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [selectedReport, setSelectedReport] = useState<CommunityReport | null>(
     null,
@@ -272,7 +270,6 @@ export default function MapPageClient({
         fireStatus={firms.status}
         demoMode={community.demoMode}
         stations={serviceAreaStations}
-        bigText={display.bigText}
         showHeatmap={showHeatmap}
         heatmapDistanceKm={heatmapDistanceKm}
         heatmapStatus={
@@ -294,7 +291,6 @@ export default function MapPageClient({
         showIndividualReports={historyEnabled ? false : showIndividualReports}
         showFires={historyEnabled ? false : showFires}
         onViewModeChange={setViewMode}
-        onToggleBigText={() => display.setBigText(!display.bigText)}
         onToggleHeatmap={() => setShowHeatmap((value) => !value)}
         onToggleStations={() => setShowStations((value) => !value)}
         onToggleIndividualReports={() =>

@@ -6,7 +6,6 @@ import { AuthProvider } from "@/frontend/components/auth/AuthProvider";
 import { LoginPromptProvider } from "@/frontend/components/auth/LoginPromptProvider";
 import PwaRegistrar from "@/frontend/components/app/PwaRegistrar";
 import PersistentMapPage from "@/frontend/components/app/PersistentMapPage";
-import { DisplayPreferencesProvider } from "@/frontend/components/settings/DisplayPreferencesProvider";
 
 // UI font — variable font, all weights 400–800 available
 const notoThai = Noto_Sans_Thai({
@@ -44,16 +43,14 @@ export default function RootLayout({
   return (
     <html lang="th" className={`${notoThai.variable} ${plexMono.variable}`}>
       <body>
-        <DisplayPreferencesProvider>
-          <AuthProvider>
-            <LoginPromptProvider>
-              <Suspense fallback={null}>
-                <PersistentMapPage />
-              </Suspense>
-              {children}
-            </LoginPromptProvider>
-          </AuthProvider>
-        </DisplayPreferencesProvider>
+        <AuthProvider>
+          <LoginPromptProvider>
+            <Suspense fallback={null}>
+              <PersistentMapPage />
+            </Suspense>
+            {children}
+          </LoginPromptProvider>
+        </AuthProvider>
         <PwaRegistrar />
       </body>
     </html>

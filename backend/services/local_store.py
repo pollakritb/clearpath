@@ -32,7 +32,6 @@ _REPORT_DRAFTS: dict[str, dict] = {}
 _REPORT_EVIDENCE: dict[str, dict] = {}
 _RATE_WINDOWS: dict[tuple[str, str, int], int] = {}
 _SYNC_RUNS: dict[str, dict] = {}
-_PUSH_SUBSCRIPTIONS: dict[str, dict] = {}
 _NOTIFICATION_PREFERENCES: dict[str, dict] = {}
 _ALERT_EVENTS: dict[str, dict] = {}
 _USER_NOTIFICATIONS: dict[str, dict] = {}
@@ -685,39 +684,6 @@ def list_sync_runs(limit: int) -> list[dict]:
             _SYNC_RUNS.values(), key=lambda row: row["started_at"], reverse=True
         )
         return [dict(row) for row in rows[:limit]]
-
-
-def upsert_push_subscription(row: dict) -> dict:
-    with _LOCK:
-        _PUSH_SUBSCRIPTIONS[str(row["endpoint"])] = dict(row)
-        return dict(row)
-
-
-def deactivate_push_subscription(endpoint: str, user_id: str | None = None) -> None:
-    with _LOCK:
-        row = _PUSH_SUBSCRIPTIONS.get(endpoint)
-        if row and (user_id is None or str(row.get("user_id")) == user_id):
-            row["active"] = False
-
-
-def deactivate_user_push_subscriptions(user_id: str) -> int:
-    changed = 0
-    with _LOCK:
-        for row in _PUSH_SUBSCRIPTIONS.values():
-            if str(row.get("user_id")) == user_id and row.get("active"):
-                row["active"] = False
-                changed += 1
-    return changed
-
-
-def list_push_subscriptions(user_id: str | None = None) -> list[dict]:
-    with _LOCK:
-        return [
-            dict(row)
-            for row in _PUSH_SUBSCRIPTIONS.values()
-            if row.get("active")
-            and (user_id is None or str(row.get("user_id")) == user_id)
-        ]
 
 
 def upsert_line_notification_link(user_id: str, values: dict) -> dict:
