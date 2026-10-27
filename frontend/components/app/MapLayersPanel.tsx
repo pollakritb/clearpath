@@ -102,12 +102,12 @@ export default function MapLayersPanel({
               : heatmapStatus === "location_unavailable"
                 ? "GPS ไม่พร้อม · แตะแผนที่หรือค้นหาสถานที่แทน"
                 : heatmapStatus === "manual_reference"
-                  ? "จุดใกล้ตำแหน่งที่เลือกบนแผนที่ · รัศมี 5 กม."
+                  ? "จุดใกล้ตำแหน่งที่เลือกบนแผนที่ · รัศมี 15 กม."
                   : heatmapStatus === "no_location"
                     ? "เปิด GPS หรือแตะแผนที่เพื่อเลือกตำแหน่ง"
                     : heatmapStatus === "no_data"
                       ? "ยังไม่มีจุดข้อมูลบนแผนที่"
-                      : "จุดข้อมูลใกล้ GPS ที่สุด · วงสีรัศมี 5 กม."
+                      : "จุดข้อมูลใกล้ GPS ที่สุด · วงสีรัศมี 15 กม."
           }
           onClick={onToggleHeatmap}
         />
