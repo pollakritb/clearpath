@@ -70,7 +70,6 @@ export default function MapPageClient({
     useState<CurrentLocation | null>(null);
   const [resetViewSignal, setResetViewSignal] = useState(0);
   const userLocation = locatedManually ?? currentLocation.location;
-  const heatmapReference = userLocation ?? selectedPlace ?? focusPoint;
 
   useEffect(() => {
     if (!showFiresInitially) return;
@@ -122,26 +121,17 @@ export default function MapPageClient({
   const visibleStations = historyEnabled
     ? mapHistory.stations.filter((station) => station.in_service_area)
     : serviceAreaStations;
+  // The nearest reading always uses GPS and both current public sources.
+  // Map filters, place searches and history must not change the candidates.
   const heatmapPoint = useMemo(
-    () =>
-      nearestHeatmapPoint(
-        heatmapReference,
-        historyEnabled ? mapHistory.stations : pm25.stations,
-        historyEnabled ? [] : community.reports,
-      ),
-    [
-      heatmapReference,
-      historyEnabled,
-      mapHistory.stations,
-      pm25.stations,
-      community.reports,
-    ],
+    () => nearestHeatmapPoint(userLocation, pm25.stations, community.reports),
+    [userLocation, pm25.stations, community.reports],
   );
   const heatmapDistanceKm =
-    heatmapReference && heatmapPoint
+    userLocation && heatmapPoint
       ? haversineKm(
-          heatmapReference.lat,
-          heatmapReference.lon,
+          userLocation.lat,
+          userLocation.lon,
           heatmapPoint.lat,
           heatmapPoint.lon,
         )
@@ -277,15 +267,11 @@ export default function MapPageClient({
             ? heatmapPoint
               ? "ready"
               : "no_data"
-            : heatmapReference
-              ? heatmapPoint
-                ? "manual_reference"
-                : "no_data"
-              : currentLocation.status === "denied"
-                ? "location_denied"
-                : currentLocation.status === "unavailable"
-                  ? "location_unavailable"
-                  : "no_location"
+            : currentLocation.status === "denied"
+              ? "location_denied"
+              : currentLocation.status === "unavailable"
+                ? "location_unavailable"
+                : "no_location"
         }
         showStations={showStations}
         showIndividualReports={historyEnabled ? false : showIndividualReports}

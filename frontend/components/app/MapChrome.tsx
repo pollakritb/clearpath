@@ -23,7 +23,6 @@ interface MapChromeProps {
     | "ready"
     | "no_data"
     | "no_location"
-    | "manual_reference"
     | "location_denied"
     | "location_unavailable";
   showStations: boolean;

@@ -71,6 +71,33 @@ describe("nearestHeatmapPoint", () => {
     ).toMatchObject({ id: "closest", pm25: null });
   });
 
+  it("selects a low-trust old report with no distance limit", () => {
+    const report = {
+      id: "old-report",
+      lat: 17,
+      lon: 100.1,
+      pm25: 42,
+      trust_score: 0,
+      captured_at: "2020-01-01T00:00:00Z",
+      eligible_for_gap_fill: false,
+    } as unknown as CommunityReport;
+    expect(
+      nearestHeatmapPoint(location, [station("farther", 18, 10)], [report]),
+    ).toMatchObject({ id: "old-report", source: "community" });
+  });
+
+  it("selects a closer station even when a community report is available", () => {
+    const report = {
+      id: "report",
+      lat: 13.9,
+      lon: 100.1,
+      pm25: 80,
+    } as CommunityReport;
+    expect(
+      nearestHeatmapPoint(location, [station("closest", 13.801, 10)], [report]),
+    ).toMatchObject({ id: "closest", source: "station" });
+  });
+
   it("requires a GPS location", () => {
     expect(
       nearestHeatmapPoint(null, [station("official", 13.8, 18)], []),

@@ -18,7 +18,6 @@ interface MapLayersPanelProps {
     | "ready"
     | "no_data"
     | "no_location"
-    | "manual_reference"
     | "location_denied"
     | "location_unavailable";
   showStations: boolean;
@@ -103,16 +102,14 @@ export default function MapLayersPanel({
           title="ค่าฝุ่นจุดใกล้สุด"
           description={
             heatmapStatus === "location_denied"
-              ? "GPS ไม่พร้อม · แตะแผนที่หรือค้นหาสถานที่แทน"
+              ? "เปิด GPS เพื่อแสดงจุดใกล้คุณที่สุด"
               : heatmapStatus === "location_unavailable"
-                ? "GPS ไม่พร้อม · แตะแผนที่หรือค้นหาสถานที่แทน"
-                : heatmapStatus === "manual_reference"
-                  ? `ห่างจากจุดที่เลือก ${distanceLabel}`
-                  : heatmapStatus === "no_location"
-                    ? "เปิด GPS หรือแตะแผนที่เพื่อเลือกตำแหน่ง"
-                    : heatmapStatus === "no_data"
-                      ? "ยังไม่มีจุดข้อมูลบนแผนที่"
-                      : `ห่างจากคุณ ${distanceLabel}`
+                ? "เปิด GPS เพื่อแสดงจุดใกล้คุณที่สุด"
+                : heatmapStatus === "no_location"
+                  ? "เปิด GPS เพื่อแสดงจุดใกล้คุณที่สุด"
+                  : heatmapStatus === "no_data"
+                    ? "ยังไม่มีจุดข้อมูลบนแผนที่"
+                    : `ห่างจากคุณ ${distanceLabel}`
           }
           onClick={onToggleHeatmap}
         />
@@ -146,8 +143,9 @@ export default function MapLayersPanel({
           ))}
         </div>
         <p className="cp-map-layer-note">
-          วงสีใช้ค่าจากจุดตรวจที่ใกล้ตำแหน่งอ้างอิงที่สุด 1 จุด
-          จากสถานีทางการหรือรายงานชุมชน รัศมี 12 กม. เป็นขอบเขตการแสดงผล
+          วงสีใช้ค่าปัจจุบันจากจุดตรวจที่ใกล้ GPS คุณที่สุด 1 จุด
+          จากสถานีทางการและรายงานชุมชน โดยเทียบระยะห่างเท่านั้น รัศมี 12 กม.
+          เป็นขอบเขตการแสดงผล
         </p>
       </details>
 
