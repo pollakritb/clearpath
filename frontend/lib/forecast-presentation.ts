@@ -20,7 +20,7 @@ export const FORECAST_SOURCE_ORDER: ForecastSource[] = [
 
 export const FORECAST_LIMITATION_LABELS: Record<string, string> = {
   forecast_system_under_improvement: "ระบบพยากรณ์กำลังปรับปรุง",
-  external_provider_partial_horizon: "แหล่งภายนอกครอบคลุมไม่ครบทุกชั่วโมง",
+  external_provider_partial_horizon: "ข้อมูล CAMS สิ้นสุดที่ช่วงเวลานี้",
   single_external_provider:
     "ช่วงนี้มีข้อมูลจากผู้ให้บริการภายนอกเพียงแหล่งเดียว",
   external_provider_unavailable: "ยังไม่มีข้อมูลพยากรณ์ภายนอกที่สด",
@@ -66,7 +66,16 @@ export function formatForecastTimelineTime(
   const date = parseDate(value);
   if (!date) return { day: null, time: "—" };
   const dayOffset = bangkokDaySerial(date) - bangkokDaySerial(now);
-  const day = dayOffset === 0 ? null : dayOffset === 1 ? "พรุ่งนี้" : null;
+  const day =
+    dayOffset === 0
+      ? null
+      : dayOffset === 1
+        ? "พรุ่งนี้"
+        : date.toLocaleDateString("th-TH", {
+            timeZone: "Asia/Bangkok",
+            day: "numeric",
+            month: "short",
+          });
   return {
     day,
     time: date.toLocaleTimeString("th-TH", {

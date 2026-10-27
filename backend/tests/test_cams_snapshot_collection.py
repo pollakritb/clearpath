@@ -47,8 +47,8 @@ def test_collect_cams_snapshots_stores_future_hours_without_predictions(monkeypa
         lambda **_kwargs: (_ for _ in ()).throw(AssertionError("prediction write")),
     )
 
-    async def forecasts(_stations, *, forecast_hours):
-        assert forecast_hours == 28
+    async def forecasts(_stations, *, forecast_days):
+        assert forecast_days == 5
         return {
             "103t": [
                 {
@@ -58,7 +58,7 @@ def test_collect_cams_snapshots_stores_future_hours_without_predictions(monkeypa
                     "source_lon": 100.6,
                     "fetched_at": now.isoformat(),
                 }
-                for hour in range(1, 29)
+                for hour in range(1, 107)
             ]
         }
 
@@ -66,11 +66,12 @@ def test_collect_cams_snapshots_stores_future_hours_without_predictions(monkeypa
     result = asyncio.run(provider_sync.collect_openmeteo_snapshots())
 
     assert result["status"] == "success"
-    assert result["snapshot_count"] == 24
-    assert len(saved) == 24
+    assert result["snapshot_count"] == 106
+    assert len(saved) == 106
     assert {row["provider"] for row in saved} == {"openmeteo_cams"}
     assert saved[0]["raw_metadata"]["grid_lat"] == 13.8
     assert runs[0]["metadata"]["mode"] == "raw_cams_storage_only"
+    assert runs[0]["metadata"]["horizon_hours"] == 120
     assert updates[0][1]["status"] == "success"
 
 
@@ -109,8 +110,8 @@ def test_cams_batch_collects_only_its_stations(monkeypatch):
     )
     monkeypatch.setattr(provider_sync, "_cleanup_cams_history", lambda: {})
 
-    async def forecasts(batch, *, forecast_hours):
-        assert forecast_hours == 28
+    async def forecasts(batch, *, forecast_days):
+        assert forecast_days == 5
         selected_ids.extend(row["id"] for row in batch)
         return {
             row["id"]: [
@@ -121,7 +122,7 @@ def test_cams_batch_collects_only_its_stations(monkeypatch):
                     "source_lon": 100.6,
                     "fetched_at": now.isoformat(),
                 }
-                for hour in range(1, 29)
+                for hour in range(1, 107)
             ]
             for row in batch
         }
@@ -129,7 +130,7 @@ def test_cams_batch_collects_only_its_stations(monkeypatch):
     monkeypatch.setattr(provider_sync.openmeteo_air, "get_forecasts", forecasts)
     result = asyncio.run(provider_sync.collect_openmeteo_snapshots(batch_index=2))
     assert selected_ids == ["station-02", "station-08"]
-    assert result["snapshot_count"] == 48
+    assert result["snapshot_count"] == 212
     assert runs[0]["metadata"]["batch_index"] == 2
 
 
@@ -159,8 +160,8 @@ def test_collect_cams_snapshots_marks_missing_hour_partial(monkeypatch):
         lambda rows: saved.extend(rows) or len(rows),
     )
 
-    async def forecasts(_stations, *, forecast_hours):
-        assert forecast_hours == 28
+    async def forecasts(_stations, *, forecast_days):
+        assert forecast_days == 5
         return {
             "103t": [
                 {

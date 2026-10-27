@@ -60,6 +60,19 @@ def test_select_hourly_rows_does_not_hide_missing_hours():
     ]
 
 
+def test_select_hourly_rows_can_keep_five_days_without_inventing_values():
+    now = datetime(2026, 9, 17, 5, 15, tzinfo=UTC)
+    first = now.replace(minute=0) + timedelta(hours=1)
+    rows = [
+        {"forecast_at": (first + timedelta(hours=hour)).isoformat(), "pm25": hour}
+        for hour in range(106)
+    ]
+    selected = select_hourly_rows(rows, 120, now=now)
+    assert len(selected) == 106
+    assert selected[-1]["horizon_hours"] == 106
+    assert selected[-1]["pm25"] == 105
+
+
 def test_area_forecast_target_is_validated_and_served(monkeypatch):
     monkeypatch.setattr(settings, "external_forecast_enabled", True)
 
@@ -96,35 +109,79 @@ def test_area_forecast_target_is_validated_and_served(monkeypatch):
     assert client.get("/api/forecast?lat=35&lon=100").status_code == 422
 
 
-def test_area_forecast_has_24_future_hours_and_both_coordinate_pairs(monkeypatch):
-    async def rows_for_area(locations: list[dict], *, forecast_hours: int):
-        assert forecast_hours >= 27
-        assert locations == [{"id": "target", "lat": 13.8, "lon": 100.1}]
-        fetched = datetime.now(UTC)
-        first = fetched.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-        return {
-            "target": [
-                {
-                    "forecast_at": (first + timedelta(hours=hour)).isoformat(),
-                    "pm25": 10 + hour,
-                    "source_lat": 13.75,
-                    "source_lon": 100.25,
-                    "fetched_at": fetched.isoformat(),
-                }
-                for hour in range(27)
-            ]
+def test_area_forecast_reads_five_day_stored_series(monkeypatch):
+    fetched = datetime.now(UTC).replace(microsecond=0)
+    first = fetched.replace(minute=0, second=0) + timedelta(hours=1)
+    station = {"id": "103t", "name_th": "สถานีนครปฐม", "lat": 13.8, "lon": 100.1}
+    rows = [
+        {
+            "sync_run_id": "completed-run",
+            "issued_at": fetched.isoformat(),
+            "forecast_at": (first + timedelta(hours=hour)).isoformat(),
+            "pm25": 10 + hour / 10,
+            "raw_metadata": {
+                "grid_lat": 13.75,
+                "grid_lon": 100.25,
+                "fetched_at": fetched.isoformat(),
+            },
         }
-
-    monkeypatch.setattr(external_forecast.openmeteo_air, "get_forecasts", rows_for_area)
-    result = asyncio.run(external_forecast.area_forecast(13.8, 100.1, 24))
-    assert len(result["points"]) == 24
+        for hour in range(106)
+    ]
+    monkeypatch.setattr(
+        external_forecast.supabase_client, "get_stations", lambda: [station]
+    )
+    monkeypatch.setattr(
+        external_forecast.supabase_client,
+        "get_recent_cams_snapshots",
+        lambda station_id, *_: rows if station_id == "103t" else [],
+    )
+    monkeypatch.setattr(
+        external_forecast.supabase_client,
+        "get_provider_sync_run",
+        lambda _run_id: {"status": "success"},
+    )
+    result = asyncio.run(external_forecast.area_forecast(13.8, 100.1, 120))
+    assert len(result["points"]) == 106
     assert result["requested_lat"] == 13.8
     assert result["requested_lon"] == 100.1
     assert result["grid_lat"] == 13.75
     assert result["grid_lon"] == 100.25
     assert result["points"][0]["valid_at"] == result["points"][0]["forecast_at"]
-    assert result["points"][-1]["horizon_hours"] == 24
-    assert "external_provider_partial_horizon" not in result["limitation_reason_codes"]
+    assert result["points"][-1]["horizon_hours"] == 106
+    assert result["provenance"]["source_station_id"] == "103t"
+    assert result["provenance"]["value_policy"] == "stored_raw_provider_value"
+    assert "external_provider_partial_horizon" in result["limitation_reason_codes"]
+
+
+def test_forecast_does_not_serve_running_or_stale_snapshots(monkeypatch):
+    now = datetime.now(UTC).replace(microsecond=0)
+    station = {"id": "103t", "lat": 13.8, "lon": 100.1}
+    row = {
+        "sync_run_id": "running-run",
+        "issued_at": now.isoformat(),
+        "forecast_at": (
+            now.replace(minute=0, second=0) + timedelta(hours=1)
+        ).isoformat(),
+        "pm25": 30.0,
+        "raw_metadata": {},
+    }
+    monkeypatch.setattr(
+        external_forecast.supabase_client, "get_station_by_id", lambda _id: station
+    )
+    monkeypatch.setattr(
+        external_forecast.supabase_client,
+        "get_recent_cams_snapshots",
+        lambda *_: [row],
+    )
+    monkeypatch.setattr(
+        external_forecast.supabase_client,
+        "get_provider_sync_run",
+        lambda _id: {"status": "running"},
+    )
+    result = asyncio.run(external_forecast.station_forecast("103t", 120))
+    assert result["forecast_status"] == "unavailable"
+    assert result["points"] == []
+    assert result["unavailable_reason_codes"] == ["stored_cams_unavailable"]
 
 
 def test_forecast_route_serves_only_openmeteo_cams(monkeypatch):

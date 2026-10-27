@@ -108,7 +108,7 @@ export default function TodayPageClient({
   const forecastLoad = forecast.load;
   useEffect(() => {
     if (!forecastTarget) return;
-    void forecastLoad(forecastTarget, 24);
+    void forecastLoad(forecastTarget, 120);
   }, [forecastLoad, forecastTarget]);
   useEffect(() => {
     const position = area ?? currentLocation.location ?? selectedStation;
@@ -127,7 +127,7 @@ export default function TodayPageClient({
   const refresh = useCallback(() => {
     currentLocation.request();
     const tasks: Promise<unknown>[] = [pm25.refresh()];
-    if (forecastTarget) tasks.push(forecast.load(forecastTarget, 24, true));
+    if (forecastTarget) tasks.push(forecast.load(forecastTarget, 120, true));
     const weatherPosition = area ?? currentLocation.location ?? selectedStation;
     if (weatherPosition) {
       tasks.push(weather.load(weatherPosition.lat, weatherPosition.lon, true));

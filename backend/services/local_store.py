@@ -106,6 +106,30 @@ def get_provider_snapshots(station_id: str) -> list[dict]:
         ]
 
 
+def get_recent_cams_snapshots(
+    station_id: str, issued_after: str, forecast_after: str
+) -> list[dict]:
+    with _LOCK:
+        return sorted(
+            (
+                dict(row)
+                for row in _FORECAST_PROVIDER_SNAPSHOTS
+                if str(row.get("station_id")) == station_id
+                and row.get("provider") == "openmeteo_cams"
+                and str(row.get("issued_at") or "") >= issued_after
+                and str(row.get("forecast_at") or "") > forecast_after
+            ),
+            key=lambda row: str(row["issued_at"]),
+            reverse=True,
+        )[:240]
+
+
+def get_provider_sync_run(run_id: str) -> dict | None:
+    with _LOCK:
+        row = _FORECAST_PROVIDER_SYNC_RUNS.get(str(run_id))
+        return dict(row) if row else None
+
+
 def delete_provider_history_before(
     snapshot_cutoff_at: str, run_cutoff_at: str
 ) -> tuple[int, int]:

@@ -1,9 +1,10 @@
 # ClearPath Community
 
-> **External forecast mode (2026-09-17):** Public forecasts show raw PM2.5
-> values from CAMS through Open-Meteo for 1, 3, 6, 12, and 24 hours. ClearPath
-> does not blend, bias-correct, or recalculate these values. The former local,
-> ML, evaluation, and provider-sync pipelines remain paused. See
+> **Stored CAMS forecast mode:** A six-hour job saves raw PM2.5 forecasts from
+> CAMS through Open-Meteo in Supabase. Public pages read the latest completed
+> snapshot, up to five days of available future hours. ClearPath does not blend,
+> bias-correct, or recalculate these values. The former local, ML, evaluation,
+> and provider-sync pipelines remain paused. See
 > `docs/runbooks/forecast-reset.md`.
 
 > พยากรณ์ PM2.5 และเครือข่ายข้อมูลคุณภาพอากาศที่ชุมชนช่วยกันตรวจสอบ
@@ -221,7 +222,7 @@ previous map layers and viewport.
 | `GET /api/health`                                 | Liveness ของ process                                                  |
 | `GET /api/ready`                                  | Readiness ของ Supabase และความสดข้อมูลสถานี                           |
 | `GET /api/pm25/current`                           | สถานี Air4Thai ล่าสุดจาก Supabase                                     |
-| `GET /api/forecast?station_id=&hours=`            | พยากรณ์ 1–24 ชั่วโมง                                                  |
+| `GET /api/forecast?station_id=&hours=`            | พยากรณ์ที่เก็บใน Supabase สูงสุด 120 ชั่วโมง                          |
 | `GET /api/firms?days=`                            | จุดความร้อน NASA FIRMS ใน polygon นครปฐม                              |
 | `POST /api/community/capture-session`             | ออก camera session ที่ลงนามและหมดอายุใน 5 นาที                        |
 | `POST /api/community/report-drafts`               | อัปโหลดภาพสด + GPS และรับผล OCR ชั่วคราว                              |

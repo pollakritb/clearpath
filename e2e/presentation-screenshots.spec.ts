@@ -139,6 +139,54 @@ test.describe("presentation screenshots @presentation", () => {
   });
 
   test("today and forecast", async ({ page }) => {
+    const fetchedAt = new Date();
+    const firstHour = new Date(fetchedAt);
+    firstHour.setUTCMinutes(0, 0, 0);
+    firstHour.setUTCHours(firstHour.getUTCHours() + 1);
+    const points = Array.from({ length: 106 }, (_, index) => {
+      const forecastAt = new Date(
+        firstHour.getTime() + index * 60 * 60 * 1000,
+      ).toISOString();
+      const pm25 = 20 + (index % 10);
+      return {
+        horizon_hours: index + 1,
+        forecast_at: forecastAt,
+        valid_at: forecastAt,
+        pm25,
+        lower: pm25,
+        upper: pm25,
+        method: "stored_openmeteo_cams",
+        coverage_target: 0,
+        calibration_version: "not_applicable",
+        agreement: null,
+        provider_count: 1,
+        source: "openmeteo_cams",
+      };
+    });
+    await page.route("**/api/forecast?*", (route) =>
+      route.fulfill({
+        json: {
+          station_id: "81t",
+          target_kind: "station",
+          generated_at: fetchedAt.toISOString(),
+          fetched_at: fetchedAt.toISOString(),
+          horizon_hours: 120,
+          method: "stored_openmeteo_cams",
+          source_points: points.length,
+          forecast_status: "limited",
+          forecast_mode: "external_provider",
+          recommended_source: "openmeteo_cams",
+          provider_count: 1,
+          agreement: null,
+          limitation_reason_codes: ["single_external_provider"],
+          points,
+          sources: [],
+          providers: [],
+          provenance: { value_policy: "stored_raw_provider_value" },
+          selection_evidence: { basis: "freshness_fallback", window_days: 0 },
+        },
+      }),
+    );
     await page.goto("/air?station=81t");
     await expect(page.locator(".cp-forecast-card")).toBeVisible();
     await capture(page, "06-today-current-air.png");
@@ -147,7 +195,7 @@ test.describe("presentation screenshots @presentation", () => {
     await expect(forecast).toBeVisible();
     await forecast.scrollIntoViewIfNeeded();
     await forecast
-      .getByRole("button", { name: "ดูรายชั่วโมง 24 ช่วงเวลา" })
+      .getByRole("button", { name: "ดูรายชั่วโมง 106 ช่วงเวลา" })
       .click();
     await capture(page, "07-forecast-24-hours.png");
 

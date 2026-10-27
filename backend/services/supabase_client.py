@@ -333,6 +333,53 @@ def get_provider_snapshots(station_id: str) -> list[dict]:
     )
 
 
+def get_recent_cams_snapshots(
+    station_id: str, issued_after: str, forecast_after: str
+) -> list[dict]:
+    """Read bounded, future CAMS evidence for one station."""
+
+    if settings.local_demo_mode:
+        return local_store.get_recent_cams_snapshots(
+            station_id, issued_after, forecast_after
+        )
+    return (
+        _execute_read(
+            lambda: (
+                get_client()
+                .table("forecast_provider_snapshots")
+                .select("sync_run_id,issued_at,forecast_at,pm25,raw_metadata")
+                .eq("station_id", station_id)
+                .eq("provider", "openmeteo_cams")
+                .gte("issued_at", issued_after)
+                .gt("forecast_at", forecast_after)
+                .order("issued_at", desc=True)
+                .limit(2 * 120)
+                .execute()
+            )
+        ).data
+        or []
+    )
+
+
+def get_provider_sync_run(run_id: str) -> dict | None:
+    if settings.local_demo_mode:
+        return local_store.get_provider_sync_run(run_id)
+    rows = (
+        _execute_read(
+            lambda: (
+                get_client()
+                .table("forecast_provider_sync_runs")
+                .select("id,status,completed_at")
+                .eq("id", run_id)
+                .limit(1)
+                .execute()
+            )
+        ).data
+        or []
+    )
+    return rows[0] if rows else None
+
+
 def delete_provider_history_before(
     snapshot_cutoff_at: str, run_cutoff_at: str
 ) -> tuple[int, int]:

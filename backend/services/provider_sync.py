@@ -11,7 +11,10 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from ..algorithms.distance import haversine_km
-from ..algorithms.external_forecast import select_hourly_rows
+from ..algorithms.external_forecast import (
+    MAX_CAMS_FORECAST_HOURS,
+    select_hourly_rows,
+)
 from ..algorithms.forecast_selection import provider_circuit_open, provider_sync_due
 from ..core.config import settings
 from ..core.errors import UpstreamError
@@ -230,7 +233,7 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
             "started_at": retrieved_at.isoformat(),
             "metadata": {
                 "mode": "raw_cams_storage_only",
-                "horizon_hours": 24,
+                "horizon_hours": MAX_CAMS_FORECAST_HOURS,
                 "batch_index": batch_index,
                 "batch_count": CAMS_SNAPSHOT_BATCH_COUNT
                 if batch_index is not None
@@ -239,7 +242,7 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
         }
     )
     try:
-        forecasts = await openmeteo_air.get_forecasts(stations, forecast_hours=28)
+        forecasts = await openmeteo_air.get_forecasts(stations, forecast_days=5)
         snapshots = []
         incomplete_station_ids = []
         for station in stations:
@@ -255,7 +258,9 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
                     fetched_reference = max(retrieved_at, fetched_reference)
                 except (KeyError, TypeError, ValueError):
                     pass
-            selected = select_hourly_rows(rows, 24, now=fetched_reference)
+            selected = select_hourly_rows(
+                rows, MAX_CAMS_FORECAST_HOURS, now=fetched_reference
+            )
             normalized = _snapshots(
                 provider="openmeteo_cams",
                 run_id=run_id,
@@ -265,7 +270,24 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
                 station_lon=float(station["lon"]),
                 rows=selected,
             )
-            if len(normalized) != 24:
+            future_times = []
+            for row in rows:
+                try:
+                    forecast_at = datetime.fromisoformat(
+                        str(row["forecast_at"]).replace("Z", "+00:00")
+                    )
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if forecast_at.tzinfo is None:
+                    forecast_at = forecast_at.replace(tzinfo=UTC)
+                if forecast_at > fetched_reference:
+                    future_times.append(forecast_at)
+            reached_provider_end = bool(selected) and (
+                len(selected) == MAX_CAMS_FORECAST_HOURS
+                or datetime.fromisoformat(selected[-1]["forecast_at"])
+                == max(future_times, default=fetched_reference)
+            )
+            if len(normalized) != len(selected) or not reached_provider_end:
                 incomplete_station_ids.append(station["id"])
             snapshots.extend(normalized)
         count = sum(
@@ -284,7 +306,7 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
                 "error_count": missing,
                 "metadata": {
                     "mode": "raw_cams_storage_only",
-                    "horizon_hours": 24,
+                    "horizon_hours": MAX_CAMS_FORECAST_HOURS,
                     "batch_index": batch_index,
                     "batch_count": CAMS_SNAPSHOT_BATCH_COUNT
                     if batch_index is not None

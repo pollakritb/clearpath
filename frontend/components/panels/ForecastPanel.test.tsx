@@ -32,8 +32,8 @@ const unavailableForecast = {
   sources: [],
 } as unknown as ForecastResponse;
 
-describe("ForecastPanel paused UI", () => {
-  it("shows the complete UI structure without inventing a forecast value", () => {
+describe("ForecastPanel stored CAMS UI", () => {
+  it("shows a clear unavailable state without inventing a forecast value", () => {
     render(
       <ForecastPanel
         station={station}
@@ -43,10 +43,9 @@ describe("ForecastPanel paused UI", () => {
       />,
     );
 
-    expect(screen.getByText("กำลังพัฒนา")).not.toBeNull();
-    expect(screen.getByText("ยังไม่มีค่าพยากรณ์")).not.toBeNull();
-    expect(screen.getByText("ช่วงค่าที่เป็นไปได้")).not.toBeNull();
-    expect(screen.getByText("ข้อมูลที่จะใช้ประกอบ")).not.toBeNull();
+    expect(
+      screen.getByText("ยังไม่มีพยากรณ์ CAMS ที่เก็บไว้สำหรับบริเวณนี้"),
+    ).not.toBeNull();
     expect(screen.queryByText(/^0(?:\.0)?$/)).toBeNull();
   });
 
@@ -60,7 +59,7 @@ describe("ForecastPanel paused UI", () => {
       />,
     );
 
-    expect(screen.getByLabelText("ช่วงเวลาพยากรณ์ยังไม่พร้อม")).not.toBeNull();
+    expect(screen.getByRole("status")).not.toBeNull();
     expect(screen.queryByRole("group", { name: "พยากรณ์ตามเวลา" })).toBeNull();
   });
 

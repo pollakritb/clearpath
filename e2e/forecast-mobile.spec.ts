@@ -275,14 +275,11 @@ test("today page shows forecast unavailable without zero, mock, or comparison", 
   await page.goto("/air?station=81t");
   const forecastCard = page.locator(".cp-forecast-card");
   await expect(
-    forecastCard.getByText("ระบบพยากรณ์กำลังปรับปรุง", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    forecastCard.getByText("ยังไม่มีค่าพยากรณ์", { exact: true }),
+    forecastCard.getByText("ยังไม่มีพยากรณ์ CAMS ที่เก็บไว้สำหรับบริเวณนี้"),
   ).toBeVisible();
   await expect(
     forecastCard.getByLabel("ช่วงเวลาพยากรณ์ยังไม่พร้อม"),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     forecastCard.getByRole("group", { name: "พยากรณ์ตามเวลา" }),
   ).toHaveCount(0);

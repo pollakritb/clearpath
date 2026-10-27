@@ -184,7 +184,9 @@ export default function ForecastPanel({
     data.recommended_source === "openmeteo_cams" &&
     data.provider_count === 1;
   const unavailable = data?.forecast_status === "unavailable";
-  const previewMode = FORECAST_SYSTEM_PAUSED || unavailable;
+  const previewMode = FORECAST_SYSTEM_PAUSED;
+  const sourceStationName = data?.provenance?.source_station_name;
+  const sourceStationDistance = data?.provenance?.source_station_distance_km;
   const hasTarget = Boolean(station || areaLabel);
 
   return (
@@ -202,6 +204,14 @@ export default function ForecastPanel({
               ? station.name_th || station.name_en
               : areaLabel || "เลือกบริเวณก่อน"}
           </p>
+          {!station && typeof sourceStationName === "string" && (
+            <p>
+              ใช้ข้อมูลที่เก็บของสถานี {sourceStationName}
+              {typeof sourceStationDistance === "number"
+                ? ` ห่าง ${sourceStationDistance} กม.`
+                : ""}
+            </p>
+          )}
         </div>
         {(previewMode || data) && (
           <span
@@ -211,7 +221,7 @@ export default function ForecastPanel({
             {previewMode
               ? "กำลังพัฒนา"
               : externalOnly
-                ? "ข้อมูลจาก CAMS"
+                ? "ข้อมูล CAMS ที่เก็บไว้"
                 : forecastStatus(data!)}
           </span>
         )}
@@ -230,6 +240,11 @@ export default function ForecastPanel({
       {error && !previewMode && (
         <div className="cp-forecast-alert" role="alert">
           {error}
+        </div>
+      )}
+      {hasTarget && unavailable && !previewMode && (
+        <div className="cp-forecast-empty" role="status">
+          ยังไม่มีพยากรณ์ CAMS ที่เก็บไว้สำหรับบริเวณนี้
         </div>
       )}
 
@@ -288,7 +303,8 @@ export default function ForecastPanel({
           <p className="cp-forecast-timeline-note">
             {station ? "“ตอนนี้” คือค่าตรวจวัดจริง · " : ""}
             เวลาถัดไปคือค่าพยากรณ์จาก CAMS Global ผ่าน Open‑Meteo
-            ไม่ใช่ค่าที่สถานีจะวัดได้
+            ไม่ใช่ค่าที่สถานีจะวัดได้ · แสดงล่วงหน้าได้สูงสุด 5
+            วันตามข้อมูลที่มี
           </p>
         </div>
       )}

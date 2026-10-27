@@ -20,7 +20,7 @@ export function useForecast() {
   const load = useCallback(
     async (
       target: string | { lat: number; lon: number },
-      hours = 12,
+      hours = 120,
       force = false,
     ) => {
       const targetKey =

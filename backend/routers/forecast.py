@@ -41,7 +41,7 @@ async def forecast(
     station_id: str | None = Query(default=None),
     lat: float | None = Query(default=None, ge=-90, le=90),
     lon: float | None = Query(default=None, ge=-180, le=180),
-    hours: int = Query(12, ge=1, le=24),
+    hours: int = Query(120, ge=1, le=120),
 ):
     has_area = lat is not None or lon is not None
     if bool(station_id) == has_area or (has_area and (lat is None or lon is None)):

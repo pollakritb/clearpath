@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from math import ceil, isfinite
 
+MAX_CAMS_FORECAST_HOURS = 5 * 24
+
 
 def select_horizon_rows(
     rows: list[dict], horizons: list[int], *, now: datetime | None = None
@@ -64,7 +66,7 @@ def select_hourly_rows(
     """
 
     reference = (now or datetime.now(UTC)).astimezone(UTC)
-    limit = max(1, min(24, int(hours)))
+    limit = max(1, min(MAX_CAMS_FORECAST_HOURS, int(hours)))
     candidates: list[tuple[datetime, dict]] = []
     for row in rows:
         try:

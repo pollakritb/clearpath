@@ -2,16 +2,18 @@
 
 ## Current state
 
-ClearPath now serves raw PM2.5 forecasts from CAMS through Open-Meteo for the
-1, 3, 6, 12, and 24-hour product horizons. The public endpoints request the
-provider on demand and do not blend sources, calculate a local fallback, apply
-bias correction, use community reports, run an ML artifact, or persist a
-forecast ledger. Raw provider evidence is collected by a separate job and is
-not used as a local forecast.
+ClearPath serves raw PM2.5 forecasts from CAMS through Open-Meteo, stored by a
+six-hour collector in Supabase. The public station endpoint reads the latest
+completed snapshot for that station, up to 120 available future hourly values.
+For an area, it uses a stored station forecast within 45 km and discloses the
+source station and distance. No public forecast request calls Open-Meteo. If no
+fresh snapshot exists, the API says unavailable without inventing values. The
+system does not blend sources, calculate a local fallback, apply bias correction,
+use community reports, run an ML artifact, or persist a forecast ledger.
 
-The map continues to show current Air4Thai and eligible community data. Forecast
-horizon controls show the raw CAMS surface; provider comparison is omitted
-because only one provider is active. Air4Thai ingestion, community reports,
+The map continues to show current Air4Thai and community data. The Today page
+and station detail show the stored CAMS timeline; the forecast map surface is
+unavailable because no stored grid is collected. Air4Thai ingestion, community reports,
 moderation, trust, current weather, satellite hotspots, and notifications remain
 operational.
 
@@ -21,20 +23,23 @@ evaluation job, and ML path. The frontend gate in
 `frontend/lib/forecast-state.ts` is disabled so the raw provider values can be
 shown.
 
-An isolated storage-only CAMS snapshot collector is active in ClearPath
+An isolated CAMS snapshot collector is active in ClearPath
 Production behind `CAMS_SNAPSHOT_COLLECTION_ENABLED=true`, an exact Supabase
 project-ref guard, and a separately gated six-hour GitHub workflow. It populates
 `forecast_provider_snapshots` without enabling the legacy provider-sync,
-model, or evaluation pipeline. See
+model, or evaluation pipeline. The collector requests five forecast days and
+stores the continuous future hourly values actually supplied, at most 120 per
+station. Its six-hour schedule is unchanged. See
 `docs/forecast-field-validation.md` for activation and quota checks.
 
 ## Paused producers
 
 - OpenWeather air-quality forecast provider sync
-- Legacy Open-Meteo/CAMS provider sync (public reads call the provider directly).
-  Raw CAMS snapshots are a narrow, storage-only exception after applying
-  `20261016_allow_raw_cams_evidence_during_forecast_reset.sql`; no generated
-  forecast or evaluation table is reopened.
+- Legacy Open-Meteo/CAMS provider sync. Raw CAMS snapshots are a narrow exception
+  after applying
+  `20261016_allow_raw_cams_evidence_during_forecast_reset.sql` and
+  `20261027_allow_cams_snapshot_retention.sql`; no generated forecast or
+  evaluation table is reopened.
 - GISTDA forecast provider sync
 - station and map-surface forecast generation
 - forecast evaluation and drift snapshots

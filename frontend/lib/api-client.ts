@@ -130,7 +130,7 @@ export const api = {
     });
   },
 
-  forecast: (target: string | { lat: number; lon: number }, hours = 12) => {
+  forecast: (target: string | { lat: number; lon: number }, hours = 120) => {
     const params = new URLSearchParams({ hours: String(hours) });
     if (typeof target === "string") {
       params.set("station_id", target);

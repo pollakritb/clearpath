@@ -20,6 +20,13 @@ describe("formatForecastTimelineTime", () => {
       formatForecastTimelineTime("2026-09-19T01:00:00+07:00", now),
     ).toEqual({ day: "พรุ่งนี้", time: "01:00" });
   });
+
+  it("shows a calendar date for later forecast days", () => {
+    const now = new Date("2026-09-18T16:30:00+07:00");
+    const result = formatForecastTimelineTime("2026-09-22T09:00:00+07:00", now);
+    expect(result.day).toContain("22");
+    expect(result.time).toBe("09:00");
+  });
 });
 
 function response(overrides: Partial<ForecastResponse> = {}): ForecastResponse {

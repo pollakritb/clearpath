@@ -26,7 +26,7 @@ export default function MapStationForecast({
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    if (!FORECAST_SYSTEM_PAUSED) void load(stationId, 24);
+    if (!FORECAST_SYSTEM_PAUSED) void load(stationId, 120);
   }, [load, stationId]);
 
   const current = data?.station_id === stationId ? data : null;
