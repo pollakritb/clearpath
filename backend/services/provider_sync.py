@@ -58,6 +58,14 @@ def _cleanup_cams_history() -> dict:
     return {"deleted_snapshots": deleted_snapshots, "deleted_runs": deleted_runs}
 
 
+def _safe_cleanup_cams_history() -> dict:
+    try:
+        return _cleanup_cams_history()
+    except Exception:
+        logger.exception("cams_snapshot_retention_failed")
+        return {"status": "failed"}
+
+
 async def _sync_if_due(
     provider: str,
     sync: Callable[[], Awaitable[dict]],
@@ -207,6 +215,9 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
             "status": "not_due",
             "interval_hours": interval,
             "latest_completed_at": latest.get("completed_at"),
+            "retention": _safe_cleanup_cams_history()
+            if batch_index is not None
+            else None,
         }
     if latest and latest.get("status") == "running":
         try:
@@ -321,11 +332,7 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
                 "completed_at": datetime.now(UTC).isoformat(),
             },
         )
-        try:
-            retention = _cleanup_cams_history()
-        except Exception:
-            logger.exception("cams_snapshot_retention_failed")
-            retention = {"status": "failed"}
+        retention = _safe_cleanup_cams_history()
         return {
             "status": status,
             "station_count": len(stations),

@@ -88,6 +88,28 @@ def test_collect_cams_snapshots_skips_recent_completed_run(monkeypatch):
     assert result["status"] == "not_due"
 
 
+def test_cams_batch_prunes_expired_history_even_when_not_due(monkeypatch):
+    monkeypatch.setattr(
+        supabase_client,
+        "get_latest_provider_sync_run",
+        lambda _provider, *, batch_index: {
+            "status": "success",
+            "completed_at": datetime.now(UTC).isoformat(),
+            "metadata": {"horizon_hours": 120},
+        },
+    )
+    monkeypatch.setattr(
+        provider_sync,
+        "_cleanup_cams_history",
+        lambda: {"deleted_snapshots": 1000, "deleted_runs": 0},
+    )
+
+    result = asyncio.run(provider_sync.collect_openmeteo_snapshots(batch_index=0))
+
+    assert result["status"] == "not_due"
+    assert result["retention"] == {"deleted_snapshots": 1000, "deleted_runs": 0}
+
+
 def test_collect_cams_snapshots_refreshes_legacy_short_horizon(monkeypatch):
     monkeypatch.setattr(
         supabase_client,
