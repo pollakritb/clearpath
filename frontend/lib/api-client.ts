@@ -15,8 +15,6 @@ import type {
   DataIssueCreate,
   FirmsResponse,
   ForecastResponse,
-  ForecastSurfaceResponse,
-  ForecastValidationSummary,
   HistoryResponse,
   MapHistoryResponse,
   LineLinkCodeResponse,
@@ -54,7 +52,6 @@ import type {
   ForecastModelStatusesResponse,
   ForecastProviderHealthResponse,
   NotificationOutboxSummary,
-  ViewportBounds,
 } from "@/frontend/types/ui";
 import { getAccessToken } from "@/frontend/lib/supabase";
 import {
@@ -142,27 +139,6 @@ export const api = {
       params.set("lon", target.lon.toFixed(2));
     }
     return http<ForecastResponse>(`/api/forecast?${params}`, {
-      cache: "no-store",
-    });
-  },
-
-  forecastValidationSummary: (stationId: string) =>
-    http<ForecastValidationSummary>(
-      `/api/forecast/validation-summary?station_id=${encodeURIComponent(stationId)}`,
-      { cache: "no-store" },
-    ),
-
-  forecastSurface: (horizon = 12, gridSize = 12, bounds?: ViewportBounds) => {
-    const params = new URLSearchParams({
-      horizon: String(horizon),
-      grid_size: String(gridSize),
-    });
-    if (bounds) {
-      for (const [key, value] of Object.entries(bounds)) {
-        params.set(key, String(value));
-      }
-    }
-    return http<ForecastSurfaceResponse>(`/api/forecast/surface?${params}`, {
       cache: "no-store",
     });
   },

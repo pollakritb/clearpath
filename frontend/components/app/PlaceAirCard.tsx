@@ -43,7 +43,6 @@ export default function PlaceAirCard({
 }: PlaceAirCardProps) {
   const [expanded, setExpanded] = useState(false);
   const classification = classifyPm25(air.value);
-  const usableCount = air.usedStationCount;
 
   const readingStyle = {
     "--place-color": air.value == null ? "#476b69" : classification.color,
@@ -150,11 +149,7 @@ export default function PlaceAirCard({
           </>
         ) : (
           <>
-            <small>
-              {air.method === "nearest_station"
-                ? "อ้างอิงสถานีใกล้สุด"
-                : `ค่าประมาณจาก ${usableCount} สถานี`}
-            </small>
+            <small>อ้างอิงสถานีใกล้สุด</small>
             <strong>
               {air.value.toFixed(1)} <span>µg/m³</span>
             </strong>

@@ -1,9 +1,4 @@
-import type {
-  CommunityMapPoint,
-  CommunityReport,
-  ForecastSurfaceResponse,
-  Station,
-} from "@/frontend/types";
+import type { CommunityReport } from "@/frontend/types";
 import type { DashboardTab, SheetSnap } from "@/frontend/types/ui";
 
 import { communitySourceKind } from "./source-kind";
@@ -52,65 +47,4 @@ export function countCommunitySources(
     },
     { sensor: 0, individual: 0 },
   );
-}
-
-export function buildCurrentSurfaceStations(
-  stations: Station[],
-  mapPoints: CommunityMapPoint[],
-): Station[] {
-  const officialStations = stations.filter(
-    (station) => station.eligible_for_surface,
-  );
-  const communityStations = mapPoints.map((point): Station => ({
-    id: point.id,
-    name_th: "รายงานชุมชนที่ผ่านเกณฑ์",
-    name_en: "Verified community gap-fill",
-    lat: point.lat,
-    lon: point.lon,
-    province: null,
-    pm25: point.pm25,
-    aqi: null,
-    color: null,
-    level: null,
-    recorded_at: null,
-    data_status: "fresh",
-    age_minutes: null,
-    eligible_for_surface: true,
-    in_service_area: true,
-    quality_flags: ["community_gap_fill"],
-  }));
-  return [...officialStations, ...communityStations];
-}
-
-export function buildForecastSurfaceStations(
-  surface: ForecastSurfaceResponse | null,
-  horizonHours: number,
-): Station[] {
-  if (!surface) return [];
-  return surface.cells.flatMap((cell, index): Station[] => {
-    if (cell.pm25 == null) return [];
-    return [
-      {
-        id: `forecast-${horizonHours}-${index}`,
-        name_th: `พื้นผิวพยากรณ์ ${horizonHours} ชั่วโมง`,
-        name_en: "Forecast surface",
-        lat: cell.lat,
-        lon: cell.lon,
-        province: null,
-        pm25: cell.pm25,
-        aqi: null,
-        color: null,
-        level: null,
-        recorded_at: surface.generated_at,
-        data_status: cell.coverage === "covered" ? "fresh" : "delayed",
-        age_minutes: null,
-        eligible_for_surface: true,
-        in_service_area: true,
-        quality_flags:
-          cell.coverage === "covered"
-            ? ["forecast_surface"]
-            : ["forecast_surface", "sparse_coverage"],
-      },
-    ];
-  });
 }

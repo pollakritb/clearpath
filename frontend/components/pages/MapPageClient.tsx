@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import MapChrome from "@/frontend/components/app/MapChrome";
-import ForecastMapInspector from "@/frontend/components/app/ForecastMapInspector";
 import MapStatusCard from "@/frontend/components/app/MapStatusCard";
 import PlaceAirCard from "@/frontend/components/app/PlaceAirCard";
 import ReportStackCard from "@/frontend/components/app/ReportStackCard";
@@ -21,15 +20,12 @@ import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
 import { useMapHistory } from "@/frontend/hooks/useMapHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
+import { nearestHeatmapPoint } from "@/frontend/lib/nearest-surface";
 import { assessPlaceAir, PLACE_RADIUS_KM } from "@/frontend/lib/place-air";
-import {
-  buildCurrentSurfaceStations,
-  countCommunitySources,
-} from "@/frontend/lib/dashboard";
+import { countCommunitySources } from "@/frontend/lib/dashboard";
 import type {
   CommunityReport,
   CommunityReportStack,
-  ForecastResponse,
   LocationSuggestion,
   Station,
 } from "@/frontend/types";
@@ -73,50 +69,9 @@ export default function MapPageClient({
   } | null>(null);
   const [locatedManually, setLocatedManually] =
     useState<CurrentLocation | null>(null);
-  const [forecastDiagnostic, setForecastDiagnostic] =
-    useState<ForecastResponse | null>(null);
-  const [inspectionOpen, setInspectionOpen] = useState(false);
   const [resetViewSignal, setResetViewSignal] = useState(0);
   const userLocation = locatedManually ?? currentLocation.location;
-  const inspectionTarget = selectedStation
-    ? {
-        kind: "station" as const,
-        id: selectedStation.id,
-        label:
-          selectedStation.name_th ??
-          selectedStation.name_en ??
-          selectedStation.id,
-      }
-    : selectedPlace && !selectedReport && !selectedStackId
-      ? {
-          kind: "area" as const,
-          lat: selectedPlace.lat,
-          lon: selectedPlace.lon,
-          label: selectedPlace.name,
-        }
-      : !selectedReport && !selectedStackId && userLocation
-        ? {
-            kind: "area" as const,
-            lat: userLocation.lat,
-            lon: userLocation.lon,
-            label: "ตำแหน่ง GPS ของคุณ",
-          }
-        : null;
-  const inspectionKey =
-    inspectionTarget?.kind === "station"
-      ? `station:${inspectionTarget.id}`
-      : inspectionTarget
-        ? `area:${inspectionTarget.lat.toFixed(2)}:${inspectionTarget.lon.toFixed(2)}`
-        : "none";
-  const updateForecastDiagnostic = useCallback(
-    (value: ForecastResponse | null) => {
-      setForecastDiagnostic(value);
-    },
-    [],
-  );
-  const updateInspectionOpen = useCallback((value: boolean) => {
-    setInspectionOpen(value);
-  }, []);
+  const heatmapReference = userLocation ?? selectedPlace ?? focusPoint;
 
   useEffect(() => {
     if (!showFiresInitially) return;
@@ -165,16 +120,24 @@ export default function MapPageClient({
     community.stacks.find((stack) => stack.id === selectedStackId) ?? null;
   const effectiveFocusPoint =
     focusPoint ?? (community.demoMode ? DEMO_COMMUNITY_CENTER : null);
-  const currentSurfaceStations = useMemo(
-    () => buildCurrentSurfaceStations(pm25.stations, community.mapPoints),
-    [community.mapPoints, pm25.stations],
-  );
   const visibleStations = historyEnabled
     ? mapHistory.stations.filter((station) => station.in_service_area)
     : serviceAreaStations;
-  const visibleSurfaceStations = historyEnabled
-    ? visibleStations.filter((station) => station.eligible_for_surface)
-    : currentSurfaceStations;
+  const heatmapPoint = useMemo(
+    () =>
+      nearestHeatmapPoint(
+        heatmapReference,
+        historyEnabled ? mapHistory.stations : pm25.stations,
+        historyEnabled ? [] : community.reports,
+      ),
+    [
+      heatmapReference,
+      historyEnabled,
+      mapHistory.stations,
+      pm25.stations,
+      community.reports,
+    ],
+  );
   const placeAir = useMemo(
     () =>
       selectedPlace
@@ -231,7 +194,7 @@ export default function MapPageClient({
     <main className="cp-map">
       <MapView
         stations={mapStations}
-        surfaceStations={visibleSurfaceStations}
+        heatmapPoint={heatmapPoint}
         fires={
           !selectedPlace && !historyEnabled && showFires ? firms.fires : []
         }
@@ -239,6 +202,11 @@ export default function MapPageClient({
         reportStacks={mapStacks}
         reportPin={null}
         userLocation={userLocation}
+        locationUnavailable={
+          !userLocation &&
+          (currentLocation.status === "denied" ||
+            currentLocation.status === "unavailable")
+        }
         focusPoint={effectiveFocusPoint}
         placePoint={
           selectedPlace
@@ -249,9 +217,8 @@ export default function MapPageClient({
               }
             : null
         }
-        forecastDiagnostic={forecastDiagnostic}
         resetViewSignal={resetViewSignal}
-        showHeatmap={!selectedPlace && showHeatmap}
+        showHeatmap={showHeatmap}
         showStations={Boolean(selectedPlace) || showStations}
         showIndividualReports={
           Boolean(selectedPlace) || (!historyEnabled && showIndividualReports)
@@ -281,7 +248,6 @@ export default function MapPageClient({
           setSelectedStackId(null);
           setSelectedPlace(null);
           setFocusPoint(null);
-          setForecastDiagnostic(null);
           setViewMode("map");
           setResetViewSignal((value) => value + 1);
         }}
@@ -298,6 +264,21 @@ export default function MapPageClient({
         stations={serviceAreaStations}
         bigText={display.bigText}
         showHeatmap={showHeatmap}
+        heatmapStatus={
+          userLocation
+            ? heatmapPoint
+              ? "ready"
+              : "no_data"
+            : heatmapReference
+              ? heatmapPoint
+                ? "manual_reference"
+                : "no_data"
+              : currentLocation.status === "denied"
+                ? "location_denied"
+                : currentLocation.status === "unavailable"
+                  ? "location_unavailable"
+                  : "no_location"
+        }
         showStations={showStations}
         showIndividualReports={historyEnabled ? false : showIndividualReports}
         showFires={historyEnabled ? false : showFires}
@@ -327,12 +308,6 @@ export default function MapPageClient({
           setViewMode("map");
         }}
       />
-      <ForecastMapInspector
-        key={inspectionKey}
-        target={inspectionTarget}
-        onForecastChange={updateForecastDiagnostic}
-        onOpenChange={updateInspectionOpen}
-      />
       {viewMode === "list" && (
         <ListView
           stations={mapStations}
@@ -342,78 +317,77 @@ export default function MapPageClient({
           }}
         />
       )}
-      {!inspectionOpen &&
-        (selectedPlace && placeAir && !selectedStation && !selectedReport ? (
-          <PlaceAirCard
-            place={selectedPlace}
-            air={placeAir}
-            onSelectStation={selectStation}
-            onSelectReport={selectReport}
-            loading={pm25.loading}
-            dataError={pm25.error}
-            onClose={() => {
-              setSelectedPlace(null);
-              setFocusPoint(null);
-            }}
-          />
-        ) : selectedStack && !selectedReport && !selectedStation ? (
-          <ReportStackCard
-            stack={selectedStack}
-            reports={selectedStackReports}
-            onSelectReport={(report) => setSelectedReport(report)}
-            onClose={() => setSelectedStackId(null)}
-          />
-        ) : historyEnabled && !selectedStation ? (
-          <MapHistoryControls
-            offsetHours={historyOffsetHours}
-            targetAt={mapHistory.targetAt}
-            stationCount={visibleStations.length}
-            loading={mapHistory.loading}
-            error={mapHistory.error}
-            onOffsetChange={(hours) => {
-              setHistoryOffsetHours(hours);
-              setSelectedStation(null);
-            }}
-            onReturnCurrent={() => {
-              setHistoryEnabled(false);
-              setHistoryOffsetHours(1);
-              mapHistory.clear();
-              setSelectedStation(null);
-            }}
-          />
-        ) : (
-          <MapStatusCard
-            key={selectedReport?.id ?? selectedStation?.id ?? "map-current"}
-            station={selectedStation}
-            report={selectedReport}
-            updatedAt={pm25.updatedAt}
-            historicalAt={historyEnabled ? mapHistory.targetAt : null}
-            onOpenHistory={
-              historyEnabled || selectedPlace
-                ? undefined
-                : () => {
-                    setHistoryEnabled(true);
+      {selectedPlace && placeAir && !selectedReport && !selectedStation ? (
+        <PlaceAirCard
+          place={selectedPlace}
+          air={placeAir}
+          onSelectStation={selectStation}
+          onSelectReport={selectReport}
+          loading={pm25.loading}
+          dataError={pm25.error}
+          onClose={() => {
+            setSelectedPlace(null);
+            setFocusPoint(null);
+          }}
+        />
+      ) : selectedStack && !selectedReport && !selectedStation ? (
+        <ReportStackCard
+          stack={selectedStack}
+          reports={selectedStackReports}
+          onSelectReport={(report) => setSelectedReport(report)}
+          onClose={() => setSelectedStackId(null)}
+        />
+      ) : historyEnabled && !selectedStation ? (
+        <MapHistoryControls
+          offsetHours={historyOffsetHours}
+          targetAt={mapHistory.targetAt}
+          stationCount={visibleStations.length}
+          loading={mapHistory.loading}
+          error={mapHistory.error}
+          onOffsetChange={(hours) => {
+            setHistoryOffsetHours(hours);
+            setSelectedStation(null);
+          }}
+          onReturnCurrent={() => {
+            setHistoryEnabled(false);
+            setHistoryOffsetHours(1);
+            mapHistory.clear();
+            setSelectedStation(null);
+          }}
+        />
+      ) : (
+        <MapStatusCard
+          key={selectedReport?.id ?? selectedStation?.id ?? "map-current"}
+          station={selectedStation}
+          report={selectedReport}
+          updatedAt={pm25.updatedAt}
+          historicalAt={historyEnabled ? mapHistory.targetAt : null}
+          onOpenHistory={
+            historyEnabled || selectedPlace
+              ? undefined
+              : () => {
+                  setHistoryEnabled(true);
+                  setSelectedStation(null);
+                  setSelectedReport(null);
+                }
+          }
+          onClose={() => {
+            setSelectedStation(null);
+            setSelectedReport(null);
+          }}
+          onBackToPlace={
+            selectedStack && selectedReport
+              ? () => setSelectedReport(null)
+              : selectedPlace
+                ? () => {
                     setSelectedStation(null);
                     setSelectedReport(null);
                   }
-            }
-            onClose={() => {
-              setSelectedStation(null);
-              setSelectedReport(null);
-            }}
-            onBackToPlace={
-              selectedStack && selectedReport
-                ? () => setSelectedReport(null)
-                : selectedPlace
-                  ? () => {
-                      setSelectedStation(null);
-                      setSelectedReport(null);
-                    }
-                  : undefined
-            }
-            backLabel={selectedStack ? "กลับไปยังกลุ่มรายงาน" : undefined}
-          />
-        ))}
+                : undefined
+          }
+          backLabel={selectedStack ? "กลับไปยังกลุ่มรายงาน" : undefined}
+        />
+      )}
     </main>
   );
 

@@ -23,12 +23,14 @@ interface MapControlsProps {
   onLocate?: (lat: number, lon: number, accuracy?: number) => void;
   onResetView?: () => void;
   hasLocation?: boolean;
+  locationUnavailable?: boolean;
 }
 
 export default function MapControls({
   onLocate,
   onResetView,
   hasLocation = false,
+  locationUnavailable = false,
 }: MapControlsProps) {
   const map = useMap();
   const [zoom, setZoom] = useState(() => map.getZoom());
@@ -56,10 +58,12 @@ export default function MapControls({
         setLocationError(
           error.code === error.PERMISSION_DENIED
             ? "อนุญาตการเข้าถึงตำแหน่งในเบราว์เซอร์ก่อนใช้งาน"
-            : "หาตำแหน่งไม่สำเร็จ ลองอีกครั้ง",
+            : error.code === error.POSITION_UNAVAILABLE
+              ? "ระบบหาตำแหน่งไม่ได้ ตรวจบริการตำแหน่งและ Wi-Fi ของเครื่อง แล้วลองอีกครั้ง"
+              : "หาตำแหน่งไม่ทัน ลองอีกครั้ง",
         );
       },
-      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 0 },
+      { enableHighAccuracy: false, timeout: 20_000, maximumAge: 5 * 60_000 },
     );
   };
 
@@ -130,9 +134,12 @@ export default function MapControls({
         </span>
         <span>{locating ? "กำลังหาตำแหน่ง" : "ไปตำแหน่งฉัน"}</span>
       </button>
-      {locationError && (
-        <p className="cp-mapctrls__error" role="alert">
-          {locationError}
+      {(locationError || locationUnavailable) && (
+        <p
+          className="cp-mapctrls__error"
+          role={locationError ? "alert" : "status"}
+        >
+          {locationError ?? "GPS ไม่พร้อม แตะแผนที่หรือค้นหาสถานที่แทนได้"}
         </p>
       )}
     </div>

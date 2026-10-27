@@ -143,105 +143,6 @@
   font-weight: 800;
 }
 
-.cp-app .cp-mobile-air-card__scope {
-  display: block;
-  margin-top: 7px;
-  color: var(--cp-subink);
-  font-size: 0.64rem;
-  line-height: 1.45;
-}
-
-.cp-app .cp-mobile-air-card__source {
-  flex-wrap: wrap;
-}
-
-.cp-app .cp-mobile-air-card__source-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.cp-app .cp-mobile-air-card__source-group > small {
-  color: var(--cp-subink);
-  font-size: 0.64rem;
-}
-
-.cp-app .cp-mobile-air-card__community-source {
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid #ddcff3;
-  border-radius: 999px;
-  padding: 4px 9px;
-  background: #f4effc;
-  color: #6842a8;
-  font-size: 0.64rem;
-  font-weight: 800;
-}
-
-.cp-app .cp-mobile-air-card__location {
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 10px;
-  border: 1px solid color-mix(in srgb, var(--cp-air-tone) 24%, white);
-  border-radius: 12px;
-  padding: 6px 7px 6px 10px;
-  background: color-mix(in srgb, var(--cp-air-tint) 60%, white);
-  color: var(--cp-subink);
-  font-size: 0.68rem;
-}
-
-.cp-app .cp-mobile-air-card__location > span {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.cp-app .cp-mobile-air-card__location > span svg {
-  flex: none;
-  color: var(--cp-air-tone);
-}
-
-.cp-app .cp-mobile-air-card__location button {
-  min-height: 34px;
-  flex: none;
-  border: 0;
-  border-radius: 9px;
-  padding: 0 10px;
-  background: #fff;
-  color: var(--cp-teal);
-  font: 800 0.67rem var(--font-sans);
-  cursor: pointer;
-}
-
-.cp-app .cp-mobile-air-card__locate {
-  width: 100%;
-  min-height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 10px;
-  border: 1px solid var(--cp-teal);
-  border-radius: 12px;
-  background: #fff;
-  color: var(--cp-teal);
-  font: 800 0.72rem var(--font-sans);
-  cursor: pointer;
-}
-
-.cp-app .cp-mobile-air-card__locate:disabled {
-  border-color: var(--cp-line);
-  color: var(--cp-subink);
-  cursor: wait;
-  opacity: 0.75;
-}
-
 .cp-app .cp-forecast-details {
   overflow: hidden;
   border: 1px solid var(--cp-line);
@@ -905,30 +806,6 @@
     gap: 12px;
   }
 
-  .cp-app .cp-mobile-air-card {
-    border-radius: 18px;
-    padding: 15px;
-  }
-
-  .cp-app .cp-mobile-air-card__reading {
-    margin-top: 14px;
-  }
-
-  .cp-app .cp-mobile-air-card__number strong {
-    font-size: clamp(2.6rem, 13vw, 3.5rem);
-  }
-
-  .cp-app .cp-mobile-quick-actions button {
-    min-height: 76px;
-    align-items: center;
-    border-radius: 15px;
-    padding: 11px;
-  }
-
-  .cp-app .cp-mobile-quick-actions small {
-    display: none;
-  }
-
   .cp-app .cp-map-aqi-legend {
     top: max(68px, calc(env(safe-area-inset-top) + 59px));
     right: 74px;
@@ -1002,23 +879,6 @@
 }
 
 @media (max-width: 390px) {
-  .cp-app .cp-mobile-quick-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .cp-app .cp-mobile-quick-actions button {
-    grid-template-columns: 36px minmax(0, 1fr);
-  }
-
-  .cp-app .cp-mobile-quick-actions button > svg {
-    display: none;
-  }
-
-  .cp-app .cp-mobile-quick-actions__icon {
-    width: 36px;
-    height: 36px;
-  }
-
   .cp-app .cp-forecast-reading {
     grid-template-columns: 1fr;
   }

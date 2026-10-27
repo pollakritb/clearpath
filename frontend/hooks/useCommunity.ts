@@ -18,8 +18,6 @@ import { getSupabaseBrowserClient } from "@/frontend/lib/supabase";
 import type {
   Activity,
   Announcement,
-  CommunityMapPoint,
-  CommunityMapPointsResponse,
   CommunityReport,
   CommunityReportStack,
   CommunityReportsResponse,
@@ -31,114 +29,86 @@ const MAP_FALLBACK_REFRESH_MS = 5 * 60_000;
 const REPORT_CACHE_MS = 2 * 60_000;
 const ANNOUNCEMENT_CACHE_MS = 10 * 60_000;
 
-async function loadCommunityMapData(includeReports: boolean, force = false) {
-  return Promise.allSettled([
-    includeReports
-      ? loadPublicData(
-          PUBLIC_DATA_KEYS.reports,
-          REPORT_CACHE_MS,
-          api.communityReports,
-          force,
-        )
-      : Promise.resolve({
-          reports: [] as CommunityReport[],
-          stacks: [],
-          count: 0,
-        }),
-    loadPublicData(
-      PUBLIC_DATA_KEYS.mapPoints,
-      REPORT_CACHE_MS,
-      api.communityMapPoints,
-      force,
-    ),
-  ]);
-}
+const loadCommunityMapData = (force = false) =>
+  loadPublicData(
+    PUBLIC_DATA_KEYS.reports,
+    REPORT_CACHE_MS,
+    api.communityReports,
+    force,
+  );
 
-/** Data required by the map and local-air estimate only. */
-export function useCommunityMapData({
-  includeReports = true,
-}: { includeReports?: boolean } = {}) {
+/** Public community reports and stacks for map views. */
+export function useCommunityMapData() {
   const [reports, setReports] = useState<CommunityReport[]>(() => {
     const cached = cachedPublicValue<CommunityReportsResponse>(
       PUBLIC_DATA_KEYS.reports,
     );
-    return includeReports ? (cached?.reports ?? []) : [];
+    return cached?.reports ?? [];
   });
   const [stacks, setStacks] = useState<CommunityReportStack[]>(
     () =>
-      (includeReports
-        ? cachedPublicValue<CommunityReportsResponse>(PUBLIC_DATA_KEYS.reports)
-            ?.stacks
-        : null) ?? [],
-  );
-  const [mapPoints, setMapPoints] = useState<CommunityMapPoint[]>(
-    () =>
-      cachedPublicValue<CommunityMapPointsResponse>(PUBLIC_DATA_KEYS.mapPoints)
-        ?.points ?? [],
+      cachedPublicValue<CommunityReportsResponse>(PUBLIC_DATA_KEYS.reports)
+        ?.stacks ?? [],
   );
   const [loading, setLoading] = useState(
-    () =>
-      cachedPublicValue(PUBLIC_DATA_KEYS.mapPoints) === null ||
-      (includeReports && cachedPublicValue(PUBLIC_DATA_KEYS.reports) === null),
+    () => cachedPublicValue(PUBLIC_DATA_KEYS.reports) === null,
   );
   const [error, setError] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
 
-  const applyResults = useCallback(
-    (results: Awaited<ReturnType<typeof loadCommunityMapData>>) => {
-      const demo = isCommunityDemoMode();
-      const stackDemo = isCommunityStackDemoMode();
-      setDemoMode(demo);
-      if (includeReports && (results[0].status === "fulfilled" || demo)) {
-        if (stackDemo) {
-          const scenario = buildDemoStackScenario();
-          setReports(scenario.reports);
-          setStacks(scenario.stacks);
-        } else {
-          const liveReports =
-            results[0].status === "fulfilled" ? results[0].value.reports : [];
-          setStacks(
-            results[0].status === "fulfilled"
-              ? (results[0].value.stacks ?? [])
-              : [],
-          );
-          setReports(
-            demo
-              ? [...buildDemoCommunityReports(), ...liveReports]
-              : liveReports,
-          );
-        }
-      }
-      if (results[1].status === "fulfilled") {
-        setMapPoints(results[1].value.points);
-      }
-      const failed = results.find((result) => result.status === "rejected");
-      setError(
-        failed?.status === "rejected"
-          ? apiErrorMessage(failed.reason, "โหลดจุดข้อมูลชุมชนบางส่วนไม่สำเร็จ")
-          : null,
+  const applyResult = useCallback((result: CommunityReportsResponse) => {
+    const demo = isCommunityDemoMode();
+    const stackDemo = isCommunityStackDemoMode();
+    setDemoMode(demo);
+    if (stackDemo) {
+      const scenario = buildDemoStackScenario();
+      setReports(scenario.reports);
+      setStacks(scenario.stacks);
+    } else {
+      setStacks(result.stacks ?? []);
+      setReports(
+        demo
+          ? [...buildDemoCommunityReports(), ...result.reports]
+          : result.reports,
       );
-    },
-    [includeReports],
-  );
+    }
+    setError(null);
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const results = await loadCommunityMapData(includeReports, true);
-    applyResults(results);
-    setLoading(false);
-  }, [applyResults, includeReports]);
+    try {
+      applyResult(await loadCommunityMapData(true));
+    } catch (error) {
+      if (isCommunityDemoMode()) {
+        applyResult({ reports: [], stacks: [], count: 0 });
+      }
+      setError(apiErrorMessage(error, "โหลดรายงานชุมชนไม่สำเร็จ"));
+    } finally {
+      setLoading(false);
+    }
+  }, [applyResult]);
 
   useEffect(() => {
     let cancelled = false;
     const reload = (force = false) => {
       if (document.visibilityState === "hidden") return;
-      void loadCommunityMapData(includeReports, force).then((results) => {
-        if (!cancelled) {
-          applyResults(results);
-          setLoading(false);
-        }
-      });
+      void loadCommunityMapData(force)
+        .then((result) => {
+          if (!cancelled) {
+            applyResult(result);
+            setLoading(false);
+          }
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            if (isCommunityDemoMode()) {
+              applyResult({ reports: [], stacks: [], count: 0 });
+            }
+            setError(apiErrorMessage(error, "โหลดรายงานชุมชนไม่สำเร็จ"));
+            setLoading(false);
+          }
+        });
     };
 
     reload();
@@ -168,9 +138,9 @@ export function useCommunityMapData({
       document.removeEventListener("visibilitychange", onVisibilityChange);
       if (client && channel) void client.removeChannel(channel);
     };
-  }, [applyResults, includeReports]);
+  }, [applyResult]);
 
-  return { reports, stacks, mapPoints, loading, error, demoMode, refresh };
+  return { reports, stacks, loading, error, demoMode, refresh };
 }
 
 /** News feed data; it deliberately does not load map, rewards, or leaderboard. */

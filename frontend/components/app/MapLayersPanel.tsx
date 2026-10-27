@@ -14,6 +14,13 @@ interface MapLayersPanelProps {
   fireStatus: FirmsLoadStatus;
   bigText: boolean;
   showHeatmap: boolean;
+  heatmapStatus:
+    | "ready"
+    | "no_data"
+    | "no_location"
+    | "manual_reference"
+    | "location_denied"
+    | "location_unavailable";
   showStations: boolean;
   showIndividualReports: boolean;
   showFires: boolean;
@@ -34,6 +41,7 @@ export default function MapLayersPanel({
   fireStatus,
   bigText,
   showHeatmap,
+  heatmapStatus,
   showStations,
   showIndividualReports,
   showFires,
@@ -88,7 +96,19 @@ export default function MapLayersPanel({
           active={showHeatmap}
           symbolClass="cp-layer-symbol--surface"
           title="พื้นผิวค่าฝุ่น"
-          description="คำนวณจากข้อมูลที่ผ่านเกณฑ์"
+          description={
+            heatmapStatus === "location_denied"
+              ? "GPS ไม่พร้อม · แตะแผนที่หรือค้นหาสถานที่แทน"
+              : heatmapStatus === "location_unavailable"
+                ? "GPS ไม่พร้อม · แตะแผนที่หรือค้นหาสถานที่แทน"
+                : heatmapStatus === "manual_reference"
+                  ? "จุดใกล้ตำแหน่งที่เลือกบนแผนที่ · รัศมี 5 กม."
+                  : heatmapStatus === "no_location"
+                    ? "เปิด GPS หรือแตะแผนที่เพื่อเลือกตำแหน่ง"
+                    : heatmapStatus === "no_data"
+                      ? "ยังไม่มีจุดข้อมูลบนแผนที่"
+                      : "จุดข้อมูลใกล้ GPS ที่สุด · วงสีรัศมี 5 กม."
+          }
           onClick={onToggleHeatmap}
         />
         <LayerButton
@@ -142,7 +162,8 @@ export default function MapLayersPanel({
         </Link>
       </div>
       <p className="cp-map-layer-note">
-        สีหมุดบอกระดับ PM2.5 ทั้ง 5 ระดับ · รูปทรงและไอคอนบอกเจ้าของข้อมูล
+        สีหมุดบอกระดับ PM2.5 ทั้ง 5 ระดับ ·
+        วงสีรอบจุดใกล้ที่สุดไม่ใช่ค่าประมาณทั้งพื้นที่
       </p>
     </section>
   );

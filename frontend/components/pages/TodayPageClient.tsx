@@ -3,18 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import MobileAirSummary from "@/frontend/components/app/MobileAirSummary";
 import NationalSummary from "@/frontend/components/app/NationalSummary";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import AQICard from "@/frontend/components/panels/AQICard";
 import ForecastPanel from "@/frontend/components/panels/ForecastPanel";
-import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
 import { useCurrentLocation } from "@/frontend/hooks/useCurrentLocation";
 import { useForecast } from "@/frontend/hooks/useForecast";
 import { useHistory } from "@/frontend/hooks/useHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { useWeather } from "@/frontend/hooks/useWeather";
-import { haversineKm } from "@/frontend/lib/idw";
+import { haversineKm } from "@/frontend/lib/distance";
 import type { Station } from "@/frontend/types";
 
 const MAX_AUTOMATIC_REFERENCE_DISTANCE_KM = 30;
@@ -59,7 +57,6 @@ export default function TodayPageClient({
   const weather = useWeather();
   const history = useHistory();
   const forecast = useForecast();
-  const community = useCommunityMapData({ includeReports: false });
   const currentLocation = useCurrentLocation(true);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -129,7 +126,7 @@ export default function TodayPageClient({
 
   const refresh = useCallback(() => {
     currentLocation.request();
-    const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
+    const tasks: Promise<unknown>[] = [pm25.refresh()];
     if (forecastTarget) tasks.push(forecast.load(forecastTarget, 24, true));
     const weatherPosition = area ?? currentLocation.location ?? selectedStation;
     if (weatherPosition) {
@@ -140,7 +137,6 @@ export default function TodayPageClient({
     }
     void Promise.allSettled(tasks);
   }, [
-    community,
     currentLocation,
     area,
     forecast,
@@ -159,7 +155,7 @@ export default function TodayPageClient({
       header={{
         stationCount: serviceAreaStations.length,
         updatedAt: pm25.updatedAt,
-        loading: pm25.loading || community.loading,
+        loading: pm25.loading,
         delayedCount: pm25.counts.delayed,
         expiredCount: pm25.counts.expired,
         error: pm25.error,
@@ -167,17 +163,6 @@ export default function TodayPageClient({
       }}
     >
       <div className="cp-overview-stack">
-        <MobileAirSummary
-          stations={serviceAreaStations}
-          communityPoints={community.mapPoints}
-          updatedAt={pm25.updatedAt}
-          loading={pm25.loading || community.loading}
-          location={currentLocation.location}
-          locationStatus={currentLocation.status}
-          onRequestLocation={currentLocation.request}
-          onOpenMap={() => router.push("/")}
-          onOpenReport={() => router.push("/report")}
-        />
         <div className="cp-desktop-summary">
           <NationalSummary stations={serviceAreaStations} />
         </div>
@@ -206,11 +191,6 @@ export default function TodayPageClient({
           loading={forecast.loading}
           error={forecast.error}
         />
-        {community.error && (
-          <p role="alert" className="cp-inline-error">
-            ยังโหลดข้อมูลรายงานชุมชนไม่ได้ กรุณาลองรีเฟรชอีกครั้ง
-          </p>
-        )}
       </div>
     </UserPageShell>
   );

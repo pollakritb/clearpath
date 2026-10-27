@@ -325,157 +325,6 @@
   background: var(--cp-mapbg);
 }
 
-.cp-forecast-inspector {
-  position: absolute;
-  top: 148px;
-  right: 16px;
-  z-index: 1350;
-  width: min(330px, calc(100% - 32px));
-  color: #183b39;
-}
-.cp-forecast-inspector__trigger,
-.cp-forecast-inspector__panel {
-  border: 1px solid #d1e2de;
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 8px 26px rgba(16, 48, 42, 0.18);
-}
-.cp-forecast-inspector__trigger {
-  float: right;
-  min-height: 44px;
-  padding: 0 15px;
-  color: #225e59;
-  font: 750 0.78rem var(--font-sans);
-  cursor: pointer;
-}
-.cp-forecast-inspector__panel {
-  max-height: min(42vh, 390px);
-  overflow: auto;
-  padding: 13px 15px;
-  font-size: 0.76rem;
-}
-.cp-forecast-inspector__panel header {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: start;
-}
-.cp-forecast-inspector__panel header div {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.cp-forecast-inspector__panel header small {
-  color: #647b76;
-  overflow-wrap: anywhere;
-}
-.cp-forecast-inspector__panel header button {
-  border: 0;
-  background: transparent;
-  font-size: 1.3rem;
-  cursor: pointer;
-}
-.cp-forecast-inspector__panel p {
-  margin: 9px 0 0;
-}
-.cp-forecast-inspector__panel p small {
-  color: #617a75;
-}
-.cp-forecast-inspector__note {
-  color: #556b68;
-}
-.cp-forecast-inspector__value {
-  font-weight: 750;
-}
-.cp-forecast-inspector__hours {
-  margin-top: 9px;
-  border-top: 1px solid #dce9e5;
-  padding-top: 8px;
-}
-.cp-forecast-inspector__hours summary {
-  cursor: pointer;
-  font-weight: 750;
-}
-.cp-forecast-inspector__hours ol {
-  list-style: none;
-  padding: 0;
-  margin: 5px 0 0;
-  max-height: 160px;
-  overflow: auto;
-}
-.cp-forecast-inspector__hours li {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid #edf2f0;
-}
-.cp-forecast-inspector__circle,
-.cp-forecast-inspector__square {
-  display: inline-block;
-  width: 11px;
-  height: 11px;
-  margin-right: 4px;
-  vertical-align: -1px;
-  background: #128177;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px #128177;
-}
-.cp-forecast-inspector__circle {
-  border-radius: 50%;
-}
-.cp-forecast-inspector__square {
-  background: #7455a6;
-  box-shadow: 0 0 0 1px #7455a6;
-}
-.cp-forecast-marker__requested,
-.cp-forecast-marker__grid,
-.cp-forecast-marker__overlap {
-  display: block;
-  width: 26px;
-  height: 26px;
-  border: 4px solid #fff;
-  box-shadow: 0 2px 10px #163f3c7a;
-  background: #128177;
-}
-.cp-forecast-marker__requested {
-  border-radius: 50%;
-}
-.cp-forecast-marker__grid {
-  background: #7455a6;
-  border-radius: 5px;
-}
-.cp-forecast-marker__overlap {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-}
-.cp-forecast-marker__overlap i {
-  width: 12px;
-  height: 12px;
-  display: block;
-  background: #7455a6;
-  border: 2px solid #fff;
-  border-radius: 3px;
-}
-@media (max-width: 768px) {
-  .cp-forecast-inspector {
-    top: auto;
-    bottom: 12px;
-    right: 12px;
-    width: calc(100% - 24px);
-  }
-  .cp-forecast-inspector[data-open="false"] {
-    top: 142px;
-    bottom: auto;
-    width: min(308px, calc(100% - 24px));
-  }
-  .cp-forecast-inspector__panel {
-    max-height: 36vh;
-  }
-}
 .cp-grabber {
   display: none;
 }
@@ -550,6 +399,7 @@
 }
 .cp-mapctrls__error {
   position: absolute;
+  pointer-events: none;
   right: 0;
   bottom: 56px;
   width: max-content;
@@ -562,6 +412,9 @@
   color: #a33c2e;
   font-size: 0.75rem;
   line-height: 1.4;
+}
+.cp-mapctrls__error[role="status"] {
+  color: #195d58;
 }
 .cp-current-location-marker {
   position: relative;
@@ -2167,10 +2020,6 @@
   gap: 1rem;
 }
 
-.cp-mobile-home {
-  display: none;
-}
-
 .cp-aqi-empty-action {
   min-height: 44px;
   margin-top: 0.85rem;
@@ -2837,178 +2686,8 @@
     scroll-padding-bottom: 28px;
   }
 
-  .cp-mobile-home {
-    display: grid;
-    gap: 12px;
-  }
-
   .cp-desktop-summary {
     display: none;
-  }
-
-  .cp-mobile-air-card {
-    overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--cp-air-tone) 24%, white);
-    border-radius: 22px;
-    padding: 18px;
-    background:
-      radial-gradient(
-        circle at 100% 0%,
-        color-mix(in srgb, var(--cp-air-tone) 18%, transparent),
-        transparent 48%
-      ),
-      #fff;
-    box-shadow: 0 10px 28px rgba(15, 49, 44, 0.08);
-  }
-
-  .cp-mobile-air-card__topline {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-
-  .cp-mobile-air-card__topline > span {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--cp-teal);
-    font-size: 0.78rem;
-    font-weight: 800;
-  }
-
-  .cp-mobile-air-card__topline small {
-    color: var(--cp-subink);
-    font-size: 0.68rem;
-    white-space: nowrap;
-  }
-
-  .cp-mobile-air-card__reading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    margin-top: 18px;
-  }
-
-  .cp-mobile-air-card__number {
-    display: flex;
-    align-items: flex-end;
-    gap: 7px;
-  }
-
-  .cp-mobile-air-card__number strong {
-    color: var(--cp-air-tone);
-    font-family: var(--font-mono);
-    font-size: clamp(2.9rem, 14vw, 4rem);
-    line-height: 0.9;
-    letter-spacing: -0.08em;
-  }
-
-  .cp-mobile-air-card__number span {
-    padding-bottom: 0.35rem;
-    color: var(--cp-subink);
-    font-size: 0.75rem;
-  }
-
-  .cp-mobile-air-card__level {
-    min-width: 105px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-radius: 14px;
-    padding: 10px;
-    background: var(--cp-air-tint);
-    color: var(--cp-air-tone);
-  }
-
-  .cp-mobile-air-card__level > span {
-    font-size: 1.2rem;
-  }
-
-  .cp-mobile-air-card__level > div {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .cp-mobile-air-card__level small {
-    color: var(--cp-subink);
-    font-size: 0.62rem;
-  }
-
-  .cp-mobile-air-card__level strong {
-    font-size: 0.85rem;
-  }
-
-  .cp-mobile-air-card > p {
-    margin: 16px 0 0;
-    border-radius: 12px;
-    padding: 10px 12px;
-    background: var(--cp-air-tint);
-    font-size: 0.8rem !important;
-    font-weight: 600;
-  }
-
-  .cp-mobile-air-card__source {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-top: 12px;
-    color: var(--cp-subink);
-    font-size: 0.75rem;
-  }
-
-  .cp-mobile-quick-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .cp-mobile-quick-actions button {
-    min-width: 0;
-    min-height: 98px;
-    display: grid;
-    grid-template-columns: 40px minmax(0, 1fr);
-    grid-template-rows: 1fr;
-    align-items: start;
-    gap: 10px;
-    border: 1px solid var(--cp-line);
-    border-radius: 17px;
-    padding: 13px;
-    background: #fff;
-    color: var(--cp-ink);
-    text-align: left;
-  }
-
-  .cp-mobile-quick-actions button > svg {
-    display: none;
-  }
-
-  .cp-mobile-quick-actions__icon {
-    width: 40px;
-    height: 40px;
-    display: grid;
-    place-items: center;
-    border-radius: 12px;
-    background: var(--cp-teal-soft);
-    color: var(--cp-teal);
-  }
-
-  .cp-mobile-quick-actions button > span:nth-child(2) {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .cp-mobile-quick-actions strong {
-    font-size: 0.82rem;
-    line-height: 1.35;
-  }
-
-  .cp-mobile-quick-actions small {
-    color: var(--cp-subink);
-    font-size: 0.75rem !important;
-    line-height: 1.35;
   }
 
   .cp-overview-stack {
@@ -3016,7 +2695,7 @@
   }
 
   .cp-overview-stack > section,
-  .cp-overview-stack > div:not(.cp-mobile-home) {
+  .cp-overview-stack > div {
     border-radius: 18px !important;
     background-color: #fff !important;
   }
@@ -3177,37 +2856,6 @@
   .cp-list-view {
     padding: max(12.1rem, calc(env(safe-area-inset-top) + 11.65rem)) 1rem
       calc(var(--cp-mobile-nav-h) + 1rem) !important;
-  }
-}
-
-@media (max-width: 390px) {
-  .cp-mobile-air-card {
-    padding: 16px;
-  }
-
-  .cp-mobile-air-card__reading {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .cp-mobile-air-card__level {
-    width: 100%;
-  }
-
-  .cp-mobile-quick-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .cp-mobile-quick-actions button {
-    min-height: 76px;
-    grid-template-columns: 40px minmax(0, 1fr) 18px;
-    align-items: center;
-  }
-
-  .cp-mobile-quick-actions button > svg {
-    display: block;
-    color: var(--cp-subink);
   }
 }
 
@@ -6138,6 +5786,12 @@
 
   .cp-mapctrls__locate {
     min-height: 48px;
+  }
+
+  .cp-mapctrls__error {
+    right: auto;
+    left: 0;
+    width: min(250px, calc(100vw - 24px));
   }
 
   .cp-map-current-dock {

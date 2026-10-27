@@ -4,11 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const apiMocks = vi.hoisted(() => ({
   activities: vi.fn(),
   announcements: vi.fn(),
-  communityMapPoints: vi.fn(),
   communityReports: vi.fn(),
   firms: vi.fn(),
   forecast: vi.fn(),
-  forecastSurface: vi.fn(),
   history: vi.fn(),
   leaderboard: vi.fn(),
   pm25Current: vi.fn(),
@@ -34,7 +32,6 @@ import {
 } from "./useCommunity";
 import { useFirms } from "./useFirms";
 import { useForecast } from "./useForecast";
-import { useForecastSurface } from "./useForecastSurface";
 import { useHistory } from "./useHistory";
 import { usePm25 } from "./usePm25";
 import { useWeather } from "./useWeather";
@@ -61,7 +58,6 @@ describe("data hooks", () => {
     });
     apiMocks.pm25Current.mockResolvedValue(stationsResponse);
     apiMocks.communityReports.mockResolvedValue({ reports: [], count: 0 });
-    apiMocks.communityMapPoints.mockResolvedValue({ points: [], count: 0 });
     apiMocks.announcements.mockResolvedValue({ announcements: [], count: 0 });
     apiMocks.activities.mockResolvedValue({ activities: [], count: 0 });
     apiMocks.leaderboard.mockResolvedValue({ users: [], count: 0 });
@@ -209,74 +205,20 @@ describe("data hooks", () => {
     expect(result.current.status).toBe("failed");
   });
 
-  it("rejects oversized forecast viewports and handles surface lifecycle", async () => {
-    const { result } = renderHook(() => useForecastSurface());
-    await act(async () =>
-      result.current.load(12, {
-        min_lat: 5,
-        max_lat: 20,
-        min_lon: 95,
-        max_lon: 110,
-      }),
-    );
-    expect(apiMocks.forecastSurface).not.toHaveBeenCalled();
-    expect(result.current.error).not.toBeNull();
-
-    apiMocks.forecastSurface.mockResolvedValueOnce({ cells: [] });
-    await act(async () =>
-      result.current.load(6, {
-        min_lat: 13.7,
-        max_lat: 13.9,
-        min_lon: 100,
-        max_lon: 100.2,
-      }),
-    );
-    expect(result.current.data).toEqual({ cells: [] });
-
-    act(() => result.current.clear());
-    expect(result.current.data).toBeNull();
-    expect(result.current.error).toBeNull();
-
-    apiMocks.forecastSurface.mockRejectedValueOnce(new Error("surface failed"));
-    await act(async () =>
-      result.current.load(6, {
-        min_lat: 13.7,
-        max_lat: 13.9,
-        min_lon: 100,
-        max_lon: 100.2,
-      }),
-    );
-    expect(result.current.error).toBe("surface failed");
-  });
-
-  it("loads map data independently and reports partial failures", async () => {
+  it("loads public reports and reports refresh failures", async () => {
     apiMocks.communityReports.mockResolvedValueOnce({
       reports: [{ id: "report-1" }],
       count: 1,
     });
-    apiMocks.communityMapPoints.mockResolvedValueOnce({
-      points: [{ id: "point-1" }],
-      count: 1,
-    });
-    const { result, unmount } = renderHook(() => useCommunityMapData());
+    const { result } = renderHook(() => useCommunityMapData());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.reports).toEqual([{ id: "report-1" }]);
-    expect(result.current.mapPoints).toEqual([{ id: "point-1" }]);
-    unmount();
-
-    apiMocks.communityReports.mockRejectedValueOnce(new Error("partial"));
-    const withoutReports = renderHook(() =>
-      useCommunityMapData({ includeReports: false }),
+    apiMocks.communityReports.mockRejectedValueOnce(
+      new Error("reports failed"),
     );
-    await waitFor(() =>
-      expect(withoutReports.result.current.loading).toBe(false),
-    );
-    expect(apiMocks.communityReports).toHaveBeenCalledTimes(1);
-
-    apiMocks.communityMapPoints.mockRejectedValueOnce(new Error("map failed"));
-    await act(async () => withoutReports.result.current.refresh());
-    expect(withoutReports.result.current.error).toBe("map failed");
+    await act(async () => result.current.refresh());
+    expect(result.current.error).toBe("reports failed");
   });
 
   it("restores map and news data immediately when their pages remount", async () => {
@@ -293,11 +235,10 @@ describe("data hooks", () => {
     expect(secondNews.result.current.loading).toBe(false);
     await act(async () => {});
     expect(apiMocks.communityReports).toHaveBeenCalledTimes(1);
-    expect(apiMocks.communityMapPoints).toHaveBeenCalledTimes(1);
     expect(apiMocks.announcements).toHaveBeenCalledTimes(1);
   });
 
-  it("uses separate Realtime channels while map and Today are mounted together", async () => {
+  it("uses separate Realtime channels for concurrent map hooks", async () => {
     const channels = new Map<string, object>();
     const client = {
       channel: vi.fn((topic: string) => {
@@ -319,15 +260,13 @@ describe("data hooks", () => {
     realtimeMocks.client = client;
 
     const map = renderHook(() => useCommunityMapData());
-    const today = renderHook(() =>
-      useCommunityMapData({ includeReports: false }),
-    );
+    const secondMap = renderHook(() => useCommunityMapData());
     expect(client.channel).toHaveBeenCalledTimes(2);
     expect(
       new Set(client.channel.mock.calls.map(([topic]) => topic)).size,
     ).toBe(2);
     map.unmount();
-    today.unmount();
+    secondMap.unmount();
     expect(client.removeChannel).toHaveBeenCalledTimes(2);
   });
 

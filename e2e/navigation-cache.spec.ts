@@ -18,7 +18,7 @@ test("switching tabs reuses recent public data without reloading it", async ({
   );
   await expect.poll(() => counts.pm25).toBe(1);
   await expect.poll(() => counts.reports).toBe(1);
-  await expect.poll(() => counts.mapPoints).toBe(1);
+  await expect.poll(() => counts.mapPoints).toBe(0);
 
   const navigation = page.getByRole("navigation", { name: "เมนูหลักบนมือถือ" });
   await navigation.getByRole("link", { name: "วันนี้" }).click();
@@ -30,7 +30,7 @@ test("switching tabs reuses recent public data without reloading it", async ({
   );
   expect(counts.pm25).toBe(1);
   expect(counts.reports).toBe(1);
-  expect(counts.mapPoints).toBe(1);
+  expect(counts.mapPoints).toBe(0);
 
   await navigation.getByRole("link", { name: "ข่าวสาร" }).click();
   await expect(

@@ -36,26 +36,3 @@ test("map keeps its Leaflet instance, zoom and selected station across tabs", as
   await expect(controls).toHaveAttribute("data-zoom", "6");
   await page.screenshot({ path: "test-results/map-continuity-mobile.png" });
 });
-
-test("Today tab restores its scroll position after visiting the map", async ({
-  page,
-}, testInfo) => {
-  if (testInfo.project.name !== "mobile-390") test.skip();
-  await page.goto("/air");
-  const body = page.locator('.cp-app[data-tab="overview"] .cp-aside__body');
-  await expect(body).toBeVisible();
-  await body.evaluate((element) => {
-    element.scrollTo({ top: 400, behavior: "instant" });
-  });
-  await expect
-    .poll(() => body.evaluate((element) => element.scrollTop))
-    .toBeGreaterThan(100);
-  const before = await body.evaluate((element) => element.scrollTop);
-  expect(before).toBeGreaterThan(100);
-  const navigation = page.locator(".cp-mobile-nav");
-  await navigation.getByRole("link", { name: "แผนที่" }).click();
-  await navigation.getByRole("link", { name: "วันนี้" }).click();
-  await expect
-    .poll(() => body.evaluate((element) => element.scrollTop))
-    .toBeGreaterThan(before - 30);
-});

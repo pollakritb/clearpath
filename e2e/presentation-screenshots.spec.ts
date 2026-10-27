@@ -140,9 +140,7 @@ test.describe("presentation screenshots @presentation", () => {
 
   test("today and forecast", async ({ page }) => {
     await page.goto("/air?station=81t");
-    await expect(
-      page.getByRole("region", { name: "ภาพรวมอากาศวันนี้" }),
-    ).toBeVisible();
+    await expect(page.locator(".cp-forecast-card")).toBeVisible();
     await capture(page, "06-today-current-air.png");
 
     const forecast = page.locator(".cp-forecast-card");

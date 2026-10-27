@@ -1,6 +1,6 @@
 import type { CommunityReport, Station } from "@/frontend/types";
 
-import { haversineKm, idwValue } from "./idw";
+import { haversineKm } from "./distance";
 
 export const PLACE_RADIUS_KM = 3;
 
@@ -19,11 +19,10 @@ export interface NearbyReport {
 
 export interface PlaceAir {
   value: number | null;
-  method: "nearest_station" | "idw" | "unavailable";
+  method: "nearest_station" | "unavailable";
   stations: NearbyStation[];
   reports: NearbyReport[];
   nearestStation: NearbyStation | null;
-  usedStationCount: number;
 }
 
 export function assessPlaceAir(
@@ -60,7 +59,7 @@ export function assessPlaceAir(
   const nearby = allStations.filter(
     (item) => item.distanceKm <= PLACE_RADIUS_KM,
   );
-  const usable = nearby.filter((item) => item.usable).slice(0, 5);
+  const closestUsable = nearby.find((item) => item.usable);
   const nearbyReports = reports
     .filter(
       (report) =>
@@ -82,32 +81,13 @@ export function assessPlaceAir(
     .filter((item) => item.distanceKm <= PLACE_RADIUS_KM)
     .sort((a, b) => a.distanceKm - b.distanceKm);
 
-  const value =
-    usable.length === 1
-      ? usable[0].station.pm25
-      : usable.length > 1
-        ? idwValue(
-            lat,
-            lon,
-            usable.map(({ station }) => ({
-              lat: station.lat,
-              lon: station.lon,
-              pm25: station.pm25 as number,
-            })),
-          )
-        : null;
+  const value = closestUsable?.station.pm25 ?? null;
 
   return {
     value,
-    method:
-      value == null
-        ? "unavailable"
-        : usable.length === 1
-          ? "nearest_station"
-          : "idw",
+    method: value == null ? "unavailable" : "nearest_station",
     stations: nearby,
     reports: nearbyReports,
     nearestStation: allStations[0] ?? null,
-    usedStationCount: usable.length,
   };
 }

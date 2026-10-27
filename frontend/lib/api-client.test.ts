@@ -77,14 +77,6 @@ describe("api client", () => {
       () => api.history("station / one"),
       () => api.mapHistory("2026-09-19T03:00:00.000Z"),
       () => api.forecast("station / one"),
-      () => api.forecastSurface(),
-      () =>
-        api.forecastSurface(6, 8, {
-          min_lat: 13,
-          max_lat: 14,
-          min_lon: 100,
-          max_lon: 101,
-        }),
       () => api.communityReports(),
       () => api.communityMapPoints(),
       () => api.reportDataIssue({} as never),
@@ -161,10 +153,6 @@ describe("api client", () => {
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain(
       "/api/locations/search?q=Nakhon%20Pathom%20%2F%20center",
     );
-    expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain(
-      "/api/forecast/surface?horizon=6&grid_size=8&min_lat=13&max_lat=14&min_lon=100&max_lon=101",
-    );
-
     const authenticated = fetchMock.mock.calls.find(
       ([url]) => url === "/api/community/capture-session",
     );

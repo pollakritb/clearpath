@@ -400,7 +400,7 @@ test("news page loads no map, rewards, or leaderboard data by default", async ({
   }
 });
 
-test("air summary automatically uses the current GPS position", async ({
+test("air page keeps station readings without a GPS IDW summary", async ({
   context,
   page,
 }) => {
@@ -461,14 +461,10 @@ test("air summary automatically uses the current GPS position", async ({
   });
 
   await page.goto("/air");
-  const summary = page.getByRole("region", {
-    name: "ภาพรวมอากาศวันนี้",
-  });
-  await expect(summary.getByText("ฝุ่นใกล้ตำแหน่งคุณ")).toBeVisible();
-  await expect(summary.getByText("22.4", { exact: true })).toBeVisible();
-  await expect(summary.getByText(/GPS คลาดเคลื่อนประมาณ/)).toBeVisible();
-  await expect(summary.getByRole("button", { name: "อัปเดต" })).toBeVisible();
-  await expect(summary.getByText(/ค่าเฉลี่ยทั้งประเทศ/)).toHaveCount(0);
+  await expect(page.getByText("ฝุ่นใกล้ตำแหน่งคุณ")).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "คุณภาพอากาศสถานีที่เลือก" }),
+  ).toBeVisible();
 });
 
 test("LINE notification card explains production setup state on mobile", async ({
@@ -752,7 +748,7 @@ test("map separates official stations from individual reports", async ({
     panel.getByRole("button", { name: /สถานีเซนเซอร์ชุมชน/ }),
   ).toHaveCount(0);
   await expect(
-    page.getByText(/สีหมุดบอกระดับ PM2.5.*ไอคอนบอกเจ้าของข้อมูล/),
+    page.getByText(/วงสีรอบจุดใกล้ที่สุดไม่ใช่ค่าประมาณทั้งพื้นที่/),
   ).toBeVisible();
 });
 
@@ -865,7 +861,7 @@ test("community marker opens a distinct privacy-safe report card", async ({
     "src",
     "https://lh3.googleusercontent.com/a/clearpath-e2e-reporter",
   );
-  await marker.click({ force: true });
+  await marker.evaluate((element: HTMLElement) => element.click());
   await expect(marker).toHaveCSS("outline-style", "none");
   await expect(marker.locator(".cp-community-marker > span")).toHaveCSS(
     "border-radius",

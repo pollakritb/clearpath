@@ -80,17 +80,16 @@ describe("place air assessment", () => {
     expect(result.nearestStation?.distanceKm).toBeGreaterThan(PLACE_RADIUS_KM);
   });
 
-  it("interpolates only nearby fresh official stations", () => {
+  it("uses the measured value of the closest fresh official station", () => {
     const second = { ...baseStation, id: "official-2", lon: 100.12, pm25: 40 };
     const result = assessPlaceAir(
       13.8,
-      100.11,
+      100.105,
       [baseStation, second],
       [report],
       new Date("2026-10-05T10:10:00Z"),
     );
-    expect(result.method).toBe("idw");
-    expect(result.value).toBeGreaterThan(20);
-    expect(result.value).toBeLessThan(40);
+    expect(result.method).toBe("nearest_station");
+    expect(result.value).toBe(20);
   });
 });

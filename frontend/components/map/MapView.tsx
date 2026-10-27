@@ -10,11 +10,11 @@ import {
   OSM_ATTRIBUTION,
   OSM_TILE_URL,
 } from "@/frontend/lib/constants";
+import type { HeatmapPoint } from "@/frontend/lib/nearest-surface";
 import type {
   CommunityReport,
   CommunityReportStack,
   FirePoint,
-  ForecastResponse,
   Station,
 } from "@/frontend/types";
 import type { ViewportBounds } from "@/frontend/types/ui";
@@ -22,8 +22,7 @@ import type { ViewportBounds } from "@/frontend/types/ui";
 import AutoResize from "./AutoResize";
 import ClickHandler from "./ClickHandler";
 import FireLayer from "./FireLayer";
-import ForecastDiagnosticLayer from "./ForecastDiagnosticLayer";
-import IdwSurface from "./IdwSurface";
+import NearestHeatmap from "./NearestHeatmap";
 import MapControls from "./MapControls";
 import { CURRENT_LOCATION_ICON, REPORT_PIN_ICON } from "./map-icons";
 import ReportMarkers from "./ReportMarkers";
@@ -33,15 +32,15 @@ import ViewportReporter from "./ViewportReporter";
 
 export interface MapViewProps {
   stations: Station[];
-  surfaceStations: Station[];
+  heatmapPoint: HeatmapPoint | null;
   fires: FirePoint[];
   reports: CommunityReport[];
   reportStacks: CommunityReportStack[];
   reportPin: { lat: number; lon: number } | null;
   userLocation?: { lat: number; lon: number; accuracy: number } | null;
+  locationUnavailable?: boolean;
   focusPoint?: { lat: number; lon: number } | null;
   placePoint?: { lat: number; lon: number; radiusKm: number } | null;
-  forecastDiagnostic?: ForecastResponse | null;
   resetViewSignal?: number;
   showHeatmap: boolean;
   showStations: boolean;
@@ -60,15 +59,15 @@ export interface MapViewProps {
 
 export default function MapView({
   stations,
-  surfaceStations,
+  heatmapPoint,
   fires,
   reports,
   reportStacks,
   reportPin,
   userLocation = null,
+  locationUnavailable = false,
   focusPoint = null,
   placePoint = null,
-  forecastDiagnostic = null,
   resetViewSignal = 0,
   showHeatmap,
   showStations,
@@ -84,12 +83,6 @@ export default function MapView({
   onResetView,
   onViewportChange,
 }: MapViewProps) {
-  const pmVals = surfaceStations
-    .filter((s) => s.pm25 != null)
-    .map((s) => s.pm25 as number);
-  const pmMin = pmVals.length ? Math.min(...pmVals) : 0;
-  const pmMax = pmVals.length ? Math.max(...pmVals) : 50;
-
   return (
     <MapContainer
       center={THAILAND_CENTER}
@@ -128,9 +121,7 @@ export default function MapView({
         </>
       )}
 
-      {showHeatmap && (
-        <IdwSurface stations={surfaceStations} min={pmMin} max={pmMax} />
-      )}
+      {showHeatmap && heatmapPoint && <NearestHeatmap point={heatmapPoint} />}
       {showStations && (
         <StationMarkers
           stations={stations}
@@ -165,9 +156,6 @@ export default function MapView({
           zIndexOffset={1000}
         />
       )}
-      {forecastDiagnostic && (
-        <ForecastDiagnosticLayer forecast={forecastDiagnostic} />
-      )}
 
       <AutoResize />
       <ViewportController
@@ -180,6 +168,7 @@ export default function MapView({
         onLocate={onLocate}
         onResetView={onResetView}
         hasLocation={Boolean(userLocation)}
+        locationUnavailable={locationUnavailable}
       />
       <ClickHandler onClick={onMapClick} />
     </MapContainer>
