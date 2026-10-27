@@ -8,6 +8,6 @@ pydantic>=2.8
 pydantic-settings>=2.4
 python-dotenv>=1.0
 python-multipart>=0.0.20
-Pillow>=12.3,<13.0
+Pillow>=13.0,<14.0
 pywebpush>=2.0,<3.0
 truststore>=0.9  # Use the OS trust store for Air4Thai HTTPS.
