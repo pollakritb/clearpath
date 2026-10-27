@@ -88,6 +88,23 @@ def test_collect_cams_snapshots_skips_recent_completed_run(monkeypatch):
     assert result["status"] == "not_due"
 
 
+def test_collect_cams_snapshots_refreshes_legacy_short_horizon(monkeypatch):
+    monkeypatch.setattr(
+        supabase_client,
+        "get_latest_provider_sync_run",
+        lambda _provider: {
+            "status": "success",
+            "completed_at": datetime.now(UTC).isoformat(),
+            "metadata": {"horizon_hours": 24},
+        },
+    )
+    monkeypatch.setattr(provider_sync, "_valid_stations", lambda: [])
+
+    result = asyncio.run(provider_sync.collect_openmeteo_snapshots())
+
+    assert result["status"] == "no_stations"
+
+
 def test_cams_batch_collects_only_its_stations(monkeypatch):
     now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
     stations = [

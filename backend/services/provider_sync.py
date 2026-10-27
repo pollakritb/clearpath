@@ -197,7 +197,12 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
         )
     )
     interval = CAMS_SNAPSHOT_INTERVAL_HOURS
-    if latest and not provider_sync_due(latest, interval):
+    previous_horizon = int(
+        ((latest or {}).get("metadata") or {}).get("horizon_hours")
+        or MAX_CAMS_FORECAST_HOURS
+    )
+    horizon_upgrade_due = previous_horizon < MAX_CAMS_FORECAST_HOURS
+    if latest and not horizon_upgrade_due and not provider_sync_due(latest, interval):
         return {
             "status": "not_due",
             "interval_hours": interval,
