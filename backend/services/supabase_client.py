@@ -417,44 +417,22 @@ def delete_cams_history_before(
         return local_store.delete_cams_history_before(
             snapshot_cutoff_at, run_cutoff_at, batch_size=batch_size
         )
-    client = get_client()
-    snapshot_ids = [
-        row["id"]
-        for row in (
-            client.table("forecast_provider_snapshots")
-            .select("id")
-            .eq("provider", "openmeteo_cams")
-            .lt("issued_at", snapshot_cutoff_at)
-            .order("issued_at")
-            .limit(batch_size)
-            .execute()
-            .data
-            or []
+    result = (
+        get_client()
+        .rpc(
+            "prune_expired_cams_history",
+            {
+                "p_snapshot_cutoff": snapshot_cutoff_at,
+                "p_run_cutoff": run_cutoff_at,
+                "p_batch_size": batch_size,
+            },
         )
-    ]
-    if snapshot_ids:
-        client.table("forecast_provider_snapshots").delete().in_(
-            "id", snapshot_ids
-        ).execute()
-    run_ids = [
-        row["id"]
-        for row in (
-            client.table("forecast_provider_sync_runs")
-            .select("id")
-            .eq("provider", "openmeteo_cams")
-            .lt("completed_at", run_cutoff_at)
-            .order("completed_at")
-            .limit(batch_size)
-            .execute()
-            .data
-            or []
-        )
-    ]
-    if run_ids:
-        client.table("forecast_provider_sync_runs").delete().in_(
-            "id", run_ids
-        ).execute()
-    return len(snapshot_ids), len(run_ids)
+        .execute()
+        .data
+    )
+    if not isinstance(result, dict):
+        raise UpstreamError("cams_snapshot_retention_result_invalid")
+    return int(result["deleted_snapshots"]), int(result["deleted_runs"])
 
 
 def upsert_forecast_consensus(

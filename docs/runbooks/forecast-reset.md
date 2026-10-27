@@ -38,7 +38,8 @@ station. Its six-hour schedule is unchanged. See
 - Legacy Open-Meteo/CAMS provider sync. Raw CAMS snapshots are a narrow exception
   after applying
   `20261016_allow_raw_cams_evidence_during_forecast_reset.sql` and
-  `20261027_allow_cams_snapshot_retention.sql`; no generated forecast or
+  `20261027_allow_cams_snapshot_retention.sql` and
+  `20261027_prune_cams_history_rpc.sql`; no generated forecast or
   evaluation table is reopened.
 - GISTDA forecast provider sync
 - station and map-surface forecast generation

@@ -265,6 +265,38 @@ def test_cams_retention_is_provider_scoped_and_bounded(monkeypatch):
     assert all(batch_size == 1000 for _, _, batch_size in calls)
 
 
+def test_cams_retention_uses_database_rpc_instead_of_uuid_url(monkeypatch):
+    calls = []
+
+    class RpcRequest:
+        def execute(self):
+            return SimpleNamespace(data={"deleted_snapshots": 1000, "deleted_runs": 2})
+
+    class Client:
+        def rpc(self, name, params):
+            calls.append((name, params))
+            return RpcRequest()
+
+    monkeypatch.setattr(settings, "local_demo_mode", False)
+    monkeypatch.setattr(supabase_client, "get_client", lambda: Client())
+
+    result = supabase_client.delete_cams_history_before(
+        "2026-10-20T00:00:00+00:00", "2026-09-27T00:00:00+00:00"
+    )
+
+    assert result == (1000, 2)
+    assert calls == [
+        (
+            "prune_expired_cams_history",
+            {
+                "p_snapshot_cutoff": "2026-10-20T00:00:00+00:00",
+                "p_run_cutoff": "2026-09-27T00:00:00+00:00",
+                "p_batch_size": 1000,
+            },
+        )
+    ]
+
+
 def test_supabase_provider_writes_reject_silent_reset_trigger(monkeypatch):
     class EmptyWrite:
         def insert(self, _row):
