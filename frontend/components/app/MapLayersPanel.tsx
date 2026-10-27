@@ -67,7 +67,6 @@ export default function MapLayersPanel({
       <div className="cp-map-flyout__heading">
         <div>
           <strong>ข้อมูลบนแผนที่</strong>
-          <small>สัญลักษณ์แต่ละแบบมาจากคนละแหล่ง</small>
         </div>
         <button
           type="button"
@@ -91,28 +90,29 @@ export default function MapLayersPanel({
         <LayerButton
           active={showIndividualReports}
           icon="user"
-          iconSize={15}
+          iconSize={20}
           symbolClass="cp-layer-symbol--individual"
-          title="รายงานจากบุคคล"
-          description={`ภาพเครื่องวัดพร้อม GPS · ${individualReportCount} รายงาน`}
+          title="รายงานจากชุมชน"
+          description={`${individualReportCount} รายงาน · ภาพเครื่องวัดพร้อม GPS`}
           onClick={onToggleIndividualReports}
         />
         <LayerButton
           active={showHeatmap}
+          icon="activity"
           symbolClass="cp-layer-symbol--surface"
-          title="ค่าฝุ่นจากจุดใกล้สุด"
+          title="ค่าฝุ่นจุดใกล้สุด"
           description={
             heatmapStatus === "location_denied"
               ? "GPS ไม่พร้อม · แตะแผนที่หรือค้นหาสถานที่แทน"
               : heatmapStatus === "location_unavailable"
                 ? "GPS ไม่พร้อม · แตะแผนที่หรือค้นหาสถานที่แทน"
                 : heatmapStatus === "manual_reference"
-                  ? `ห่างจากจุดที่เลือก ${distanceLabel} · วงสีรัศมี 12 กม.`
+                  ? `ห่างจากจุดที่เลือก ${distanceLabel}`
                   : heatmapStatus === "no_location"
                     ? "เปิด GPS หรือแตะแผนที่เพื่อเลือกตำแหน่ง"
                     : heatmapStatus === "no_data"
                       ? "ยังไม่มีจุดข้อมูลบนแผนที่"
-                      : `ห่างจาก GPS ${distanceLabel} · วงสีรัศมี 12 กม.`
+                      : `ห่างจากคุณ ${distanceLabel}`
           }
           onClick={onToggleHeatmap}
         />
@@ -120,24 +120,36 @@ export default function MapLayersPanel({
           active={showFires}
           icon="satellite"
           symbolClass="cp-layer-symbol--fire"
-          title="จุดความร้อนจากดาวเทียม"
+          title="จุดความร้อนดาวเทียม"
           description={`NASA FIRMS · ${fireStatusLabel(fireStatus, fireCount)}`}
           onClick={onToggleFires}
         />
       </div>
 
-      <div className="cp-map-aqi-legend" aria-label="สีระดับ PM2.5 ห้าระดับ">
-        {AQI_LEGEND.map((item) => (
-          <span
-            key={item.range}
-            role="img"
-            aria-label={`${item.level} ${item.range}`}
-          >
-            <i aria-hidden style={{ background: item.color }} />
-            <b aria-hidden>{item.range}</b>
+      <details
+        className="cp-layer-legend"
+        aria-labelledby="cp-layer-legend-title"
+      >
+        <summary className="cp-layer-legend__heading cp-focus">
+          <strong id="cp-layer-legend-title">สีระดับ PM2.5</strong>
+          <span>
+            µg/m³ <AppIcon name="chevron" size={16} />
           </span>
-        ))}
-      </div>
+        </summary>
+        <div className="cp-layer-legend__items">
+          {AQI_LEGEND.map((item) => (
+            <div key={item.range} className="cp-layer-legend__item">
+              <i aria-hidden="true" style={{ background: item.color }} />
+              <span>{item.level}</span>
+              <b>{item.range}</b>
+            </div>
+          ))}
+        </div>
+        <p className="cp-map-layer-note">
+          วงสีใช้ค่าจากจุดตรวจที่ใกล้ตำแหน่งอ้างอิงที่สุด 1 จุด
+          จากสถานีทางการหรือรายงานชุมชน รัศมี 12 กม. เป็นขอบเขตการแสดงผล
+        </p>
+      </details>
 
       <div className="cp-map-layer-actions">
         <button
@@ -156,10 +168,6 @@ export default function MapLayersPanel({
           การตั้งค่า
         </Link>
       </div>
-      <p className="cp-map-layer-note">
-        สีหมุดและวงสีบอกระดับ PM2.5 ที่จุดตรวจ ·
-        วงสีรอบจุดใกล้ที่สุดไม่ใช่ค่าประมาณทั้งพื้นที่
-      </p>
     </section>
   );
 }
@@ -196,10 +204,11 @@ function LayerButton({
       type="button"
       className="cp-map-layer cp-focus"
       data-active={active}
-      aria-pressed={active}
+      role="switch"
+      aria-checked={active}
       onClick={onClick}
     >
-      <span className={`cp-layer-symbol ${symbolClass}`}>
+      <span aria-hidden="true" className={`cp-layer-symbol ${symbolClass}`}>
         {icon && <AppIcon name={icon} size={iconSize} />}
       </span>
       <span>

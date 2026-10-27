@@ -87,6 +87,11 @@ export const AQI_LEGEND = [
   { range: "0–15", level: "ดีมาก", color: "#3b82f6", glyph: "●" },
   { range: "15.1–25", level: "ดี", color: "#22c55e", glyph: "◆" },
   { range: "25.1–37.5", level: "ปานกลาง", color: "#eab308", glyph: "▲" },
-  { range: "37.6–75", level: "เริ่มมีผล", color: "#f97316", glyph: "■" },
-  { range: "≥75.1", level: "มีผลต่อสุขภาพ", color: "#ef4444", glyph: "✦" },
+  {
+    range: "37.6–75",
+    level: "เริ่มมีผลกระทบต่อสุขภาพ",
+    color: "#f97316",
+    glyph: "■",
+  },
+  { range: "≥75.1", level: "มีผลกระทบต่อสุขภาพ", color: "#ef4444", glyph: "✦" },
 ];

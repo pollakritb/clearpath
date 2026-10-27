@@ -116,12 +116,12 @@ export default function MapControls({
           title="กลับไปดูแผนที่ประเทศไทย"
         >
           <AppIcon name="map" size={19} />
-          <span>มุมกว้าง</span>
+          <span className="cp-mapctrls__label">มุมกว้าง</span>
         </button>
       )}
       <button
         type="button"
-        aria-label="ตำแหน่งของฉัน"
+        aria-label={locating ? "กำลังหาตำแหน่ง" : "ตำแหน่งของฉัน"}
         className="cp-mapctrls__locate cp-focus"
         onClick={locate}
         title="ไปที่ตำแหน่งของฉัน"
@@ -132,7 +132,9 @@ export default function MapControls({
         <span className="cp-mapctrls__locate-icon" aria-hidden="true">
           <AppIcon name="locate" size={19} />
         </span>
-        <span>{locating ? "กำลังหาตำแหน่ง" : "ไปตำแหน่งฉัน"}</span>
+        <span className="cp-mapctrls__label">
+          {locating ? "กำลังหาตำแหน่ง" : "ไปตำแหน่งฉัน"}
+        </span>
       </button>
       {(locationError || locationUnavailable) && (
         <p
