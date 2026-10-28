@@ -182,11 +182,11 @@ class ReportDraftSubmit(BaseModel):
     device_calibrated: bool = False
     calibrated_at: str | None = Field(default=None, max_length=10)
     measurement_environment: Literal["outdoor"] = "outdoor"
-    measurement_stable: bool = True
+    measurement_stable: bool = False
     near_emission_source: bool = False
     measurement_note: str | None = Field(default=None, max_length=300)
     averaging_period: Literal["instant", "1_minute", "5_minutes"] = "instant"
-    measurement_duration_seconds: int = Field(default=60, ge=60, le=600)
+    measurement_duration_seconds: int = Field(default=0, ge=0, le=600)
 
 
 class ReportRatingRequest(BaseModel):

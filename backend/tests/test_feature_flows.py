@@ -891,6 +891,15 @@ def test_gallery_report_preserves_time_and_keeps_metadata_private(
     exif = Image.Exif()
     exif[36867] = "2020:01:02 10:30:00"
     exif[36881] = "+07:00"
+    from PIL.TiffImagePlugin import IFDRational
+
+    exif[34853] = {
+        1: "N",
+        2: (IFDRational(13), IFDRational(48), IFDRational(0)),
+        3: "E",
+        4: (IFDRational(100), IFDRational(6), IFDRational(0)),
+    }
+
     original = BytesIO()
     image.save(original, format="JPEG", exif=exif)
     inspect = client.post(
@@ -921,7 +930,8 @@ def test_gallery_report_preserves_time_and_keeps_metadata_private(
     assert draft["captured_at"].startswith("2020-01-02T03:30:00")
     stored = local_store.get_report_draft(draft["id"], owner.id)
     assert stored["image_metadata"]["gps_at_submission"]["lat"] == 14.3
-    assert stored["image_metadata"]["measurement_location"]["lat"] == 13.8199
+    assert stored["image_metadata"]["measurement_location"]["lat"] == 13.8
+    assert stored["image_metadata"]["location_source"] == "exif"
     assert stored["capture_source"] == "gallery"
     assert stored["image_metadata"]["original_filename"] == "photo.jpg"
     assert stored["original_image_path"].startswith("originals/")
@@ -929,15 +939,14 @@ def test_gallery_report_preserves_time_and_keeps_metadata_private(
         f"/api/community/report-drafts/{draft['id']}/submit",
         json={
             "user_claimed_pm25": 42.5,
-            "measurement_stable": True,
-            "measurement_environment": "outdoor",
-            "measurement_duration_seconds": 60,
         },
     )
     assert submitted.status_code == 201, submitted.text
     report = submitted.json()["report"]
     assert report["status"] == "approved"
     assert report["capture_source"] == "gallery"
+    assert report["measurement_stable"] is False
+    assert report["measurement_duration_seconds"] == 0
     assert report["image_metadata"] is None
     assert report["is_fresh"] is False
     preview = client.get(draft["image_preview_url"])
@@ -966,9 +975,21 @@ def test_iphone_gallery_upload(feature_client, format, mime, filename):
     client, _become = feature_client
     image = Image.new("RGB", (32, 24), "blue")
     output = BytesIO()
+    from PIL.TiffImagePlugin import IFDRational
+
+    exif = Image.Exif()
+    exif[36867] = "2020:01:02 10:30:00"
+    exif[36881] = "+07:00"
+    exif[34853] = {
+        1: "N",
+        2: (IFDRational(13), IFDRational(48), IFDRational(0)),
+        3: "E",
+        4: (IFDRational(100), IFDRational(6), IFDRational(0)),
+    }
     image.save(
         output,
         format=format,
+        exif=exif,
         save_all=True,
         append_images=[Image.new("RGB", (16, 12), "red")],
     )
@@ -993,3 +1014,41 @@ def test_iphone_gallery_upload(feature_client, format, mime, filename):
         files={"image": (filename, content, mime)},
     )
     assert response.status_code == 201, response.text
+
+
+@pytest.mark.parametrize("missing", ["time", "gps"])
+def test_gallery_cannot_replace_missing_metadata_with_manual_values(
+    feature_client, missing
+):
+    from PIL.TiffImagePlugin import IFDRational
+
+    client, _become = feature_client
+    exif = Image.Exif()
+    if missing != "time":
+        exif[36867] = "2020:01:02 10:30:00"
+        exif[36881] = "+07:00"
+    if missing != "gps":
+        exif[34853] = {
+            1: "N",
+            2: (IFDRational(13), IFDRational(48), IFDRational(0)),
+            3: "E",
+            4: (IFDRational(100), IFDRational(6), IFDRational(0)),
+        }
+    output = BytesIO()
+    Image.new("RGB", (32, 24), "green").save(output, format="JPEG", exif=exif)
+    session = client.post("/api/community/capture-session").json()
+    response = client.post(
+        "/api/community/report-drafts",
+        data={
+            "lat": "13.8",
+            "lon": "100.1",
+            "gps_accuracy_m": "15",
+            "camera_session_token": session["token"],
+            "capture_source": "gallery",
+            "client_captured_at": datetime.now(UTC).isoformat(),
+            "client_timezone_offset_minutes": "-420",
+        },
+        files={"image": ("photo.jpg", output.getvalue(), "image/jpeg")},
+    )
+    assert response.status_code == 400, response.text
+    assert "ภาพนี้ไม่มีข้อมูล" in response.json()["detail"]

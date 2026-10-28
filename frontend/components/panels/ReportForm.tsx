@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
@@ -8,23 +8,18 @@ import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { T } from "@/frontend/lib/ui";
-import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
-import {
-  EMPTY_REPORT_DETAILS,
-  type ReportDetails,
-  type ReportLocation,
-} from "@/frontend/types/ui";
+import type { ReportLocation } from "@/frontend/types/ui";
 import type {
   ReportCreateResponse,
   ReportDraftResponse,
 } from "@/frontend/types";
 
 import CameraCapture, { type CameraEvidence } from "./CameraCapture";
-import DeviceFields from "./report/DeviceFields";
 import LocationCard from "./report/LocationCard";
 
 interface ReportFormProps {
   location: ReportLocation | null;
+  locationError?: string | null;
   onRequestLocation: () => void;
   onSubmitted: () => void;
 }
@@ -43,11 +38,12 @@ const OCR_STATUS_MESSAGES: Record<ReportDraftResponse["ocr_status"], string> = {
 
 export default function ReportForm({
   location,
+  locationError,
   onRequestLocation,
   onSubmitted,
 }: ReportFormProps) {
   const [evidence, setEvidence] = useState<CameraEvidence | null>(null);
-  const [details, setDetails] = useState<ReportDetails>(EMPTY_REPORT_DETAILS);
+  const analysisEvidence = useRef<CameraEvidence | null>(null);
   const [draft, setDraft] = useState<ReportDraftResponse | null>(null);
   const [claimedPm25, setClaimedPm25] = useState("");
   const [sending, setSending] = useState(false);
@@ -56,31 +52,18 @@ export default function ReportForm({
   const [completed, setCompleted] = useState<ReportCreateResponse | null>(null);
   const auth = useAuth();
   const loginPrompt = useLoginPrompt();
-  const googleProfile = googleReporterProfile(auth.user);
   const activeStep = draft ? 3 : evidence ? 2 : 1;
 
   const hasGps = location?.source === "gps";
-  const canAnalyze = Boolean(
-    evidence &&
-    hasGps &&
-    (location?.accuracy ?? Number.POSITIVE_INFINITY) <= 200 &&
-    !sending &&
-    (auth.user || auth.localDemo),
-  );
   const canSubmit = Boolean(
     draft &&
     draft.ocr_pm25 != null &&
     Number.isFinite(Number(claimedPm25)) &&
     Number(claimedPm25) >= 0 &&
     Number(claimedPm25) <= 1000 &&
-    details.measurementStable &&
     !sending &&
     (auth.user || auth.localDemo),
   );
-
-  function updateDetails(values: Partial<ReportDetails>) {
-    setDetails((current) => ({ ...current, ...values }));
-  }
 
   async function retakePhoto() {
     if (!draft || sending) return;
@@ -99,17 +82,21 @@ export default function ReportForm({
     }
   }
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    if (!evidence || !location) return;
-
+  useEffect(() => {
+    if (
+      !evidence ||
+      !location ||
+      location.source !== "gps" ||
+      (location.accuracy ?? Infinity) > 200 ||
+      (!auth.user && !auth.localDemo) ||
+      analysisEvidence.current === evidence
+    )
+      return;
+    analysisEvidence.current = evidence;
     setSending(true);
     setError(null);
-    setMessage(null);
-
-    try {
-      if (!draft) {
-        if (!canAnalyze) return;
+    void (async () => {
+      try {
         const form = new FormData();
         form.set("lat", String(evidence.measuredLocation?.lat ?? location.lat));
         form.set("lon", String(evidence.measuredLocation?.lon ?? location.lon));
@@ -136,6 +123,7 @@ export default function ReportForm({
           form.append("burst_images", file),
         );
         const nextDraft = await api.createReportDraft(form);
+        if (analysisEvidence.current !== evidence) return;
         setDraft(nextDraft);
         setClaimedPm25(
           nextDraft.ocr_pm25 == null ? "" : String(nextDraft.ocr_pm25),
@@ -147,21 +135,37 @@ export default function ReportForm({
               ? ""
               : ` ค่าที่อ่านได้ ${nextDraft.ocr_pm25} µg/m³`),
         );
-        return;
+      } catch (cause) {
+        if (analysisEvidence.current === evidence)
+          setError(
+            apiErrorMessage(cause, "อ่านภาพไม่สำเร็จ กรุณาเลือกภาพใหม่"),
+          );
+      } finally {
+        if (analysisEvidence.current === evidence) setSending(false);
       }
+    })();
+  }, [evidence, location, auth.user, auth.localDemo]);
+
+  useEffect(
+    () => () => {
+      analysisEvidence.current = null;
+    },
+    [],
+  );
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!draft || !canSubmit) return;
+    setSending(true);
+    setError(null);
+    setMessage(null);
+    try {
       if (!canSubmit) return;
       const result = await api.submitReportDraft(draft.id, {
         user_claimed_pm25: Number(claimedPm25),
-        hide_identity: !googleProfile || details.hideIdentity,
-        device_model: details.deviceModel.trim(),
-        device_calibrated: false,
-        calibrated_at: null,
-        measurement_environment: "outdoor",
-        measurement_stable: true,
-        near_emission_source: details.nearEmissionSource,
-        measurement_note: details.measurementNote.trim() || null,
-        averaging_period: details.averagingPeriod,
-        measurement_duration_seconds: details.measurementDurationSeconds,
+        hide_identity: true,
+        measurement_stable: false,
+        measurement_duration_seconds: 0,
       });
       setMessage(
         result.message +
@@ -173,7 +177,6 @@ export default function ReportForm({
       setEvidence(null);
       setDraft(null);
       setClaimedPm25("");
-      updateDetails({ measurementStable: false, hideIdentity: true });
       onSubmitted();
     } catch (cause) {
       setError(apiErrorMessage(cause, "ส่งรายงานไม่สำเร็จ"));
@@ -260,12 +263,12 @@ export default function ReportForm({
           {draft
             ? "ตรวจข้อมูลก่อนส่ง"
             : evidence
-              ? "ยืนยันตำแหน่งของรายงาน"
+              ? "กำลังอ่านข้อมูลอัตโนมัติ"
               : "เพิ่มภาพเครื่องวัด"}
         </h2>
         <p>
           {draft
-            ? "ตรวจค่าฝุ่นและข้อมูลเครื่องวัดให้ตรงกับภาพ"
+            ? "ตรวจข้อมูลที่ระบบอ่านได้แล้วกดส่งรายงาน"
             : evidence
               ? "เปิด GPS เพื่อบันทึกตำแหน่งขณะส่ง แยกจากตำแหน่งที่วัด"
               : "เตรียมเครื่องวัดให้นิ่งและให้ตัวเลขอยู่กลางภาพ"}
@@ -298,7 +301,7 @@ export default function ReportForm({
           <b>
             <AppIcon name="location" size={17} />
           </b>
-          <span>ยืนยัน GPS</span>
+          <span>อ่านข้อมูลอัตโนมัติ</span>
         </li>
         <li data-complete={Boolean(draft)}>
           <b>
@@ -352,6 +355,7 @@ export default function ReportForm({
                 })
               }
               onCaptured={(nextEvidence) => {
+                analysisEvidence.current = null;
                 setDraft(null);
                 setClaimedPm25("");
                 setEvidence(nextEvidence);
@@ -359,6 +363,8 @@ export default function ReportForm({
                 onRequestLocation();
               }}
               onCleared={() => {
+                analysisEvidence.current = null;
+                setSending(false);
                 setDraft(null);
                 setClaimedPm25("");
                 setEvidence(null);
@@ -374,14 +380,15 @@ export default function ReportForm({
                 <AppIcon name="location" size={19} />
               </b>
               <span>
-                <strong>ยืนยันตำแหน่ง</strong>
-                <small>ใช้ GPS เพื่อยืนยันว่าข้อมูลมาจากพื้นที่จริง</small>
+                <strong>GPS ขณะส่ง</strong>
+                <small>บันทึกจากอุปกรณ์ แยกจากตำแหน่งที่วัดในภาพ</small>
               </span>
             </div>
             <LocationCard
               location={location}
               onRequestLocation={onRequestLocation}
             />
+            {locationError && <p role="alert">{locationError}</p>}
           </div>
         )}
 
@@ -393,7 +400,7 @@ export default function ReportForm({
               </b>
               <span>
                 <strong>ตรวจรายละเอียดก่อนส่ง</strong>
-                <small>บอกข้อมูลเครื่องวัดเพื่อให้ระบบตรวจได้แม่นยำ</small>
+                <small>ระบบอ่านข้อมูลจากภาพให้อัตโนมัติ</small>
               </span>
             </div>
             {draft.ocr_pm25 == null ? (
@@ -412,102 +419,52 @@ export default function ReportForm({
               </div>
             ) : (
               <div className="cp-report-fields">
-                <label>
-                  ค่า PM2.5 ที่ OCR อ่านได้ (µg/m³)
-                  <input
-                    required
-                    inputMode="decimal"
-                    type="number"
-                    min="0"
-                    max="1000"
-                    step="0.1"
-                    value={claimedPm25}
-                    readOnly
-                  />
-                  <small>ระบบจะเผยแพร่ค่าที่อ่านจากภาพโดยอัตโนมัติ</small>
-                </label>
-                <div
-                  className="cp-report-identity-choice"
-                  data-hidden={!googleProfile || details.hideIdentity}
-                >
-                  <div className="cp-report-identity-choice__preview">
-                    {googleProfile?.avatarUrl && !details.hideIdentity ? (
-                      // The URL is restricted to HTTPS googleusercontent.com.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={googleProfile.avatarUrl}
-                        alt=""
-                        width={44}
-                        height={44}
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <span aria-hidden>
-                        <AppIcon name="user" size={21} />
-                      </span>
-                    )}
-                    <div>
-                      <strong>
-                        {googleProfile && !details.hideIdentity
-                          ? (googleProfile.displayName ?? "โปรไฟล์ Google")
-                          : "ไม่เปิดเผยตัวตน"}
-                      </strong>
-                      <small>
-                        {googleProfile
-                          ? details.hideIdentity
-                            ? "ชื่อและรูป Google จะไม่แสดงบนแผนที่"
-                            : "ชื่อและรูป Google จะแสดงเฉพาะรายงานนี้"
-                          : "ตั้งค่าบัญชี Google หากต้องการแสดงโปรไฟล์"}
-                      </small>
-                    </div>
-                  </div>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={!googleProfile || details.hideIdentity}
-                      disabled={!googleProfile}
-                      onChange={(event) =>
-                        updateDetails({ hideIdentity: event.target.checked })
-                      }
-                    />
-                    <span>ปิดบังตัวตนในรายงานนี้</span>
-                  </label>
+                <div aria-label="ค่าฝุ่นที่อ่านจากภาพ">
+                  <strong>PM2.5 {draft.ocr_pm25} µg/m³</strong>
+                  <p>ระบบจะเผยแพร่ค่าที่อ่านจากภาพโดยอัตโนมัติ</p>
+                  <p>
+                    เวลาที่วัด{" "}
+                    {new Date(draft.captured_at).toLocaleString("th-TH")}
+                  </p>
+                  {evidence?.measuredLocation && (
+                    <p>
+                      ตำแหน่งจากภาพ {evidence.measuredLocation.lat.toFixed(5)},{" "}
+                      {evidence.measuredLocation.lon.toFixed(5)}
+                    </p>
+                  )}
                 </div>
-                <DeviceFields details={details} onChange={updateDetails} />
+                <p>รายงานนี้ไม่เปิดเผยชื่อและรูปโปรไฟล์ของคุณ</p>
               </div>
             )}
           </div>
         )}
-        {(evidence || (draft && draft.ocr_pm25 != null)) && (
+        {draft && draft.ocr_pm25 != null && (
           <button
             type="submit"
-            disabled={draft ? !canSubmit : !canAnalyze}
+            disabled={!canSubmit}
             className="cp-report-submit cp-focus"
             style={{
               minHeight: "48px",
               border: "none",
               borderRadius: "11px",
-              background: (draft ? canSubmit : canAnalyze)
-                ? T.brandGrad
-                : "#bcc7c4",
+              background: canSubmit ? T.brandGrad : "#bcc7c4",
               color: "#fff",
               fontFamily: "inherit",
               fontWeight: 800,
               cursor: sending ? "wait" : "pointer",
             }}
           >
-            {sending
-              ? draft
-                ? "กำลังตรวจอัตโนมัติ…"
-                : "กำลังอ่านค่าจากภาพ…"
-              : draft
-                ? details.measurementStable
-                  ? "ยืนยันและส่งข้อมูล"
-                  : "ยืนยันวิธีวัดก่อนส่ง"
-                : hasGps
-                  ? "อ่านค่าจากภาพ"
-                  : "รอตำแหน่ง GPS…"}
+            {sending ? "กำลังส่งรายงาน…" : "ส่งรายงาน"}
           </button>
+        )}
+        {evidence && !draft && (
+          <p role="status">
+            {sending
+              ? "กำลังอ่านค่า PM2.5 จากภาพ…"
+              : hasGps
+                ? "กรุณาเปลี่ยนภาพหากอ่านข้อมูลไม่สำเร็จ"
+                : "กำลังรับตำแหน่ง GPS จากอุปกรณ์…"}
+          </p>
         )}
       </form>
 

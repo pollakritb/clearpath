@@ -40,7 +40,7 @@ export default function LocationCard({
       >
         {description}
       </div>
-      {!hasGps && (
+      {(!hasGps || (location?.accuracy ?? Infinity) > 200) && (
         <button
           type="button"
           onClick={onRequestLocation}

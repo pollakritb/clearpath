@@ -85,8 +85,15 @@ async def create_draft(
     time_source = "camera"
     if capture_source == "gallery":
         effective_time, time_source = photo_metadata.gallery_measurement_time(
-            metadata, client_captured_at, client_timezone_offset_minutes, received_at
+            metadata, received_at
         )
+        gps = metadata.get("exif_gps")
+        if not gps:
+            raise ValueError("ภาพนี้ไม่มีข้อมูลตำแหน่ง กรุณาเลือกภาพต้นฉบับหรือถ่ายใหม่ผ่าน ClearPath")
+        # Submitted lat/lon are transport fields, never authoritative for gallery evidence.
+        lat, lon = gps["lat"], gps["lon"]
+        if not is_thailand_area(lat, lon):
+            raise ValueError("ขณะนี้รับรายงานเฉพาะพิกัดในประเทศไทย")
         clock_warning = False
     metadata.update(
         {
@@ -105,17 +112,7 @@ async def create_draft(
                 "accuracy_m": gps_accuracy_m,
             },
             "measurement_location": {"lat": lat, "lon": lon},
-            "location_source": "camera_gps"
-            if capture_source == "camera"
-            else (
-                "exif_confirmed"
-                if metadata.get("exif_gps")
-                and haversine_km(
-                    lat, lon, metadata["exif_gps"]["lat"], metadata["exif_gps"]["lon"]
-                )
-                < 0.001
-                else "user_confirmed"
-            ),
+            "location_source": "camera_gps" if capture_source == "camera" else "exif",
         }
     )
     fingerprint = await run_in_threadpool(
@@ -253,12 +250,6 @@ async def submit_draft(
     expires_at = datetime.fromisoformat(str(draft["expires_at"]).replace("Z", "+00:00"))
     if expires_at < datetime.now(UTC):
         raise ValueError("draft หมดอายุ กรุณาถ่ายภาพใหม่")
-    if values.get("measurement_environment") != "outdoor" or not values.get(
-        "measurement_stable"
-    ):
-        raise ValueError("รายงานสาธารณะต้องวัดกลางแจ้งและรอค่าบนเครื่องให้คงที่")
-    if int(values.get("measurement_duration_seconds") or 0) < 60:
-        raise ValueError("กรุณารอให้เครื่องวัดทำงานอย่างน้อย 60 วินาที")
     if values.get("device_calibrated") and (
         not values.get("device_model") or not values.get("calibrated_at")
     ):
@@ -299,7 +290,7 @@ async def submit_draft(
         official_stations=official,
         reporter_reputation=int(profile.get("reputation_score") or 0),
         measurement_environment="outdoor",
-        measurement_stable=True,
+        measurement_stable=bool(values.get("measurement_stable")),
         near_emission_source=bool(values.get("near_emission_source")),
         gps_accuracy_m=float(draft["gps_accuracy_m"]),
         duplicate_detected=bool(draft.get("duplicate_of_report_id")),
@@ -379,10 +370,10 @@ async def submit_draft(
         "calibrated_at": values.get("calibrated_at"),
         "averaging_period": values.get("averaging_period") or "instant",
         "measurement_duration_seconds": int(
-            values.get("measurement_duration_seconds") or 60
+            values.get("measurement_duration_seconds") or 0
         ),
         "measurement_environment": "outdoor",
-        "measurement_stable": True,
+        "measurement_stable": bool(values.get("measurement_stable")),
         "near_emission_source": bool(values.get("near_emission_source")),
         "measurement_note": (values.get("measurement_note") or "").strip()[:300]
         or None,
@@ -396,6 +387,9 @@ async def submit_draft(
         "peer_up": 0,
         "peer_down": 0,
         "moderation_checks": {
+            "measurement_context_unverified": not bool(
+                values.get("measurement_stable")
+            ),
             f"ocr_status_{ocr_status}": True,
             "ocr_evidence_ready": ocr_status == "ready",
             "unexpected_exif": bool(draft.get("unexpected_exif")),

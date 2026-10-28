@@ -30,7 +30,7 @@ beforeEach(() => {
     height: 50,
     mime: "image/jpeg",
     size_bytes: 100,
-    exif_captured_at: null,
+    exif_captured_at: "2020-01-02T10:30:00+07:00",
     exif_local_time: null,
     exif_timezone: null,
     exif_gps: { lat: 13.8, lon: 100.1 },
@@ -66,7 +66,7 @@ describe("gallery evidence", () => {
     resolveMetadata({
       preview_data_url: "data:image/jpeg;base64,cHJldmlldw==",
       exif_local_time: "2020-01-02T10:30:00",
-      exif_captured_at: null,
+      exif_captured_at: "2020-01-02T10:30:00+07:00",
       exif_gps: { lat: 13.8, lon: 100.1 },
     });
     const image = await screen.findByRole("img");
@@ -74,7 +74,6 @@ describe("gallery evidence", () => {
       "data:image/jpeg;base64,cHJldmlldw==",
     );
     expect(URL.createObjectURL).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "ใช้ภาพและเวลานี้" }));
     await waitFor(() => expect(onCaptured).toHaveBeenCalledTimes(1));
     expect(onCaptured.mock.calls[0][0].file).toBe(file);
   });
@@ -83,36 +82,62 @@ describe("gallery evidence", () => {
     ["meter.jpg", "image/jpeg"],
     ["IMG_1234.HEIC", "image/heic"],
     ["IMG_1234.HEIF", ""],
-  ])("requires time confirmation for %s (%s)", async (filename, mime) => {
-    const onCaptured = vi.fn();
-    const { container } = render(
-      <CameraCapture onCaptured={onCaptured} onCleared={vi.fn()} />,
-    );
-    const file = new File(["photo"], filename, {
-      type: mime,
-      lastModified: 1000,
-    });
-    fireEvent.change(container.querySelector('input[type="file"]')!, {
-      target: { files: [file] },
-    });
-    await screen.findByText(/ไม่พบเวลาถ่ายในภาพ/);
-    const time = container.querySelector(
-      'input[type="datetime-local"]',
-    ) as HTMLInputElement;
-    expect(time.value).toBe("");
-    expect(onCaptured).not.toHaveBeenCalled();
-    fireEvent.change(time, { target: { value: "2020-01-02T10:30" } });
-    fireEvent.click(screen.getByRole("button", { name: "ใช้ภาพและเวลานี้" }));
-    await waitFor(() => expect(onCaptured).toHaveBeenCalledTimes(1));
-    expect(onCaptured.mock.calls[0][0]).toMatchObject({
-      file,
-      source: "gallery",
-      burstFiles: [],
-      measuredLocation: { lat: 13.8, lon: 100.1 },
-      capturedAt: new Date("2020-01-02T10:30").toISOString(),
-    });
-    expect(onCaptured.mock.calls[0][0].fileLastModifiedAt).toBe(
-      "1970-01-01T00:00:01.000Z",
-    );
-  });
+  ])(
+    "automatically uses photo time and GPS for %s (%s)",
+    async (filename, mime) => {
+      const onCaptured = vi.fn();
+      const { container } = render(
+        <CameraCapture onCaptured={onCaptured} onCleared={vi.fn()} />,
+      );
+      const file = new File(["photo"], filename, {
+        type: mime,
+        lastModified: 1000,
+      });
+      fireEvent.change(container.querySelector('input[type="file"]')!, {
+        target: { files: [file] },
+      });
+      await waitFor(() => expect(onCaptured).toHaveBeenCalledTimes(1));
+      expect(onCaptured.mock.calls[0][0]).toMatchObject({
+        file,
+        source: "gallery",
+        burstFiles: [],
+        measuredLocation: { lat: 13.8, lon: 100.1 },
+        capturedAt: "2020-01-02T03:30:00.000Z",
+      });
+      expect(
+        container.querySelector('input:not([type="file"]), textarea, select'),
+      ).toBeNull();
+      expect(screen.queryByText("ใช้ตำแหน่งปัจจุบัน")).toBeNull();
+    },
+  );
+
+  it.each([
+    [null, { lat: 13.8, lon: 100.1 }, "เวลาถ่าย"],
+    ["2020-01-02T10:30:00+07:00", null, "ตำแหน่ง"],
+    [null, null, "เวลาถ่ายและตำแหน่ง"],
+    ["2030-01-02T10:30:00+07:00", { lat: 13.8, lon: 100.1 }, "เวลาถ่ายในภาพ"],
+  ])(
+    "blocks incomplete or invalid photo metadata",
+    async (time, gps, message) => {
+      mocks.metadata.mockResolvedValueOnce({
+        exif_captured_at: time,
+        exif_gps: gps,
+      });
+      const onCaptured = vi.fn();
+      const { container } = render(
+        <CameraCapture onCaptured={onCaptured} onCleared={vi.fn()} />,
+      );
+      fireEvent.change(container.querySelector('input[type="file"]')!, {
+        target: {
+          files: [new File(["photo"], "photo.jpg", { type: "image/jpeg" })],
+        },
+      });
+      expect((await screen.findByRole("alert")).textContent).toContain(message);
+      expect(onCaptured).not.toHaveBeenCalled();
+      expect(mocks.session).not.toHaveBeenCalled();
+      expect(
+        container.querySelector('input:not([type="file"]), textarea, select'),
+      ).toBeNull();
+    },
+  );
 });

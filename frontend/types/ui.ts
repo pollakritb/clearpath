@@ -7,26 +7,6 @@ export interface ReportLocation {
   accuracy?: number;
 }
 
-export interface ReportDetails {
-  hideIdentity: boolean;
-  deviceModel: string;
-  nearEmissionSource: boolean;
-  measurementNote: string;
-  measurementStable: boolean;
-  averagingPeriod: "instant" | "1_minute" | "5_minutes";
-  measurementDurationSeconds: number;
-}
-
-export const EMPTY_REPORT_DETAILS: ReportDetails = {
-  hideIdentity: true,
-  deviceModel: "",
-  nearEmissionSource: false,
-  measurementNote: "",
-  measurementStable: false,
-  averagingPeriod: "instant",
-  measurementDurationSeconds: 60,
-};
-
 export interface AdminSyncRun {
   id: string;
   source: string;

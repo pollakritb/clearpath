@@ -47,27 +47,33 @@ def test_metadata_missing_is_unknown_not_upload_time():
 def test_old_exif_cannot_be_relabelled_as_fresh():
     now = datetime(2026, 10, 28, tzinfo=UTC)
     effective, source = gallery_measurement_time(
-        read_photo_metadata(jpeg_with_exif()), now.isoformat(), -420, now
+        read_photo_metadata(jpeg_with_exif()), now
     )
     assert effective == datetime(2020, 1, 2, 3, 30, tzinfo=UTC)
     assert source == "exif"
 
 
-def test_missing_timezone_is_explicitly_attributed_to_user():
-    now = datetime(2026, 10, 28, tzinfo=UTC)
-    effective, source = gallery_measurement_time(
-        {"exif_local_time": "2020-01-02T10:30:00"}, now.isoformat(), -420, now
-    )
-    assert effective == datetime(2020, 1, 2, 3, 30, tzinfo=UTC)
-    assert source == "exif_user_timezone"
+def test_missing_time_cannot_be_replaced_with_current_time():
+    with pytest.raises(ValueError, match="ไม่มีข้อมูลเวลาถ่าย"):
+        gallery_measurement_time({}, datetime(2026, 10, 28, tzinfo=UTC))
+
+
+def test_local_time_without_location_cannot_use_uploaders_timezone():
+    with pytest.raises(ValueError, match="ไม่มีข้อมูลเวลาถ่าย"):
+        gallery_measurement_time(
+            {"exif_local_time": "2020-01-02T10:30:00"},
+            datetime(2026, 10, 28, tzinfo=UTC),
+        )
 
 
 @pytest.mark.parametrize(
-    "claimed", [None, "invalid", "2026-10-28T00:00:00", "2030-01-01T00:00:00Z"]
+    "captured_at", ["invalid", "2026-10-28T00:00:00", "2030-01-01T00:00:00Z"]
 )
-def test_gallery_requires_explicit_valid_measurement_time(claimed):
+def test_invalid_or_future_photo_time_is_rejected(captured_at):
     with pytest.raises(ValueError):
-        gallery_measurement_time({}, claimed, -420, datetime(2026, 10, 28, tzinfo=UTC))
+        gallery_measurement_time(
+            {"exif_captured_at": captured_at}, datetime(2026, 10, 28, tzinfo=UTC)
+        )
 
 
 def test_extracts_gps_from_original_and_removes_it_from_preview():
@@ -75,6 +81,7 @@ def test_extracts_gps_from_original_and_removes_it_from_preview():
 
     image = Image.new("RGB", (20, 20), "green")
     exif = Image.Exif()
+    exif[36867] = "2020:01:02 10:30:00"
     exif[34853] = {
         1: "N",
         2: (IFDRational(13), IFDRational(48), IFDRational(0)),
@@ -84,7 +91,13 @@ def test_extracts_gps_from_original_and_removes_it_from_preview():
     output = BytesIO()
     image.save(output, format="JPEG", exif=exif)
     content = output.getvalue()
-    assert read_photo_metadata(content)["exif_gps"] == {"lat": 13.8, "lon": 100.1}
+    metadata = read_photo_metadata(content)
+    assert metadata["exif_gps"] == {"lat": 13.8, "lon": 100.1}
+    assert metadata["exif_captured_at"] == "2020-01-02T10:30:00+07:00"
+    _time, source = gallery_measurement_time(
+        metadata, datetime(2026, 10, 28, tzinfo=UTC)
+    )
+    assert source == "exif_thailand_timezone"
     assert read_photo_metadata(clean_photo(content))["exif_gps"] is None
 
 

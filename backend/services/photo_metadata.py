@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import base64
 import io
-from datetime import datetime
+from datetime import UTC, datetime, timedelta, timezone
 from math import isfinite
 
 from PIL import Image, ImageOps
 
+from ..algorithms.trust import is_thailand_area
 from .image_fingerprint import detect_image_mime
 
 
@@ -43,6 +44,19 @@ def read_photo_metadata(content: bytes) -> dict:
                 coords[key] = value
         except (KeyError, TypeError, ValueError, ZeroDivisionError, IndexError):
             coords = {}
+        # A local EXIF clock has no timezone. Only resolve it from Thai GPS,
+        # never from the uploader's browser, current GPS or file modification time.
+        if (
+            local_time
+            and not captured_at
+            and coords
+            and is_thailand_area(coords["lat"], coords["lon"])
+        ):
+            captured_at = (
+                datetime.fromisoformat(local_time)
+                .replace(tzinfo=timezone(timedelta(hours=7)))
+                .isoformat()
+            )
         return {
             "mime": mime,
             "size_bytes": len(content),
@@ -84,39 +98,23 @@ def inspect_photo(content: bytes) -> dict:
 
 def gallery_measurement_time(
     metadata: dict,
-    claimed_at: str | None,
-    offset_minutes: int | None,
     received_at: datetime,
 ) -> tuple[datetime, str]:
-    """Never relabel an EXIF-dated old photo as a fresh upload."""
-    from datetime import UTC, timedelta, timezone
-
+    """Use original EXIF only; missing evidence cannot be replaced by user input."""
+    captured_at = metadata.get("exif_captured_at")
+    if not captured_at:
+        raise ValueError("ภาพนี้ไม่มีข้อมูลเวลาถ่าย กรุณาเลือกภาพต้นฉบับหรือถ่ายใหม่ผ่าน ClearPath")
     try:
-        claimed = datetime.fromisoformat((claimed_at or "").replace("Z", "+00:00"))
-        if claimed.tzinfo is None:
+        captured = datetime.fromisoformat(captured_at.replace("Z", "+00:00"))
+        if captured.tzinfo is None:
             raise ValueError("timezone_required")
-        claimed = claimed.astimezone(UTC)
-    except ValueError as exc:
-        raise ValueError("กรุณาระบุวันเวลาที่วัดพร้อมเขตเวลา") from exc
-    if claimed > received_at + timedelta(minutes=5):
-        raise ValueError("เวลาที่วัดต้องไม่อยู่ในอนาคต")
-    if (
-        metadata.get("exif_local_time")
-        and not metadata.get("exif_captured_at")
-        and offset_minutes is None
-    ):
-        raise ValueError("กรุณายืนยันเขตเวลาของเวลาถ่ายในภาพ")
-    exif_time = None
-    if metadata.get("exif_captured_at"):
-        exif_time = datetime.fromisoformat(metadata["exif_captured_at"]).astimezone(UTC)
-    elif metadata.get("exif_local_time") and offset_minutes is not None:
-        exif_time = (
-            datetime.fromisoformat(metadata["exif_local_time"])
-            .replace(tzinfo=timezone(timedelta(minutes=-offset_minutes)))
-            .astimezone(UTC)
-        )
-    if exif_time is not None and exif_time <= claimed:
-        return exif_time, "exif" if metadata.get(
-            "exif_captured_at"
-        ) else "exif_user_timezone"
-    return claimed, "user_confirmed"
+        captured = captured.astimezone(UTC)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "เวลาถ่ายในภาพไม่ถูกต้อง กรุณาเลือกภาพต้นฉบับหรือถ่ายใหม่ผ่าน ClearPath"
+        ) from exc
+    if captured > received_at + timedelta(minutes=5):
+        raise ValueError("เวลาถ่ายในภาพอยู่ในอนาคต กรุณาเลือกภาพต้นฉบับหรือถ่ายใหม่ผ่าน ClearPath")
+    return captured, "exif" if metadata.get(
+        "exif_timezone"
+    ) else "exif_thailand_timezone"
