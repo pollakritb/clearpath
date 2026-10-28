@@ -44,7 +44,7 @@ describe("place air assessment", () => {
       new Date("2026-10-05T10:10:00Z"),
     );
     expect(result.value).toBe(20);
-    expect(result.method).toBe("nearest_station");
+    expect(result.method).toBe("idw");
     expect(result.stations).toHaveLength(1);
     expect(result.reports).toHaveLength(1);
   });
@@ -80,7 +80,7 @@ describe("place air assessment", () => {
     expect(result.nearestStation?.distanceKm).toBeGreaterThan(PLACE_RADIUS_KM);
   });
 
-  it("uses the measured value of the closest fresh official station", () => {
+  it("weights nearby stations by inverse-square haversine distance", () => {
     const second = { ...baseStation, id: "official-2", lon: 100.12, pm25: 40 };
     const result = assessPlaceAir(
       13.8,
@@ -89,7 +89,44 @@ describe("place air assessment", () => {
       [report],
       new Date("2026-10-05T10:10:00Z"),
     );
-    expect(result.method).toBe("nearest_station");
+    expect(result.method).toBe("idw");
+    expect(result.value).toBeCloseTo(22, 3);
+    expect(result.contributors[0].weight).toBeCloseTo(0.9, 4);
+    expect(result.contributors[1].weight).toBeCloseTo(0.1, 4);
+  });
+
+  it("uses the exact station value without division by zero", () => {
+    const result = assessPlaceAir(
+      13.8,
+      100.1,
+      [baseStation, { ...baseStation, id: "other", lat: 13.81, pm25: 80 }],
+      [],
+      new Date("2026-10-05T10:10:00Z"),
+    );
     expect(result.value).toBe(20);
+    expect(result.contributors).toEqual([
+      { stationId: baseStation.id, distanceKm: 0, pm25: 20, weight: 1 },
+    ]);
+  });
+
+  it("excludes stale readings from the weighted estimate", () => {
+    const result = assessPlaceAir(
+      13.8,
+      100.105,
+      [
+        baseStation,
+        {
+          ...baseStation,
+          id: "stale",
+          lon: 100.106,
+          pm25: 500,
+          data_status: "expired",
+        },
+      ],
+      [],
+      new Date("2026-10-05T10:10:00Z"),
+    );
+    expect(result.value).toBe(20);
+    expect(result.contributors).toHaveLength(1);
   });
 });

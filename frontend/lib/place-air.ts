@@ -19,7 +19,13 @@ export interface NearbyReport {
 
 export interface PlaceAir {
   value: number | null;
-  method: "nearest_station" | "unavailable";
+  method: "idw" | "unavailable";
+  contributors: {
+    stationId: string;
+    distanceKm: number;
+    pm25: number;
+    weight: number;
+  }[];
   stations: NearbyStation[];
   reports: NearbyReport[];
   nearestStation: NearbyStation | null;
@@ -59,7 +65,23 @@ export function assessPlaceAir(
   const nearby = allStations.filter(
     (item) => item.distanceKm <= PLACE_RADIUS_KM,
   );
-  const closestUsable = nearby.find((item) => item.usable);
+  const usable = nearby.filter((item) => item.usable);
+  // Haversine distance in km, inverse-square weights (p=2).
+  // An exact match takes the observed value instead of dividing by zero.
+  const exact = usable.find((item) => item.distanceKm < 1e-9);
+  const selected = exact ? [exact] : usable;
+  const nearestDistance = selected[0]?.distanceKm ?? 0;
+  // Scaling every weight by the same distance² preserves IDW and avoids overflow.
+  const weights = selected.map((item) =>
+    exact ? 1 : (nearestDistance / item.distanceKm) ** 2,
+  );
+  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+  const contributors = selected.map((item, index) => ({
+    stationId: item.station.id,
+    distanceKm: item.distanceKm,
+    pm25: item.station.pm25!,
+    weight: weights[index] / weightSum,
+  }));
   const nearbyReports = reports
     .filter(
       (report) =>
@@ -81,11 +103,14 @@ export function assessPlaceAir(
     .filter((item) => item.distanceKm <= PLACE_RADIUS_KM)
     .sort((a, b) => a.distanceKm - b.distanceKm);
 
-  const value = closestUsable?.station.pm25 ?? null;
+  const value = contributors.length
+    ? contributors.reduce((sum, item) => sum + item.weight * item.pm25, 0)
+    : null;
 
   return {
     value,
-    method: value == null ? "unavailable" : "nearest_station",
+    method: value == null ? "unavailable" : "idw",
+    contributors,
     stations: nearby,
     reports: nearbyReports,
     nearestStation: allStations[0] ?? null,

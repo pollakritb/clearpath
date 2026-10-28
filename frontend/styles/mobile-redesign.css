@@ -1485,3 +1485,30 @@
     width: min(260px, calc(100vw - 24px));
   }
 }
+
+.cp-place-card__idw {
+  margin: 12px 0;
+  border: 1px solid #dce8e3;
+  border-radius: 12px;
+  padding: 12px;
+  background: #f7faf8;
+  color: #34544b;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.cp-place-card__idw summary {
+  min-height: 32px;
+  cursor: pointer;
+  color: #176d62;
+  font-weight: 600;
+}
+
+.cp-place-card__idw p {
+  margin: 10px 0;
+}
+
+.cp-place-card__idw ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+}
