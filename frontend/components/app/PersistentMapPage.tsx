@@ -21,7 +21,7 @@ export default function PersistentMapPage() {
   if (!hasVisitedMap) return null;
 
   return (
-    <div hidden={!isMapPage} aria-hidden={!isMapPage}>
+    <div hidden={!isMapPage} inert={!isMapPage}>
       <MapPageClient
         showFiresInitially={searchParams.get("layer") === "fires"}
       />

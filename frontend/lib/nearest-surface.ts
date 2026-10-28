@@ -14,6 +14,7 @@ export function nearestHeatmapPoint(
   location: { lat: number; lon: number } | null,
   stations: Station[],
   reports: CommunityReport[],
+  excludedUserId: string | null = null,
 ): HeatmapPoint | null {
   if (!location) return null;
 
@@ -42,6 +43,9 @@ export function nearestHeatmapPoint(
   };
 
   for (const station of stations) consider(station, "station");
-  for (const report of reports) consider(report, "community");
+  for (const report of reports) {
+    if (excludedUserId && report.user_id === excludedUserId) continue;
+    consider(report, "community");
+  }
   return nearest;
 }

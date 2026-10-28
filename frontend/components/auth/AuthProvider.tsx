@@ -135,3 +135,11 @@ export function useAuth(): AuthState {
   if (!value) throw new Error("useAuth must be used inside AuthProvider");
   return value;
 }
+
+/** Identity used only to exclude the viewer's own public reports in the UI. */
+export function useCurrentUserId(): string | null {
+  const { user, localDemo } = useAuth();
+  return (
+    user?.id ?? (localDemo ? "00000000-0000-0000-0000-000000000001" : null)
+  );
+}

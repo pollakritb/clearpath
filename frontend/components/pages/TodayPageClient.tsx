@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
+import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
+import { nearestHeatmapPoint } from "@/frontend/lib/nearest-surface";
 import NationalSummary from "@/frontend/components/app/NationalSummary";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import AQICard from "@/frontend/components/panels/AQICard";
@@ -13,37 +16,6 @@ import { useHistory } from "@/frontend/hooks/useHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { useWeather } from "@/frontend/hooks/useWeather";
 import { haversineKm } from "@/frontend/lib/distance";
-import type { Station } from "@/frontend/types";
-
-const MAX_AUTOMATIC_REFERENCE_DISTANCE_KM = 30;
-
-function nearestReferenceStation(
-  stations: Station[],
-  location: { lat: number; lon: number } | null,
-) {
-  if (!location) return null;
-  const nearest = stations
-    .filter(
-      (station) =>
-        station.in_service_area &&
-        station.eligible_for_surface &&
-        station.pm25 != null,
-    )
-    .map((station) => ({
-      station,
-      distanceKm: haversineKm(
-        location.lat,
-        location.lon,
-        station.lat,
-        station.lon,
-      ),
-    }))
-    .filter(
-      ({ distanceKm }) => distanceKm <= MAX_AUTOMATIC_REFERENCE_DISTANCE_KM,
-    )
-    .sort((left, right) => left.distanceKm - right.distanceKm)[0];
-  return nearest?.station ?? null;
-}
 
 export default function TodayPageClient({
   stationId,
@@ -54,6 +26,8 @@ export default function TodayPageClient({
 }) {
   const router = useRouter();
   const pm25 = usePm25();
+  const community = useCommunityMapData();
+  const currentUserId = useCurrentUserId();
   const weather = useWeather();
   const history = useHistory();
   const forecast = useForecast();
@@ -72,12 +46,36 @@ export default function TodayPageClient({
         : null,
     [serviceAreaStations, stationId],
   );
-  const automaticStation = useMemo(
+  const nearestPoint = useMemo(
     () =>
-      nearestReferenceStation(serviceAreaStations, currentLocation.location),
-    [currentLocation.location, serviceAreaStations],
+      nearestHeatmapPoint(
+        currentLocation.location,
+        pm25.stations,
+        community.reports,
+        currentUserId,
+      ),
+    [currentLocation.location, pm25.stations, community.reports, currentUserId],
   );
+  const automaticStation =
+    nearestPoint?.source === "station"
+      ? (pm25.stations.find((station) => station.id === nearestPoint.id) ??
+        null)
+      : null;
+  const selectedReport =
+    !stationId && nearestPoint?.source === "community"
+      ? (community.reports.find((report) => report.id === nearestPoint.id) ??
+        null)
+      : null;
   const selectedStation = routeStation ?? automaticStation;
+  const nearestDistanceKm =
+    currentLocation.location && nearestPoint
+      ? haversineKm(
+          currentLocation.location.lat,
+          currentLocation.location.lon,
+          nearestPoint.lat,
+          nearestPoint.lon,
+        )
+      : null;
   const forecastTarget = useMemo(() => {
     if (stationId) return routeStation?.id ?? null;
     if (area) return { lat: area.lat, lon: area.lon };
@@ -126,7 +124,7 @@ export default function TodayPageClient({
 
   const refresh = useCallback(() => {
     currentLocation.request();
-    const tasks: Promise<unknown>[] = [pm25.refresh()];
+    const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
     if (forecastTarget) tasks.push(forecast.load(forecastTarget, 120, true));
     const weatherPosition = area ?? currentLocation.location ?? selectedStation;
     if (weatherPosition) {
@@ -138,6 +136,7 @@ export default function TodayPageClient({
     void Promise.allSettled(tasks);
   }, [
     currentLocation,
+    community,
     area,
     forecast,
     forecastTarget,
@@ -168,11 +167,15 @@ export default function TodayPageClient({
         </div>
         <AQICard
           station={selectedStation}
+          report={selectedReport}
+          distanceKm={stationId ? null : nearestDistanceKm}
           weather={weather.data}
           weatherLoading={weather.loading}
-          showHistory={showHistory}
+          showHistory={showHistory && !selectedReport}
           onToggleHistory={toggleHistory}
-          historyPoints={history.points}
+          historyPoints={
+            history.stationId === selectedStation?.id ? history.points : []
+          }
           historyLoading={history.loading}
           onOpenMap={() => router.push("/")}
         />

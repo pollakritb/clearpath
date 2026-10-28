@@ -4,10 +4,17 @@ import HistoryChart from "@/frontend/components/panels/HistoryChart";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { T } from "@/frontend/lib/ui";
-import type { HistoryPoint, Station, Weather } from "@/frontend/types";
+import type {
+  CommunityReport,
+  HistoryPoint,
+  Station,
+  Weather,
+} from "@/frontend/types";
 
 export interface AQICardProps {
   station: Station | null;
+  report?: CommunityReport | null;
+  distanceKm?: number | null;
   weather: Weather | null;
   weatherLoading: boolean;
   showHistory: boolean;
@@ -37,6 +44,8 @@ function WxStat({ label, value }: { label: string; value: string }) {
 
 export default function AQICard({
   station,
+  report = null,
+  distanceKm = null,
   weather,
   weatherLoading,
   showHistory,
@@ -46,7 +55,7 @@ export default function AQICard({
   onOpenMap,
 }: AQICardProps) {
   // empty state
-  if (!station) {
+  if (!station && !report) {
     return (
       <div
         style={{
@@ -71,10 +80,10 @@ export default function AQICard({
             color: T.ink,
           }}
         >
-          ยังไม่ได้เลือกสถานี
+          ยังไม่มีจุดอ้างอิงใกล้คุณ
         </div>
         <div style={{ fontSize: ".78em" }}>
-          เลือกสถานีใกล้คุณเพื่อดูค่า PM2.5 และสภาพอากาศแบบละเอียด
+          เปิด GPS เพื่อดูค่าจากสถานีหรือรายงานชุมชนที่ใกล้คุณที่สุด
         </div>
         <button
           type="button"
@@ -87,8 +96,14 @@ export default function AQICard({
     );
   }
 
-  const cls = classifyPm25(station.pm25);
-  const name = station.name_th ?? station.name_en ?? station.id;
+  const reading = report ?? station!;
+  const cls = classifyPm25(reading.pm25);
+  const name = report
+    ? `รายงานจาก ${report.display_name ?? "ผู้ใช้ชุมชน"}`
+    : (station!.name_th ?? station!.name_en ?? station!.id);
+  const sourceLabel = report ? "รายงานชุมชน" : "สถานี Air4Thai";
+  const measuredAt = report?.captured_at ?? station?.recorded_at;
+
   const wind = weather ? `${Math.round(weather.wind_speed)}` : "—";
   const temp = weatherLoading
     ? "…"
@@ -103,7 +118,7 @@ export default function AQICard({
 
   return (
     <section
-      aria-label="คุณภาพอากาศสถานีที่เลือก"
+      aria-label="คุณภาพอากาศจากจุดอ้างอิงที่ใกล้ที่สุด"
       className="cp-anim-rise"
       style={{
         border: `1px solid ${T.line}`,
@@ -124,9 +139,25 @@ export default function AQICard({
         >
           <div>
             <div style={{ fontWeight: 700, fontSize: "1em" }}>{name}</div>
-            {station.province && (
+            <div style={{ fontSize: ".78em", marginTop: 4 }}>
+              {sourceLabel}
+              {distanceKm != null &&
+                ` · ห่างจากคุณ ${distanceKm < 0.1 ? "น้อยกว่า 0.1" : distanceKm.toFixed(1)} กม.`}
+            </div>
+            {measuredAt && !Number.isNaN(Date.parse(measuredAt)) && (
+              <div style={{ fontSize: ".75em", marginTop: 2 }}>
+                วัดเมื่อ{" "}
+                {new Date(measuredAt).toLocaleString("th-TH", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+            )}
+            {reading.province && (
               <div style={{ fontSize: ".78em", opacity: 0.9 }}>
-                จ.{station.province}
+                จ.{reading.province}
               </div>
             )}
           </div>
@@ -162,7 +193,7 @@ export default function AQICard({
               lineHeight: 0.9,
             }}
           >
-            {station.pm25 ?? "—"}
+            {reading.pm25 ?? "—"}
           </span>
           <span
             style={{ fontSize: ".85em", opacity: 0.9, paddingBottom: ".5em" }}
@@ -226,32 +257,34 @@ export default function AQICard({
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={onToggleHistory}
-          className="cp-focus"
-          style={{
-            width: "100%",
-            minHeight: "44px",
-            border: `1px solid ${T.line}`,
-            background: T.chip,
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontWeight: 600,
-            fontSize: ".86em",
-            color: T.ink,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: ".45em",
-          }}
-        >
-          <AppIcon aria-hidden name="activity" size={18} />
-          <span>{showHistory ? "ซ่อนกราฟ" : "ดูกราฟย้อนหลัง 24 ชม."}</span>
-        </button>
+        {!report && (
+          <button
+            type="button"
+            onClick={onToggleHistory}
+            className="cp-focus"
+            style={{
+              width: "100%",
+              minHeight: "44px",
+              border: `1px solid ${T.line}`,
+              background: T.chip,
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontWeight: 600,
+              fontSize: ".86em",
+              color: T.ink,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: ".45em",
+            }}
+          >
+            <AppIcon aria-hidden name="activity" size={18} />
+            <span>{showHistory ? "ซ่อนกราฟ" : "ดูกราฟย้อนหลัง 24 ชม."}</span>
+          </button>
+        )}
 
-        {showHistory && (
+        {!report && showHistory && (
           <HistoryChart points={historyPoints} loading={historyLoading} />
         )}
       </div>

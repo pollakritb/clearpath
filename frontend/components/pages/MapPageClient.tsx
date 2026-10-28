@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
 import MapChrome from "@/frontend/components/app/MapChrome";
 import MapStatusCard from "@/frontend/components/app/MapStatusCard";
 import PlaceAirCard from "@/frontend/components/app/PlaceAirCard";
@@ -41,6 +42,7 @@ export default function MapPageClient({
 }: {
   showFiresInitially?: boolean;
 }) {
+  const currentUserId = useCurrentUserId();
   const pm25 = usePm25();
   const firms = useFirms();
   const community = useCommunityMapData();
@@ -124,8 +126,14 @@ export default function MapPageClient({
   // The nearest reading always uses GPS and both current public sources.
   // Map filters, place searches and history must not change the candidates.
   const heatmapPoint = useMemo(
-    () => nearestHeatmapPoint(userLocation, pm25.stations, community.reports),
-    [userLocation, pm25.stations, community.reports],
+    () =>
+      nearestHeatmapPoint(
+        userLocation,
+        pm25.stations,
+        community.reports,
+        currentUserId,
+      ),
+    [userLocation, pm25.stations, community.reports, currentUserId],
   );
   const heatmapDistanceKm =
     userLocation && heatmapPoint

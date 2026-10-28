@@ -98,6 +98,45 @@ describe("nearestHeatmapPoint", () => {
     ).toMatchObject({ id: "closest", source: "station" });
   });
 
+  it("excludes every report from the current user before comparing distance", () => {
+    const own = {
+      id: "own",
+      user_id: "me",
+      lat: 13.8,
+      lon: 100.1,
+      pm25: 99,
+    } as CommunityReport;
+    const another = {
+      id: "other",
+      user_id: "someone-else",
+      lat: 13.801,
+      lon: 100.1,
+      pm25: 20,
+    } as CommunityReport;
+    expect(
+      nearestHeatmapPoint(
+        location,
+        [station("official", 13.9, 10)],
+        [own, another],
+        "me",
+      ),
+    ).toMatchObject({ id: "other", source: "community", pm25: 20 });
+    expect(nearestHeatmapPoint(location, [], [own], "me")).toBeNull();
+  });
+
+  it("still considers community reports for signed-out users", () => {
+    const report = {
+      id: "report",
+      user_id: "someone",
+      lat: 13.8,
+      lon: 100.1,
+      pm25: 20,
+    } as CommunityReport;
+    expect(nearestHeatmapPoint(location, [], [report], null)?.id).toBe(
+      "report",
+    );
+  });
+
   it("requires a GPS location", () => {
     expect(
       nearestHeatmapPoint(null, [station("official", 13.8, 18)], []),
