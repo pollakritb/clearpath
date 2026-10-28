@@ -13,7 +13,12 @@ vi.mock("@/frontend/lib/api-client", () => ({
   api: { photoMetadata: mocks.metadata, captureSession: mocks.session },
   ApiError: class extends Error {},
 }));
-vi.mock("next/image", () => ({ default: () => null }));
+vi.mock("next/image", () => ({
+  default: ({ src, alt }: { src: string; alt: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} />
+  ),
+}));
 vi.mock("next/dynamic", () => ({ default: () => () => null }));
 beforeEach(() => {
   vi.stubGlobal("URL", {
@@ -39,6 +44,41 @@ afterEach(() => {
 });
 
 describe("gallery evidence", () => {
+  it("previews the server-normalized iPhone JPEG while retaining the original for submission", async () => {
+    let resolveMetadata!: (metadata: unknown) => void;
+    mocks.metadata.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveMetadata = resolve;
+        }),
+    );
+    const onCaptured = vi.fn();
+    const { container } = render(
+      <CameraCapture onCaptured={onCaptured} onCleared={vi.fn()} />,
+    );
+    const file = new File(["multi-picture-jpeg"], "IMG_1234.JPG", {
+      type: "image/jpeg",
+    });
+    fireEvent.change(container.querySelector('input[type="file"]')!, {
+      target: { files: [file] },
+    });
+    expect(screen.getByRole("status").textContent).toContain("กำลังอ่านภาพ");
+    resolveMetadata({
+      preview_data_url: "data:image/jpeg;base64,cHJldmlldw==",
+      exif_local_time: "2020-01-02T10:30:00",
+      exif_captured_at: null,
+      exif_gps: { lat: 13.8, lon: 100.1 },
+    });
+    const image = await screen.findByRole("img");
+    expect(image.getAttribute("src")).toBe(
+      "data:image/jpeg;base64,cHJldmlldw==",
+    );
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "ใช้ภาพและเวลานี้" }));
+    await waitFor(() => expect(onCaptured).toHaveBeenCalledTimes(1));
+    expect(onCaptured.mock.calls[0][0].file).toBe(file);
+  });
+
   it.each([
     ["meter.jpg", "image/jpeg"],
     ["IMG_1234.HEIC", "image/heic"],

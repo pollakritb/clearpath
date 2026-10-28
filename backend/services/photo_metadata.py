@@ -69,17 +69,16 @@ def clean_photo(content: bytes) -> bytes:
 
 
 def inspect_photo(content: bytes) -> dict:
-    """Return original metadata plus a small JPEG preview for HEIF-incompatible browsers."""
+    """Use one oriented JPEG preview across browsers; keep original evidence intact."""
     metadata = read_photo_metadata(content)
-    if metadata["mime"] == "image/heic":
-        with Image.open(io.BytesIO(content)) as image:
-            image = ImageOps.exif_transpose(image).convert("RGB")
-            image.thumbnail((640, 640))
-            output = io.BytesIO()
-            image.save(output, format="JPEG", quality=80)
-            metadata["preview_data_url"] = "data:image/jpeg;base64," + base64.b64encode(
-                output.getvalue()
-            ).decode("ascii")
+    with Image.open(io.BytesIO(content)) as image:
+        image = ImageOps.exif_transpose(image).convert("RGB")
+        image.thumbnail((640, 640))
+        output = io.BytesIO()
+        image.save(output, format="JPEG", quality=80)
+        metadata["preview_data_url"] = "data:image/jpeg;base64," + base64.b64encode(
+            output.getvalue()
+        ).decode("ascii")
     return metadata
 
 

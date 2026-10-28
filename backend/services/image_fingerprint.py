@@ -14,6 +14,9 @@ Image.MAX_IMAGE_PIXELS = 25_000_000
 
 _IMAGE_FORMAT_MIME = {
     "JPEG": "image/jpeg",
+    # JPEGs with auxiliary pictures (for example HDR gain maps) are opened
+    # by Pillow as MPO. The primary frame is still a JPEG photograph.
+    "MPO": "image/jpeg",
     "PNG": "image/png",
     "WEBP": "image/webp",
     "HEIF": "image/heic",

@@ -62,6 +62,7 @@ export default function CameraCapture({
   const [cameraFacing, setCameraFacing] = useState<CameraFacing>("environment");
   const [canSwitchCamera, setCanSwitchCamera] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [readingGallery, setReadingGallery] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function releaseStream() {
@@ -289,9 +290,13 @@ export default function CameraCapture({
       return;
     }
     setLoading(true);
+    setReadingGallery(true);
     setError(null);
     setGallery(null);
     setGalleryConfirmed(false);
+    setMeasurementTime("");
+    setMeasuredLocation(null);
+    setPreview(null);
     onCleared();
     stopStream();
     try {
@@ -316,6 +321,7 @@ export default function CameraCapture({
       );
     } finally {
       setLoading(false);
+      setReadingGallery(false);
     }
   }
 
@@ -455,6 +461,22 @@ export default function CameraCapture({
             </span>
           </div>
         )}
+        {readingGallery && (
+          <p
+            role="status"
+            style={{
+              position: "absolute",
+              inset: 0,
+              margin: 0,
+              display: "grid",
+              placeItems: "center",
+              background: "#111",
+              color: "#fff",
+            }}
+          >
+            กำลังอ่านภาพจากคลัง…
+          </p>
+        )}
       </div>
       <input
         ref={galleryInput}
@@ -481,11 +503,13 @@ export default function CameraCapture({
               color: "#fff",
             }}
           >
-            {loading
-              ? "กำลังเปิดกล้อง…"
-              : preview
-                ? "ถ่ายใหม่"
-                : "เปิดกล้องในแอป"}
+            {readingGallery
+              ? "กำลังอ่านภาพ…"
+              : loading
+                ? "กำลังเปิดกล้อง…"
+                : preview
+                  ? "ถ่ายใหม่"
+                  : "เปิดกล้องในแอป"}
           </button>
         )}
         {!cameraOpen && (

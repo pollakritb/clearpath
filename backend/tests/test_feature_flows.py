@@ -953,17 +953,29 @@ def test_gallery_report_preserves_time_and_keeps_metadata_private(
 
 
 @pytest.mark.parametrize(
-    "mime", ["image/heic", "image/heif", "application/octet-stream"]
+    ("format", "mime", "filename"),
+    [
+        ("HEIF", "image/heic", "IMG_1234.HEIC"),
+        ("HEIF", "image/heif", "IMG_1234.HEIF"),
+        ("HEIF", "application/octet-stream", "IMG_1234.HEIC"),
+        ("MPO", "image/jpeg", "IMG_1234.JPG"),
+        ("MPO", "application/octet-stream", "IMG_1234.JPG"),
+    ],
 )
-def test_iphone_heic_gallery_upload(feature_client, mime):
+def test_iphone_gallery_upload(feature_client, format, mime, filename):
     client, _become = feature_client
     image = Image.new("RGB", (32, 24), "blue")
     output = BytesIO()
-    image.save(output, format="HEIF")
+    image.save(
+        output,
+        format=format,
+        save_all=True,
+        append_images=[Image.new("RGB", (16, 12), "red")],
+    )
     content = output.getvalue()
     metadata = client.post(
         "/api/community/image-metadata",
-        files={"image": ("IMG_1234.HEIC", content, mime)},
+        files={"image": (filename, content, mime)},
     )
     assert metadata.status_code == 200, metadata.text
     assert metadata.json()["preview_data_url"].startswith("data:image/jpeg;base64,")
@@ -978,6 +990,6 @@ def test_iphone_heic_gallery_upload(feature_client, mime):
             "capture_source": "gallery",
             "client_captured_at": datetime.now(UTC).isoformat(),
         },
-        files={"image": ("IMG_1234.HEIC", content, mime)},
+        files={"image": (filename, content, mime)},
     )
     assert response.status_code == 201, response.text

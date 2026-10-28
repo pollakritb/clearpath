@@ -110,3 +110,40 @@ def test_heic_keeps_metadata_and_returns_exif_free_jpeg_preview():
         assert decoded.format == "JPEG"
         assert not decoded.getexif()
     assert read_photo_metadata(clean_photo(original))["mime"] == "image/jpeg"
+
+
+def test_iphone_multi_picture_jpeg_uses_primary_frame_and_keeps_original_metadata():
+    import base64
+
+    from backend.services.image_fingerprint import detect_image_mime, fingerprint_image
+    from backend.services.photo_metadata import inspect_photo
+
+    primary = Image.new("RGB", (32, 24), "red")
+    exif = Image.Exif()
+    exif[36867] = "2020:01:02 10:30:00"
+    exif[36881] = "+07:00"
+    exif[274] = 6
+    output = BytesIO()
+    primary.save(
+        output,
+        format="MPO",
+        save_all=True,
+        append_images=[Image.new("RGB", (16, 12), "blue")],
+        exif=exif,
+    )
+    original = output.getvalue()
+    with Image.open(BytesIO(original)) as image:
+        assert image.format == "MPO"
+        assert image.n_frames == 2
+    assert detect_image_mime(original) == "image/jpeg"
+    assert fingerprint_image(original)["mime"] == "image/jpeg"
+    metadata = inspect_photo(original)
+    assert metadata["exif_captured_at"] == "2020-01-02T10:30:00+07:00"
+    preview = base64.b64decode(metadata["preview_data_url"].split(",")[1])
+    for content in [preview, clean_photo(original)]:
+        with Image.open(BytesIO(content)) as image:
+            assert image.format == "JPEG"
+            assert image.size == (24, 32)
+            assert not image.getexif()
+            red, _green, blue = image.getpixel((12, 16))
+            assert red > 200 and blue < 50
