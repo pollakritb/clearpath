@@ -86,7 +86,7 @@ export default function PlaceAirCard({
               <strong className="cp-place-card__compact-value">
                 {air.value.toFixed(1)} <small>µg/m³</small>
               </strong>
-              <span>{classification.level} · ค่าประมาณ IDW</span>
+              <span>{classification.level} · ค่าฝุ่นโดยประมาณ</span>
             </>
           )}
         </div>
@@ -149,7 +149,7 @@ export default function PlaceAirCard({
           </>
         ) : (
           <>
-            <small>ค่าประมาณ IDW · {air.contributors.length} สถานี</small>
+            <small>ค่าฝุ่นโดยประมาณ · {air.contributors.length} สถานี</small>
             <strong>
               {air.value.toFixed(1)} <span>µg/m³</span>
             </strong>
@@ -168,40 +168,6 @@ export default function PlaceAirCard({
         <AppIcon name="info" size={16} /> วง {PLACE_RADIUS_KM} กม.
         คือระยะค้นหาข้อมูล ไม่ใช่พื้นที่ที่ฝุ่นมีค่าเท่ากัน
       </p>
-
-      {air.value != null && (
-        <details className="cp-place-card__idw">
-          <summary className="cp-focus">
-            วิธีคำนวณ · IDW จาก {air.contributors.length} สถานี
-          </summary>
-          <p>
-            ใช้สถานีข้อมูลสดไม่เกิน 60 นาทีในวง 3 กม. วัดระยะด้วย Haversine
-            แล้วให้สถานีใกล้มีน้ำหนักมากกว่า
-          </p>
-          <p>
-            น้ำหนัก = 1 ÷ ระยะทาง² · ค่าประมาณ = ผลรวม(น้ำหนัก × ค่าฝุ่น) ÷
-            ผลรวมน้ำหนัก
-          </p>
-          <p>
-            หากตรงพิกัดสถานี ใช้ค่าของสถานีนั้นโดยตรง
-            ไม่มีสถานีที่ผ่านเกณฑ์จะแสดงว่าไม่มีข้อมูล
-          </p>
-          <ul>
-            {air.contributors.map((item) => {
-              const station = air.stations.find(
-                ({ station }) => station.id === item.stationId,
-              )?.station;
-              return (
-                <li key={item.stationId}>
-                  {station?.name_th ?? station?.name_en ?? item.stationId} ·{" "}
-                  {distance(item.distanceKm)} · {item.pm25.toFixed(1)} µg/m³ ·
-                  น้ำหนัก {(item.weight * 100).toFixed(1)}%
-                </li>
-              );
-            })}
-          </ul>
-        </details>
-      )}
 
       <div className="cp-place-card__details">
         <h2 className="cp-place-card__details-title">
