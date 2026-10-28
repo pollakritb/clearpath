@@ -950,3 +950,34 @@ def test_gallery_report_preserves_time_and_keeps_metadata_private(
     assert logged_report["image_metadata"]["time_source"] == "exif"
     admin_report = client.get("/api/community/reports").json()["reports"]
     assert all(item["id"] != report["id"] for item in admin_report)
+
+
+@pytest.mark.parametrize(
+    "mime", ["image/heic", "image/heif", "application/octet-stream"]
+)
+def test_iphone_heic_gallery_upload(feature_client, mime):
+    client, _become = feature_client
+    image = Image.new("RGB", (32, 24), "blue")
+    output = BytesIO()
+    image.save(output, format="HEIF")
+    content = output.getvalue()
+    metadata = client.post(
+        "/api/community/image-metadata",
+        files={"image": ("IMG_1234.HEIC", content, mime)},
+    )
+    assert metadata.status_code == 200, metadata.text
+    assert metadata.json()["preview_data_url"].startswith("data:image/jpeg;base64,")
+    session = client.post("/api/community/capture-session").json()
+    response = client.post(
+        "/api/community/report-drafts",
+        data={
+            "lat": "13.8199",
+            "lon": "100.0622",
+            "gps_accuracy_m": "15",
+            "camera_session_token": session["token"],
+            "capture_source": "gallery",
+            "client_captured_at": datetime.now(UTC).isoformat(),
+        },
+        files={"image": ("IMG_1234.HEIC", content, mime)},
+    )
+    assert response.status_code == 201, response.text

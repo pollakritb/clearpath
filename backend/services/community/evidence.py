@@ -6,6 +6,7 @@ IMAGE_EXTENSIONS = {
     "image/jpeg": "jpg",
     "image/png": "png",
     "image/webp": "webp",
+    "image/heic": "heic",
 }
 PERCEPTUAL_DUPLICATE_DISTANCE = 4
 

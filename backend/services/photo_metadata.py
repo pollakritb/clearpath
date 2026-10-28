@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import io
 from datetime import datetime
 from math import isfinite
@@ -65,6 +66,21 @@ def clean_photo(content: bytes) -> bytes:
         output = io.BytesIO()
         image.save(output, format="JPEG", quality=90)
         return output.getvalue()
+
+
+def inspect_photo(content: bytes) -> dict:
+    """Return original metadata plus a small JPEG preview for HEIF-incompatible browsers."""
+    metadata = read_photo_metadata(content)
+    if metadata["mime"] == "image/heic":
+        with Image.open(io.BytesIO(content)) as image:
+            image = ImageOps.exif_transpose(image).convert("RGB")
+            image.thumbnail((640, 640))
+            output = io.BytesIO()
+            image.save(output, format="JPEG", quality=80)
+            metadata["preview_data_url"] = "data:image/jpeg;base64," + base64.b64encode(
+                output.getvalue()
+            ).decode("ascii")
+    return metadata
 
 
 def gallery_measurement_time(

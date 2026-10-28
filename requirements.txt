@@ -9,4 +9,5 @@ pydantic-settings>=2.4
 python-dotenv>=1.0
 python-multipart>=0.0.20
 Pillow>=13.0,<14.0
+pillow-heif==1.8.0  # Decode iPhone HEIC/HEIF photos and preserve original metadata.
 truststore>=0.9  # Use the OS trust store for Air4Thai HTTPS.

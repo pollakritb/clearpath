@@ -268,10 +268,24 @@ export default function CameraCapture({
   async function selectGallery(file: File) {
     if (onLoginRequired?.()) return;
     if (
-      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+      !(
+        [
+          "image/jpeg",
+          "image/png",
+          "image/webp",
+          "image/heic",
+          "image/heif",
+          "image/heic-sequence",
+          "image/heif-sequence",
+        ].includes(file.type) ||
+        ((!file.type || file.type === "application/octet-stream") &&
+          /\.(heic|heif|jpg|jpeg|png|webp)$/i.test(file.name))
+      ) ||
       file.size > 8 * 1024 * 1024
     ) {
-      setError("เลือกภาพ JPEG, PNG หรือ WEBP ขนาดไม่เกิน 8 MB");
+      setError(
+        "เลือกภาพ JPEG, PNG, WEBP หรือ HEIC/HEIF จาก iPhone ขนาดไม่เกิน 8 MB",
+      );
       return;
     }
     setLoading(true);
@@ -284,7 +298,7 @@ export default function CameraCapture({
       const selectedAt = new Date().toISOString();
       const metadata = await api.photoMetadata(file);
       if (preview) URL.revokeObjectURL(preview);
-      setPreview(URL.createObjectURL(file));
+      setPreview(metadata.preview_data_url ?? URL.createObjectURL(file));
       setGallery({ file, metadata, selectedAt });
       setMeasuredLocation(metadata.exif_gps);
       if (metadata.exif_captured_at) {
@@ -445,7 +459,7 @@ export default function CameraCapture({
       <input
         ref={galleryInput}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/heic-sequence,image/heif-sequence,.heic,.heif"
         hidden
         onChange={(event) => {
           const file = event.target.files?.[0];

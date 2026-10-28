@@ -6,6 +6,9 @@ import hashlib
 import io
 
 from PIL import Image, UnidentifiedImageError
+from pillow_heif import register_heif_opener
+
+register_heif_opener(thumbnails=False)
 
 Image.MAX_IMAGE_PIXELS = 25_000_000
 
@@ -13,6 +16,7 @@ _IMAGE_FORMAT_MIME = {
     "JPEG": "image/jpeg",
     "PNG": "image/png",
     "WEBP": "image/webp",
+    "HEIF": "image/heic",
 }
 
 
@@ -30,7 +34,7 @@ def detect_image_mime(content: bytes) -> str:
     ) as exc:
         raise ValueError("ไฟล์ไม่ใช่ภาพที่อ่านได้หรือภาพมีขนาดผิดปกติ") from exc
     if not mime:
-        raise ValueError("รองรับเฉพาะภาพ JPEG, PNG หรือ WEBP")
+        raise ValueError("รองรับภาพ JPEG, PNG, WEBP และ HEIC/HEIF จาก iPhone")
     return mime
 
 

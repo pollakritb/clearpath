@@ -325,6 +325,7 @@ export interface ActivitiesResponse {
 }
 
 export interface PhotoMetadata {
+  preview_data_url?: string | null;
   mime: string;
   size_bytes: number;
   width: number;

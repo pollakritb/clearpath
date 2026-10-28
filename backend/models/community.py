@@ -326,6 +326,7 @@ class ActivityCreate(BaseModel):
 
 
 class PhotoMetadata(BaseModel):
+    preview_data_url: str | None = None
     mime: str
     size_bytes: int
     width: int

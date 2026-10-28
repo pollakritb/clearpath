@@ -39,13 +39,17 @@ afterEach(() => {
 });
 
 describe("gallery evidence", () => {
-  it("requires measurement time and confirmation instead of treating upload time as capture time", async () => {
+  it.each([
+    ["meter.jpg", "image/jpeg"],
+    ["IMG_1234.HEIC", "image/heic"],
+    ["IMG_1234.HEIF", ""],
+  ])("requires time confirmation for %s (%s)", async (filename, mime) => {
     const onCaptured = vi.fn();
     const { container } = render(
       <CameraCapture onCaptured={onCaptured} onCleared={vi.fn()} />,
     );
-    const file = new File(["photo"], "meter.jpg", {
-      type: "image/jpeg",
+    const file = new File(["photo"], filename, {
+      type: mime,
       lastModified: 1000,
     });
     fireEvent.change(container.querySelector('input[type="file"]')!, {

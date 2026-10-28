@@ -86,3 +86,27 @@ def test_extracts_gps_from_original_and_removes_it_from_preview():
     content = output.getvalue()
     assert read_photo_metadata(content)["exif_gps"] == {"lat": 13.8, "lon": 100.1}
     assert read_photo_metadata(clean_photo(content))["exif_gps"] is None
+
+
+def test_heic_keeps_metadata_and_returns_exif_free_jpeg_preview():
+    import base64
+
+    from backend.services.image_fingerprint import fingerprint_image
+    from backend.services.photo_metadata import inspect_photo
+
+    image = Image.new("RGB", (32, 24), "red")
+    exif = Image.Exif()
+    exif[36867] = "2020:01:02 10:30:00"
+    exif[36881] = "+07:00"
+    output = BytesIO()
+    image.save(output, format="HEIF", exif=exif)
+    original = output.getvalue()
+    metadata = inspect_photo(original)
+    assert metadata["mime"] == "image/heic"
+    assert metadata["exif_captured_at"] == "2020-01-02T10:30:00+07:00"
+    assert fingerprint_image(original)["mime"] == "image/heic"
+    preview = base64.b64decode(metadata["preview_data_url"].split(",")[1])
+    with Image.open(BytesIO(preview)) as decoded:
+        assert decoded.format == "JPEG"
+        assert not decoded.getexif()
+    assert read_photo_metadata(clean_photo(original))["mime"] == "image/jpeg"
