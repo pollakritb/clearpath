@@ -1485,3 +1485,55 @@
     width: min(260px, calc(100vw - 24px));
   }
 }
+
+.cp-photo-metadata {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid #dce7e2;
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #38564e;
+  background: #f7faf8;
+}
+.cp-photo-metadata label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+.cp-photo-metadata input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #cadbd3;
+  border-radius: 10px;
+  padding: 8px;
+  font: inherit;
+  background: #fff;
+}
+.cp-photo-metadata p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.cp-photo-metadata summary {
+  cursor: pointer;
+  min-height: 36px;
+  color: #08796d;
+}
+.cp-photo-location-map {
+  overflow: hidden;
+  border-radius: 12px;
+  margin: 10px 0;
+}
+.cp-photo-gps {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #b8d7cd;
+  border-radius: 10px;
+  color: #08796d;
+  background: #fff;
+  font: inherit;
+  margin-top: 8px;
+}

@@ -335,7 +335,12 @@ export default function MapStatusCard({
           <div className="cp-map-report-section-heading">
             <div>
               <h2>หลักฐานและการตรวจวัด</h2>
-              <p>ตัวเลข PM2.5 ที่ระบบอ่านจากภาพเครื่องวัด</p>
+              <p>
+                ตัวเลข PM2.5 ที่ระบบอ่านจากภาพเครื่องวัด ·{" "}
+                {report?.capture_source === "gallery"
+                  ? "ภาพจากคลัง"
+                  : "ถ่ายภาพใหม่"}
+              </p>
             </div>
             <span>
               {report?.verification_method === "automatic"

@@ -316,3 +316,20 @@ checksum ตาม `supabase/migrations/README.md` ก่อนทุกคร�
 - Nakhon Pathom service polygon: simplified from the Thailand Province Boundaries
   feature layer (`ADMIN_ID1=73`, EPSG:4326); source attribution Globetech Co., Ltd. /
   MERKATOR Co., Ltd. ระบบเก็บ polygon ใน repo เพื่อให้ validation ทำงานได้แม้ boundary service ล่ม
+
+### ภาพจากคลังและ metadata (local rollout)
+
+หน้าส่งรายงานรองรับภาพ JPEG/PNG/WEBP ไม่เกิน 8 MB ทั้งถ่ายใหม่และเลือกจากคลัง
+ภาพจากคลังต้องยืนยันเวลาที่วัดและตำแหน่งที่วัดก่อนอ่าน OCR โดยเก็บ GPS ขณะส่งแยกกัน
+เวลาส่งและเวลาแก้ไขไฟล์ไม่ถูกใช้แทนเวลาถ่าย หาก EXIF ระบุเวลาที่เก่ากว่าเวลายืนยัน
+จะคงเวลาที่เก่ากว่าไว้ ไม่เปลี่ยนรูปเก่าเป็นข้อมูลสด ข้อมูล EXIF ที่ไม่มี timezone
+จะใช้เขตเวลาที่ผู้ใช้ยืนยัน และบันทึกที่มานี้ไว้
+
+Backend อ่าน metadata จากต้นฉบับเอง เก็บต้นฉบับใน private bucket และสร้างภาพ JPEG
+ที่ล้าง EXIF สำหรับ preview/signed URL ข้อมูลไฟล์ละเอียดเปิดเฉพาะ Admin
+ไฟล์ต้นฉบับถูกลบตามวงจร retention เดียวกับหลักฐาน โดยการอนุมัติยังใช้ OCR number-only
+ตำแหน่งภาพหรือผู้ใช้ระบุไม่ถือว่าได้รับความแม่นยำ GPS ณ เวลาวัดสำหรับ gap-fill
+
+ก่อนเปิดใช้บนฐานข้อมูลจริง ต้อง apply
+`supabase/migrations/20261028_gallery_evidence_metadata.sql`
+การพัฒนา local demo ไม่ต้องเชื่อมฐานข้อมูลจริง

@@ -32,6 +32,8 @@ class CaptureSessionResponse(BaseModel):
 
 
 class CommunityReport(BaseModel):
+    capture_source: Literal["camera", "gallery"] = "camera"
+    image_metadata: dict | None = None
     id: str
     user_id: str
     display_name: str | None = None
@@ -321,3 +323,17 @@ class ActivityCreate(BaseModel):
     reward_points: int = 0
     starts_at: str | None = None
     ends_at: str | None = None
+
+
+class PhotoMetadata(BaseModel):
+    mime: str
+    size_bytes: int
+    width: int
+    height: int
+    orientation: int
+    exif_captured_at: str | None = None
+    exif_local_time: str | None = None
+    exif_timezone: str | None = None
+    exif_gps: dict[str, float] | None = None
+    camera_make: str | None = None
+    camera_model: str | None = None

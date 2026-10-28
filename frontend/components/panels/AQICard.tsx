@@ -101,7 +101,11 @@ export default function AQICard({
   const name = report
     ? `รายงานจาก ${report.display_name ?? "ผู้ใช้ชุมชน"}`
     : (station!.name_th ?? station!.name_en ?? station!.id);
-  const sourceLabel = report ? "รายงานชุมชน" : "สถานี Air4Thai";
+  const sourceLabel = report
+    ? report.capture_source === "gallery"
+      ? "รายงานชุมชน · ภาพจากคลัง"
+      : "รายงานชุมชน"
+    : "สถานี Air4Thai";
   const measuredAt = report?.captured_at ?? station?.recorded_at;
 
   const wind = weather ? `${Math.round(weather.wind_speed)}` : "—";

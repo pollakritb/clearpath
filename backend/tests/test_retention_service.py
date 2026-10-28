@@ -12,7 +12,11 @@ def test_report_retention_purges_evidence_and_unsubmitted_drafts(monkeypatch):
         retention.supabase_client,
         "list_expired_report_evidence",
         lambda _limit: [
-            {"report_id": "report-1", "image_path": "reports/one.jpg"},
+            {
+                "report_id": "report-1",
+                "image_path": "reports/one.jpg",
+                "original_image_path": "originals/one.jpg",
+            },
             {"report_id": "report-2", "image_path": None},
         ],
     )
@@ -48,7 +52,7 @@ def test_report_retention_purges_evidence_and_unsubmitted_drafts(monkeypatch):
         "drafts_deleted": 2,
         "failures": 0,
     }
-    assert deleted_images == ["reports/one.jpg", "drafts/one.jpg"]
+    assert deleted_images == ["originals/one.jpg", "reports/one.jpg", "drafts/one.jpg"]
     assert purged_reports == ["report-1", "report-2"]
     assert deleted_drafts == ["draft-1", "draft-2"]
 

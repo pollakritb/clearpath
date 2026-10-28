@@ -13,7 +13,7 @@ from ...algorithms.ocr_quality import classify_ocr_result
 from ...algorithms.trust import calculate_trust_score, is_thailand_area
 from ...core.config import settings
 from ...core.errors import UpstreamError
-from .. import capture, image_fingerprint, ocr, supabase_client
+from .. import capture, image_fingerprint, ocr, photo_metadata, supabase_client
 from ..stations import get_current_stations
 from .automatic_review import finalize_automatic_review
 from .evidence import IMAGE_EXTENSIONS, find_duplicate
@@ -56,6 +56,13 @@ async def create_draft(
     image: bytes,
     content_type: str,
     burst_images: list[tuple[bytes, str]] | None = None,
+    submission_lat: float | None = None,
+    submission_lon: float | None = None,
+    original_filename: str | None = None,
+    capture_source: str = "camera",
+    client_timezone_offset_minutes: int | None = None,
+    file_last_modified_at: str | None = None,
+    file_selected_at: str | None = None,
 ) -> dict:
     if not is_thailand_area(lat, lon):
         raise ValueError("ขณะนี้รับรายงานเฉพาะพิกัดในประเทศไทย")
@@ -68,13 +75,54 @@ async def create_draft(
         raise ValueError("ไม่พบ camera session นี้")
     received_at = datetime.now(UTC)
     issued_at = datetime.fromisoformat(str(session["issued_at"]).replace("Z", "+00:00"))
+    if capture_source not in {"camera", "gallery"}:
+        raise ValueError("แหล่งภาพไม่ถูกต้อง")
+    original_image = image
+    metadata = await run_in_threadpool(photo_metadata.read_photo_metadata, image)
     effective_time, clock_warning = _parse_client_time(
         client_captured_at, issued_at, received_at
     )
-    fingerprint = image_fingerprint.fingerprint_image(image)
-    # Browser canvas capture intentionally strips EXIF. Metadata here indicates
-    # a non-live/replayed file and must prevent automatic publication.
-    clock_warning = clock_warning or bool(fingerprint.get("has_exif"))
+    time_source = "camera"
+    if capture_source == "gallery":
+        effective_time, time_source = photo_metadata.gallery_measurement_time(
+            metadata, client_captured_at, client_timezone_offset_minutes, received_at
+        )
+        clock_warning = False
+    metadata.update(
+        {
+            "capture_source": capture_source,
+            "original_filename": original_filename,
+            "client_claimed_captured_at": client_captured_at,
+            "effective_captured_at": effective_time.isoformat(),
+            "time_source": time_source,
+            "client_timezone_offset_minutes": client_timezone_offset_minutes,
+            "file_last_modified_at": file_last_modified_at,
+            "file_selected_at": file_selected_at,
+            "server_received_at": received_at.isoformat(),
+            "gps_at_submission": {
+                "lat": submission_lat if submission_lat is not None else lat,
+                "lon": submission_lon if submission_lon is not None else lon,
+                "accuracy_m": gps_accuracy_m,
+            },
+            "measurement_location": {"lat": lat, "lon": lon},
+            "location_source": "camera_gps"
+            if capture_source == "camera"
+            else (
+                "exif_confirmed"
+                if metadata.get("exif_gps")
+                and haversine_km(
+                    lat, lon, metadata["exif_gps"]["lat"], metadata["exif_gps"]["lon"]
+                )
+                < 0.001
+                else "user_confirmed"
+            ),
+        }
+    )
+    fingerprint = await run_in_threadpool(
+        image_fingerprint.fingerprint_image, original_image
+    )
+    image = await run_in_threadpool(photo_metadata.clean_photo, original_image)
+    content_type = "image/jpeg"
     duplicate, exact_duplicate, _distance = find_duplicate(fingerprint)
     if exact_duplicate:
         raise ValueError("ภาพนี้เคยถูกส่งแล้ว กรุณาถ่ายหน้าจอเครื่องวัดใหม่")
@@ -104,6 +152,9 @@ async def create_draft(
 
     draft_id = str(uuid4())
     image_path = f"drafts/{user_id}/{draft_id}.{IMAGE_EXTENSIONS[content_type]}"
+    original_image_path = (
+        f"originals/{user_id}/{draft_id}.{IMAGE_EXTENSIONS[metadata['mime']]}"
+    )
     expires_at = received_at + timedelta(minutes=DRAFT_TTL_MINUTES)
     row = {
         "id": draft_id,
@@ -117,10 +168,14 @@ async def create_draft(
         "effective_captured_at": effective_time.isoformat(),
         "server_received_at": received_at.isoformat(),
         "clock_warning": clock_warning,
+        "capture_source": capture_source,
+        "image_metadata": metadata,
+        "original_image_path": original_image_path,
         "image_path": image_path,
         "image_sha256": fingerprint["sha256"],
         "image_ahash": fingerprint["ahash"],
-        "unexpected_exif": bool(fingerprint.get("has_exif")),
+        "unexpected_exif": capture_source == "camera"
+        and bool(fingerprint.get("has_exif")),
         "burst_hashes": [item["sha256"] for item in burst_fingerprints],
         "duplicate_of_report_id": str(duplicate["id"]) if duplicate else None,
         "ocr_pm25": ocr_result["pm25"],
@@ -135,11 +190,20 @@ async def create_draft(
     }
     try:
         await run_in_threadpool(
+            supabase_client.upload_report_image,
+            original_image_path,
+            original_image,
+            metadata["mime"],
+        )
+        await run_in_threadpool(
             supabase_client.upload_report_image, image_path, image, content_type
         )
         capture.consume_session(proof["session_id"], user_id)
         saved = await run_in_threadpool(supabase_client.create_report_draft, row)
     except Exception:
+        await run_in_threadpool(
+            supabase_client.delete_report_image, original_image_path
+        )
         await run_in_threadpool(supabase_client.delete_report_image, image_path)
         raise
     return {
@@ -226,8 +290,8 @@ async def submit_draft(
         lon=float(draft["exact_lon"]),
         pm25=None,
         captured_at=str(draft["effective_captured_at"]),
-        capture_source="camera",
-        capture_verified=True,
+        capture_source=draft.get("capture_source", "camera"),
+        capture_verified=draft.get("capture_source", "camera") == "camera",
         ocr_pm25=draft.get("ocr_pm25"),
         ocr_confidence=float(draft.get("ocr_confidence") or 0),
         device_detected=bool(draft.get("device_detected")),
@@ -294,7 +358,8 @@ async def submit_draft(
         "ocr_mismatch": mismatch,
         "device_detected": bool(draft.get("device_detected")),
         "display_clear": bool(draft.get("display_clear")),
-        "capture_source": "camera",
+        "capture_source": draft.get("capture_source", "camera"),
+        "image_metadata": draft.get("image_metadata") or {},
         "capture_session_id": draft["capture_session_id"],
         "camera_session_issued_at": draft["camera_session_issued_at"],
         "client_captured_at": draft["client_captured_at"],
@@ -321,7 +386,9 @@ async def submit_draft(
         "near_emission_source": bool(values.get("near_emission_source")),
         "measurement_note": (values.get("measurement_note") or "").strip()[:300]
         or None,
-        "gps_accuracy_m": draft["gps_accuracy_m"],
+        "gps_accuracy_m": draft["gps_accuracy_m"]
+        if draft.get("capture_source", "camera") == "camera"
+        else None,
         "status": "pending",
         "base_trust_score": trust["score"],
         "trust_score": trust["score"],
@@ -352,6 +419,8 @@ async def submit_draft(
         return presented
     evidence = {
         "report_id": report_id,
+        "image_metadata": draft.get("image_metadata") or {},
+        "original_image_path": draft.get("original_image_path"),
         "exact_lat": draft["exact_lat"],
         "exact_lon": draft["exact_lon"],
         "gps_accuracy_m": draft["gps_accuracy_m"],
@@ -413,4 +482,6 @@ def discard_draft(draft_id: str, user_id: str) -> bool:
         return False
     if not draft.get("submitted_at") and draft.get("image_path"):
         supabase_client.delete_report_image(str(draft["image_path"]))
+        if draft.get("original_image_path"):
+            supabase_client.delete_report_image(str(draft["original_image_path"]))
     return True

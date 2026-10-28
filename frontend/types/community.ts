@@ -31,6 +31,8 @@ export interface CaptureSessionResponse {
 }
 
 export interface CommunityReport {
+  capture_source?: "camera" | "gallery";
+  image_metadata?: Record<string, unknown> | null;
   id: string;
   user_id: string;
   display_name: string | null;
@@ -320,4 +322,18 @@ export interface ActivityCreate {
 
 export interface ActivitiesResponse {
   activities: Activity[];
+}
+
+export interface PhotoMetadata {
+  mime: string;
+  size_bytes: number;
+  width: number;
+  height: number;
+  orientation: number;
+  exif_captured_at: string | null;
+  exif_local_time: string | null;
+  exif_timezone: string | null;
+  exif_gps: { lat: number; lon: number } | null;
+  camera_make: string | null;
+  camera_model: string | null;
 }

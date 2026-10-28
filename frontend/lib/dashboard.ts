@@ -25,7 +25,7 @@ export const DASHBOARD_COPY: Record<DashboardTab, DashboardCopy> = {
   },
   report: {
     title: "ส่งข้อมูลจากเครื่องวัด",
-    description: "ถ่ายภาพสดพร้อม GPS แล้วให้ระบบตรวจหลักฐานอัตโนมัติ",
+    description: "ถ่ายใหม่หรือเลือกภาพ พร้อมเวลาและตำแหน่งที่วัด",
   },
   community: {
     title: "ข่าวสารและประกาศ",

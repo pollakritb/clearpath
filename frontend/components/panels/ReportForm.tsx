@@ -111,11 +111,26 @@ export default function ReportForm({
       if (!draft) {
         if (!canAnalyze) return;
         const form = new FormData();
-        form.set("lat", String(location.lat));
-        form.set("lon", String(location.lon));
+        form.set("lat", String(evidence.measuredLocation?.lat ?? location.lat));
+        form.set("lon", String(evidence.measuredLocation?.lon ?? location.lon));
+        form.set("submission_lat", String(location.lat));
+        form.set("submission_lon", String(location.lon));
         form.set("gps_accuracy_m", String(location.accuracy));
         form.set("camera_session_token", evidence.sessionToken);
         form.set("client_captured_at", evidence.capturedAt);
+        form.set("capture_source", evidence.source ?? "camera");
+        if (evidence.timezoneOffsetMinutes != null)
+          form.set(
+            "client_timezone_offset_minutes",
+            String(evidence.timezoneOffsetMinutes),
+          );
+        if (evidence.selectedAt)
+          form.set("file_selected_at", evidence.selectedAt);
+        form.set(
+          "file_last_modified_at",
+          evidence.fileLastModifiedAt ??
+            new Date(evidence.file.lastModified).toISOString(),
+        );
         form.set("image", evidence.file);
         evidence.burstFiles.forEach((file) =>
           form.append("burst_images", file),
@@ -126,7 +141,8 @@ export default function ReportForm({
           nextDraft.ocr_pm25 == null ? "" : String(nextDraft.ocr_pm25),
         );
         setMessage(
-          `${OCR_STATUS_MESSAGES[nextDraft.ocr_status]}` +
+          `เวลาที่วัด ${new Date(nextDraft.captured_at).toLocaleString("th-TH")} · ` +
+            `${OCR_STATUS_MESSAGES[nextDraft.ocr_status]}` +
             (nextDraft.ocr_pm25 == null
               ? ""
               : ` ค่าที่อ่านได้ ${nextDraft.ocr_pm25} µg/m³`),
@@ -245,13 +261,13 @@ export default function ReportForm({
             ? "ตรวจข้อมูลก่อนส่ง"
             : evidence
               ? "ยืนยันตำแหน่งของรายงาน"
-              : "ถ่ายภาพหน้าจอเครื่องวัด"}
+              : "เพิ่มภาพเครื่องวัด"}
         </h2>
         <p>
           {draft
             ? "ตรวจค่าฝุ่นและข้อมูลเครื่องวัดให้ตรงกับภาพ"
             : evidence
-              ? "เปิด GPS เพื่อยืนยันว่าข้อมูลมาจากพื้นที่จริง"
+              ? "เปิด GPS เพื่อบันทึกตำแหน่งขณะส่ง แยกจากตำแหน่งที่วัด"
               : "เตรียมเครื่องวัดให้นิ่งและให้ตัวเลขอยู่กลางภาพ"}
         </p>
       </div>
@@ -276,7 +292,7 @@ export default function ReportForm({
           <b>
             <AppIcon name="camera" size={17} />
           </b>
-          <span>ถ่ายภาพ</span>
+          <span>เพิ่มภาพ</span>
         </li>
         <li data-complete={hasGps}>
           <b>
@@ -323,14 +339,14 @@ export default function ReportForm({
                 <AppIcon name="camera" size={19} />
               </b>
               <span>
-                <strong>ถ่ายหน้าจอเครื่องวัด</strong>
-                <small>ใช้กล้องสดให้เห็นตัวเลขชัดเจน</small>
+                <strong>ภาพหน้าจอเครื่องวัด</strong>
+                <small>ถ่ายใหม่หรือเลือกจากคลัง ให้เห็นตัวเลขชัดเจน</small>
               </span>
             </div>
             <CameraCapture
               onLoginRequired={() =>
                 loginPrompt.openLoginPrompt({
-                  title: "เข้าสู่ระบบก่อนเปิดกล้อง",
+                  title: "เข้าสู่ระบบก่อนเพิ่มภาพ",
                   description:
                     "ใช้บัญชี Google เพื่อยืนยันผู้ส่งและติดตามผลการตรวจรายงาน",
                 })
@@ -391,7 +407,7 @@ export default function ReportForm({
                   onClick={retakePhoto}
                 >
                   <AppIcon name="camera" size={18} />
-                  {sending ? "กำลังเตรียม…" : "ถ่ายภาพใหม่"}
+                  {sending ? "กำลังเตรียม…" : "เปลี่ยนภาพ"}
                 </button>
               </div>
             ) : (
@@ -508,9 +524,11 @@ export default function ReportForm({
       <details className="cp-privacy-note">
         <summary>ข้อมูลของฉันถูกเก็บอย่างไร</summary>
         <p>
-          ระบบเก็บ GPS จริงสำหรับตรวจคุณภาพและ audit log
-          ตำแหน่งสาธารณะจะเลื่อนประมาณ 120–250 เมตรเพื่อปกป้องความเป็นส่วนตัว
-          ภาพของรายงานที่ผ่านจะแสดงผ่านลิงก์ชั่วคราวเมื่อเปิดหมุดบนแผนที่
+          ระบบเก็บภาพต้นฉบับ ข้อมูลเวลาและไฟล์ ตำแหน่งที่วัด และ GPS
+          ขณะส่งไว้เป็นหลักฐานส่วนตัวสำหรับผู้ดูแล ตำแหน่งสาธารณะจะเลื่อนประมาณ
+          120–250 เมตรเพื่อปกป้องความเป็นส่วนตัว
+          ภาพของรายงานที่ผ่านจะแสดงผ่านลิงก์ชั่วคราว
+          โดยลบข้อมูลเวลาและพิกัดที่ฝังอยู่ในไฟล์ออกก่อน
         </p>
       </details>
     </section>

@@ -9,6 +9,7 @@ import type {
   AnnouncementUpdate,
   AnnouncementsResponse,
   CaptureSessionResponse,
+  PhotoMetadata,
   CommunityProfileResponse,
   CommunityMapPointsResponse,
   CommunityReportsResponse,
@@ -166,6 +167,16 @@ export const api = {
       `/api/community/review-queue?lat=${lat}&lon=${lon}`,
       { auth: true },
     ),
+
+  photoMetadata: (file: File) => {
+    const body = new FormData();
+    body.set("image", file);
+    return http<PhotoMetadata>("/api/community/image-metadata", {
+      method: "POST",
+      auth: true,
+      body,
+    });
+  },
 
   createReportDraft: (form: FormData) =>
     http<ReportDraftResponse>("/api/community/report-drafts", {

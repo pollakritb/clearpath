@@ -14,6 +14,8 @@ def cleanup_expired_reports(limit: int = 200) -> dict:
     failures = 0
     for row in rows:
         try:
+            if row.get("original_image_path"):
+                supabase_client.delete_report_image(str(row["original_image_path"]))
             image_path = row.get("image_path")
             if image_path:
                 supabase_client.delete_report_image(str(image_path))
@@ -28,6 +30,10 @@ def cleanup_expired_reports(limit: int = 200) -> dict:
         try:
             if not draft.get("submitted_at") and draft.get("image_path"):
                 supabase_client.delete_report_image(str(draft["image_path"]))
+                if draft.get("original_image_path"):
+                    supabase_client.delete_report_image(
+                        str(draft["original_image_path"])
+                    )
             supabase_client.delete_expired_report_draft(str(draft["id"]))
             drafts_deleted += 1
         except Exception:

@@ -1,5 +1,7 @@
 """Community API — reports, gratitude/star feedback, news and leaderboard."""
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from starlette.concurrency import run_in_threadpool
@@ -22,6 +24,7 @@ from ..models.schemas import (
     LeaderboardEntry,
     LeaderboardResponse,
     OperationResponse,
+    PhotoMetadata,
     RatingResult,
     ReportComment,
     ReportCommentCreate,
@@ -34,7 +37,13 @@ from ..models.schemas import (
 )
 from ..services import capture as capture_service
 from ..services import community as community_service
-from ..services import google_news, image_fingerprint, local_store, supabase_client
+from ..services import (
+    google_news,
+    image_fingerprint,
+    local_store,
+    photo_metadata,
+    supabase_client,
+)
 
 router = APIRouter()
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -127,6 +136,25 @@ async def review_queue(
     )
 
 
+@router.post("/community/image-metadata", response_model=PhotoMetadata)
+async def image_metadata(
+    image: UploadFile = File(...), user: AuthenticatedUser = Depends(require_user)
+):
+    """Inspect only the caller's upload; do not store it or perform OCR."""
+    allowed = await run_in_threadpool(
+        supabase_client.take_rate_limit, user.id, "image_metadata", 60, 12
+    )
+    if not allowed:
+        raise HTTPException(429, detail="เลือกภาพถี่เกินไป กรุณารอสักครู่")
+    content = await image.read(MAX_IMAGE_BYTES + 1)
+    if not content or len(content) > MAX_IMAGE_BYTES:
+        raise HTTPException(413, detail="ภาพต้องมีขนาดไม่เกิน 8 MB")
+    try:
+        return await run_in_threadpool(photo_metadata.read_photo_metadata, content)
+    except ValueError as exc:
+        raise HTTPException(415, detail=str(exc)) from exc
+
+
 @router.post(
     "/community/report-drafts", response_model=ReportDraftResponse, status_code=201
 )
@@ -134,8 +162,14 @@ async def create_report_draft(
     lat: float = Form(..., ge=-90, le=90),
     lon: float = Form(..., ge=-180, le=180),
     gps_accuracy_m: float = Form(..., ge=0, le=200),
+    submission_lat: float | None = Form(default=None, ge=-90, le=90),
+    submission_lon: float | None = Form(default=None, ge=-180, le=180),
     camera_session_token: str = Form(..., min_length=20),
     client_captured_at: str | None = Form(default=None),
+    capture_source: Literal["camera", "gallery"] = Form(default="camera"),
+    client_timezone_offset_minutes: int | None = Form(default=None, ge=-840, le=840),
+    file_last_modified_at: str | None = Form(default=None, max_length=40),
+    file_selected_at: str | None = Form(default=None, max_length=40),
     image: UploadFile = File(...),
     burst_images: list[UploadFile] = File(default=[]),
     user: AuthenticatedUser = Depends(require_user),
@@ -187,10 +221,17 @@ async def create_report_draft(
             lat=lat,
             lon=lon,
             gps_accuracy_m=gps_accuracy_m,
+            submission_lat=submission_lat,
+            submission_lon=submission_lon,
             camera_session_token=camera_session_token,
             client_captured_at=client_captured_at,
+            capture_source=capture_source,
+            client_timezone_offset_minutes=client_timezone_offset_minutes,
+            file_last_modified_at=file_last_modified_at,
+            file_selected_at=file_selected_at,
             image=content,
             content_type=content_type,
+            original_filename=(image.filename or "")[:200],
             burst_images=burst,
         )
     except ValueError as exc:

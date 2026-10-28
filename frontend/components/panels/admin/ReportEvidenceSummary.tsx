@@ -66,16 +66,26 @@ export default function ReportEvidenceSummary({
         <EvidenceMetric label="เครื่องวัด">
           {report.device_model ?? "ไม่ระบุ"}
         </EvidenceMetric>
-        <EvidenceMetric label="GPS จริงสำหรับ Admin">
+        <EvidenceMetric label="ตำแหน่งที่วัดสำหรับ Admin">
           {report.lat.toFixed(5)}, {report.lon.toFixed(5)} · ±
           {Math.round(report.gps_accuracy_m ?? 0)} ม.
         </EvidenceMetric>
       </div>
 
+      {report.image_metadata && (
+        <details className="cp-photo-metadata">
+          <summary>ข้อมูลไฟล์และเวลาของภาพ (Admin)</summary>
+          <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+            {JSON.stringify(report.image_metadata, null, 2)}
+          </pre>
+        </details>
+      )}
       <div className="cp-admin-evidence-time">
         Camera session: {report.camera_session_issued_at ?? "—"} · ถ่าย:{" "}
         {report.client_captured_at ?? report.captured_at}
-        {report.clock_warning ? " · เวลาเครื่องผิดปกติ ใช้เวลา server แทน" : ""}
+        {report.clock_warning
+          ? " · เวลาจากเครื่องถ่ายสดผิดปกติ ใช้เวลา server แทน"
+          : ""}
       </div>
     </>
   );

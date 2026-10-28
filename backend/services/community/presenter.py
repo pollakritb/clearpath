@@ -80,6 +80,12 @@ def present_report(
         gps_accuracy_m=gps_accuracy,
         duplicate_detected=bool(row.get("duplicate_of_report_id")),
     )
+    if row.get("capture_source") == "gallery" and gps_accuracy is None:
+        eligibility = {
+            "eligible": False,
+            "basis": "none",
+            "reason": "ตำแหน่งจากภาพหรือผู้ใช้ระบุ ไม่มีความแม่นยำ GPS ณ เวลาวัดยืนยัน",
+        }
     source_type = row.get("source_type") or "individual"
     show_reporter_profile = bool(row.get("show_reporter_profile")) and (
         source_type == "individual"
@@ -131,6 +137,10 @@ def present_report(
             else 0
         ),
         "captured_at": captured_at,
+        "capture_source": row.get("capture_source") or "camera",
+        "image_metadata": row.get("image_metadata")
+        if include_private_metadata
+        else None,
         "created_at": str(row["created_at"]),
         "status": row["status"],
         "trust_score": trust_score,
@@ -240,6 +250,7 @@ def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
             # receive only a short-lived signed URL when opening a report pin.
             include_image=True,
             include_exact_location=status != "approved",
+            include_private_metadata=status != "approved",
         )
         for row in rows
     ]

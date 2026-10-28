@@ -738,7 +738,7 @@ def list_expired_report_drafts(limit: int = 200) -> list[dict]:
     return (
         get_client()
         .table("report_drafts")
-        .select("id,image_path,submitted_at,expires_at")
+        .select("id,image_path,original_image_path,submitted_at,expires_at")
         .lte("expires_at", now)
         .order("expires_at")
         .limit(limit)
@@ -1927,7 +1927,7 @@ def list_expired_report_evidence(limit: int = 200) -> list[dict]:
     return (
         get_client()
         .table("report_evidence")
-        .select("report_id,image_path,retention_until")
+        .select("report_id,image_path,original_image_path,retention_until")
         .eq("audit_hold", False)
         .is_("purged_at", "null")
         .not_.is_("retention_until", "null")
@@ -1949,6 +1949,8 @@ def purge_report_evidence(report_id: str) -> None:
             "exact_lon": None,
             "gps_accuracy_m": None,
             "image_path": None,
+            "image_metadata": {},
+            "original_image_path": None,
             "image_sha256": None,
             "image_ahash": None,
             "unexpected_exif": False,
@@ -1965,6 +1967,7 @@ def purge_report_evidence(report_id: str) -> None:
             "lon": report.get("public_lon", report.get("lon")),
             "gps_accuracy_m": None,
             "image_path": None,
+            "image_metadata": {},
             "image_sha256": None,
             "image_ahash": None,
             "burst_hashes": [],

@@ -868,3 +868,85 @@ def test_forecast_local_load_budget_and_contract(feature_client):
         assert body["quality"]["source_points"] >= 24
     p95 = sorted(latencies)[int(len(latencies) * 0.95) - 1]
     assert p95 < 1500
+
+
+def test_gallery_report_preserves_time_and_keeps_metadata_private(
+    feature_client, monkeypatch
+):
+    client, become = feature_client
+    owner = become("user")
+
+    async def read_number(*_args, **_kwargs):
+        return {
+            "available": True,
+            "pm25": 42.5,
+            "confidence": 0.2,
+            "device_detected": False,
+            "display_clear": False,
+            "raw_text": "42.5",
+        }
+
+    monkeypatch.setattr(ocr_service, "read_pm25", read_number)
+    image = Image.new("RGB", (97, 53), "purple")
+    exif = Image.Exif()
+    exif[36867] = "2020:01:02 10:30:00"
+    exif[36881] = "+07:00"
+    original = BytesIO()
+    image.save(original, format="JPEG", exif=exif)
+    inspect = client.post(
+        "/api/community/image-metadata",
+        files={"image": ("photo.jpg", original.getvalue(), "image/jpeg")},
+    )
+    assert inspect.status_code == 200
+    assert inspect.json()["exif_captured_at"] == "2020-01-02T10:30:00+07:00"
+    session = client.post("/api/community/capture-session").json()
+    response = client.post(
+        "/api/community/report-drafts",
+        data={
+            "lat": "13.8199",
+            "lon": "100.0622",
+            "gps_accuracy_m": "15",
+            "submission_lat": "14.3",
+            "submission_lon": "100.4",
+            "camera_session_token": session["token"],
+            "capture_source": "gallery",
+            "client_captured_at": datetime.now(UTC).isoformat(),
+            "client_timezone_offset_minutes": "-420",
+            "file_last_modified_at": "2026-10-28T00:00:00Z",
+        },
+        files={"image": ("photo.jpg", original.getvalue(), "image/jpeg")},
+    )
+    assert response.status_code == 201, response.text
+    draft = response.json()
+    assert draft["captured_at"].startswith("2020-01-02T03:30:00")
+    stored = local_store.get_report_draft(draft["id"], owner.id)
+    assert stored["image_metadata"]["gps_at_submission"]["lat"] == 14.3
+    assert stored["image_metadata"]["measurement_location"]["lat"] == 13.8199
+    assert stored["capture_source"] == "gallery"
+    assert stored["image_metadata"]["original_filename"] == "photo.jpg"
+    assert stored["original_image_path"].startswith("originals/")
+    submitted = client.post(
+        f"/api/community/report-drafts/{draft['id']}/submit",
+        json={
+            "user_claimed_pm25": 42.5,
+            "measurement_stable": True,
+            "measurement_environment": "outdoor",
+            "measurement_duration_seconds": 60,
+        },
+    )
+    assert submitted.status_code == 201, submitted.text
+    report = submitted.json()["report"]
+    assert report["status"] == "approved"
+    assert report["capture_source"] == "gallery"
+    assert report["image_metadata"] is None
+    assert report["is_fresh"] is False
+    preview = client.get(draft["image_preview_url"])
+    assert preview.status_code == 200
+    with Image.open(BytesIO(preview.content)) as public_image:
+        assert not public_image.getexif()
+    become("admin", user_id=owner.id)
+    logged = client.get("/api/admin/reports").json()["reports"]
+    logged_report = next(item for item in logged if item["id"] == report["id"])
+    assert logged_report["image_metadata"]["time_source"] == "exif"
+    admin_report = client.get("/api/community/reports").json()["reports"]
+    assert all(item["id"] != report["id"] for item in admin_report)
