@@ -8,6 +8,11 @@ import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { classifyPm25 } from "@/frontend/lib/aqi";
+import { announceRequestUpdate } from "@/frontend/lib/measurement-events";
+import {
+  requestPlaceParts,
+  UNKNOWN_REQUEST_PLACE,
+} from "@/frontend/lib/request-place";
 import type { MeasurementRequestView, RequestStatus } from "@/frontend/types";
 
 const RequestAreaMap = dynamic(() => import("./RequestAreaMap"), {
@@ -36,7 +41,7 @@ export function RequestSummary({
 }: {
   row: MeasurementRequestView;
   actions?: boolean;
-  onChanged?: () => void;
+  onChanged?: (request: MeasurementRequestView) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -46,6 +51,7 @@ export function RequestSummary({
     return () => window.clearInterval(timer);
   }, []);
   const cls = classifyPm25(row.result?.pm25);
+  const place = requestPlaceParts(row.place_name);
   const active = row.status === "scheduled" || row.status === "active";
   const minutesLeft = Math.max(
     0,
@@ -55,9 +61,12 @@ export function RequestSummary({
     setBusy(true);
     setError("");
     try {
-      if (kind === "cancel") await api.cancelMeasurementRequest(row.id);
-      else await api.declineMeasurementRequest(row.id);
-      onChanged?.();
+      const updated =
+        kind === "cancel"
+          ? await api.cancelMeasurementRequest(row.id)
+          : await api.declineMeasurementRequest(row.id);
+      onChanged?.(updated);
+      announceRequestUpdate(updated);
     } catch (e) {
       setError(apiErrorMessage(e, "บันทึกไม่สำเร็จ"));
     } finally {
@@ -70,17 +79,28 @@ export function RequestSummary({
         <span className="cp-measure-badge">{REQUEST_LABELS[row.status]}</span>
         <small>{row.is_owner ? "คำขอของฉัน" : "คำขอให้ช่วยวัด"}</small>
       </div>
-      <h2>{row.place_name}</h2>
+      <h2>{place.title}</h2>
+      {place.address && <p>{place.address}</p>}
+      {place.title === UNKNOWN_REQUEST_PLACE && (
+        <p>
+          {row.lat.toFixed(5)}, {row.lon.toFixed(5)}
+        </p>
+      )}
       <p>
         วง {row.radius_km} กม. · รับรายงาน {date(row.starts_at)} –{" "}
         {date(row.expires_at)}
       </p>
-      <Link
-        href={`/?measurement_request=${encodeURIComponent(row.id)}`}
-        className="cp-measure-link cp-focus"
-      >
-        ดูจุดคำขอบนแผนที่
-      </Link>
+      {row.status !== "cancelled" && (
+        <Link
+          href={`/?measurement_request=${encodeURIComponent(row.id)}`}
+          className="cp-measure-link cp-focus"
+        >
+          ดูจุดคำขอบนแผนที่
+        </Link>
+      )}
+      {row.status === "cancelled" && (
+        <p>ยกเลิกแล้ว · เก็บไว้ในประวัติและไม่แสดงหมุดบนแผนที่</p>
+      )}
       {actions && active && (
         <RequestAreaMap lat={row.lat} lon={row.lon} radius={row.radius_km} />
       )}
@@ -132,9 +152,21 @@ export function RequestSummary({
         </small>
       )}
       {!actions ? (
-        <Link href={`/requests/${row.id}`} className="cp-measure-link">
-          ติดตามคำขอ
-        </Link>
+        <div className="cp-measure-actions">
+          <Link href={`/requests/${row.id}`} className="cp-measure-link">
+            {active ? "ติดตามคำขอ" : "ดูประวัติคำขอ"}
+          </Link>
+          {row.is_owner && active && (
+            <button
+              type="button"
+              className="cp-request-cancel cp-focus"
+              disabled={busy}
+              onClick={() => void act("cancel")}
+            >
+              {busy ? "กำลังยกเลิก…" : "ยกเลิกคำขอ"}
+            </button>
+          )}
+        </div>
       ) : (
         <div className="cp-measure-actions">
           {!row.is_owner &&
@@ -160,6 +192,7 @@ export function RequestSummary({
           {row.is_owner && active && (
             <button
               type="button"
+              className="cp-request-cancel cp-focus"
               disabled={busy}
               onClick={() => void act("cancel")}
             >
@@ -192,10 +225,27 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
   const groups = requestId
     ? [{ label: null, items: rows }]
     : [
-        { label: "คำขอของฉัน", items: rows.filter((row) => row.is_owner) },
+        {
+          label: "คำขอของฉัน",
+          items: rows.filter(
+            (row) =>
+              row.is_owner &&
+              (row.status === "active" || row.status === "scheduled"),
+          ),
+        },
         {
           label: "คำขอจากคนอื่นให้ช่วยวัด",
-          items: rows.filter((row) => !row.is_owner),
+          items: rows.filter(
+            (row) =>
+              !row.is_owner &&
+              (row.status === "active" || row.status === "scheduled"),
+          ),
+        },
+        {
+          label: "ประวัติคำขอ",
+          items: rows.filter(
+            (row) => row.status !== "active" && row.status !== "scheduled",
+          ),
         },
       ];
   const [error, setError] = useState("");
@@ -271,7 +321,19 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
                     key={row.id}
                     row={row}
                     actions={!!requestId}
-                    onChanged={() => void load()}
+                    onChanged={(updated) => {
+                      setLoaded((previous) =>
+                        previous?.account === account
+                          ? {
+                              ...previous,
+                              rows: previous.rows.map((row) =>
+                                row.id === updated.id ? updated : row,
+                              ),
+                            }
+                          : previous,
+                      );
+                      void load();
+                    }}
                   />
                 ))}
                 {!loading && !group.items.length && !error && (
@@ -279,9 +341,11 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
                     <p>
                       {group.label === "คำขอของฉัน"
                         ? "ยังไม่มีคำขอของคุณ"
-                        : group.label
-                          ? "ยังไม่มีคำขอจากคนอื่นที่ส่งถึงคุณ"
-                          : "ไม่พบคำขอ"}
+                        : group.label === "ประวัติคำขอ"
+                          ? "ยังไม่มีประวัติคำขอ"
+                          : group.label
+                            ? "ยังไม่มีคำขอจากคนอื่นที่ส่งถึงคุณ"
+                            : "ไม่พบคำขอ"}
                     </p>
                   </div>
                 )}

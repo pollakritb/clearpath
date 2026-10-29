@@ -59,7 +59,7 @@ from .forecast import (
     ForecastSurfaceResponse,
     ForecastValidationSummary,
 )
-from .locations import LocationSearchResponse, LocationSuggestion
+from .locations import LocationLabelResponse, LocationSearchResponse, LocationSuggestion
 from .measurement import (
     MeasurementHelperConsent,
     MeasurementHelperSettings,
@@ -125,6 +125,7 @@ __all__ = [
     "LeaderboardResponse",
     "LoocvMetrics",
     "LocationSearchResponse",
+    "LocationLabelResponse",
     "LocationSuggestion",
     "LineLinkCodeResponse",
     "LineNotificationStatus",

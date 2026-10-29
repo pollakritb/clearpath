@@ -1,6 +1,7 @@
 // typed fetch wrappers — frontend รู้จักแค่ /api/* (same-origin)
 
 import type {
+  LocationLabelResponse,
   MeasurementRequestCreate,
   MeasurementRequestView,
   MeasurementRequestsResponse,
@@ -112,6 +113,11 @@ async function invalidateAfter<T>(request: Promise<T>, ...keys: string[]) {
 }
 
 export const api = {
+  reverseLocation: (lat: number, lon: number) =>
+    http<LocationLabelResponse>(
+      `/api/locations/reverse?lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}`,
+      { cache: "no-store" },
+    ),
   measurementRequests: () =>
     http<MeasurementRequestsResponse>("/api/measurement-requests", {
       auth: true,

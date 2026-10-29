@@ -28,8 +28,8 @@ export function visibleMapRequests(
 ) {
   return rows.filter((row) => {
     if (!Number.isFinite(row.lat) || !Number.isFinite(row.lon)) return false;
-    if (row.id === selectedId) return true;
     if (row.status === "cancelled") return false;
+    if (row.id === selectedId) return true;
     const state = requestMapStatus(row, now);
     return (
       state === "active" ||

@@ -1,4 +1,5 @@
 "use client";
+import { requestPlaceParts } from "@/frontend/lib/request-place";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
@@ -37,7 +38,12 @@ export default function RequestContext({ requestId }: { requestId: string }) {
     <aside className="cp-measure-card">
       {row ? (
         <>
-          <strong>ช่วยรายงานบริเวณ {row.place_name}</strong>
+          <strong>
+            ช่วยรายงาน · {requestPlaceParts(row.place_name).title}
+          </strong>
+          {requestPlaceParts(row.place_name).address && (
+            <p>{requestPlaceParts(row.place_name).address}</p>
+          )}
           <p>
             วง {row.radius_km} กม. · ก่อน{" "}
             {new Date(row.expires_at).toLocaleString("th-TH")}

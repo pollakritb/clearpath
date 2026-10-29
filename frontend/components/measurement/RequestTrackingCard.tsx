@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { useMeasurementRequests } from "@/frontend/hooks/useMeasurementRequests";
+import { requestPlaceParts } from "@/frontend/lib/request-place";
 
 const formatTime = (value: string) =>
   new Date(value).toLocaleString("th-TH", {
@@ -20,7 +21,7 @@ export default function RequestTrackingCard({
   const requestData = useMeasurementRequests(userId);
   const data = { rows: requestData.rows, now: requestData.now };
   const own = (data?.rows ?? [])
-    .filter((row) => row.is_owner)
+    .filter((row) => row.is_owner && row.status !== "cancelled")
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
   const open = own.filter(
     (row) => row.status === "scheduled" || row.status === "active",
@@ -84,7 +85,7 @@ export default function RequestTrackingCard({
           {title}
         </strong>
         <span className="cp-request-tracking__place">
-          {row.place_name} · วง {row.radius_km} กม.
+          {requestPlaceParts(row.place_name).title} · วง {row.radius_km} กม.
         </span>
         {row.status === "fulfilled" && row.result?.pm25 != null ? (
           <span className="cp-request-tracking__reading">

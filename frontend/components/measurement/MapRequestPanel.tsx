@@ -7,6 +7,7 @@ import type {
   MeasurementRequestView,
 } from "@/frontend/types";
 import CreateRequest from "./CreateRequest";
+import { requestPlaceTitle } from "@/frontend/lib/request-place";
 
 export default function MapRequestPanel({
   point,
@@ -17,6 +18,7 @@ export default function MapRequestPanel({
   radius = 3,
   onRadiusChange,
   onCreated,
+  resolvingName = false,
 }: {
   point: LocationSuggestion | null;
   editing: boolean;
@@ -26,6 +28,7 @@ export default function MapRequestPanel({
   radius?: 1 | 3 | 5;
   onRadiusChange?: (radius: 1 | 3 | 5) => void;
   onCreated?: (request: MeasurementRequestView) => void;
+  resolvingName?: boolean;
 }) {
   return (
     <section
@@ -47,10 +50,18 @@ export default function MapRequestPanel({
         {point ? (
           <p className="cp-map-request-point">
             <strong>
-              {point.kind === "point" ? "จุดที่เลือก" : point.name}
+              {resolvingName
+                ? "กำลังระบุพื้นที่…"
+                : requestPlaceTitle(point.name)}
             </strong>
             <span>
-              {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
+              {point.address ? (
+                point.address
+              ) : (
+                <>
+                  {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
+                </>
+              )}
             </span>
           </p>
         ) : (
@@ -80,6 +91,7 @@ export default function MapRequestPanel({
             selectedRadius={radius}
             onRadiusChange={onRadiusChange}
             onCreated={onCreated}
+            resolvingName={resolvingName}
           />
         </>
       ) : (

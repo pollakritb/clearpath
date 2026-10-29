@@ -13,6 +13,7 @@ import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import MapRequestPanel from "@/frontend/components/measurement/MapRequestPanel";
 import RequestMapCard from "@/frontend/components/measurement/RequestMapCard";
 import { useMeasurementRequests } from "@/frontend/hooks/useMeasurementRequests";
+import { useRequestPlaceLabel } from "@/frontend/hooks/useRequestPlaceLabel";
 import { visibleMapRequests } from "@/frontend/lib/request-map";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import ListView from "@/frontend/components/panels/ListView";
@@ -82,6 +83,10 @@ export default function MapPageClient({
     null,
   );
   const [requestRadius, setRequestRadius] = useState<1 | 3 | 5>(3);
+  const requestLabel = useRequestPlaceLabel(
+    requestPoint,
+    requestStep !== "idle",
+  );
   const [selectedReport, setSelectedReport] = useState<CommunityReport | null>(
     null,
   );
@@ -279,7 +284,7 @@ export default function MapPageClient({
     }
     if (openedRequestLink.current === initialRequestId) return;
     const request = requestData.rows.find((row) => row.id === initialRequestId);
-    if (!request) return;
+    if (!request || request.status === "cancelled") return;
     const frame = window.requestAnimationFrame(() => {
       openedRequestLink.current = initialRequestId;
       selectRequest(request);
@@ -490,7 +495,8 @@ export default function MapPageClient({
           }}
           radius={requestRadius}
           onRadiusChange={setRequestRadius}
-          point={requestPoint}
+          point={requestLabel.point}
+          resolvingName={requestLabel.loading}
           editing={requestStep === "form"}
           onConfirm={() => setRequestStep("form")}
           onReselect={() => setRequestStep("pick")}
@@ -499,6 +505,10 @@ export default function MapPageClient({
       ) : selectedRequest ? (
         <RequestMapCard
           request={selectedRequest}
+          onUpdated={(row) => {
+            requestData.upsert(row);
+            if (row.status === "cancelled") setSelectedRequestId(null);
+          }}
           now={requestData.now}
           onClose={() => setSelectedRequestId(null)}
         />

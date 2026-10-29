@@ -7247,6 +7247,9 @@
 .cp-map-request-point span {
   color: #5c716d;
   font-size: 0.73rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .cp-map-request-panel .cp-measure-create {
   margin: 0;
@@ -7323,6 +7326,17 @@
   white-space: nowrap;
   font: 700 10px/1.4 var(--font-sans);
 }
+.cp-request-marker__label strong,
+.cp-request-marker__label small {
+  display: block;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cp-request-marker__label small {
+  font-size: 9px;
+  color: #617b71;
+}
 .cp-measure-create > .cp-measure-primary {
   width: 100%;
 }
@@ -7383,6 +7397,24 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 14px;
+}
+.cp-request-cancel,
+.cp-measure-actions .cp-request-cancel {
+  min-height: 44px;
+  border: 1px solid #e4c8c3;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: #fff8f6;
+  color: #a1392b;
+  font: 600 0.8rem var(--font-sans);
+  cursor: pointer;
+}
+.cp-request-cancel:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.cp-measure-card[data-status="cancelled"] {
+  background: #f7f9f8;
 }
 .cp-measure-toggle {
   display: flex;

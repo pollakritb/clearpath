@@ -2,6 +2,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useMeasurementRequests } from "./useMeasurementRequests";
 import { REQUESTS_CHANGED } from "@/frontend/lib/measurement-events";
+import { announceRequestUpdate } from "@/frontend/lib/measurement-events";
 import type { MeasurementRequestView } from "@/frontend/types";
 const mocks = vi.hoisted(() => ({ list: vi.fn() }));
 vi.mock("@/frontend/lib/api-client", () => ({
@@ -14,6 +15,23 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+});
+it("removes cancelled markers from a cached map even while the map is inactive", async () => {
+  const row = {
+    id: "own",
+    is_owner: true,
+    status: "active",
+  } as MeasurementRequestView;
+  mocks.list.mockResolvedValue({ requests: [row] });
+  const { result, rerender } = renderHook(
+    ({ active }) => useMeasurementRequests("viewer", active),
+    { initialProps: { active: true } },
+  );
+  await waitFor(() => expect(result.current.rows).toHaveLength(1));
+  rerender({ active: false });
+  act(() => announceRequestUpdate({ ...row, status: "cancelled" }));
+  expect(result.current.rows[0].status).toBe("cancelled");
+  expect(mocks.list).toHaveBeenCalledOnce();
 });
 it("does not poll a hidden persistent map or a signed-out account", async () => {
   const { rerender } = renderHook(

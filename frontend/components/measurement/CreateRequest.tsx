@@ -5,6 +5,10 @@ import dynamic from "next/dynamic";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { REQUESTS_CHANGED } from "@/frontend/lib/measurement-events";
+import {
+  storedRequestPlace,
+  requestPlaceTitle,
+} from "@/frontend/lib/request-place";
 import type {
   LocationSuggestion,
   MeasurementRequestView,
@@ -21,6 +25,7 @@ export default function CreateRequest({
   selectedRadius,
   onRadiusChange,
   onCreated,
+  resolvingName = false,
 }: {
   place: LocationSuggestion;
   initiallyOpen?: boolean;
@@ -28,6 +33,7 @@ export default function CreateRequest({
   selectedRadius?: 1 | 3 | 5;
   onRadiusChange?: (radius: 1 | 3 | 5) => void;
   onCreated?: (request: MeasurementRequestView) => void;
+  resolvingName?: boolean;
 }) {
   const login = useLoginPrompt();
   const [open, setOpen] = useState(initiallyOpen);
@@ -40,6 +46,7 @@ export default function CreateRequest({
   const [result, setResult] = useState<MeasurementRequestView | null>(null);
   const key = useRef<string | null>(null);
   async function send() {
+    if (resolvingName) return;
     if (login.openLoginPrompt()) return;
     if (
       scheduled &&
@@ -53,7 +60,7 @@ export default function CreateRequest({
     key.current ??= crypto.randomUUID();
     try {
       const created = await api.createMeasurementRequest({
-        place_name: place.name,
+        place_name: storedRequestPlace(place),
         lat: place.lat,
         lon: place.lon,
         radius_km: radius,
@@ -97,7 +104,7 @@ export default function CreateRequest({
         <div className="cp-measure-form">
           {!mapContext && (
             <>
-              <strong>{place.name}</strong>
+              <strong>{requestPlaceTitle(place.name)}</strong>
               <RequestAreaMap lat={place.lat} lon={place.lon} radius={radius} />
               <p>เลือกบริเวณที่ต้องการค่าฝุ่นใหม่</p>
             </>
@@ -184,10 +191,14 @@ export default function CreateRequest({
           <button
             type="button"
             className="cp-measure-primary"
-            disabled={busy}
+            disabled={busy || resolvingName}
             onClick={() => void send()}
           >
-            {busy ? "กำลังบันทึก…" : "ส่งคำขอ"}
+            {busy
+              ? "กำลังบันทึก…"
+              : resolvingName
+                ? "กำลังระบุพื้นที่…"
+                : "ส่งคำขอ"}
           </button>
         </div>
       )}

@@ -1,11 +1,28 @@
 """Search places in Thailand without exposing the provider key to browsers."""
 
+from typing import Annotated
+
 from fastapi import APIRouter, Query, Response
 
-from ..models.locations import LocationSearchResponse, LocationSuggestion
+from ..models.locations import (
+    LocationLabelResponse,
+    LocationSearchResponse,
+    LocationSuggestion,
+)
+from ..services.place_labels import resolve_label
 from ..services.places import search_places
 
 router = APIRouter()
+
+
+@router.get("/locations/reverse", response_model=LocationLabelResponse)
+async def location_label(
+    response: Response,
+    lat: Annotated[float, Query(ge=5, le=21)],
+    lon: Annotated[float, Query(ge=97, le=106)],
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await resolve_label(lat, lon)
 
 
 @router.get("/locations/search", response_model=LocationSearchResponse)

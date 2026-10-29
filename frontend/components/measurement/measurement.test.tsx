@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type {
@@ -92,7 +93,7 @@ it("lists own and invited requests without location search or creation controls"
   render(<RequestsPage />);
   fireEvent.click(screen.getByRole("button", { name: "กลับ" }));
   expect(mocks.back).toHaveBeenCalledOnce();
-  await screen.findByText("สถานที่ B");
+  await screen.findByText("บริเวณสถานที่ B");
   expect(screen.getByRole("heading", { name: "คำขอของฉัน" })).toBeTruthy();
   expect(
     screen.getByRole("heading", { name: "คำขอจากคนอื่นให้ช่วยวัด" }),
@@ -106,6 +107,24 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
+it("moves a cancelled request into history and removes its map link", async () => {
+  const cancelled = { ...row, status: "cancelled" } as MeasurementRequestView;
+  mocks.list
+    .mockResolvedValueOnce({ requests: [row] })
+    .mockResolvedValue({ requests: [cancelled] });
+  mocks.cancel.mockResolvedValue(cancelled);
+  render(<RequestsPage />);
+  fireEvent.click(await screen.findByRole("button", { name: "ยกเลิกคำขอ" }));
+  const history = screen.getByRole("region", { name: "ประวัติคำขอ" });
+  await waitFor(() =>
+    expect(within(history).getByText("ยกเลิกแล้ว")).toBeTruthy(),
+  );
+  expect(screen.queryByRole("link", { name: "ดูจุดคำขอบนแผนที่" })).toBeNull();
+  expect(
+    within(history).getByRole("link", { name: "ดูประวัติคำขอ" }),
+  ).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "ยกเลิกคำขอ" })).toBeNull();
+});
 it("creates an immediate request with 3 km default and shows tracking", async () => {
   render(<CreateRequest place={place} />);
   fireEvent.click(
@@ -117,7 +136,7 @@ it("creates an immediate request with 3 km default and shows tracking", async ()
   fireEvent.click(screen.getByRole("button", { name: "ส่งคำขอ" }));
   await screen.findByText("บันทึกคำขอแล้ว");
   expect(mocks.create.mock.calls[0][0]).toMatchObject({
-    place_name: "สถานที่ A",
+    place_name: "บริเวณสถานที่ A",
     radius_km: 3,
     needed_by: null,
   });

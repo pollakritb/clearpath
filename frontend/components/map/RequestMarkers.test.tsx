@@ -103,6 +103,9 @@ it("keeps active and recent completed requests, hides old or cancelled ones unle
     "completed",
   ]);
   expect(
+    visibleMapRequests(rows, now, "cancelled").map((r) => r.id),
+  ).not.toContain("cancelled");
+  expect(
     requestMapStatus({ ...request, expires_at: "2026-10-29T23:00:00Z" }, now),
   ).toBe("expired");
 });

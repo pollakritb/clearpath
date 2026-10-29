@@ -72,6 +72,7 @@ describe("api client", () => {
 
     const calls: Array<() => Promise<unknown>> = [
       () => api.pm25Current(),
+      () => api.reverseLocation(13.8, 100.1),
       () => api.measurementRequests(),
       () => api.measurementRequest("request / one"),
       () => api.createMeasurementRequest({} as never),

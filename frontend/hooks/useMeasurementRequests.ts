@@ -14,6 +14,29 @@ export function useMeasurementRequests(userId: string | null, active = true) {
   const [failedFor, setFailedFor] = useState<string | null>(null);
   const sequence = useRef(0);
   useEffect(() => {
+    if (!userId) return;
+    const updated = (event: Event) => {
+      const row = (event as CustomEvent<{ request?: MeasurementRequestView }>)
+        .detail?.request;
+      if (!row) return;
+      sequence.current += 1;
+      setSnapshot((previous) =>
+        previous?.userId === userId
+          ? {
+              ...previous,
+              rows: previous.rows.map((existing) =>
+                existing.id === row.id
+                  ? { ...existing, status: row.status, result: row.result }
+                  : existing,
+              ),
+            }
+          : previous,
+      );
+    };
+    window.addEventListener(REQUESTS_CHANGED, updated);
+    return () => window.removeEventListener(REQUESTS_CHANGED, updated);
+  }, [userId]);
+  useEffect(() => {
     if (!userId || !active) return;
     let alive = true;
     let pending = false;

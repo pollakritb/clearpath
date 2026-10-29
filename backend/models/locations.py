@@ -18,3 +18,9 @@ class LocationSuggestion(BaseModel):
 class LocationSearchResponse(BaseModel):
     locations: list[LocationSuggestion]
     coverage: Literal["nationwide", "limited"]
+
+
+class LocationLabelResponse(BaseModel):
+    name: str
+    address: str
+    source: Literal["geoapify", "photon", "local"]

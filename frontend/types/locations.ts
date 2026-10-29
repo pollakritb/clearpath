@@ -12,3 +12,9 @@ export interface LocationSearchResponse {
   locations: LocationSuggestion[];
   coverage: "nationwide" | "limited";
 }
+
+export interface LocationLabelResponse {
+  name: string;
+  address: string;
+  source: "geoapify" | "photon" | "local";
+}

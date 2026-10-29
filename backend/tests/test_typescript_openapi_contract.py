@@ -32,6 +32,7 @@ def _typescript_fields(path: str, interface_name: str) -> set[str]:
         ("StationsResponse", "frontend/types/air-quality.ts"),
         ("ReadinessResponse", "frontend/types/meta.ts"),
         ("Weather", "frontend/types/environment.ts"),
+        ("LocationLabelResponse", "frontend/types/locations.ts"),
         ("FirmsResponse", "frontend/types/environment.ts"),
         ("CommunityReport", "frontend/types/community.ts"),
         ("CommunityReportsResponse", "frontend/types/community.ts"),
