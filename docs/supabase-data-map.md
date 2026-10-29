@@ -1,5 +1,14 @@
 # ClearPath Supabase data map
 
+Current production schema: **33 public tables** after twelve empty legacy
+tables were removed from the previous 45-table production schema. They were
+retired by
+`20261029182957_retire_legacy_forecast_tables.sql`; see the
+[retirement record](runbooks/legacy-table-retirement-2026-10-30.md).
+The inventory and row counts below describe the historical 2026-10-16 audit,
+not the post-retirement schema. In particular, the old model/consensus tables,
+`weather_forecasts`, and `push_subscriptions` are no longer current storage.
+
 Production project: `ClearPath` (`qnrtryspglioqhdxglzu`). This inventory was
 checked on 2026-10-16 (Asia/Bangkok) against `public` tables, migrations,
 backend reads/writes, and the active Supabase cron. Counts are a point-in-time

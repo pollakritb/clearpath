@@ -6,6 +6,8 @@
   project identity, non-secret feature inventory and repeatable evidence record.
 - [Production backlog and dependency map](production-backlog.md) — canonical
   task ordering, completion authority and human-owned blockers.
+- [Legacy table retirement](legacy-table-retirement-2026-10-30.md) — removal of
+  twelve empty legacy tables, backup evidence and production verification.
 - [Backup and restore](backup-restore.md) — mandatory rehearsal before the
   destructive foundation migration.
 - [Incident response](incident-response.md) — alerts, triage, feature kill

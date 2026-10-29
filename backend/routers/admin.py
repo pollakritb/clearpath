@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, Up
 from starlette.concurrency import run_in_threadpool
 
 from ..core.auth import AuthenticatedUser, require_admin, require_moderator
+from ..core.config import settings
 from ..models.admin import (
     DataHealthResponse,
     DataIssueUpdateRequest,
@@ -425,6 +426,8 @@ async def data_health_summary(
 async def forecast_models(
     _user: AuthenticatedUser = Depends(require_moderator),
 ):
+    if settings.forecast_system_paused:
+        return {"models": [], "count": 0, "status": "retired"}
     models = await run_in_threadpool(artifact_statuses)
     return {"models": models, "count": len(models)}
 
@@ -452,6 +455,8 @@ async def forecast_evaluation(
     days: int = Query(14, ge=1, le=90),
     _user: AuthenticatedUser = Depends(require_admin),
 ):
+    if settings.forecast_system_paused:
+        return {"rows": [], "count": 0, "days": days, "status": "retired"}
     rows = await run_in_threadpool(
         supabase_client.get_forecast_evaluation_summary, days
     )
@@ -464,6 +469,8 @@ async def forecast_false_safe_cases(
     limit: int = Query(100, ge=1, le=200),
     _user: AuthenticatedUser = Depends(require_admin),
 ):
+    if settings.forecast_system_paused:
+        return {"cases": [], "count": 0, "days": days, "status": "retired"}
     rows = await run_in_threadpool(
         supabase_client.list_forecast_false_safe_cases, days, limit
     )
@@ -480,6 +487,8 @@ async def review_forecast_false_safe_case(
     body: FalseSafeReviewRequest,
     user: AuthenticatedUser = Depends(require_admin),
 ):
+    if settings.forecast_system_paused:
+        raise HTTPException(410, detail="legacy_forecast_retired")
     if horizon_hours not in {1, 3, 6, 12, 24}:
         raise HTTPException(400, detail="ช่วงเวลาพยากรณ์ไม่ถูกต้อง")
     if variant not in {"served", "shadow"}:
@@ -515,6 +524,8 @@ async def forecast_release_decisions(
     limit: int = Query(100, ge=1, le=200),
     _user: AuthenticatedUser = Depends(require_admin),
 ):
+    if settings.forecast_system_paused:
+        return {"decisions": [], "count": 0, "status": "retired"}
     rows = await run_in_threadpool(
         supabase_client.list_forecast_release_decisions, limit
     )

@@ -503,7 +503,8 @@ def forecast_provider_health() -> dict:
         provider = str(row.get("provider") or "")
         if provider in PROVIDERS:
             latest.setdefault(provider, row)
-    consensus = list_forecast_consensus(1)
+    # Stored raw CAMS mode no longer has a local consensus table.
+    consensus = [] if settings.forecast_system_paused else list_forecast_consensus(1)
     agreement_counts = {
         level: sum(row.get("agreement") == level for row in consensus)
         for level in ("high", "medium", "low")

@@ -25,21 +25,10 @@ REQUIRED_TABLES = (
     "audit_logs",
     "data_issue_reports",
     "notification_preferences",
-    "push_subscriptions",
     "notification_outbox",
-    "model_registry",
     "forecast_data_quality_daily",
-    "forecast_runs",
-    "forecast_predictions",
-    "forecast_false_safe_reviews",
-    "forecast_evaluation_daily",
-    "forecast_drift_snapshots",
-    "forecast_release_decisions",
     "forecast_provider_sync_runs",
     "forecast_provider_snapshots",
-    "forecast_consensus_latest",
-    "forecast_prediction_sources",
-    "community_forecast_feature_snapshots",
 )
 
 

@@ -1,5 +1,18 @@
 # Forecast reset and maintenance state
 
+## Legacy storage retirement — 2026-10-30
+
+The twelve unused Web Push/local-forecast tables are retired by
+`supabase/migrations/20261029182957_retire_legacy_forecast_tables.sql`.
+See [the retirement record](legacy-table-retirement-2026-10-30.md) for the exact
+scope, backup and verification. Stored raw CAMS remains the public forecast.
+
+The old producers below remain gated in the source for historical reference.
+Their tables are no longer available after this migration: do not re-enable
+them by changing a feature flag. A future self-forecast requires a new schema
+and implementation. Paused-mode Admin endpoints return empty retired results;
+the former false-safe review write endpoint returns HTTP 410.
+
 ## Current state
 
 ClearPath serves raw PM2.5 forecasts from CAMS through Open-Meteo, stored by a
@@ -56,8 +69,9 @@ Do not clear observations or identity/workflow records during a forecast reset.
 This includes `stations`, `pm25_readings`, `weather_observations`,
 `fire_feature_snapshots`, all community/report review/trust tables, `profiles`,
 Air4Thai `sync_runs`, `forecast_data_quality_daily`, issue/audit logs,
-notification preferences and connections, `model_registry`, and
-`forecast_release_decisions`.
+notification preferences and connections. The empty legacy `model_registry`
+and `forecast_release_decisions` tables are an explicit exception under the
+2026-10-30 user-authorized retirement, with their schema backed up first.
 
 ## Next self forecast (not implemented)
 
