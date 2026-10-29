@@ -122,3 +122,33 @@ def test_role_guards_fail_closed():
         auth.require_admin(moderator)
     assert admin_error.value.status_code == 403
     assert auth.require_admin(admin) == admin
+
+
+def test_profile_database_failure_is_not_reported_as_invalid_session(monkeypatch):
+    from backend.core.errors import UpstreamError
+
+    monkeypatch.setattr(auth.settings, "local_demo_mode", False)
+    monkeypatch.setattr(
+        auth.supabase_client, "get_auth_user", lambda _token: {"id": "verified-user"}
+    )
+
+    def fail(*_args, **_kwargs):
+        raise RuntimeError("database unavailable")
+
+    monkeypatch.setattr(auth.supabase_client, "ensure_profile", fail)
+    with pytest.raises(UpstreamError, match="โหลดโปรไฟล์"):
+        auth.require_user("Bearer verified-token")
+
+
+def test_supabase_auth_rejection_remains_unauthorized(monkeypatch):
+    from supabase_auth.errors import AuthApiError
+
+    monkeypatch.setattr(auth.settings, "local_demo_mode", False)
+
+    def fail(_token):
+        raise AuthApiError("Session not found", 403, "session_not_found")
+
+    monkeypatch.setattr(auth.supabase_client, "get_auth_user", fail)
+    with pytest.raises(HTTPException) as exc:
+        auth.require_user("Bearer rejected-token")
+    assert exc.value.status_code == 401

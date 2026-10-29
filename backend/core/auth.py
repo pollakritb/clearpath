@@ -7,6 +7,7 @@ a Supabase project.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Annotated
 from urllib.parse import urlparse
@@ -15,6 +16,9 @@ from fastapi import Depends, Header, HTTPException
 
 from ..services import supabase_client
 from .config import settings
+from .errors import ConfigurationError, UpstreamError
+
+logger = logging.getLogger("clearpath.auth")
 
 
 @dataclass(frozen=True)
@@ -75,6 +79,17 @@ def require_user(
     token = _bearer_token(authorization)
     try:
         auth_user = supabase_client.get_auth_user(token)
+    except (HTTPException, ConfigurationError, UpstreamError):
+        raise
+    except Exception as exc:
+        status = getattr(exc, "status", None)
+        if isinstance(exc, ValueError) or status in {400, 401, 403, 404}:
+            logger.warning("auth_token_rejected", extra={"upstream_status": status})
+            raise HTTPException(
+                401, detail="session หมดอายุหรือ access token ไม่ถูกต้อง"
+            ) from exc
+        raise UpstreamError("บริการยืนยันตัวตนขัดข้องชั่วคราว กรุณาลองใหม่") from exc
+    try:
         metadata = auth_user.get("user_metadata") or {}
         app_metadata = auth_user.get("app_metadata") or {}
         provider = str(app_metadata.get("provider") or "") or None
@@ -92,12 +107,10 @@ def require_user(
             avatar_url=avatar_url,
             identity_provider="google" if provider == "google" else None,
         )
-    except HTTPException:
+    except (HTTPException, ConfigurationError, UpstreamError):
         raise
     except Exception as exc:
-        raise HTTPException(
-            401, detail="session หมดอายุหรือ access token ไม่ถูกต้อง"
-        ) from exc
+        raise UpstreamError("โหลดโปรไฟล์ผู้ใช้ไม่สำเร็จ กรุณาลองใหม่") from exc
 
     return AuthenticatedUser(
         id=str(profile["id"]),

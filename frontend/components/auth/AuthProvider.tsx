@@ -11,6 +11,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import { authenticatedFetch } from "@/frontend/lib/auth-request";
 import { getSupabaseBrowserClient } from "@/frontend/lib/supabase";
 
 type UserRole = "user" | "moderator" | "admin";
@@ -32,9 +33,11 @@ const subscribeToHydration = () => () => undefined;
 async function fetchRole(session: Session | null): Promise<UserRole> {
   if (!session) return "user";
   try {
-    const response = await fetch("/api/community/me", {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
+    const response = await authenticatedFetch(
+      "/api/community/me",
+      {},
+      session.access_token,
+    );
     if (!response.ok) return "user";
     const profile = (await response.json()) as { role?: UserRole };
     return profile.role ?? "user";
@@ -61,16 +64,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (localDemo) return;
     if (!client) return;
     let active = true;
-    void client.auth.getSession().then(async ({ data }) => {
-      if (!active) return;
-      setUser(data.session?.user ?? null);
-      setRole(await fetchRole(data.session));
-      setLoading(false);
-    });
-    const { data } = client.auth.onAuthStateChange((_event, session) => {
+    let revision = 0;
+    let lastToken: string | null | undefined;
+    let lastUserId: string | null = null;
+    const applySession = (session: Session | null) => {
       if (!active) return;
       setUser(session?.user ?? null);
-      void fetchRole(session).then((nextRole) => active && setRole(nextRole));
+      lastUserId = session?.user.id ?? null;
+      const token = session?.access_token ?? null;
+      if (lastToken === token) return;
+      lastToken = token;
+      const requestRevision = ++revision;
+      setRole("user");
+      void fetchRole(session).then((nextRole) => {
+        if (!active || revision !== requestRevision) return;
+        setRole(nextRole);
+        setLoading(false);
+      });
+    };
+    void client.auth
+      .getSession()
+      .then(({ data }) => {
+        if (revision === 0) applySession(data.session);
+      })
+      .catch(() => {
+        if (active && revision === 0) setLoading(false);
+      });
+    const { data } = client.auth.onAuthStateChange((event, session) => {
+      // A recovery refresh must not start another profile recovery loop.
+      if (
+        active &&
+        event === "TOKEN_REFRESHED" &&
+        session &&
+        session.user.id === lastUserId
+      ) {
+        setUser(session.user);
+        lastToken = session.access_token;
+        return;
+      }
+      applySession(session);
     });
     return () => {
       active = false;

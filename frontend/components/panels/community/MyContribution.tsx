@@ -15,7 +15,15 @@ const STATUS_LABEL = {
 
 export default function MyContribution() {
   const auth = useAuth();
-  const [profile, setProfile] = useState<CommunityProfileResponse | null>(null);
+  const [loadedProfile, setProfile] = useState<{
+    ownerId: string | null;
+    data: CommunityProfileResponse;
+  } | null>(null);
+  const profile =
+    (auth.user || auth.localDemo) &&
+    loadedProfile?.ownerId === (auth.user?.id ?? null)
+      ? loadedProfile.data
+      : null;
 
   useEffect(() => {
     if (!auth.user && !auth.localDemo) return;
@@ -23,7 +31,8 @@ export default function MyContribution() {
     void api
       .myProfile()
       .then((result) => {
-        if (!cancelled) setProfile(result);
+        if (!cancelled)
+          setProfile({ ownerId: auth.user?.id ?? null, data: result });
       })
       .catch(() => undefined);
     return () => {

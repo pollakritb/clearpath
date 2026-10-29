@@ -54,6 +54,7 @@ import type {
   NotificationOutboxSummary,
 } from "@/frontend/types/ui";
 import { getAccessToken } from "@/frontend/lib/supabase";
+import { authenticatedFetch } from "@/frontend/lib/auth-request";
 import {
   invalidatePublicData,
   PUBLIC_DATA_KEYS,
@@ -78,16 +79,14 @@ interface HttpOptions extends RequestInit {
 
 async function http<T>(url: string, init?: HttpOptions): Promise<T> {
   const isForm = init?.body instanceof FormData;
-  const token = init?.auth ? await getAccessToken() : null;
   const headers = new Headers(init?.headers);
   if (!isForm && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  const res = await fetch(url, {
-    ...init,
-    headers,
-  });
+  const request = { ...init, headers };
+  const res = init?.auth
+    ? await authenticatedFetch(url, request)
+    : await fetch(url, request);
   if (!res.ok) {
     let detail = res.statusText;
     try {

@@ -103,9 +103,12 @@ describe("AuthProvider", () => {
       role: "admin",
       configured: true,
     });
-    expect(fetch).toHaveBeenCalledWith("/api/community/me", {
-      headers: { Authorization: "Bearer access-token" },
-    });
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/community/me");
+    expect(
+      new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).get(
+        "Authorization",
+      ),
+    ).toBe("Bearer access-token");
 
     await act(async () => latestAuth?.signInWithGoogle());
     await act(async () => latestAuth?.signInWithOtp("user@example.com"));
@@ -159,6 +162,44 @@ describe("AuthProvider", () => {
     await expect(latestAuth?.signInWithOtp("user@example.com")).rejects.toBe(
       otpError,
     );
+  });
+
+  it("ignores a pending role response after sign-out", async () => {
+    let resolveRole!: (response: Response) => void;
+    let authChange!: (event: string, session: unknown) => void;
+    const session = { access_token: "old-token", user: { id: "user-1" } };
+    supabaseMocks.getClient.mockReturnValue({
+      auth: {
+        getSession: vi.fn(async () => ({ data: { session } })),
+        onAuthStateChange: (callback: typeof authChange) => {
+          authChange = callback;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        },
+      },
+    });
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRole = resolve;
+        }),
+    );
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    await act(async () => authChange("SIGNED_OUT", null));
+    await act(async () =>
+      resolveRole(
+        new Response(JSON.stringify({ role: "admin" }), { status: 200 }),
+      ),
+    );
+    expect(latestAuth).toMatchObject({
+      user: null,
+      role: "user",
+      loading: false,
+    });
   });
 
   it("requires consumers to be nested inside the provider", () => {
