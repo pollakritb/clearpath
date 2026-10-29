@@ -23,6 +23,7 @@ export default function PersistentMapPage() {
   return (
     <div hidden={!isMapPage} inert={!isMapPage}>
       <MapPageClient
+        requestInitially={isMapPage && searchParams.get("request") === "1"}
         initialReportId={searchParams.get("report")}
         showFiresInitially={searchParams.get("layer") === "fires"}
       />

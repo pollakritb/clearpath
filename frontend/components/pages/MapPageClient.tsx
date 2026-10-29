@@ -10,6 +10,8 @@ import PlaceAirCard from "@/frontend/components/app/PlaceAirCard";
 import ReportStackCard from "@/frontend/components/app/ReportStackCard";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
+import MapRequestPanel from "@/frontend/components/measurement/MapRequestPanel";
+import AppIcon from "@/frontend/components/ui/AppIcon";
 import ListView from "@/frontend/components/panels/ListView";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
 import {
@@ -40,9 +42,11 @@ const MapView = dynamic(() => import("@/frontend/components/map/MapView"), {
 export default function MapPageClient({
   showFiresInitially = false,
   initialReportId,
+  requestInitially = false,
 }: {
   showFiresInitially?: boolean;
   initialReportId?: string | null;
+  requestInitially?: boolean;
 }) {
   const currentUserId = useCurrentUserId();
   const pm25 = usePm25();
@@ -51,6 +55,13 @@ export default function MapPageClient({
   const currentLocation = useCurrentLocation(true);
   const mapHistory = useMapHistory();
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const [requestStep, setRequestStep] = useState<"idle" | "pick" | "form">(
+    "idle",
+  );
+  const [requestPoint, setRequestPoint] = useState<LocationSuggestion | null>(
+    null,
+  );
+  const [requestRadius, setRequestRadius] = useState<1 | 3 | 5>(3);
   const [selectedReport, setSelectedReport] = useState<CommunityReport | null>(
     null,
   );
@@ -74,6 +85,23 @@ export default function MapPageClient({
     useState<CurrentLocation | null>(null);
   const [resetViewSignal, setResetViewSignal] = useState(0);
   const userLocation = locatedManually ?? currentLocation.location;
+
+  const startRequest = useCallback(() => {
+    setRequestStep("pick");
+    setRequestPoint(null);
+    setRequestRadius(3);
+    setSelectedPlace(null);
+    setSelectedStation(null);
+    setSelectedReport(null);
+    setSelectedStackId(null);
+    setHistoryEnabled(false);
+    setViewMode("map");
+  }, []);
+  useEffect(() => {
+    if (!requestInitially) return;
+    const frame = window.requestAnimationFrame(startRequest);
+    return () => window.cancelAnimationFrame(frame);
+  }, [requestInitially, startRequest]);
 
   useEffect(() => {
     if (!showFiresInitially) return;
@@ -216,7 +244,12 @@ export default function MapPageClient({
         stations={mapStations}
         heatmapPoint={heatmapPoint}
         fires={
-          !selectedPlace && !historyEnabled && showFires ? firms.fires : []
+          requestStep === "idle" &&
+          !selectedPlace &&
+          !historyEnabled &&
+          showFires
+            ? firms.fires
+            : []
         }
         reports={mapReports}
         reportStacks={mapStacks}
@@ -227,23 +260,49 @@ export default function MapPageClient({
           (currentLocation.status === "denied" ||
             currentLocation.status === "unavailable")
         }
-        focusPoint={effectiveFocusPoint}
+        focusPoint={
+          requestStep !== "idle" && requestPoint
+            ? requestPoint
+            : effectiveFocusPoint
+        }
         placePoint={
-          selectedPlace
+          requestStep !== "idle" && requestPoint
             ? {
-                lat: selectedPlace.lat,
-                lon: selectedPlace.lon,
-                radiusKm: PLACE_RADIUS_KM,
+                lat: requestPoint.lat,
+                lon: requestPoint.lon,
+                radiusKm: requestRadius,
               }
-            : null
+            : selectedPlace
+              ? {
+                  lat: selectedPlace.lat,
+                  lon: selectedPlace.lon,
+                  radiusKm: PLACE_RADIUS_KM,
+                }
+              : null
         }
         resetViewSignal={resetViewSignal}
-        showHeatmap={showHeatmap}
-        showStations={Boolean(selectedPlace) || showStations}
+        showHeatmap={requestStep === "idle" && showHeatmap}
+        showStations={
+          requestStep === "idle" && (Boolean(selectedPlace) || showStations)
+        }
         showIndividualReports={
-          Boolean(selectedPlace) || (!historyEnabled && showIndividualReports)
+          requestStep === "idle" &&
+          (Boolean(selectedPlace) || (!historyEnabled && showIndividualReports))
         }
         onMapClick={(lat, lon) => {
+          if (requestStep === "pick") {
+            setRequestPoint({
+              id: `point:${lat}:${lon}`,
+              name: "จุดที่เลือกบนแผนที่",
+              address: "",
+              kind: "point",
+              source: "local",
+              lat,
+              lon,
+            });
+            return;
+          }
+          if (requestStep === "form") return;
           if (!selectedPlace) setFocusPoint({ lat, lon });
           setSelectedStation(null);
           setSelectedReport(null);
@@ -263,6 +322,7 @@ export default function MapPageClient({
           setFocusPoint({ lat, lon });
         }}
         onResetView={() => {
+          setRequestStep("idle");
           setSelectedStation(null);
           setSelectedReport(null);
           setSelectedStackId(null);
@@ -272,6 +332,15 @@ export default function MapPageClient({
           setResetViewSignal((value) => value + 1);
         }}
       />
+      {requestStep === "idle" && (
+        <button
+          type="button"
+          className="cp-map-request-button cp-focus"
+          onClick={startRequest}
+        >
+          <AppIcon name="community" size={18} /> ขอค่าฝุ่น
+        </button>
+      )}
       <MapChrome
         viewMode={viewMode}
         stationCount={visibleStations.length}
@@ -306,6 +375,12 @@ export default function MapPageClient({
         }
         onToggleFires={() => setShowFires((value) => !value)}
         onLocationSelect={(location: LocationSuggestion) => {
+          if (requestStep !== "idle") {
+            setRequestPoint(location);
+            setRequestStep("pick");
+            setFocusPoint({ lat: location.lat, lon: location.lon });
+            return;
+          }
           setPlaceClock(Date.now());
           setHistoryEnabled(false);
           mapHistory.clear();
@@ -317,13 +392,27 @@ export default function MapPageClient({
           setViewMode("map");
         }}
         onStationSelect={(station) => {
+          if (requestStep !== "idle") {
+            setRequestPoint({
+              id: `station:${station.id}`,
+              name: station.name_th ?? station.name_en ?? station.id,
+              address: station.province ?? "",
+              kind: "station",
+              source: "local",
+              lat: station.lat,
+              lon: station.lon,
+            });
+            setRequestStep("pick");
+            setFocusPoint({ lat: station.lat, lon: station.lon });
+            return;
+          }
           setSelectedPlace(null);
           selectStation(station);
           setFocusPoint({ lat: station.lat, lon: station.lon });
           setViewMode("map");
         }}
       />
-      {viewMode === "list" && (
+      {requestStep === "idle" && viewMode === "list" && (
         <ListView
           stations={mapStations}
           onSelectStation={(station) => {
@@ -332,9 +421,24 @@ export default function MapPageClient({
           }}
         />
       )}
-      {selectedPlace && placeAir && !selectedReport && !selectedStation ? (
+      {requestStep !== "idle" ? (
+        <MapRequestPanel
+          radius={requestRadius}
+          onRadiusChange={setRequestRadius}
+          point={requestPoint}
+          editing={requestStep === "form"}
+          onConfirm={() => setRequestStep("form")}
+          onReselect={() => setRequestStep("pick")}
+          onClose={() => setRequestStep("idle")}
+        />
+      ) : selectedPlace && placeAir && !selectedReport && !selectedStation ? (
         <PlaceAirCard
           place={selectedPlace}
+          onRequestMeasurement={() => {
+            startRequest();
+            setRequestPoint(selectedPlace);
+            setRequestStep("form");
+          }}
           air={placeAir}
           onSelectStation={selectStation}
           onSelectReport={selectReport}

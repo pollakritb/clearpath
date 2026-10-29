@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import CreateRequest from "@/frontend/components/measurement/CreateRequest";
 import { useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -21,6 +20,7 @@ interface PlaceAirCardProps {
   onSelectReport: (report: CommunityReport) => void;
   loading: boolean;
   dataError: string | null;
+  onRequestMeasurement: () => void;
 }
 
 const distance = (km: number, approximate = false) =>
@@ -41,6 +41,7 @@ export default function PlaceAirCard({
   onSelectReport,
   loading,
   dataError,
+  onRequestMeasurement,
 }: PlaceAirCardProps) {
   const [expanded, setExpanded] = useState(false);
   const classification = classifyPm25(air.value);
@@ -103,7 +104,13 @@ export default function PlaceAirCard({
           </span>
           <AppIcon name="chevron" size={18} />
         </button>
-        <CreateRequest key={place.id} place={place} />
+        <button
+          type="button"
+          className="cp-measure-primary cp-place-request cp-focus"
+          onClick={onRequestMeasurement}
+        >
+          ขอให้ช่วยวัดบริเวณนี้
+        </button>
       </section>
     );
   }
@@ -293,7 +300,13 @@ export default function PlaceAirCard({
           "ข้อมูลท้องถิ่น ClearPath"
         )}
       </small>
-      <CreateRequest key={place.id} place={place} />
+      <button
+        type="button"
+        className="cp-measure-primary cp-place-request cp-focus"
+        onClick={onRequestMeasurement}
+      >
+        ขอให้ช่วยวัดบริเวณนี้
+      </button>
     </section>
   );
 }

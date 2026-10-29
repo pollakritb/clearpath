@@ -8,6 +8,7 @@ import { PLACE_RADIUS_KM } from "@/frontend/lib/place-air";
 import type { LocationSuggestion, Station } from "@/frontend/types";
 
 interface MapSearchPanelProps {
+  embedded?: boolean;
   stations: Station[];
   onClose: () => void;
   onLocationSelect: (location: LocationSuggestion) => void;
@@ -18,6 +19,7 @@ const MINIMUM_QUERY_LENGTH = 3;
 const SEARCH_DEBOUNCE_MS = 450;
 
 export default function MapSearchPanel({
+  embedded = false,
   stations,
   onClose,
   onLocationSelect,
@@ -48,8 +50,8 @@ export default function MapSearchPanel({
     : [];
 
   useEffect(() => {
-    searchRef.current?.focus();
-  }, []);
+    if (!embedded) searchRef.current?.focus();
+  }, [embedded]);
 
   const runSearch = useCallback(async (submitted: string) => {
     const sequence = ++searchSequence.current;
@@ -114,23 +116,35 @@ export default function MapSearchPanel({
 
   return (
     <section
-      id="cp-map-search-panel"
-      className="cp-map-flyout cp-map-search-panel"
-      aria-label="ค้นหาสถานที่หรือสถานี"
+      id={embedded ? undefined : "cp-map-search-panel"}
+      className={
+        embedded
+          ? "cp-measure-card cp-measure-search"
+          : "cp-map-flyout cp-map-search-panel"
+      }
+      aria-label={
+        embedded ? "เลือกสถานที่เพื่อขอค่าฝุ่น" : "ค้นหาสถานที่หรือสถานี"
+      }
     >
       <div className="cp-map-flyout__heading">
         <div>
-          <strong>ค้นหาสถานที่</strong>
-          <small>ดูค่าฝุ่นและแหล่งข้อมูลในระยะ {PLACE_RADIUS_KM} กม.</small>
+          <strong>{embedded ? "ขอค่าฝุ่นจากชุมชน" : "ค้นหาสถานที่"}</strong>
+          <small>
+            {embedded
+              ? "ค้นหาสถานที่ที่ต้องการให้ช่วยวัด แล้วเลือกพื้นที่และเวลา"
+              : `ดูค่าฝุ่นและแหล่งข้อมูลในระยะ ${PLACE_RADIUS_KM} กม.`}
+          </small>
         </div>
-        <button
-          type="button"
-          className="cp-map-flyout__close cp-focus"
-          onClick={onClose}
-          aria-label="ปิดการค้นหา"
-        >
-          <AppIcon name="close" size={20} />
-        </button>
+        {!embedded && (
+          <button
+            type="button"
+            className="cp-map-flyout__close cp-focus"
+            onClick={onClose}
+            aria-label="ปิดการค้นหา"
+          >
+            <AppIcon name="close" size={20} />
+          </button>
+        )}
       </div>
 
       <form className="cp-map-search-form" onSubmit={submitSearch}>

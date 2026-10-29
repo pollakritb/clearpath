@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
@@ -168,6 +169,7 @@ export function RequestSummary({
 }
 
 export default function RequestsPage({ requestId }: { requestId?: string }) {
+  const router = useRouter();
   const auth = useAuth();
   const login = useLoginPrompt();
   const signedIn = Boolean(auth.user || auth.localDemo);
@@ -181,6 +183,15 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
     loaded?.account === account && loaded.requestId === requestId
       ? loaded.rows
       : [];
+  const groups = requestId
+    ? [{ label: null, items: rows }]
+    : [
+        { label: "คำขอของฉัน", items: rows.filter((row) => row.is_owner) },
+        {
+          label: "คำขอจากคนอื่นให้ช่วยวัด",
+          items: rows.filter((row) => !row.is_owner),
+        },
+      ];
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
@@ -216,15 +227,20 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
       tab="overview"
       icon="community"
       header={{
-        title: "ขอค่าฝุ่นจากชุมชน",
-        description: "ติดตามคำขอและช่วยรายงานในบริเวณที่วัดได้",
+        title: "ติดตามคำขอค่าฝุ่น",
+        description: "คำขอของฉันและคำขอจากคนอื่นที่ส่งถึงคุณ",
         showDataStatus: false,
       }}
     >
       <div className="cp-measure-stack">
-        <Link href="/" className="cp-measure-link">
-          ค้นหาสถานที่เพื่อขอค่าฝุ่น
-        </Link>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="cp-measure-back cp-focus"
+        >
+          <span aria-hidden="true">←</span>
+          กลับ
+        </button>
         {!auth.loading && !auth.user && !auth.localDemo ? (
           <button
             type="button"
@@ -237,23 +253,34 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
           <>
             {loading && <p role="status">กำลังโหลดคำขอ…</p>}
             {error && <p role="alert">{error}</p>}
-            {rows.map((row) => (
-              <RequestSummary
-                key={row.id}
-                row={row}
-                actions={!!requestId}
-                onChanged={() => void load()}
-              />
+            {groups.map((group) => (
+              <section
+                key={group.label ?? "detail"}
+                className="cp-measure-stack"
+                aria-label={group.label ?? "รายละเอียดคำขอ"}
+              >
+                {group.label && <h2>{group.label}</h2>}
+                {group.items.map((row) => (
+                  <RequestSummary
+                    key={row.id}
+                    row={row}
+                    actions={!!requestId}
+                    onChanged={() => void load()}
+                  />
+                ))}
+                {!loading && !group.items.length && !error && (
+                  <div className="cp-measure-card">
+                    <p>
+                      {group.label === "คำขอของฉัน"
+                        ? "ยังไม่มีคำขอของคุณ"
+                        : group.label
+                          ? "ยังไม่มีคำขอจากคนอื่นที่ส่งถึงคุณ"
+                          : "ไม่พบคำขอ"}
+                    </p>
+                  </div>
+                )}
+              </section>
             ))}
-            {!loading && !rows.length && !error && (
-              <div className="cp-measure-card">
-                <h2>ยังไม่มีคำขอ</h2>
-                <p>
-                  เลือกสถานที่บนแผนที่เพื่อขอค่าฝุ่น
-                  หรือเปิดรับคำขอช่วยวัดในการตั้งค่า
-                </p>
-              </div>
-            )}
           </>
         )}
         <Link href="/settings/notifications" className="cp-measure-link">

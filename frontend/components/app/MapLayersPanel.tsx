@@ -150,6 +150,10 @@ export default function MapLayersPanel({
       </details>
 
       <div className="cp-map-layer-actions">
+        <Link href="/requests" className="cp-measure-layer-entry cp-focus">
+          <AppIcon name="community" size={19} />
+          ขอค่าฝุ่นจากชุมชน
+        </Link>
         <button
           type="button"
           className="cp-focus"

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import TodayPageClient from "./TodayPageClient";
 
 const state = vi.hoisted(() => ({
+  listRequests: vi.fn(),
   viewerId: "viewer",
   noop: vi.fn(),
   stations: [
@@ -39,6 +40,9 @@ const state = vi.hoisted(() => ({
   ],
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: state.noop }) }));
+vi.mock("@/frontend/lib/api-client", () => ({
+  api: { measurementRequests: state.listRequests },
+}));
 vi.mock("@/frontend/components/auth/AuthProvider", () => ({
   useCurrentUserId: () => state.viewerId,
 }));
@@ -81,6 +85,7 @@ afterEach(cleanup);
 beforeEach(() => {
   state.viewerId = "viewer";
   vi.clearAllMocks();
+  state.listRequests.mockResolvedValue({ requests: [] });
 });
 
 describe("Today nearest source", () => {
@@ -94,6 +99,14 @@ describe("Today nearest source", () => {
     ).toBeTruthy();
     expect(screen.queryByText("99")).toBeNull();
     expect(screen.queryByText("10.2")).toBeNull();
+    expect(
+      screen
+        .getByRole("link", { name: /ติดตามคำขอค่าฝุ่น/ })
+        .getAttribute("href"),
+    ).toBe("/requests");
+    expect(
+      screen.queryByRole("link", { name: /ขอค่าฝุ่นจากชุมชน/ }),
+    ).toBeNull();
   });
 
   it("keeps an explicitly selected station separate from automatic GPS selection", () => {

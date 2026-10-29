@@ -18,7 +18,11 @@ const mocks = vi.hoisted(() => ({
   login: vi.fn(),
   decline: vi.fn(),
   cancel: vi.fn(),
+  list: vi.fn(),
+  search: vi.fn(),
+  back: vi.fn(),
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ back: mocks.back }) }));
 vi.mock("@/frontend/lib/api-client", () => ({
   api: {
     createMeasurementRequest: mocks.create,
@@ -27,6 +31,8 @@ vi.mock("@/frontend/lib/api-client", () => ({
     measurementPresence: mocks.presence,
     declineMeasurementRequest: mocks.decline,
     cancelMeasurementRequest: mocks.cancel,
+    measurementRequests: mocks.list,
+    searchLocations: mocks.search,
   },
   apiErrorMessage: (_e: unknown, fallback: string) => fallback,
 }));
@@ -36,11 +42,18 @@ vi.mock("@/frontend/components/auth/AuthProvider", () => ({
 vi.mock("@/frontend/components/auth/LoginPromptProvider", () => ({
   useLoginPrompt: () => ({ openLoginPrompt: mocks.login }),
 }));
-vi.mock("next/dynamic", () => ({ default: () => () => null }));
+vi.mock("next/dynamic", () => ({
+  default: () => () => <div data-testid="preview-map" />,
+}));
+vi.mock("@/frontend/components/app/UserPageShell", () => ({
+  default: ({ children }: { children: import("react").ReactNode }) => (
+    <>{children}</>
+  ),
+}));
 import CreateRequest from "./CreateRequest";
 import HelperSettings from "./HelperSettings";
 import HelperPresence from "./HelperPresence";
-import { RequestSummary } from "./RequestsPage";
+import RequestsPage, { RequestSummary } from "./RequestsPage";
 
 const place = {
   id: "A",
@@ -63,9 +76,31 @@ const row = {
 } as MeasurementRequestView;
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.list.mockResolvedValue({ requests: [] });
   mocks.login.mockReturnValue(false);
   mocks.helper.mockResolvedValue({ enabled: false, observed_at: null });
   mocks.create.mockResolvedValue(row);
+});
+
+it("lists own and invited requests without location search or creation controls", async () => {
+  mocks.list.mockResolvedValue({
+    requests: [
+      row,
+      { ...row, id: "other-request", place_name: "สถานที่ B", is_owner: false },
+    ],
+  });
+  render(<RequestsPage />);
+  fireEvent.click(screen.getByRole("button", { name: "กลับ" }));
+  expect(mocks.back).toHaveBeenCalledOnce();
+  await screen.findByText("สถานที่ B");
+  expect(screen.getByRole("heading", { name: "คำขอของฉัน" })).toBeTruthy();
+  expect(
+    screen.getByRole("heading", { name: "คำขอจากคนอื่นให้ช่วยวัด" }),
+  ).toBeTruthy();
+  expect(screen.getAllByRole("link", { name: "ติดตามคำขอ" })).toHaveLength(2);
+  expect(screen.queryByRole("searchbox")).toBeNull();
+  expect(screen.queryByRole("button", { name: "ส่งคำขอ" })).toBeNull();
+  expect(mocks.search).not.toHaveBeenCalled();
 });
 afterEach(() => {
   cleanup();
@@ -89,6 +124,42 @@ it("creates an immediate request with 3 km default and shows tracking", async ()
   expect(
     screen.getByRole("link", { name: "ติดตามคำขอนี้" }).getAttribute("href"),
   ).toBe("/requests/request");
+});
+it("uses the main-map radius without a nested map or duplicate open button", async () => {
+  const onRadiusChange = vi.fn();
+  const { rerender } = render(
+    <CreateRequest
+      place={place}
+      initiallyOpen
+      mapContext
+      selectedRadius={3}
+      onRadiusChange={onRadiusChange}
+    />,
+  );
+  expect(screen.queryByTestId("preview-map")).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "ขอให้ช่วยวัดบริเวณนี้" }),
+  ).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "5 กม." }));
+  expect(onRadiusChange).toHaveBeenCalledWith(5);
+  rerender(
+    <CreateRequest
+      place={place}
+      initiallyOpen
+      mapContext
+      selectedRadius={5}
+      onRadiusChange={onRadiusChange}
+    />,
+  );
+  expect(
+    screen.getByRole("button", { name: "5 กม." }).getAttribute("aria-pressed"),
+  ).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "ส่งคำขอ" }));
+  await waitFor(() =>
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({ radius_km: 5, lat: place.lat, lon: place.lon }),
+    ),
+  );
 });
 it("does not create a scheduled request until a time is selected", async () => {
   render(<CreateRequest place={place} />);

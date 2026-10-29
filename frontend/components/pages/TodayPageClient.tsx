@@ -15,6 +15,7 @@ import { useForecast } from "@/frontend/hooks/useForecast";
 import { useHistory } from "@/frontend/hooks/useHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { haversineKm } from "@/frontend/lib/distance";
+import RequestTrackingCard from "@/frontend/components/measurement/RequestTrackingCard";
 
 export default function TodayPageClient({
   stationId,
@@ -145,6 +146,7 @@ export default function TodayPageClient({
       }}
     >
       <div className="cp-overview-stack">
+        <RequestTrackingCard userId={currentUserId} />
         <div className="cp-desktop-summary">
           <NationalSummary stations={serviceAreaStations} />
         </div>

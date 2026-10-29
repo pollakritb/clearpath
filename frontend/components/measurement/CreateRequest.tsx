@@ -4,6 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import { REQUESTS_CHANGED } from "@/frontend/lib/measurement-events";
 import type {
   LocationSuggestion,
   MeasurementRequestView,
@@ -15,12 +16,21 @@ const RequestAreaMap = dynamic(() => import("./RequestAreaMap"), {
 
 export default function CreateRequest({
   place,
+  initiallyOpen = false,
+  mapContext = false,
+  selectedRadius,
+  onRadiusChange,
 }: {
   place: LocationSuggestion;
+  initiallyOpen?: boolean;
+  mapContext?: boolean;
+  selectedRadius?: 1 | 3 | 5;
+  onRadiusChange?: (radius: 1 | 3 | 5) => void;
 }) {
   const login = useLoginPrompt();
-  const [open, setOpen] = useState(false);
-  const [radius, setRadius] = useState<1 | 3 | 5>(3);
+  const [open, setOpen] = useState(initiallyOpen);
+  const [localRadius, setRadius] = useState<1 | 3 | 5>(3);
+  const radius = selectedRadius ?? localRadius;
   const [scheduled, setScheduled] = useState(false);
   const [time, setTime] = useState("");
   const [busy, setBusy] = useState(false);
@@ -50,6 +60,7 @@ export default function CreateRequest({
           idempotency_key: key.current,
         }),
       );
+      window.dispatchEvent(new Event(REQUESTS_CHANGED));
     } catch (e) {
       setError(apiErrorMessage(e, "สร้างคำขอไม่สำเร็จ กรุณาลองอีกครั้ง"));
     } finally {
@@ -67,22 +78,28 @@ export default function CreateRequest({
       </div>
     );
   return (
-    <div className="cp-measure-create">
-      <button
-        type="button"
-        className="cp-measure-primary cp-focus"
-        onClick={() => {
-          if (!login.openLoginPrompt()) setOpen(!open);
-        }}
-        aria-expanded={open}
-      >
-        ขอให้ช่วยวัดบริเวณนี้
-      </button>
+    <div className="cp-measure-create" data-map-context={mapContext}>
+      {!mapContext && (
+        <button
+          type="button"
+          className="cp-measure-primary cp-focus"
+          onClick={() => {
+            if (!login.openLoginPrompt()) setOpen(!open);
+          }}
+          aria-expanded={open}
+        >
+          ขอให้ช่วยวัดบริเวณนี้
+        </button>
+      )}
       {open && (
         <div className="cp-measure-form">
-          <strong>{place.name}</strong>
-          <RequestAreaMap lat={place.lat} lon={place.lon} radius={radius} />
-          <p>เลือกบริเวณที่ต้องการค่าฝุ่นใหม่</p>
+          {!mapContext && (
+            <>
+              <strong>{place.name}</strong>
+              <RequestAreaMap lat={place.lat} lon={place.lon} radius={radius} />
+              <p>เลือกบริเวณที่ต้องการค่าฝุ่นใหม่</p>
+            </>
+          )}
           <fieldset>
             <legend>รัศมีรอบสถานที่</legend>
             <div className="cp-measure-options">
@@ -94,6 +111,7 @@ export default function CreateRequest({
                   disabled={busy}
                   onClick={() => {
                     setRadius(r);
+                    onRadiusChange?.(r);
                     key.current = null;
                   }}
                 >
