@@ -72,7 +72,6 @@ fields and fail-closed behavior.
 | `APP_ENVIRONMENT`                   | Configured              | `/api/ready.environment=production`                                           |
 | `LOCAL_DEMO_MODE`                   | Not configured          | Defaults false; production must never enable it                               |
 | `OPENMETEO_AIR_ENABLED`             | Configured              | CAMS/Open-Meteo is available in forecast provenance                           |
-| `OPENWEATHER_AIR_ENABLED`           | Configured              | Provider may be fresh/stale independently; never fabricate fallback data      |
 | `GISTDA_AIR_ENABLED`                | Configured, gate closed | Provider reports unavailable until both legal and technical gates pass        |
 | `GISTDA_LICENSE_APPROVED`           | Configured, gate closed | Written owner/legal evidence is mandatory before opening                      |
 | `COMMUNITY_FORECAST_SHADOW_ENABLED` | Configured, gate closed | Public response reports community context `not_used`                          |

@@ -46,7 +46,7 @@ ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถ
 | แผนที่                | Leaflet + React Leaflet, OpenStreetMap tiles และ IDW surface ที่เขียนเอง                        |
 | Backend API           | Python 3.12, FastAPI, Pydantic v2 และ HTTPX                                                     |
 | Database/Auth/Storage | Supabase PostgreSQL, Supabase Auth, private Storage bucket และ Realtime invalidation events     |
-| External data         | Air4Thai, NASA FIRMS, CAMS/Open-Meteo, OpenWeather และ GISTDA แบบ legal-gated                   |
+| External data         | Air4Thai, NASA FIRMS, CAMS/Open-Meteo และ GISTDA แบบ legal-gated                                |
 | OCR/AI                | OpenAI Responses API แบบ number-only; อ่านได้เผยแพร่ทันที อ่านไม่ได้ให้ถ่ายใหม่                 |
 | Forecast              | External-first 3 แหล่ง, raw comparison, uncertainty envelope และ gated local/community fallback |
 | Notification          | In-App inbox, LINE Messaging API, signed webhook และ retryable outbox                           |
@@ -326,7 +326,8 @@ checksum ตาม `supabase/migrations/README.md` ก่อนทุกคร�
 EXIF ที่ไม่มี timezone ใช้ UTC+7 ได้เฉพาะเมื่อพิกัดในภาพอยู่ในประเทศไทย
 และบันทึก `exif_thailand_timezone` แยกจาก timezone ที่ฝังอยู่ในภาพ
 หลังได้ภาพและ GPS ขณะส่ง ระบบอ่าน OCR อัตโนมัติ แสดงสรุปให้กดส่ง
-ไม่มีช่องกรอกค่าฝุ่น รุ่นเครื่องวัด หรือวิธีวัด และเผยแพร่โดยปิดบังตัวตนเป็นค่าเริ่มต้น
+ไม่มีช่องกรอกค่าฝุ่น รุ่นเครื่องวัด หรือวิธีวัด และแสดงโปรไฟล์ผู้รายงานเป็นค่าเริ่มต้น
+ผู้ใช้เลือกปิดบังตัวตนเฉพาะรายงานได้ด้วย checkbox ก่อนกดส่ง
 
 Backend อ่าน metadata จากต้นฉบับเอง เก็บต้นฉบับใน private bucket และสร้างภาพ JPEG
 ที่ล้าง EXIF สำหรับ preview/signed URL ข้อมูลไฟล์ละเอียดเปิดเฉพาะ Admin

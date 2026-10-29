@@ -14,7 +14,6 @@ import { useCurrentLocation } from "@/frontend/hooks/useCurrentLocation";
 import { useForecast } from "@/frontend/hooks/useForecast";
 import { useHistory } from "@/frontend/hooks/useHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
-import { useWeather } from "@/frontend/hooks/useWeather";
 import { haversineKm } from "@/frontend/lib/distance";
 
 export default function TodayPageClient({
@@ -28,7 +27,6 @@ export default function TodayPageClient({
   const pm25 = usePm25();
   const community = useCommunityMapData();
   const currentUserId = useCurrentUserId();
-  const weather = useWeather();
   const history = useHistory();
   const forecast = useForecast();
   const currentLocation = useCurrentLocation(true);
@@ -79,14 +77,11 @@ export default function TodayPageClient({
   const forecastTarget = useMemo(() => {
     if (stationId) return routeStation?.id ?? null;
     if (area) return { lat: area.lat, lon: area.lon };
-    if (currentLocation.location) {
-      return {
-        lat: currentLocation.location.lat,
-        lon: currentLocation.location.lon,
-      };
-    }
-    return null;
-  }, [area, currentLocation.location, routeStation?.id, stationId]);
+    if (selectedReport)
+      return { lat: selectedReport.lat, lon: selectedReport.lon };
+    return selectedStation?.id ?? null;
+  }, [area, routeStation?.id, selectedReport, selectedStation?.id, stationId]);
+
   const forecastForCurrentTarget =
     forecast.data && forecastTarget
       ? typeof forecastTarget === "string"
@@ -102,17 +97,11 @@ export default function TodayPageClient({
           : null
       : null;
 
-  const weatherLoad = weather.load;
   const forecastLoad = forecast.load;
   useEffect(() => {
     if (!forecastTarget) return;
     void forecastLoad(forecastTarget, 120);
   }, [forecastLoad, forecastTarget]);
-  useEffect(() => {
-    const position = area ?? currentLocation.location ?? selectedStation;
-    if (!position) return;
-    void weatherLoad(position.lat, position.lon);
-  }, [area, currentLocation.location, selectedStation, weatherLoad]);
 
   const toggleHistory = useCallback(() => {
     setShowHistory((previous) => {
@@ -126,10 +115,6 @@ export default function TodayPageClient({
     currentLocation.request();
     const tasks: Promise<unknown>[] = [pm25.refresh(), community.refresh()];
     if (forecastTarget) tasks.push(forecast.load(forecastTarget, 120, true));
-    const weatherPosition = area ?? currentLocation.location ?? selectedStation;
-    if (weatherPosition) {
-      tasks.push(weather.load(weatherPosition.lat, weatherPosition.lon, true));
-    }
     if (selectedStation) {
       if (showHistory) tasks.push(history.load(selectedStation.id, 24));
     }
@@ -137,14 +122,12 @@ export default function TodayPageClient({
   }, [
     currentLocation,
     community,
-    area,
     forecast,
     forecastTarget,
     history,
     pm25,
     selectedStation,
     showHistory,
-    weather,
   ]);
 
   return (
@@ -165,35 +148,39 @@ export default function TodayPageClient({
         <div className="cp-desktop-summary">
           <NationalSummary stations={serviceAreaStations} />
         </div>
-        <AQICard
-          station={selectedStation}
-          report={selectedReport}
-          distanceKm={stationId ? null : nearestDistanceKm}
-          weather={weather.data}
-          weatherLoading={weather.loading}
-          showHistory={showHistory && !selectedReport}
-          onToggleHistory={toggleHistory}
-          historyPoints={
-            history.stationId === selectedStation?.id ? history.points : []
-          }
-          historyLoading={history.loading}
-          onOpenMap={() => router.push("/")}
-        />
-        <ForecastPanel
-          station={stationId ? routeStation : null}
-          areaLabel={
-            stationId
-              ? undefined
-              : area
-                ? (area.name ?? "บริเวณที่เลือก")
-                : currentLocation.location
-                  ? "ตำแหน่งของคุณ"
-                  : undefined
-          }
-          data={forecastForCurrentTarget}
-          loading={forecast.loading}
-          error={forecast.error}
-        />
+        <section
+          className="cp-air-outlook"
+          aria-label="ค่าฝุ่นใกล้ที่สุดและพยากรณ์"
+        >
+          <AQICard
+            station={selectedStation}
+            report={selectedReport}
+            distanceKm={stationId ? null : nearestDistanceKm}
+            showHistory={showHistory && !selectedReport}
+            onToggleHistory={toggleHistory}
+            historyPoints={
+              history.stationId === selectedStation?.id ? history.points : []
+            }
+            historyLoading={history.loading}
+            onOpenMap={() => router.push("/")}
+          />
+          <ForecastPanel
+            compact
+            station={selectedReport || area ? null : selectedStation}
+            areaLabel={
+              stationId
+                ? undefined
+                : area
+                  ? (area.name ?? "บริเวณที่เลือก")
+                  : selectedReport
+                    ? "บริเวณรายงานที่ใกล้คุณที่สุด"
+                    : undefined
+            }
+            data={forecastForCurrentTarget}
+            loading={forecast.loading}
+            error={forecast.error}
+          />
+        </section>
       </div>
     </UserPageShell>
   );

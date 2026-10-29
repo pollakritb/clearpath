@@ -19,7 +19,6 @@ def test_forecast_input_collection_short_circuits_outside_service_area():
 def test_forecast_input_collection_persists_weather_and_wind_aware_fire_features(
     monkeypatch,
 ):
-    monkeypatch.setattr(settings, "openweather_api_key", "weather-key")
     monkeypatch.setattr(settings, "firms_map_key", "firms-key")
     stations = [
         {"id": "station-1", "lat": 13.82, "lon": 100.06, "province": None},
@@ -67,8 +66,8 @@ def test_forecast_input_collection_persists_weather_and_wind_aware_fire_features
             },
         ]
 
-    monkeypatch.setattr(forecast_data.openweather, "get_weather", weather)
-    monkeypatch.setattr(forecast_data.openweather, "get_forecast", forecasts)
+    monkeypatch.setattr(forecast_data.openmeteo_weather, "get_weather", weather)
+    monkeypatch.setattr(forecast_data.openmeteo_weather, "get_forecast", forecasts)
     monkeypatch.setattr(forecast_data.firms, "get_fires", fires)
     monkeypatch.setattr(
         forecast_data.supabase_client,
@@ -98,12 +97,15 @@ def test_forecast_input_collection_persists_weather_and_wind_aware_fire_features
 
 
 def test_forecast_input_collection_survives_optional_firms_failure(monkeypatch):
-    monkeypatch.setattr(settings, "openweather_api_key", "")
     monkeypatch.setattr(settings, "firms_map_key", "firms-key")
 
     async def failed(_days: int):
         raise RuntimeError("FIRMS unavailable")
 
+    async def no_weather(*_args):
+        raise RuntimeError("weather unavailable")
+
+    monkeypatch.setattr(forecast_data.openmeteo_weather, "get_weather", no_weather)
     rows: list[dict] = []
     monkeypatch.setattr(forecast_data.firms, "get_fires", failed)
     monkeypatch.setattr(

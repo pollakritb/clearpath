@@ -63,48 +63,65 @@ describe("ForecastPanel stored CAMS UI", () => {
     expect(screen.queryByRole("group", { name: "พยากรณ์ตามเวลา" })).toBeNull();
   });
 
-  it("labels an area forecast separately from a station measurement", () => {
-    const areaForecast = {
-      target_kind: "area",
-      station_id: null,
-      forecast_status: "limited",
-      forecast_mode: "external_provider",
-      recommended_source: "openmeteo_cams",
-      provider_count: 1,
-      generated_at: "2026-10-15T01:00:00+00:00",
-      fetched_at: "2026-10-15T01:00:00+00:00",
-      points: [
-        {
-          horizon_hours: 1,
-          forecast_at: "2026-10-15T02:00:00+00:00",
-          valid_at: "2026-10-15T02:00:00+00:00",
-          pm25: 12.5,
-          lower: 12.5,
-          upper: 12.5,
-          source: "openmeteo_cams",
-        },
-      ],
-      sources: [],
-      providers: [],
-      selection_evidence: { basis: "freshness_fallback" },
-      limitation_reason_codes: [],
-      grid_lat: 13.75,
-      grid_lon: 100.25,
-    } as unknown as ForecastResponse;
-    render(
-      <ForecastPanel
-        station={null}
-        areaLabel="ตลาดนครปฐม"
-        data={areaForecast}
-        loading={false}
-        error={null}
-      />,
-    );
-    expect(screen.getByText("พยากรณ์ PM2.5 สำหรับบริเวณนี้")).not.toBeNull();
-    expect(screen.getByText("ตลาดนครปฐม")).not.toBeNull();
-    expect(screen.queryByText("ค่าตรวจวัด")).toBeNull();
-    expect(
-      screen.getByText(/เวลาถัดไปคือค่าพยากรณ์จาก CAMS Global/),
-    ).not.toBeNull();
-  });
+  it.each([false, true])(
+    "labels an area forecast separately and supports compact=%s",
+    (compact) => {
+      const areaForecast = {
+        target_kind: "area",
+        station_id: null,
+        forecast_status: "limited",
+        forecast_mode: "external_provider",
+        recommended_source: "openmeteo_cams",
+        provider_count: 1,
+        generated_at: "2026-10-15T01:00:00+00:00",
+        fetched_at: "2026-10-15T01:00:00+00:00",
+        points: [
+          {
+            horizon_hours: 1,
+            forecast_at: "2026-10-15T02:00:00+00:00",
+            valid_at: "2026-10-15T02:00:00+00:00",
+            pm25: 12.5,
+            lower: 12.5,
+            upper: 12.5,
+            source: "openmeteo_cams",
+          },
+        ],
+        sources: [],
+        providers: [],
+        selection_evidence: { basis: "freshness_fallback" },
+        limitation_reason_codes: [],
+        grid_lat: 13.75,
+        grid_lon: 100.25,
+      } as unknown as ForecastResponse;
+      render(
+        <ForecastPanel
+          station={null}
+          compact={compact}
+          areaLabel="ตลาดนครปฐม"
+          data={areaForecast}
+          loading={false}
+          error={null}
+        />,
+      );
+      expect(
+        screen.getByText(
+          compact ? "แนวโน้มค่าฝุ่น" : "พยากรณ์ PM2.5 สำหรับบริเวณนี้",
+        ),
+      ).not.toBeNull();
+      expect(screen.getByText("ตลาดนครปฐม")).not.toBeNull();
+      expect(
+        screen.getByRole("group", { name: "พยากรณ์ตามเวลา" }),
+      ).not.toBeNull();
+      if (compact) {
+        const details = screen
+          .getByText("รายละเอียดพยากรณ์และแหล่งข้อมูล")
+          .closest("details");
+        expect(details?.open).toBe(false);
+      }
+      expect(screen.queryByText("ค่าตรวจวัด")).toBeNull();
+      expect(
+        screen.getByText(/เวลาถัดไปคือค่าพยากรณ์จาก CAMS Global/),
+      ).not.toBeNull();
+    },
+  );
 });

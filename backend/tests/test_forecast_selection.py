@@ -13,7 +13,7 @@ from backend.algorithms.forecast_selection import (
 def test_external_selection_preserves_priority_provider_value():
     result = select_external_forecast(
         [
-            {"source": "openweather", "pm25": 40},
+            {"source": "retired_provider", "pm25": 40},
             {"source": "openmeteo_cams", "pm25": 31},
             {"source": "gistda", "pm25": 27},
             {"source": "clearpath", "pm25": 99},
@@ -24,7 +24,7 @@ def test_external_selection_preserves_priority_provider_value():
     assert result is not None
     assert result["source"] == "gistda"
     assert result["pm25"] == 27
-    assert result["provider_count"] == 3
+    assert result["provider_count"] == 2
     assert result["lower"] <= 27 <= result["upper"]
 
 
@@ -33,7 +33,7 @@ def test_external_selection_deduplicates_provider_and_rejects_invalid_values():
         [
             {"source": "openmeteo_cams", "pm25": 12},
             {"source": "openmeteo_cams", "pm25": 200},
-            {"source": "openweather", "pm25": -1},
+            {"source": "gistda", "pm25": -1},
         ],
         3,
     )
@@ -48,12 +48,12 @@ def test_external_selection_uses_evidence_rank_and_freshness_fallback():
     newer = "2026-09-16T02:00:00Z"
     points = [
         {"source": "openmeteo_cams", "pm25": 12, "issued_at": older},
-        {"source": "openweather", "pm25": 18, "issued_at": newer},
+        {"source": "gistda", "pm25": 18, "issued_at": newer},
     ]
 
-    assert select_external_forecast(points, 3)["source"] == "openweather"
+    assert select_external_forecast(points, 3)["source"] == "gistda"
     assert (
-        select_external_forecast(points, 3, ["openmeteo_cams", "openweather"])["source"]
+        select_external_forecast(points, 3, ["openmeteo_cams", "gistda"])["source"]
         == "openmeteo_cams"
     )
 
@@ -62,25 +62,25 @@ def test_external_selection_uses_evidence_rank_and_freshness_fallback():
     ("points", "expected_count"),
     [
         ([], 0),
-        ([{"source": "openweather", "pm25": 10}], 1),
+        ([{"source": "gistda", "pm25": 10}], 1),
         (
             [
-                {"source": "openweather", "pm25": 10},
+                {"source": "gistda", "pm25": 10},
                 {"source": "openmeteo_cams", "pm25": 11},
             ],
             2,
         ),
         (
             [
-                {"source": "openweather", "pm25": 10},
+                {"source": "gistda", "pm25": 10},
                 {"source": "openmeteo_cams", "pm25": 11},
-                {"source": "gistda", "pm25": 12},
+                {"source": "retired_provider", "pm25": 12},
             ],
-            3,
+            2,
         ),
     ],
 )
-def test_external_selection_handles_zero_to_three_providers(points, expected_count):
+def test_external_selection_ignores_retired_providers(points, expected_count):
     result = select_external_forecast(points, 1)
     if expected_count == 0:
         assert result is None

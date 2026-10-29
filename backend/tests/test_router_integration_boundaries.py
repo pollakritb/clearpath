@@ -265,16 +265,6 @@ def test_cron_job_routes_delegate_to_alert_evaluation_and_provider_services(
     )
     monkeypatch.setattr(
         cron.provider_sync,
-        "sync_openweather",
-        lambda: provider_result("openweather", "success"),
-    )
-    monkeypatch.setattr(
-        cron.provider_sync,
-        "sync_openweather_if_due",
-        lambda: provider_result("openweather", "not_due"),
-    )
-    monkeypatch.setattr(
-        cron.provider_sync,
         "sync_openmeteo",
         lambda: provider_result("openmeteo_cams", "success"),
     )
@@ -294,14 +284,14 @@ def test_cron_job_routes_delegate_to_alert_evaluation_and_provider_services(
         client.get("/api/cron/forecast-evaluation", headers=headers).status_code == 200
     )
     assert (
-        client.get("/api/cron/forecast-providers/openweather", headers=headers).json()[
+        client.get("/api/cron/forecast-providers/openmeteo", headers=headers).json()[
             "status"
         ]
         == "success"
     )
     assert (
         client.get(
-            "/api/cron/forecast-providers/openweather?only_if_due=true",
+            "/api/cron/forecast-providers/openmeteo?only_if_due=true",
             headers=headers,
         ).json()["status"]
         == "not_due"
@@ -411,7 +401,7 @@ def test_forecast_maintenance_keeps_air4thai_sync_and_skips_forecast_writes(
 
     for path in (
         "/api/cron/forecast-evaluation",
-        "/api/cron/forecast-providers/openweather",
+        "/api/cron/forecast-providers/openmeteo",
         "/api/cron/forecast-providers/openmeteo",
         "/api/cron/forecast-providers/gistda",
     ):

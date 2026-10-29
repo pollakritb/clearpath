@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ForecastSource = Literal["clearpath", "gistda", "openmeteo_cams", "openweather"]
+ForecastSource = Literal["clearpath", "gistda", "openmeteo_cams"]
 
 
 class ForecastQuality(BaseModel):
@@ -53,7 +53,7 @@ class ForecastSourcePoint(BaseModel):
 
 
 class ForecastProviderSummary(BaseModel):
-    source: Literal["gistda", "openmeteo_cams", "openweather"]
+    source: Literal["gistda", "openmeteo_cams"]
     label: str
     attribution: str
     attribution_url: str
@@ -73,7 +73,7 @@ class ForecastProviderSummary(BaseModel):
 
 
 class ForecastProviderScore(BaseModel):
-    provider: Literal["gistda", "openmeteo_cams", "openweather"]
+    provider: Literal["gistda", "openmeteo_cams"]
     eligible: bool
     sample_size: int
     mae: float | None

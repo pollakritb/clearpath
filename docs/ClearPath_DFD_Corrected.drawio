@@ -16,7 +16,7 @@
         <mxCell id="ctx-firms" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=15;" value="NASA FIRMS API" vertex="1">
           <mxGeometry height="55" width="180" x="40" y="210" as="geometry" />
         </mxCell>
-        <mxCell id="ctx-weather" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=15;" value="OpenWeather API" vertex="1">
+        <mxCell id="ctx-weather" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=15;" value="Open-Meteo API" vertex="1">
           <mxGeometry height="55" width="180" x="40" y="300" as="geometry" />
         </mxCell>
         <mxCell id="ctx-cron" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=15;" value="Vercel Cron / Scheduler" vertex="1">
@@ -93,7 +93,7 @@
         <mxCell id="ext-firms" value="NASA FIRMS API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="l1">
           <mxGeometry x="30" y="240" width="160" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="ext-weather" value="OpenWeather API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="l1">
+        <mxCell id="ext-weather" value="Open-Meteo API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="l1">
           <mxGeometry x="30" y="310" width="160" height="50" as="geometry" />
         </mxCell>
         <mxCell id="ext-user" value="USER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=16;" vertex="1" parent="l1">

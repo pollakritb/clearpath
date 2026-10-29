@@ -55,44 +55,60 @@ beforeEach(() => {
   });
 });
 
-it("waits for GPS then reads OCR automatically and submits without manually entered fields", async () => {
-  const onRequestLocation = vi.fn();
-  const onSubmitted = vi.fn();
-  const { container, rerender } = render(
-    <ReportForm
-      location={null}
-      onRequestLocation={onRequestLocation}
-      onSubmitted={onSubmitted}
-    />,
-  );
-  fireEvent.click(screen.getByRole("button", { name: "เลือกภาพทดสอบ" }));
-  expect(onRequestLocation).toHaveBeenCalledOnce();
-  expect(mocks.draft).not.toHaveBeenCalled();
-  const location = {
-    lat: 14.3,
-    lon: 100.4,
-    accuracy: 15,
-    source: "gps" as const,
-  };
-  rerender(
-    <ReportForm
-      location={location}
-      onRequestLocation={onRequestLocation}
-      onSubmitted={onSubmitted}
-    />,
-  );
-  await screen.findByText("PM2.5 42.5 µg/m³");
-  expect(mocks.draft).toHaveBeenCalledOnce();
-  const form = mocks.draft.mock.calls[0][0] as FormData;
-  expect(form.get("lat")).toBe("13.8");
-  expect(form.get("submission_lat")).toBe("14.3");
-  expect(container.querySelector("input, textarea, select")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "ส่งรายงาน" }));
-  await waitFor(() => expect(onSubmitted).toHaveBeenCalledOnce());
-  expect(mocks.submit).toHaveBeenCalledWith("draft", {
-    user_claimed_pm25: 42.5,
-    hide_identity: true,
-    measurement_stable: false,
-    measurement_duration_seconds: 0,
-  });
-});
+it.each([
+  [false, 0],
+  [true, 1],
+  [false, 2],
+])(
+  "reads OCR automatically and submits hide_identity=%s after %s checkbox clicks",
+  async (hideIdentity, clicks) => {
+    const onRequestLocation = vi.fn();
+    const onSubmitted = vi.fn();
+    const { container, rerender } = render(
+      <ReportForm
+        location={null}
+        onRequestLocation={onRequestLocation}
+        onSubmitted={onSubmitted}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "เลือกภาพทดสอบ" }));
+    expect(onRequestLocation).toHaveBeenCalledOnce();
+    expect(mocks.draft).not.toHaveBeenCalled();
+    const location = {
+      lat: 14.3,
+      lon: 100.4,
+      accuracy: 15,
+      source: "gps" as const,
+    };
+    rerender(
+      <ReportForm
+        location={location}
+        onRequestLocation={onRequestLocation}
+        onSubmitted={onSubmitted}
+      />,
+    );
+    await screen.findByText("PM2.5 42.5 µg/m³");
+    expect(mocks.draft).toHaveBeenCalledOnce();
+    const form = mocks.draft.mock.calls[0][0] as FormData;
+    expect(form.get("lat")).toBe("13.8");
+    expect(form.get("submission_lat")).toBe("14.3");
+    expect(
+      container.querySelector('input:not([type="checkbox"]), textarea, select'),
+    ).toBeNull();
+    const checkbox = screen.getByRole("checkbox", {
+      name: "ปิดบังตัวตนในรายงานนี้",
+    }) as HTMLInputElement;
+    expect(checkbox.checked).toBe(false);
+    for (let click = 0; click < Number(clicks); click += 1)
+      fireEvent.click(checkbox);
+    expect(checkbox.checked).toBe(hideIdentity);
+    fireEvent.click(screen.getByRole("button", { name: "ส่งรายงาน" }));
+    await waitFor(() => expect(onSubmitted).toHaveBeenCalledOnce());
+    expect(mocks.submit).toHaveBeenCalledWith("draft", {
+      user_claimed_pm25: 42.5,
+      hide_identity: hideIdentity,
+      measurement_stable: false,
+      measurement_duration_seconds: 0,
+    });
+  },
+);

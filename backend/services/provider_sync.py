@@ -18,7 +18,7 @@ from ..algorithms.external_forecast import (
 from ..algorithms.forecast_selection import provider_circuit_open, provider_sync_due
 from ..core.config import settings
 from ..core.errors import UpstreamError
-from . import gistda_air, openmeteo_air, openweather_air, supabase_client
+from . import gistda_air, openmeteo_air, supabase_client
 from .forecast_models import SUPPORTED_HORIZONS
 from .forecast_provider_registry import PROVIDERS
 
@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 
 PROVIDER_SYNC_INTERVAL_HOURS = {
     "gistda": 3,
-    "openweather": 8,
     "openmeteo_cams": 12,
 }
 CAMS_SNAPSHOT_INTERVAL_HOURS = 6
@@ -93,12 +92,6 @@ async def _sync_if_due(
     if result.get("ok") is False:
         raise UpstreamError(f"{provider} forecast sync failed")
     return result
-
-
-async def sync_openweather_if_due() -> dict:
-    if not settings.openweather_air_enabled:
-        return {"ok": True, "provider": "openweather", "status": "disabled"}
-    return await _sync_if_due("openweather", sync_openweather)
 
 
 async def sync_openmeteo_if_due() -> dict:
@@ -437,84 +430,6 @@ def _persist_provider_evidence(
         logger.exception("Provider evidence persistence failed for %s", provider)
         return {"runs": 0, "predictions": 0, "error": str(exc)[:200]}
     return {"runs": len(runs), "predictions": len(predictions), "error": None}
-
-
-async def sync_openweather() -> dict:
-    stations = _valid_stations()
-    run_id = str(uuid4())
-    issued_at = datetime.now(UTC).replace(microsecond=0)
-    supabase_client.create_provider_sync_run(
-        {
-            "id": run_id,
-            "provider": "openweather",
-            "status": "running",
-            "station_count": len(stations),
-            "started_at": issued_at.isoformat(),
-        }
-    )
-    semaphore = asyncio.Semaphore(8)
-
-    async def fetch(station: dict) -> tuple[str, list[dict], str | None]:
-        async with semaphore:
-            try:
-                rows = await openweather_air.get_forecast(
-                    station["lat"], station["lon"]
-                )
-                return station["id"], rows, None
-            except Exception as exc:
-                return station["id"], [], str(exc)[:200]
-
-    fetched = await asyncio.gather(*(fetch(station) for station in stations))
-    snapshots = []
-    errors = []
-    station_by_id = {str(row["id"]): row for row in stations}
-    for station_id, rows, error in fetched:
-        if error:
-            errors.append({"station_id": station_id, "error": error})
-        snapshots.extend(
-            _snapshots(
-                provider="openweather",
-                run_id=run_id,
-                issued_at=issued_at,
-                station_id=station_id,
-                station_lat=float(station_by_id[station_id]["lat"]),
-                station_lon=float(station_by_id[station_id]["lon"]),
-                rows=rows,
-            )
-        )
-    count = supabase_client.upsert_provider_snapshots(snapshots)
-    evidence = _persist_provider_evidence(
-        provider="openweather",
-        issued_at=issued_at,
-        stations=stations,
-        snapshots=snapshots,
-    )
-    status = "success" if count and not errors else "partial" if count else "failed"
-    completed_at = datetime.now(UTC).isoformat()
-    supabase_client.update_provider_sync_run(
-        run_id,
-        {
-            "status": status,
-            "snapshot_count": count,
-            "error_count": len(errors),
-            "error_message": errors[0]["error"] if errors else None,
-            "completed_at": completed_at,
-            "metadata": {
-                "failed_station_ids": [row["station_id"] for row in errors[:100]],
-                "evidence": evidence,
-            },
-        },
-    )
-    return {
-        "ok": status != "failed",
-        "run_id": run_id,
-        "provider": "openweather",
-        "status": status,
-        "stations": len(stations),
-        "snapshots": count,
-        "errors": len(errors),
-        "evidence": evidence,
-    }
 
 
 async def sync_gistda() -> dict:

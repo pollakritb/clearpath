@@ -32,7 +32,6 @@
     "sync_schedule_minutes": 60,
     "alert_schedule_minutes": 30,
     "evaluation_schedule_minutes": 60,
-    "openweather_key_configured": false,
     "firms_key_configured": false,
     "local_demo_disabled_staging": false,
     "local_demo_disabled_production": false,

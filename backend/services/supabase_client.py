@@ -483,6 +483,8 @@ def list_forecast_consensus(horizon_hours: int) -> list[dict]:
 
 
 def forecast_provider_health() -> dict:
+    from .forecast_provider_registry import PROVIDERS
+
     if settings.local_demo_mode:
         runs = local_store.list_provider_sync_runs(20)
     else:
@@ -498,7 +500,9 @@ def forecast_provider_health() -> dict:
         )
     latest = {}
     for row in runs:
-        latest.setdefault(str(row.get("provider") or "unknown"), row)
+        provider = str(row.get("provider") or "")
+        if provider in PROVIDERS:
+            latest.setdefault(provider, row)
     consensus = list_forecast_consensus(1)
     agreement_counts = {
         level: sum(row.get("agreement") == level for row in consensus)
@@ -517,7 +521,6 @@ def forecast_provider_health() -> dict:
             "agreement_counts": agreement_counts,
         },
         "feature_flags": {
-            "openweather": settings.openweather_air_enabled,
             "openmeteo_cams": settings.openmeteo_air_enabled,
             "gistda": settings.gistda_air_enabled and settings.gistda_license_approved,
             "community_forecast_shadow": settings.community_forecast_shadow_enabled,

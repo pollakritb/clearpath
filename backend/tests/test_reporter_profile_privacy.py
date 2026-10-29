@@ -33,10 +33,10 @@ def test_public_report_hides_google_identity_by_default():
     assert report["reporter_avatar_url"] is None
 
 
-def test_report_submission_defaults_to_hidden_identity():
+def test_report_submission_defaults_to_visible_identity():
     body = ReportDraftSubmit(user_claimed_pm25=12.5)
 
-    assert body.hide_identity is True
+    assert body.hide_identity is False
 
 
 def test_public_report_exposes_opted_in_google_profile():

@@ -20,8 +20,6 @@ describe("community reading on Today", () => {
           } as CommunityReport
         }
         distanceKm={0.2}
-        weather={null}
-        weatherLoading={false}
         showHistory={true}
         onToggleHistory={vi.fn()}
         historyPoints={[]}

@@ -23,7 +23,6 @@ Production: https://clearpath-gray.vercel.app
 
 [เสร็จ] พยากรณ์รายชั่วโมง 1–24 ชั่วโมง และปุ่มหลัก 1/3/6/12/24 ชั่วโมง
 [เสร็จ] ใช้ external-first: เลือกค่าดิบจาก provider ที่สดก่อน ClearPath local fallback
-[เสร็จ] เปิดใช้จริง 2 แหล่ง: CAMS ผ่าน Open-Meteo และ OpenWeather Air Pollution
 [เสร็จ] รองรับสูงสุด 3 แหล่ง โดยเตรียม GISTDA ไว้แต่ปิดด้วย legal gate
 [เสร็จ] ไม่เฉลี่ยหรือแก้ค่าดิบของ provider แต่ละราย
 [เสร็จ] ผู้ใช้กดเปรียบเทียบและเลือกดูค่าดิบของแต่ละ provider เองได้
@@ -43,7 +42,6 @@ Production: https://clearpath-gray.vercel.app
 [เสร็จ] พิกัดจริงและหลักฐาน private ไม่ถูกส่งใน public forecast contract
 
 [เสร็จ] เก็บ provider snapshots 7 วัน และ completed sync runs 30 วัน
-[เสร็จ] OpenWeather sync ทุก 8 ชั่วโมง และ Open-Meteo sync ทุก 12 ชั่วโมง
 [เสร็จ] GISTDA scheduler เป็น safe no-op จนกว่าจะผ่านทั้ง feature และ licence flags
 [เสร็จ] Admin provider health แสดง flags, จำนวน sync, failure และเวลา completion
 [เสร็จ] Runbook: docs/runbooks/forecast-providers.md
@@ -65,7 +63,6 @@ Production: https://clearpath-gray.vercel.app
 [ผ่าน] pip-audit: ไม่พบช่องโหว่ที่ทราบใน requirements.txt
 [ผ่าน] Deployment verifier: home, health, readiness, HSTS, security headers และ Admin auth
 [ผ่าน] Production UI: แสดง CAMS/Open-Meteo เป็นค่าที่แนะนำ
-[ผ่าน] Production UI: เลือก OpenWeather แล้วแสดงค่าดิบ พร้อมข้อความ "ไม่ได้เฉลี่ยกับแหล่งอื่น"
 [ผ่าน] Production API: ตอบครบ 24 จุด, provider_count=2 และ raw_provider_values_preserved=true
 [ผ่าน] GitHub scheduler run #438 และ #439
 [ผ่าน] Local production-data runtime sample หลัง reliability hardening: 30/30 ตอบ 200,
@@ -140,8 +137,6 @@ Production: https://clearpath-gray.vercel.app
 [ ] Cron success >=99% ใน acceptance window 14 วัน
 [ ] PM2.5 completeness >=95% สำหรับ pilot stations
 [ ] Weather completeness >=90%
-[ ] OpenWeather สำเร็จทุก 8 ชั่วโมง และ Open-Meteo สำเร็จทุก 12 ชั่วโมง
-[ ] Provider freshness ไม่เกิน SLA: OpenWeather 10 ชม., Open-Meteo 14 ชม.
 [ ] Forecast API error/fallback spike ไม่มี หรือมี incident record ครบ
 [ ] Prediction ledger จับคู่ observation ได้ และไม่มี future leakage
 [ ] ตรวจ false-safe, bias, MAE/RMSE, category accuracy และ interval coverage
@@ -172,7 +167,6 @@ Production: https://clearpath-gray.vercel.app
 [ ] ตรวจ Admin provider health ว่า GISTDA success และมี snapshots
 [ ] ตรวจ public UI ว่ามี attribution และแสดงไม่เกิน 3 provider
 
-ถ้าไม่ได้รับอนุญาต ให้คง flags=false ระบบจะใช้ CAMS/Open-Meteo + OpenWeather ต่อได้
 โดยไม่เรียก GISTDA และไม่ทำให้พยากรณ์หลักล้ม
 
 ======================================================================

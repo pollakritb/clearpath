@@ -8,12 +8,10 @@ export const FORECAST_SOURCE_LABELS: Record<ForecastSource, string> = {
   clearpath: "ClearPath",
   gistda: "GISTDA เช็คฝุ่น",
   openmeteo_cams: "CAMS / Open-Meteo",
-  openweather: "OpenWeather",
 };
 
 export const FORECAST_SOURCE_ORDER: ForecastSource[] = [
   "openmeteo_cams",
-  "openweather",
   "gistda",
   "clearpath",
 ];

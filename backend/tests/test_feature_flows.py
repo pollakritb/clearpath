@@ -17,7 +17,7 @@ from backend.core.auth import AuthenticatedUser, require_user
 from backend.core.config import settings
 from backend.main import create_app
 from backend.services import firms as firms_service
-from backend.services import line_messaging, local_store, openweather
+from backend.services import line_messaging, local_store, openmeteo_weather
 from backend.services import ocr as ocr_service
 
 
@@ -61,7 +61,7 @@ def feature_client(monkeypatch):
             {"lat": 13.7563, "lon": 100.5018, "frp": 20.0},
         ]
 
-    monkeypatch.setattr(openweather, "get_weather", fake_weather)
+    monkeypatch.setattr(openmeteo_weather, "get_weather", fake_weather)
     monkeypatch.setattr(firms_service, "get_fires", fake_fires)
 
     current = {

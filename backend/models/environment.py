@@ -12,7 +12,7 @@ class Weather(BaseModel):
     wind_deg: float
     description: str
     icon: str | None = None
-    source: Literal["openweather", "open_meteo"] = "openweather"
+    source: Literal["open_meteo"] = "open_meteo"
 
 
 class FirePoint(BaseModel):

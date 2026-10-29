@@ -177,7 +177,7 @@ class ReportDraftResponse(BaseModel):
 
 class ReportDraftSubmit(BaseModel):
     user_claimed_pm25: float = Field(ge=0, le=1000)
-    hide_identity: bool = True
+    hide_identity: bool = False
     device_model: str | None = Field(default=None, max_length=80)
     device_calibrated: bool = False
     calibrated_at: str | None = Field(default=None, max_length=10)

@@ -6860,3 +6860,69 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* One continuous reading-to-outlook card on Today. */
+.cp-air-outlook {
+  overflow: hidden;
+  border: 1px solid var(--cp-line);
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(15, 49, 44, 0.06);
+}
+.cp-air-outlook > .cp-current-reading {
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+.cp-air-outlook .cp-forecast-card--compact {
+  border: 0;
+  border-top: 1px solid var(--cp-line);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 18px;
+}
+.cp-forecast-card--compact .cp-forecast-card__heading h2 {
+  font-size: 1rem;
+  margin-top: 0;
+}
+.cp-forecast-card--compact .cp-forecast-quality {
+  font-size: 0.65rem;
+  max-width: 42%;
+  white-space: normal;
+}
+.cp-forecast-card--compact .cp-forecast-timeline button {
+  background: var(--cp-slot-tint, #f4f8f7);
+  border-top: 3px solid var(--cp-slot-color, #087e79);
+  color: var(--cp-ink);
+  box-shadow: none;
+}
+.cp-forecast-card--compact .cp-forecast-timeline button[data-active="true"] {
+  outline: 2px solid var(--cp-slot-color, #087e79);
+  outline-offset: -2px;
+}
+.cp-forecast-details > summary {
+  padding: 14px 0 2px;
+  color: var(--cp-teal, #087e79);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cp-forecast-details:not(:has(> summary)) {
+  display: contents;
+}
+.cp-air-outlook__source {
+  margin: 12px 0 0;
+  font-size: 0.7rem;
+  color: var(--cp-subink);
+  line-height: 1.6;
+}
+.cp-air-outlook__source a {
+  color: inherit;
+}
+@media (max-width: 600px) {
+  .cp-air-outlook {
+    border-radius: 20px;
+  }
+  .cp-air-outlook .cp-forecast-card--compact {
+    padding: 16px;
+  }
+}

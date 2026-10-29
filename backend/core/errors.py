@@ -6,4 +6,4 @@ class ConfigurationError(RuntimeError):
 
 
 class UpstreamError(RuntimeError):
-    """บริการภายนอก (OWM/FIRMS/air4thai/OpenAI) ตอบผิดพลาด → HTTP 502"""
+    """บริการภายนอก (Open-Meteo/FIRMS/air4thai/OpenAI) ตอบผิดพลาด → HTTP 502"""

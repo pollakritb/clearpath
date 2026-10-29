@@ -8,6 +8,7 @@ import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { T } from "@/frontend/lib/ui";
+import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
 import type { ReportLocation } from "@/frontend/types/ui";
 import type {
   ReportCreateResponse,
@@ -50,7 +51,9 @@ export default function ReportForm({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState<ReportCreateResponse | null>(null);
+  const [hideIdentity, setHideIdentity] = useState(false);
   const auth = useAuth();
+  const reporterProfile = googleReporterProfile(auth.user);
   const loginPrompt = useLoginPrompt();
   const activeStep = draft ? 3 : evidence ? 2 : 1;
 
@@ -163,7 +166,7 @@ export default function ReportForm({
       if (!canSubmit) return;
       const result = await api.submitReportDraft(draft.id, {
         user_claimed_pm25: Number(claimedPm25),
-        hide_identity: true,
+        hide_identity: hideIdentity,
         measurement_stable: false,
         measurement_duration_seconds: 0,
       });
@@ -174,6 +177,7 @@ export default function ReportForm({
             : " · ไม่เผยแพร่ กรุณาตรวจเหตุผลและถ่ายภาพใหม่"),
       );
       setCompleted(result);
+      setHideIdentity(false);
       setEvidence(null);
       setDraft(null);
       setClaimedPm25("");
@@ -433,7 +437,42 @@ export default function ReportForm({
                     </p>
                   )}
                 </div>
-                <p>รายงานนี้ไม่เปิดเผยชื่อและรูปโปรไฟล์ของคุณ</p>
+                <div
+                  className="cp-report-identity-choice"
+                  data-hidden={hideIdentity}
+                >
+                  <div className="cp-report-identity-choice__preview">
+                    <span aria-hidden>
+                      <AppIcon name="user" size={21} />
+                    </span>
+                    <div>
+                      <strong>
+                        {hideIdentity
+                          ? "ไม่เปิดเผยตัวตน"
+                          : (reporterProfile?.displayName ??
+                            "แสดงโปรไฟล์ผู้รายงาน")}
+                      </strong>
+                      <small>
+                        {hideIdentity
+                          ? "ชื่อและรูปโปรไฟล์จะไม่แสดงในรายงานนี้"
+                          : reporterProfile
+                            ? "ชื่อและรูปโปรไฟล์ Google จะแสดงในรายงานนี้"
+                            : "บัญชีนี้ยังไม่มีโปรไฟล์ Google ที่แสดงได้"}
+                      </small>
+                    </div>
+                  </div>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={hideIdentity}
+                      disabled={sending}
+                      onChange={(event) =>
+                        setHideIdentity(event.target.checked)
+                      }
+                    />
+                    <span>ปิดบังตัวตนในรายงานนี้</span>
+                  </label>
+                </div>
               </div>
             )}
           </div>

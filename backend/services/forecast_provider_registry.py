@@ -33,19 +33,6 @@ PROVIDERS = {
         "issued_time_kind": "retrieved_at",
         "usage_note": "แบบจำลองบรรยากาศระดับภูมิภาค ไม่ใช่เครื่องวัด ณ จุดนั้น",
     },
-    "openweather": {
-        "label": "OpenWeather Air Pollution",
-        "attribution": "OpenWeather",
-        "attribution_url": "https://openweathermap.org/api/air-pollution",
-        "maximum_horizon_hours": 96,
-        "stale_after_hours": 10,
-        "temporal_resolution_hours": 1,
-        "spatial_resolution_km": None,
-        "license": "OpenWeather subscription terms",
-        "license_url": "https://openweathermap.org/api/air-pollution",
-        "issued_time_kind": "retrieved_at",
-        "usage_note": "แบบจำลองคุณภาพอากาศรายชั่วโมงตามพิกัด",
-    },
 }
 
 

@@ -9,7 +9,7 @@ from ..algorithms.area import is_nakhon_pathom
 from ..algorithms.distance import haversine_km
 from ..algorithms.trust import capture_age_minutes
 from ..core.config import settings
-from . import firms, openweather, supabase_client
+from . import firms, openmeteo_weather, supabase_client
 
 
 def _selected(station: dict) -> bool:
@@ -37,36 +37,35 @@ async def collect_forecast_inputs(stations: list[dict]) -> dict:
     issued_at = datetime.now(UTC).replace(microsecond=0).isoformat()
     weather_by_station: dict[str, dict] = {}
     weather_count = 0
-    if settings.openweather_api_key:
-        for station in selected:
-            try:
-                current = await openweather.get_weather(
-                    float(station["lat"]), float(station["lon"])
-                )
-                weather_by_station[str(station["id"])] = current
-                supabase_client.upsert_weather_observation(
-                    {
-                        "station_id": station["id"],
-                        "recorded_at": issued_at,
-                        "temperature": current["temp"],
-                        "humidity": current["humidity"],
-                        "wind_speed": current["wind_speed"],
-                        "wind_deg": current["wind_deg"],
-                        "rain_mm": current.get("rain_mm", 0),
-                    }
-                )
-                forecasts = await openweather.get_forecast(
-                    float(station["lat"]), float(station["lon"])
-                )
-                supabase_client.upsert_weather_forecasts(
-                    [
-                        {"station_id": station["id"], "issued_at": issued_at, **row}
-                        for row in forecasts
-                    ]
-                )
-                weather_count += 1
-            except Exception:
-                continue
+    for station in selected:
+        try:
+            current = await openmeteo_weather.get_weather(
+                float(station["lat"]), float(station["lon"])
+            )
+            weather_by_station[str(station["id"])] = current
+            supabase_client.upsert_weather_observation(
+                {
+                    "station_id": station["id"],
+                    "recorded_at": issued_at,
+                    "temperature": current["temp"],
+                    "humidity": current["humidity"],
+                    "wind_speed": current["wind_speed"],
+                    "wind_deg": current["wind_deg"],
+                    "rain_mm": current.get("rain_mm", 0),
+                }
+            )
+            forecasts = await openmeteo_weather.get_forecast(
+                float(station["lat"]), float(station["lon"])
+            )
+            supabase_client.upsert_weather_forecasts(
+                [
+                    {"station_id": station["id"], "issued_at": issued_at, **row}
+                    for row in forecasts
+                ]
+            )
+            weather_count += 1
+        except Exception:
+            continue
 
     fire_points = []
     if settings.firms_map_key:

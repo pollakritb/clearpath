@@ -48,7 +48,7 @@ def test_consensus_exposes_provider_agreement_and_community_provenance():
     result = build_consensus(
         provider_points=[
             {"source": "clearpath", "pm25": 30, "lower": 22, "upper": 38},
-            {"source": "openweather", "pm25": 33, "lower": 25, "upper": 41},
+            {"source": "legacy_provider", "pm25": 33, "lower": 25, "upper": 41},
             {"source": "cams", "pm25": 32, "lower": 24, "upper": 40},
         ],
         horizon_hours=1,

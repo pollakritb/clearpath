@@ -12,11 +12,9 @@ class Settings(BaseSettings):
     )
 
     # External APIs
-    openweather_api_key: str = ""
     geoapify_api_key: str = ""
     firms_map_key: str = ""
     air4thai_url: str = "http://air4thai.pcd.go.th/services/getNewAQI_JSON.php"
-    openweather_air_enabled: bool = True
     openmeteo_air_enabled: bool = True
     # Public forecast mode serves stored raw CAMS values from Supabase.
     # It remains independent from the paused ClearPath model/generation pipeline.

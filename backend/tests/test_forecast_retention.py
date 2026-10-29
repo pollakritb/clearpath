@@ -37,7 +37,7 @@ def test_local_provider_retention_keeps_fresh_snapshots_and_running_runs():
             },
             {
                 "station_id": "retention-station",
-                "provider": "openweather",
+                "provider": "legacy_provider",
                 "issued_at": fresh_issued,
                 "forecast_at": fresh_issued,
             },
@@ -65,7 +65,7 @@ def test_local_provider_retention_keeps_fresh_snapshots_and_running_runs():
 
     assert deleted == (1, 1)
     remaining = local_store.get_provider_snapshots("retention-station")
-    assert [row["provider"] for row in remaining] == ["openweather"]
+    assert [row["provider"] for row in remaining] == ["legacy_provider"]
     assert any(
         row["id"] == "retention-provider-running"
         for row in local_store.list_provider_sync_runs()

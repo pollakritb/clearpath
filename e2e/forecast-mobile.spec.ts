@@ -71,7 +71,7 @@ function externalForecastFixture() {
         issued_at: generatedAt,
       },
       {
-        source: "openweather",
+        source: "gistda",
         horizon_hours: point.horizon_hours,
         forecast_at: point.forecast_at,
         pm25: point.pm25 + 2,
@@ -113,9 +113,9 @@ function externalForecastFixture() {
         selected: true,
         latest_issued_at: generatedAt,
         freshness_status: "fresh",
-        coverage_hours: 24,
-        maximum_horizon_hours: 96,
-        stale_after_hours: 14,
+        coverage_hours: 3,
+        maximum_horizon_hours: 120,
+        stale_after_hours: 18,
         temporal_resolution_hours: 3,
         spatial_resolution_km: 45,
         license: "CC BY 4.0",
@@ -124,21 +124,21 @@ function externalForecastFixture() {
         usage_note: "แบบจำลองบรรยากาศระดับภูมิภาค ไม่ใช่เครื่องวัด ณ จุดนั้น",
       },
       {
-        source: "openweather",
-        label: "OpenWeather Air Pollution",
-        attribution: "OpenWeather",
-        attribution_url: "https://openweathermap.org/api/air-pollution",
+        source: "gistda",
+        label: "GISTDA",
+        attribution: "GISTDA",
+        attribution_url: "https://pm25.gistda.or.th/",
         available: true,
         selected: false,
         latest_issued_at: generatedAt,
         freshness_status: "fresh",
         coverage_hours: 24,
-        maximum_horizon_hours: 96,
-        stale_after_hours: 10,
+        maximum_horizon_hours: 3,
+        stale_after_hours: 5,
         temporal_resolution_hours: 1,
         spatial_resolution_km: null,
-        license: "OpenWeather subscription terms",
-        license_url: "https://openweathermap.org/api/air-pollution",
+        license: "Permission required before public use",
+        license_url: "https://pm25.gistda.or.th/",
         issued_time_kind: "retrieved_at",
         usage_note: "แบบจำลองคุณภาพอากาศรายชั่วโมงตามพิกัด",
       },
@@ -148,7 +148,7 @@ function externalForecastFixture() {
       horizon_hours: 12,
       window_days: 14,
       minimum_rows: 30,
-      ranked_sources: ["openmeteo_cams", "openweather"],
+      ranked_sources: ["openmeteo_cams", "gistda"],
       scores: [
         {
           provider: "openmeteo_cams",
@@ -211,6 +211,7 @@ test("forecast card exposes a time-based timeline and accessible table", async (
   await page.getByRole("button", { name: "ดูรายชั่วโมง 24 ช่วงเวลา" }).click();
   await expect(timeline.getByRole("button")).toHaveCount(24);
   await timeline.getByRole("button").last().click();
+  await page.getByText("รายละเอียดพยากรณ์และแหล่งข้อมูล").click();
   await page.getByText("เปรียบเทียบแหล่งข้อมูล").click();
   await expect(page.getByText("GISTDA เช็คฝุ่น")).toBeVisible();
   await page.getByText("รายละเอียดและวิธีคำนวณ").click();
@@ -299,11 +300,12 @@ test("external provider comparison keeps raw values separate on mobile", async (
   await expect(
     page.getByRole("group", { name: "พยากรณ์ตามเวลา" }),
   ).toBeVisible();
+  await page.getByText("รายละเอียดพยากรณ์และแหล่งข้อมูล").click();
   await page.getByText("เปรียบเทียบแหล่งข้อมูล").click();
   await expect(
     page.getByRole("button", { name: /CAMS \/ Open-Meteo/ }),
   ).toBeVisible();
-  await page.getByRole("button", { name: /OpenWeather/ }).click();
+  await page.getByRole("button", { name: /GISTDA/ }).click();
   await expect(page.getByText("กำลังดูค่าจากแหล่งนี้")).toBeVisible();
   await expect(page.getByText("ไม่ได้เฉลี่ยกับแหล่งอื่น")).toBeVisible();
   await page.getByText("รายละเอียดและวิธีคำนวณ").click();

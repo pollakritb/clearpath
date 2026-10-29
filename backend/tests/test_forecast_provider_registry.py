@@ -20,7 +20,7 @@ def test_provider_summaries_are_bounded_ordered_and_freshness_aware():
                 "pm25": 25,
             },
             {
-                "provider": "openweather",
+                "provider": "retired_provider",
                 "issued_at": (now - timedelta(hours=2)).isoformat(),
                 "horizon_hours": 6,
                 "pm25": 22,
@@ -33,17 +33,16 @@ def test_provider_summaries_are_bounded_ordered_and_freshness_aware():
     assert [row["source"] for row in summaries] == [
         "gistda",
         "openmeteo_cams",
-        "openweather",
     ]
     assert summaries[0]["freshness_status"] == "stale"
     assert summaries[0]["available"] is False
     assert summaries[1]["freshness_status"] == "fresh"
     assert summaries[1]["selected"] is True
-    assert summaries[2]["coverage_hours"] == 1
+    assert summaries[1]["coverage_hours"] == 1
     assert summaries[1]["license"] == (
         "CC BY 4.0; free endpoint restricted to non-commercial use"
     )
     assert summaries[1]["temporal_resolution_hours"] == 3
     assert summaries[1]["spatial_resolution_km"] == 45
     assert summaries[1]["issued_time_kind"] == "retrieved_at"
-    assert summaries[2]["maximum_horizon_hours"] == 96
+    assert summaries[1]["maximum_horizon_hours"] == 120

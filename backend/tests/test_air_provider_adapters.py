@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import httpx
 
 from backend.core.errors import ConfigurationError
-from backend.services import gistda_air, openmeteo_air, openweather_air
+from backend.services import gistda_air, openmeteo_air
 
 
 class _Response:
@@ -19,26 +19,6 @@ class _Response:
 
     def json(self):
         return self.payload
-
-
-def test_openweather_air_normalizes_pm25(monkeypatch):
-    monkeypatch.setattr(openweather_air.settings, "openweather_air_enabled", True)
-    monkeypatch.setattr(openweather_air.settings, "openweather_api_key", "test")
-
-    async def fake_get(*_args, **_kwargs):
-        return _Response(
-            {
-                "coord": [100.5, 13.7],
-                "list": [{"dt": 1_800_000_000, "components": {"pm2_5": 12.5}}],
-            }
-        )
-
-    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
-    rows = asyncio.run(openweather_air.get_forecast(13.7, 100.5))
-    assert rows[0]["pm25"] == 12.5
-    assert rows[0]["source_lat"] == 13.7
-    assert rows[0]["source_lon"] == 100.5
-    assert datetime.fromisoformat(rows[0]["forecast_at"]).tzinfo == UTC
 
 
 def test_openmeteo_air_maps_batch_results_to_station_ids(monkeypatch):

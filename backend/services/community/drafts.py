@@ -309,7 +309,7 @@ async def submit_draft(
     ocr_status = str(draft.get("ocr_status") or "unavailable")
     verified_identity = reporter_identity or {}
     show_reporter_profile = (
-        not bool(values.get("hide_identity", True))
+        not bool(values.get("hide_identity", False))
         and verified_identity.get("identity_provider") == "google"
         and bool(
             verified_identity.get("display_name") or verified_identity.get("avatar_url")

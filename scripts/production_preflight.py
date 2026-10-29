@@ -88,8 +88,6 @@ def run_preflight(
             for key in ("VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT")
         ),
         "ml_runtime_registry": not runtime_settings.ml_forecast_enabled,
-        "openweather_provider": not runtime_settings.openweather_air_enabled
-        or _configured(values, "OPENWEATHER_API_KEY", minimum=16),
         "community_forecast_shadow_only": values.get(
             "COMMUNITY_FORECAST_SHADOW_ENABLED", "false"
         )

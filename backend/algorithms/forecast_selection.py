@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from .forecast_consensus import agreement_level
 from .provider_reliability import source_sort_key
 
-EXTERNAL_PROVIDERS = ("gistda", "openmeteo_cams", "openweather")
+EXTERNAL_PROVIDERS = ("gistda", "openmeteo_cams")
 PROVIDER_PRIORITY = {
     provider: index for index, provider in enumerate(EXTERNAL_PROVIDERS)
 }

@@ -21,7 +21,7 @@ def test_provider_evidence_ranks_accuracy_not_brand():
     result = rank_provider_evidence(
         [
             _row("openmeteo_cams", rows=40, mae=12, now=now),
-            _row("openweather", rows=40, mae=8, now=now),
+            _row("legacy_provider", rows=40, mae=8, now=now),
             _row("gistda", rows=40, mae=10, now=now),
         ],
         now=now,
@@ -29,7 +29,7 @@ def test_provider_evidence_ranks_accuracy_not_brand():
 
     assert result["basis"] == "retrospective_accuracy"
     assert result["ranked_sources"] == [
-        "openweather",
+        "legacy_provider",
         "gistda",
         "openmeteo_cams",
     ]
@@ -40,7 +40,7 @@ def test_provider_evidence_fails_closed_when_stale_or_too_small():
     now = datetime(2026, 9, 16, 12, tzinfo=UTC)
     result = rank_provider_evidence(
         [
-            _row("openweather", rows=29, mae=3, now=now),
+            _row("legacy_provider", rows=29, mae=3, now=now),
             _row(
                 "openmeteo_cams",
                 rows=100,
@@ -58,7 +58,7 @@ def test_provider_evidence_fails_closed_when_stale_or_too_small():
 
 def test_provider_evidence_expiry_uses_latest_prediction_not_recompute_time():
     now = datetime(2026, 9, 16, 12, tzinfo=UTC)
-    row = _row("openweather", rows=100, mae=3, now=now)
+    row = _row("legacy_provider", rows=100, mae=3, now=now)
     row["metrics"] = {"latest_forecast_at": (now - timedelta(hours=40)).isoformat()}
 
     result = rank_provider_evidence([row], now=now)
@@ -69,7 +69,7 @@ def test_provider_evidence_expiry_uses_latest_prediction_not_recompute_time():
 
 def test_provider_evidence_ignores_station_rows_and_unrelated_methods():
     now = datetime(2026, 9, 16, 12, tzinfo=UTC)
-    station_row = _row("openweather", rows=100, mae=1, now=now)
+    station_row = _row("legacy_provider", rows=100, mae=1, now=now)
     station_row["station_id"] = "station-1"
     result = rank_provider_evidence(
         [

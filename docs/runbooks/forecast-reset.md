@@ -34,7 +34,6 @@ station. Its six-hour schedule is unchanged. See
 
 ## Paused producers
 
-- OpenWeather air-quality forecast provider sync
 - Legacy Open-Meteo/CAMS provider sync. Raw CAMS snapshots are a narrow exception
   after applying
   `20261016_allow_raw_cams_evidence_during_forecast_reset.sql` and

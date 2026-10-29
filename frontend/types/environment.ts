@@ -5,7 +5,7 @@ export interface Weather {
   wind_deg: number;
   description: string;
   icon: string | null;
-  source: "openweather" | "open_meteo";
+  source: "open_meteo";
 }
 
 export interface FirePoint {

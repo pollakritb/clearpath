@@ -91,8 +91,8 @@ describe("forecast presentation", () => {
   it("labels external, released, and fallback forecast methods", () => {
     const point = { model_version: null } as ForecastPoint;
 
-    expect(forecastMethodLabel(point, "openweather")).toContain(
-      FORECAST_SOURCE_LABELS.openweather,
+    expect(forecastMethodLabel(point, "openmeteo_cams")).toContain(
+      FORECAST_SOURCE_LABELS.openmeteo_cams,
     );
     expect(
       forecastMethodLabel({ ...point, model_version: "model-v1" }, "clearpath"),

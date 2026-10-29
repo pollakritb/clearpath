@@ -4,19 +4,12 @@ import HistoryChart from "@/frontend/components/panels/HistoryChart";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { T } from "@/frontend/lib/ui";
-import type {
-  CommunityReport,
-  HistoryPoint,
-  Station,
-  Weather,
-} from "@/frontend/types";
+import type { CommunityReport, HistoryPoint, Station } from "@/frontend/types";
 
 export interface AQICardProps {
   station: Station | null;
   report?: CommunityReport | null;
   distanceKm?: number | null;
-  weather: Weather | null;
-  weatherLoading: boolean;
   showHistory: boolean;
   onToggleHistory: () => void;
   historyPoints: HistoryPoint[];
@@ -24,30 +17,10 @@ export interface AQICardProps {
   onOpenMap: () => void;
 }
 
-function WxStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        textAlign: "center",
-        background: T.chip,
-        borderRadius: "9px",
-        padding: ".55em .3em",
-      }}
-    >
-      <div style={{ fontSize: ".68em", color: T.subInk }}>{label}</div>
-      <div style={{ fontFamily: T.mono, fontWeight: 600, fontSize: "1.05em" }}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
 export default function AQICard({
   station,
   report = null,
   distanceKm = null,
-  weather,
-  weatherLoading,
   showHistory,
   onToggleHistory,
   historyPoints,
@@ -108,22 +81,10 @@ export default function AQICard({
     : "สถานี Air4Thai";
   const measuredAt = report?.captured_at ?? station?.recorded_at;
 
-  const wind = weather ? `${Math.round(weather.wind_speed)}` : "—";
-  const temp = weatherLoading
-    ? "…"
-    : weather
-      ? `${Math.round(weather.temp)}°`
-      : "—";
-  const humid = weatherLoading
-    ? "…"
-    : weather
-      ? `${Math.round(weather.humidity)}%`
-      : "—";
-
   return (
     <section
       aria-label="คุณภาพอากาศจากจุดอ้างอิงที่ใกล้ที่สุด"
-      className="cp-anim-rise"
+      className="cp-current-reading cp-anim-rise"
       style={{
         border: `1px solid ${T.line}`,
         borderRadius: "14px",
@@ -193,7 +154,7 @@ export default function AQICard({
             style={{
               fontFamily: T.mono,
               fontWeight: 600,
-              fontSize: "3.4em",
+              fontSize: "3em",
               lineHeight: 0.9,
             }}
           >
@@ -230,53 +191,23 @@ export default function AQICard({
           <span>{cls.advice}</span>
         </div>
 
-        <div className="cp-weather-grid">
-          <WxStat label="อุณหภูมิ" value={temp} />
-          <WxStat label="ความชื้น" value={humid} />
-          <WxStat label="ลม (m/s)" value={wind} />
-        </div>
-
-        {weather && (
-          <div
-            style={{
-              color: T.subInk,
-              fontSize: ".64em",
-              margin: ".35em 0 .65em",
-              textAlign: "right",
-            }}
-          >
-            สภาพอากาศจาก{" "}
-            <a
-              href={
-                weather.source === "open_meteo"
-                  ? "https://open-meteo.com/"
-                  : "https://openweathermap.org/"
-              }
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: "inherit", textDecoration: "underline" }}
-            >
-              {weather.source === "open_meteo" ? "Open-Meteo" : "OpenWeather"}
-            </a>
-          </div>
-        )}
-
         {!report && (
           <button
             type="button"
             onClick={onToggleHistory}
             className="cp-focus"
             style={{
-              width: "100%",
+              width: "auto",
               minHeight: "44px",
-              border: `1px solid ${T.line}`,
-              background: T.chip,
+              border: "none",
+              background: "transparent",
+              padding: 0,
               borderRadius: "10px",
               cursor: "pointer",
               fontFamily: "inherit",
               fontWeight: 600,
-              fontSize: ".86em",
-              color: T.ink,
+              fontSize: ".78em",
+              color: T.teal,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

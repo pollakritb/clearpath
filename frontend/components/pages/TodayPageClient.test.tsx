@@ -80,6 +80,7 @@ vi.mock("@/frontend/hooks/useForecast", () => ({
 afterEach(cleanup);
 beforeEach(() => {
   state.viewerId = "viewer";
+  vi.clearAllMocks();
 });
 
 describe("Today nearest source", () => {
@@ -87,6 +88,10 @@ describe("Today nearest source", () => {
     render(<TodayPageClient />);
     expect(screen.getByText("19")).toBeTruthy();
     expect(screen.getByText("รายงานจาก เพื่อนบ้าน")).toBeTruthy();
+    expect(state.noop).toHaveBeenCalledWith({ lat: 13.801, lon: 100.1 }, 120);
+    expect(
+      screen.getByRole("region", { name: "ค่าฝุ่นใกล้ที่สุดและพยากรณ์" }),
+    ).toBeTruthy();
     expect(screen.queryByText("99")).toBeNull();
     expect(screen.queryByText("10.2")).toBeNull();
   });
@@ -94,6 +99,7 @@ describe("Today nearest source", () => {
   it("keeps an explicitly selected station separate from automatic GPS selection", () => {
     render(<TodayPageClient stationId="station" />);
     expect(screen.getByText("10.2")).toBeTruthy();
+    expect(state.noop).toHaveBeenCalledWith("station", 120);
     expect(screen.queryByText("รายงานจาก เพื่อนบ้าน")).toBeNull();
   });
 });

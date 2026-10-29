@@ -102,29 +102,28 @@ the staging exercise.
 
 Required in both Vercel Preview and Production unless marked optional:
 
-| Variable                            | Source / rule                                            |
-| ----------------------------------- | -------------------------------------------------------- |
-| `APP_ENVIRONMENT`                   | `staging` for Preview; `production` for Production       |
-| `RELEASE_SHA`                       | Git commit SHA; CI or Vercel system value                |
-| `SUPABASE_URL`                      | Supabase project URL, server runtime                     |
-| `SUPABASE_SERVICE_ROLE_KEY`         | Server only; never `NEXT_PUBLIC_*`                       |
-| `NEXT_PUBLIC_SUPABASE_URL`          | Same project URL, browser build                          |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | Publishable/anon browser key                             |
-| `REPORT_IMAGE_BUCKET`               | `report-images`                                          |
-| `CRON_SECRET`                       | Independent random secret, at least 32 characters        |
-| `SUPABASE_CRON_SECRET`              | Separate token matching the ClearPath Supabase Vault     |
-| `CAPTURE_SESSION_SECRET`            | Different independent random secret                      |
-| `CORS_ALLOWED_ORIGINS`              | Exact HTTPS origin, no `*`                               |
-| `OPENWEATHER_API_KEY`               | Server only; required while its provider flag is enabled |
-| `OPENMETEO_AIR_ENABLED`             | `true`; no key, with CAMS/Open-Meteo attribution         |
-| `GISTDA_AIR_ENABLED`                | Keep `false` until the documented legal gate passes      |
-| `GISTDA_LICENSE_APPROVED`           | Keep `false` until written reuse permission is recorded  |
-| `FIRMS_MAP_KEY`                     | Server only                                              |
-| `OPENAI_API_KEY`                    | Required before enabling real automatic review           |
-| `PUSH_ENABLED`                      | Start `false`; enable after VAPID delivery test          |
-| `VAPID_*`                           | Required when push is enabled                            |
-| `ML_FORECAST_ENABLED`               | Keep `false` until every artifact gate passes            |
-| `COMMUNITY_FORECAST_SHADOW_ENABLED` | Keep `false` at launch; no public forecast influence     |
+| Variable                            | Source / rule                                           |
+| ----------------------------------- | ------------------------------------------------------- |
+| `APP_ENVIRONMENT`                   | `staging` for Preview; `production` for Production      |
+| `RELEASE_SHA`                       | Git commit SHA; CI or Vercel system value               |
+| `SUPABASE_URL`                      | Supabase project URL, server runtime                    |
+| `SUPABASE_SERVICE_ROLE_KEY`         | Server only; never `NEXT_PUBLIC_*`                      |
+| `NEXT_PUBLIC_SUPABASE_URL`          | Same project URL, browser build                         |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | Publishable/anon browser key                            |
+| `REPORT_IMAGE_BUCKET`               | `report-images`                                         |
+| `CRON_SECRET`                       | Independent random secret, at least 32 characters       |
+| `SUPABASE_CRON_SECRET`              | Separate token matching the ClearPath Supabase Vault    |
+| `CAPTURE_SESSION_SECRET`            | Different independent random secret                     |
+| `CORS_ALLOWED_ORIGINS`              | Exact HTTPS origin, no `*`                              |
+| `OPENMETEO_AIR_ENABLED`             | `true`; no key, with CAMS/Open-Meteo attribution        |
+| `GISTDA_AIR_ENABLED`                | Keep `false` until the documented legal gate passes     |
+| `GISTDA_LICENSE_APPROVED`           | Keep `false` until written reuse permission is recorded |
+| `FIRMS_MAP_KEY`                     | Server only                                             |
+| `OPENAI_API_KEY`                    | Required before enabling real automatic review          |
+| `PUSH_ENABLED`                      | Start `false`; enable after VAPID delivery test         |
+| `VAPID_*`                           | Required when push is enabled                           |
+| `ML_FORECAST_ENABLED`               | Keep `false` until every artifact gate passes           |
+| `COMMUNITY_FORECAST_SHADOW_ENABLED` | Keep `false` at launch; no public forecast influence    |
 
 For each variable, let `vercel env add` prompt for the value so it does not
 appear in terminal history:

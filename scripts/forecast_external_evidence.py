@@ -155,8 +155,7 @@ def checks(
             and _value(d, "infrastructure.evaluation_schedule_minutes") <= 60
         ),
         "FCAST-0105": lambda d: (
-            _value(d, "infrastructure.openweather_key_configured") is True
-            and _value(d, "infrastructure.firms_key_configured") is True
+            _value(d, "infrastructure.firms_key_configured") is True
         ),
         "FCAST-0106": lambda d: (
             _value(d, "infrastructure.local_demo_disabled_staging") is True

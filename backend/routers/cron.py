@@ -228,20 +228,6 @@ async def cron_cams_snapshots(
     return await provider_sync.collect_openmeteo_snapshots(batch_index=batch_index)
 
 
-@router.get("/cron/forecast-providers/openweather")
-async def cron_openweather_air(
-    authorization: str | None = Header(default=None), only_if_due: bool = False
-):
-    _verify_cron(authorization)
-    if settings.forecast_system_paused:
-        return forecast_status.paused_job("openweather")
-    return await (
-        provider_sync.sync_openweather_if_due()
-        if only_if_due
-        else provider_sync.sync_openweather()
-    )
-
-
 @router.get("/cron/forecast-providers/openmeteo")
 async def cron_openmeteo_air(
     authorization: str | None = Header(default=None), only_if_due: bool = False

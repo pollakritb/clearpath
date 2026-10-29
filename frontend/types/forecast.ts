@@ -31,8 +31,7 @@ export interface ForecastPoint {
   source: ForecastSource;
 }
 
-export type ForecastSource =
-  "clearpath" | "gistda" | "openmeteo_cams" | "openweather";
+export type ForecastSource = "clearpath" | "gistda" | "openmeteo_cams";
 
 export interface ForecastSourcePoint {
   source: ForecastSource;

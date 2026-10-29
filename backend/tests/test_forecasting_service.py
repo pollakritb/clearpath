@@ -11,7 +11,7 @@ def test_provider_points_reject_stale_snapshots():
     target = (now + timedelta(hours=3)).isoformat()
     snapshots = [
         {
-            "provider": "openweather",
+            "provider": "openmeteo_cams",
             "issued_at": (now - timedelta(hours=11)).isoformat(),
             "forecast_at": target,
             "pm25": 12,

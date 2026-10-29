@@ -30,7 +30,6 @@ const SOURCE_ICONS: Record<ForecastSource, AppIconName> = {
   clearpath: "activity",
   gistda: "station",
   openmeteo_cams: "model",
-  openweather: "database",
 };
 
 function ForecastPausedPreview() {
@@ -117,12 +116,14 @@ function ForecastPausedPreview() {
 
 export default function ForecastPanel({
   station,
+  compact = false,
   areaLabel,
   data,
   loading,
   error,
 }: {
   station: Station | null;
+  compact?: boolean;
   areaLabel?: string;
   data: ForecastResponse | null;
   loading: boolean;
@@ -190,14 +191,21 @@ export default function ForecastPanel({
   const hasTarget = Boolean(station || areaLabel);
 
   return (
-    <section className="cp-forecast-card" aria-labelledby="forecast-title">
+    <section
+      className={`cp-forecast-card${compact ? " cp-forecast-card--compact" : ""}`}
+      aria-labelledby="forecast-title"
+    >
       <div className="cp-forecast-card__heading">
         <div>
-          <span className="cp-eyebrow">Forecast · พยากรณ์ล่วงหน้า</span>
+          {!compact && (
+            <span className="cp-eyebrow">Forecast · พยากรณ์ล่วงหน้า</span>
+          )}
           <h2 id="forecast-title">
-            {station
-              ? "พยากรณ์ PM2.5 บริเวณสถานี"
-              : "พยากรณ์ PM2.5 สำหรับบริเวณนี้"}
+            {compact
+              ? "แนวโน้มค่าฝุ่น"
+              : station
+                ? "พยากรณ์ PM2.5 บริเวณสถานี"
+                : "พยากรณ์ PM2.5 สำหรับบริเวณนี้"}
           </h2>
           <p>
             {station
@@ -255,7 +263,7 @@ export default function ForecastPanel({
             role="group"
             aria-label="พยากรณ์ตามเวลา"
           >
-            {station && (
+            {station && !compact && (
               <div
                 className="cp-forecast-timeline__now"
                 aria-label="ค่าปัจจุบัน"
@@ -276,6 +284,12 @@ export default function ForecastPanel({
                   aria-label={`พยากรณ์สำหรับ ${slot.day ? `${slot.day} ` : ""}${slot.time} PM2.5 ${point.pm25} ไมโครกรัมต่อลูกบาศก์เมตร`}
                   aria-pressed={active}
                   data-active={active}
+                  style={
+                    {
+                      "--cp-slot-color": classifyPm25(point.pm25).color,
+                      "--cp-slot-tint": classifyPm25(point.pm25).tint,
+                    } as React.CSSProperties
+                  }
                   onClick={() => {
                     setSelectedForecastAt(point.forecast_at);
                     setViewSource(null);
@@ -318,297 +332,321 @@ export default function ForecastPanel({
         </div>
       )}
 
+      {compact && data?.points.length ? (
+        <p className="cp-air-outlook__source">
+          ค่าพยากรณ์จากแบบจำลอง ·{" "}
+          <a
+            href="https://open-meteo.com/en/docs/air-quality-api"
+            target="_blank"
+            rel="noreferrer"
+          >
+            CAMS / Open-Meteo
+          </a>
+        </p>
+      ) : null}
       {previewMode && <ForecastPausedPreview />}
 
       {data && selected && !previewMode && (
-        <div className="cp-forecast-card__body cp-anim-rise">
-          <div
-            className="cp-forecast-reading"
-            style={
-              {
-                "--cp-forecast-color": classification.color,
-                "--cp-forecast-tint": classification.tint,
-              } as React.CSSProperties
-            }
-          >
-            <div className="cp-forecast-reading__value">
-              <span className="cp-forecast-reading__source">
-                <AppIcon
-                  name={SOURCE_ICONS[activeSource ?? "clearpath"]}
-                  size={16}
-                />
-                {showingRecommendation
-                  ? `พยากรณ์สำหรับ ${formatForecastTime(selected.valid_at ?? selected.forecast_at)}`
-                  : "กำลังดูค่าจากแหล่งนี้"}
-              </span>
-              <small>
-                {FORECAST_SOURCE_LABELS[activeSource ?? "clearpath"]}
-              </small>
-              <strong>{displayPm25}</strong>
-              <small>µg/m³ PM2.5 · {classification.level}</small>
-            </div>
-            {showingRecommendation && externalOnly ? (
-              <div className="cp-forecast-interval">
-                <span>แหล่งพยากรณ์</span>
-                <strong>CAMS Global / Open-Meteo</strong>
+        <details
+          className="cp-forecast-details"
+          open={compact ? undefined : true}
+        >
+          {compact && (
+            <summary className="cp-focus">
+              รายละเอียดพยากรณ์และแหล่งข้อมูล
+            </summary>
+          )}
+          <div className="cp-forecast-card__body cp-anim-rise">
+            <div
+              className="cp-forecast-reading"
+              style={
+                {
+                  "--cp-forecast-color": classification.color,
+                  "--cp-forecast-tint": classification.tint,
+                } as React.CSSProperties
+              }
+            >
+              <div className="cp-forecast-reading__value">
+                <span className="cp-forecast-reading__source">
+                  <AppIcon
+                    name={SOURCE_ICONS[activeSource ?? "clearpath"]}
+                    size={16}
+                  />
+                  {showingRecommendation
+                    ? `พยากรณ์สำหรับ ${formatForecastTime(selected.valid_at ?? selected.forecast_at)}`
+                    : "กำลังดูค่าจากแหล่งนี้"}
+                </span>
                 <small>
-                  แสดงค่าจากผู้ให้บริการโดยตรง ไม่มีการเฉลี่ยหรือปรับค่าด้วยสูตร
-                  ClearPath
+                  {FORECAST_SOURCE_LABELS[activeSource ?? "clearpath"]}
                 </small>
+                <strong>{displayPm25}</strong>
+                <small>µg/m³ PM2.5 · {classification.level}</small>
               </div>
-            ) : showingRecommendation ? (
-              <div className="cp-forecast-interval">
-                <span>ช่วงความไม่แน่นอนโดยประมาณ</span>
+              {showingRecommendation && externalOnly ? (
+                <div className="cp-forecast-interval">
+                  <span>แหล่งพยากรณ์</span>
+                  <strong>CAMS Global / Open-Meteo</strong>
+                  <small>
+                    แสดงค่าจากผู้ให้บริการโดยตรง
+                    ไม่มีการเฉลี่ยหรือปรับค่าด้วยสูตร ClearPath
+                  </small>
+                </div>
+              ) : showingRecommendation ? (
+                <div className="cp-forecast-interval">
+                  <span>ช่วงความไม่แน่นอนโดยประมาณ</span>
+                  <strong>
+                    {selected.lower}–{selected.upper} µg/m³
+                  </strong>
+                  <small>{forecastIntervalHint(data)}</small>
+                </div>
+              ) : (
+                <div className="cp-forecast-interval">
+                  <span>ค่าดิบของผู้ให้บริการ</span>
+                  <strong>ไม่ได้เฉลี่ยกับแหล่งอื่น</strong>
+                  <small>แตะ “ค่าที่ระบบแนะนำ” เพื่อกลับไปค่าหลัก</small>
+                </div>
+              )}
+            </div>
+
+            <div
+              className="cp-forecast-decision"
+              data-confidence={lowConfidence ? "low" : "ready"}
+            >
+              <span className="cp-forecast-decision__icon">
+                <AppIcon name={lowConfidence ? "alert" : "check"} size={18} />
+              </span>
+              <span>
                 <strong>
-                  {selected.lower}–{selected.upper} µg/m³
+                  {externalOnly
+                    ? "ใช้ดูแนวโน้มเพื่อวางแผนล่วงหน้า"
+                    : lowConfidence
+                      ? "ใช้ประกอบการตัดสินใจด้วยความระมัดระวัง"
+                      : classification.advice}
                 </strong>
-                <small>{forecastIntervalHint(data)}</small>
-              </div>
-            ) : (
-              <div className="cp-forecast-interval">
-                <span>ค่าดิบของผู้ให้บริการ</span>
-                <strong>ไม่ได้เฉลี่ยกับแหล่งอื่น</strong>
-                <small>แตะ “ค่าที่ระบบแนะนำ” เพื่อกลับไปค่าหลัก</small>
-              </div>
+                <small>
+                  {externalOnly
+                    ? "แบบจำลองระดับภูมิภาค ควรตรวจค่าฝุ่นปัจจุบันร่วมด้วย"
+                    : lowConfidence
+                      ? `${agreementLabel(data)} ควรตรวจค่าปัจจุบันก่อนทำกิจกรรมกลางแจ้ง`
+                      : `${data.provider_count} แหล่งข้อมูล · ${agreementLabel(data)}`}
+                </small>
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="cp-forecast-reset cp-focus"
+              hidden={showingRecommendation}
+              onClick={() => setViewSource(null)}
+            >
+              <AppIcon name="back" size={16} />
+              กลับไปค่าที่ระบบแนะนำ
+            </button>
+
+            {!externalOnly && (
+              <details className="cp-forecast-sources">
+                <summary className="cp-focus">
+                  <span>
+                    <AppIcon name="layers" size={18} />
+                    เปรียบเทียบแหล่งข้อมูล
+                  </span>
+                  <small>
+                    {data.provider_count} แหล่ง · {agreementLabel(data)}
+                  </small>
+                </summary>
+                <p>
+                  เลือกดูค่าดิบได้เองสูงสุด 3 แหล่ง
+                  โดยค่าของแต่ละแหล่งไม่ถูกแก้ไข หรือแอบเฉลี่ยเข้าด้วยกัน
+                </p>
+                <div className="cp-forecast-sources__list">
+                  {selectedSources.map((source) => (
+                    <button
+                      type="button"
+                      className="cp-focus"
+                      data-source={source.source}
+                      data-active={activeSource === source.source}
+                      key={`${source.source}:${source.horizon_hours}`}
+                      onClick={() => setViewSource(source.source)}
+                    >
+                      <span>
+                        <AppIcon name={SOURCE_ICONS[source.source]} size={18} />
+                        {FORECAST_SOURCE_LABELS[source.source]}
+                      </span>
+                      <strong>{Math.round(source.pm25 * 10) / 10}</strong>
+                      <small>
+                        µg/m³ · ดึงข้อมูลเมื่อ{" "}
+                        {formatProviderTime(source.issued_at)}
+                      </small>
+                    </button>
+                  ))}
+                  {!selectedSources.length && (
+                    <div className="cp-forecast-source-empty">
+                      ช่วงเวลานี้ยังไม่มีแหล่งภายนอกที่สด
+                    </div>
+                  )}
+                </div>
+                <p className="cp-forecast-source-links">
+                  {data.providers.slice(0, 3).map((provider) => (
+                    <a
+                      key={provider.source}
+                      href={provider.license_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {provider.label} · {provider.license}
+                    </a>
+                  ))}
+                </p>
+              </details>
             )}
-          </div>
 
-          <div
-            className="cp-forecast-decision"
-            data-confidence={lowConfidence ? "low" : "ready"}
-          >
-            <span className="cp-forecast-decision__icon">
-              <AppIcon name={lowConfidence ? "alert" : "check"} size={18} />
-            </span>
-            <span>
-              <strong>
-                {externalOnly
-                  ? "ใช้ดูแนวโน้มเพื่อวางแผนล่วงหน้า"
-                  : lowConfidence
-                    ? "ใช้ประกอบการตัดสินใจด้วยความระมัดระวัง"
-                    : classification.advice}
-              </strong>
-              <small>
-                {externalOnly
-                  ? "แบบจำลองระดับภูมิภาค ควรตรวจค่าฝุ่นปัจจุบันร่วมด้วย"
-                  : lowConfidence
-                    ? `${agreementLabel(data)} ควรตรวจค่าปัจจุบันก่อนทำกิจกรรมกลางแจ้ง`
-                    : `${data.provider_count} แหล่งข้อมูล · ${agreementLabel(data)}`}
-              </small>
-            </span>
-          </div>
+            {externalOnly && (
+              <p className="cp-forecast-source-links">
+                <a
+                  href="https://open-meteo.com/en/docs/air-quality-api"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  ข้อมูล CAMS Global ผ่าน Open-Meteo · CC BY 4.0
+                </a>
+              </p>
+            )}
 
-          <button
-            type="button"
-            className="cp-forecast-reset cp-focus"
-            hidden={showingRecommendation}
-            onClick={() => setViewSource(null)}
-          >
-            <AppIcon name="back" size={16} />
-            กลับไปค่าที่ระบบแนะนำ
-          </button>
-
-          {!externalOnly && (
-            <details className="cp-forecast-sources">
+            <details className="cp-forecast-details">
               <summary className="cp-focus">
                 <span>
-                  <AppIcon name="layers" size={18} />
-                  เปรียบเทียบแหล่งข้อมูล
+                  <AppIcon name="info" size={18} />
+                  รายละเอียดและวิธีคำนวณ
                 </span>
-                <small>
-                  {data.provider_count} แหล่ง · {agreementLabel(data)}
-                </small>
+                <AppIcon name="chevron" size={17} />
               </summary>
-              <p>
-                เลือกดูค่าดิบได้เองสูงสุด 3 แหล่ง โดยค่าของแต่ละแหล่งไม่ถูกแก้ไข
-                หรือแอบเฉลี่ยเข้าด้วยกัน
-              </p>
-              <div className="cp-forecast-sources__list">
-                {selectedSources.map((source) => (
-                  <button
-                    type="button"
-                    className="cp-focus"
-                    data-source={source.source}
-                    data-active={activeSource === source.source}
-                    key={`${source.source}:${source.horizon_hours}`}
-                    onClick={() => setViewSource(source.source)}
-                  >
-                    <span>
-                      <AppIcon name={SOURCE_ICONS[source.source]} size={18} />
-                      {FORECAST_SOURCE_LABELS[source.source]}
-                    </span>
-                    <strong>{Math.round(source.pm25 * 10) / 10}</strong>
-                    <small>
-                      µg/m³ · ดึงข้อมูลเมื่อ{" "}
-                      {formatProviderTime(source.issued_at)}
-                    </small>
-                  </button>
-                ))}
-                {!selectedSources.length && (
-                  <div className="cp-forecast-source-empty">
-                    ช่วงเวลานี้ยังไม่มีแหล่งภายนอกที่สด
-                  </div>
+              <div className="cp-forecast-details__body">
+                <div className="cp-forecast-method">
+                  <strong>
+                    {forecastMethodLabel(selected, activeSource ?? "clearpath")}
+                  </strong>
+                  <span>
+                    {data.forecast_mode === "external_provider"
+                      ? externalOnly
+                        ? "แสดงค่าดิบ CAMS Global ผ่าน Open-Meteo; ยังไม่มีหลักฐานความแม่นยำรายสถานีเพียงพอ"
+                        : data.selection_evidence.basis ===
+                            "retrospective_accuracy"
+                          ? `เลือกจากผลเทียบค่าจริงย้อนหลัง ${data.selection_evidence.window_days} วัน และไม่แก้ค่าดิบของผู้ให้บริการ`
+                          : "หลักฐานย้อนหลังยังไม่พอ จึงเลือกข้อมูลที่ดึงมาใหม่ที่สุดชั่วคราว โดยไม่แก้ค่าดิบ"
+                      : "ใช้เฉพาะเมื่อยังไม่มีพยากรณ์ภายนอกที่สด"}
+                  </span>
+                </div>
+                {data.selection_evidence.basis === "retrospective_accuracy" && (
+                  <dl className="cp-forecast-times">
+                    <div>
+                      <dt>ประเมินความแม่นล่าสุด</dt>
+                      <dd>
+                        {formatProviderTime(
+                          data.selection_evidence.evaluated_at,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>หลักฐานใช้ได้ถึง</dt>
+                      <dd>
+                        {formatProviderTime(data.selection_evidence.expires_at)}
+                      </dd>
+                    </div>
+                  </dl>
                 )}
-              </div>
-              <p className="cp-forecast-source-links">
-                {data.providers.slice(0, 3).map((provider) => (
-                  <a
-                    key={provider.source}
-                    href={provider.license_url}
-                    target="_blank"
-                    rel="noreferrer"
+                {!externalOnly && (
+                  <section
+                    className="cp-forecast-community"
+                    aria-label="ข้อมูลจากชุมชน"
                   >
-                    {provider.label} · {provider.license}
-                  </a>
-                ))}
-              </p>
-            </details>
-          )}
-
-          {externalOnly && (
-            <p className="cp-forecast-source-links">
-              <a
-                href="https://open-meteo.com/en/docs/air-quality-api"
-                target="_blank"
-                rel="noreferrer"
-              >
-                ข้อมูล CAMS Global ผ่าน Open-Meteo · CC BY 4.0
-              </a>
-            </p>
-          )}
-
-          <details className="cp-forecast-details">
-            <summary className="cp-focus">
-              <span>
-                <AppIcon name="info" size={18} />
-                รายละเอียดและวิธีคำนวณ
-              </span>
-              <AppIcon name="chevron" size={17} />
-            </summary>
-            <div className="cp-forecast-details__body">
-              <div className="cp-forecast-method">
-                <strong>
-                  {forecastMethodLabel(selected, activeSource ?? "clearpath")}
-                </strong>
-                <span>
-                  {data.forecast_mode === "external_provider"
-                    ? externalOnly
-                      ? "แสดงค่าดิบ CAMS Global ผ่าน Open-Meteo; ยังไม่มีหลักฐานความแม่นยำรายสถานีเพียงพอ"
-                      : data.selection_evidence.basis ===
-                          "retrospective_accuracy"
-                        ? `เลือกจากผลเทียบค่าจริงย้อนหลัง ${data.selection_evidence.window_days} วัน และไม่แก้ค่าดิบของผู้ให้บริการ`
-                        : "หลักฐานย้อนหลังยังไม่พอ จึงเลือกข้อมูลที่ดึงมาใหม่ที่สุดชั่วคราว โดยไม่แก้ค่าดิบ"
-                    : "ใช้เฉพาะเมื่อยังไม่มีพยากรณ์ภายนอกที่สด"}
-                </span>
-              </div>
-              {data.selection_evidence.basis === "retrospective_accuracy" && (
+                    <span className="cp-forecast-community__icon">
+                      <AppIcon name="community" size={20} />
+                    </span>
+                    <div>
+                      <strong>ข้อมูลยืนยันจากชุมชน</strong>
+                      <p>
+                        {data.community_context.nearby_report_count
+                          ? `พบ ${data.community_context.nearby_report_count} รายงานที่ผ่านเกณฑ์ภายใน ${data.community_context.radius_km} กม.`
+                          : "ยังไม่มีรายงานใกล้เคียงที่ผ่านเกณฑ์"}
+                      </p>
+                      <small>
+                        {data.community_context.affects_recommendation
+                          ? "ข้อมูลชุมชนมีผลต่อค่าที่แนะนำในรอบนี้"
+                          : "ใช้เป็นหลักฐานประกอบ ยังไม่แก้ค่าพยากรณ์หลัก"}
+                      </small>
+                    </div>
+                  </section>
+                )}
                 <dl className="cp-forecast-times">
                   <div>
-                    <dt>ประเมินความแม่นล่าสุด</dt>
+                    <dt>พยากรณ์สำหรับ</dt>
                     <dd>
-                      {formatProviderTime(data.selection_evidence.evaluated_at)}
+                      {formatProviderTime(
+                        selected.valid_at ?? selected.forecast_at,
+                      )}
                     </dd>
                   </div>
                   <div>
-                    <dt>หลักฐานใช้ได้ถึง</dt>
+                    <dt>ดึงข้อมูลเมื่อ</dt>
                     <dd>
-                      {formatProviderTime(data.selection_evidence.expires_at)}
+                      {formatProviderTime(data.fetched_at ?? data.generated_at)}
                     </dd>
                   </div>
                 </dl>
-              )}
-              {!externalOnly && (
-                <section
-                  className="cp-forecast-community"
-                  aria-label="ข้อมูลจากชุมชน"
-                >
-                  <span className="cp-forecast-community__icon">
-                    <AppIcon name="community" size={20} />
-                  </span>
-                  <div>
-                    <strong>ข้อมูลยืนยันจากชุมชน</strong>
-                    <p>
-                      {data.community_context.nearby_report_count
-                        ? `พบ ${data.community_context.nearby_report_count} รายงานที่ผ่านเกณฑ์ภายใน ${data.community_context.radius_km} กม.`
-                        : "ยังไม่มีรายงานใกล้เคียงที่ผ่านเกณฑ์"}
-                    </p>
-                    <small>
-                      {data.community_context.affects_recommendation
-                        ? "ข้อมูลชุมชนมีผลต่อค่าที่แนะนำในรอบนี้"
-                        : "ใช้เป็นหลักฐานประกอบ ยังไม่แก้ค่าพยากรณ์หลัก"}
-                    </small>
+                {data.grid_lat != null && data.grid_lon != null && (
+                  <p className="cp-forecast-disclaimer">
+                    แบบจำลองใช้ grid ใกล้พิกัดที่เลือก (
+                    {data.grid_lat.toFixed(2)}, {data.grid_lon.toFixed(2)}) ·
+                    ความละเอียดพื้นที่ประมาณ 45 กม. จึงไม่ยืนยันสภาพฝุ่นเฉพาะจุด
+                  </p>
+                )}
+                {!!data.limitation_reason_codes.length && (
+                  <div className="cp-forecast-notice">
+                    {data.limitation_reason_codes
+                      .map((code) => FORECAST_LIMITATION_LABELS[code] ?? code)
+                      .join(" · ")}
                   </div>
-                </section>
-              )}
-              <dl className="cp-forecast-times">
-                <div>
-                  <dt>พยากรณ์สำหรับ</dt>
-                  <dd>
-                    {formatProviderTime(
-                      selected.valid_at ?? selected.forecast_at,
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt>ดึงข้อมูลเมื่อ</dt>
-                  <dd>
-                    {formatProviderTime(data.fetched_at ?? data.generated_at)}
-                  </dd>
-                </div>
-              </dl>
-              {data.grid_lat != null && data.grid_lon != null && (
-                <p className="cp-forecast-disclaimer">
-                  แบบจำลองใช้ grid ใกล้พิกัดที่เลือก ({data.grid_lat.toFixed(2)}
-                  , {data.grid_lon.toFixed(2)}) · ความละเอียดพื้นที่ประมาณ 45
-                  กม. จึงไม่ยืนยันสภาพฝุ่นเฉพาะจุด
-                </p>
-              )}
-              {!!data.limitation_reason_codes.length && (
-                <div className="cp-forecast-notice">
-                  {data.limitation_reason_codes
-                    .map((code) => FORECAST_LIMITATION_LABELS[code] ?? code)
-                    .join(" · ")}
-                </div>
-              )}
-              <details className="cp-forecast-table">
-                <summary className="cp-focus">ดูค่าทุกช่วงเวลา</summary>
-                <div>
-                  <table>
-                    <caption>ค่าพยากรณ์ PM2.5 และแหล่งที่เลือก</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">อีก</th>
-                        <th scope="col">PM2.5</th>
-                        <th scope="col">ช่วงประมาณ</th>
-                        <th scope="col">แหล่ง</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {horizonPoints.map((point) => (
-                        <tr key={point.forecast_at}>
-                          <th scope="row">
-                            {formatForecastTime(point.forecast_at)}
-                          </th>
-                          <td>{point.pm25}</td>
-                          <td>
-                            {externalOnly
-                              ? "—"
-                              : `${point.lower}–${point.upper}`}
-                          </td>
-                          <td>{FORECAST_SOURCE_LABELS[point.source]}</td>
+                )}
+                <details className="cp-forecast-table">
+                  <summary className="cp-focus">ดูค่าทุกช่วงเวลา</summary>
+                  <div>
+                    <table>
+                      <caption>ค่าพยากรณ์ PM2.5 และแหล่งที่เลือก</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">อีก</th>
+                          <th scope="col">PM2.5</th>
+                          <th scope="col">ช่วงประมาณ</th>
+                          <th scope="col">แหล่ง</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-              <p className="cp-forecast-disclaimer">
-                พยากรณ์เป็นแนวโน้ม
-                ไม่ใช่ค่าตรวจวัดจริงและไม่ใช่คำแนะนำทางการแพทย์
-              </p>
-            </div>
-          </details>
-        </div>
+                      </thead>
+                      <tbody>
+                        {horizonPoints.map((point) => (
+                          <tr key={point.forecast_at}>
+                            <th scope="row">
+                              {formatForecastTime(point.forecast_at)}
+                            </th>
+                            <td>{point.pm25}</td>
+                            <td>
+                              {externalOnly
+                                ? "—"
+                                : `${point.lower}–${point.upper}`}
+                            </td>
+                            <td>{FORECAST_SOURCE_LABELS[point.source]}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+                <p className="cp-forecast-disclaimer">
+                  พยากรณ์เป็นแนวโน้ม
+                  ไม่ใช่ค่าตรวจวัดจริงและไม่ใช่คำแนะนำทางการแพทย์
+                </p>
+              </div>
+            </details>
+          </div>
+        </details>
       )}
     </section>
   );

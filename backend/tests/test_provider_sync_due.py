@@ -7,7 +7,7 @@ from backend.core.errors import UpstreamError
 from backend.services import provider_sync
 
 
-def test_openweather_due_wrapper_skips_recent_success(monkeypatch):
+def test_openmeteo_recent_due_wrapper_skips_recent_success(monkeypatch):
     now = datetime.now(UTC)
     called = False
 
@@ -16,7 +16,7 @@ def test_openweather_due_wrapper_skips_recent_success(monkeypatch):
         called = True
         return {"ok": True, "status": "success"}
 
-    monkeypatch.setattr(provider_sync.settings, "openweather_air_enabled", True)
+    monkeypatch.setattr(provider_sync.settings, "openmeteo_air_enabled", True)
     monkeypatch.setattr(
         provider_sync.supabase_client,
         "get_latest_provider_sync_run",
@@ -26,12 +26,12 @@ def test_openweather_due_wrapper_skips_recent_success(monkeypatch):
             "completed_at": (now - timedelta(hours=1)).isoformat(),
         },
     )
-    monkeypatch.setattr(provider_sync, "sync_openweather", fake_sync)
+    monkeypatch.setattr(provider_sync, "sync_openmeteo", fake_sync)
 
-    result = asyncio.run(provider_sync.sync_openweather_if_due())
+    result = asyncio.run(provider_sync.sync_openmeteo_if_due())
 
     assert result["status"] == "not_due"
-    assert result["interval_hours"] == 8
+    assert result["interval_hours"] == 12
     assert not called
 
 
@@ -66,36 +66,36 @@ def test_disabled_provider_does_not_read_database(monkeypatch):
     def unexpected_read(_provider):
         raise AssertionError("disabled provider must not read sync history")
 
-    monkeypatch.setattr(provider_sync.settings, "openweather_air_enabled", False)
+    monkeypatch.setattr(provider_sync.settings, "openmeteo_air_enabled", False)
     monkeypatch.setattr(
         provider_sync.supabase_client,
         "get_latest_provider_sync_run",
         unexpected_read,
     )
 
-    result = asyncio.run(provider_sync.sync_openweather_if_due())
+    result = asyncio.run(provider_sync.sync_openmeteo_if_due())
 
     assert result == {
         "ok": True,
-        "provider": "openweather",
+        "provider": "openmeteo_cams",
         "status": "disabled",
     }
 
 
 def test_due_wrapper_raises_upstream_error_when_sync_returns_failed(monkeypatch):
     async def failed_sync():
-        return {"ok": False, "provider": "openweather", "status": "failed"}
+        return {"ok": False, "provider": "openmeteo_cams", "status": "failed"}
 
-    monkeypatch.setattr(provider_sync.settings, "openweather_air_enabled", True)
+    monkeypatch.setattr(provider_sync.settings, "openmeteo_air_enabled", True)
     monkeypatch.setattr(
         provider_sync.supabase_client,
         "get_latest_provider_sync_run",
         lambda _provider: None,
     )
-    monkeypatch.setattr(provider_sync, "sync_openweather", failed_sync)
+    monkeypatch.setattr(provider_sync, "sync_openmeteo", failed_sync)
 
-    with pytest.raises(UpstreamError, match="openweather forecast sync failed"):
-        asyncio.run(provider_sync.sync_openweather_if_due())
+    with pytest.raises(UpstreamError, match="openmeteo_cams forecast sync failed"):
+        asyncio.run(provider_sync.sync_openmeteo_if_due())
 
 
 def test_due_wrapper_opens_circuit_after_recent_failure(monkeypatch):
@@ -106,7 +106,7 @@ def test_due_wrapper_opens_circuit_after_recent_failure(monkeypatch):
         called = True
         return {"ok": True}
 
-    monkeypatch.setattr(provider_sync.settings, "openweather_air_enabled", True)
+    monkeypatch.setattr(provider_sync.settings, "openmeteo_air_enabled", True)
     monkeypatch.setattr(
         provider_sync.supabase_client,
         "get_latest_provider_sync_run",
@@ -116,9 +116,9 @@ def test_due_wrapper_opens_circuit_after_recent_failure(monkeypatch):
             "completed_at": datetime.now(UTC).isoformat(),
         },
     )
-    monkeypatch.setattr(provider_sync, "sync_openweather", unexpected_sync)
+    monkeypatch.setattr(provider_sync, "sync_openmeteo", unexpected_sync)
 
-    result = asyncio.run(provider_sync.sync_openweather_if_due())
+    result = asyncio.run(provider_sync.sync_openmeteo_if_due())
 
     assert result["status"] == "circuit_open"
     assert result["cache_fallback"] is True
