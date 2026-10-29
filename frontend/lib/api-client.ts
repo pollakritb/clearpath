@@ -1,6 +1,8 @@
 // typed fetch wrappers — frontend รู้จักแค่ /api/* (same-origin)
 
 import type {
+  ForecastGridMetadata,
+  ForecastGridFrames,
   LocationLabelResponse,
   MeasurementRequestCreate,
   MeasurementRequestView,
@@ -113,6 +115,34 @@ async function invalidateAfter<T>(request: Promise<T>, ...keys: string[]) {
 }
 
 export const api = {
+  forecastGridMetadata: () =>
+    http<ForecastGridMetadata>("/api/forecast-grid/metadata", {
+      cache: "no-store",
+    }),
+  forecastGridFrames: (
+    generation: string,
+    start: string,
+    end: string,
+    bounds: {
+      min_lat: number;
+      max_lat: number;
+      min_lon: number;
+      max_lon: number;
+    },
+    signal?: AbortSignal,
+  ) => {
+    const params = new URLSearchParams({
+      generation_id: generation,
+      start,
+      end,
+      ...Object.fromEntries(
+        Object.entries(bounds).map(([k, v]) => [k, String(v)]),
+      ),
+    });
+    return http<ForecastGridFrames>(`/api/forecast-grid/frames?${params}`, {
+      signal,
+    });
+  },
   reverseLocation: (lat: number, lon: number) =>
     http<LocationLabelResponse>(
       `/api/locations/reverse?lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}`,

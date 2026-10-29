@@ -24,6 +24,7 @@ export default function PersistentMapPage() {
     <div hidden={!isMapPage} inert={!isMapPage}>
       <MapPageClient
         active={isMapPage}
+        initialCams={searchParams.get("layer") === "cams"}
         initialRequestId={
           isMapPage ? searchParams.get("measurement_request") : null
         }

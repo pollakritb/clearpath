@@ -9,6 +9,10 @@ import MapStatusCard from "@/frontend/components/app/MapStatusCard";
 import PlaceAirCard from "@/frontend/components/app/PlaceAirCard";
 import ReportStackCard from "@/frontend/components/app/ReportStackCard";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
+import CamsForecastControls from "@/frontend/components/map/CamsForecastControls";
+import { useMapDataMode } from "@/frontend/hooks/useMapDataMode";
+import { useForecastGrid } from "@/frontend/hooks/useForecastGrid";
+import type { ViewportBounds } from "@/frontend/types/ui";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import MapRequestPanel from "@/frontend/components/measurement/MapRequestPanel";
 import RequestMapCard from "@/frontend/components/measurement/RequestMapCard";
@@ -49,16 +53,19 @@ export default function MapPageClient({
   initialReportId,
   requestInitially = false,
   active = true,
+  initialCams = false,
   initialRequestId,
 }: {
   showFiresInitially?: boolean;
   initialReportId?: string | null;
   requestInitially?: boolean;
   active?: boolean;
+  initialCams?: boolean;
   initialRequestId?: string | null;
 }) {
   const currentUserId = useCurrentUserId();
   const requestData = useMeasurementRequests(currentUserId, active);
+  const openedRequestMode = useRef(false);
   const openedRequestLink = useRef<string | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
     null,
@@ -100,7 +107,42 @@ export default function MapPageClient({
   const [showIndividualReports, setShowIndividualReports] = useState(true);
   const [showFires, setShowFires] = useState(showFiresInitially);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
-  const [historyEnabled, setHistoryEnabled] = useState(false);
+  const { mode, camsEnabled, historyEnabled, setHistoryEnabled, toggleCams } =
+    useMapDataMode(initialCams);
+  const [viewport, setViewport] = useState<ViewportBounds | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [camsPoint, setCamsPoint] = useState<{
+    lat: number;
+    lon: number;
+    name?: string;
+  } | null>(null);
+  const cams = useForecastGrid(camsEnabled, active, viewport);
+  const pauseCams = cams.pause;
+  const resetCamsTime = cams.now;
+  const [historyAnchor, setHistoryAnchor] = useState(() => Date.now());
+  const onPanelChange = useCallback(
+    (open: boolean) => {
+      setPanelOpen(open);
+      if (open) pauseCams();
+    },
+    [pauseCams],
+  );
+  const changeCams = useCallback(() => {
+    pauseCams();
+    if (!camsEnabled) resetCamsTime();
+    setSelectedStation(null);
+    setSelectedReport(null);
+    setSelectedStackId(null);
+    setSelectedPlace(null);
+    setSelectedRequestId(null);
+    setViewMode("map");
+    toggleCams();
+  }, [pauseCams, toggleCams, camsEnabled, resetCamsTime]);
+  useEffect(() => {
+    if (active) return;
+    const frame = requestAnimationFrame(pauseCams);
+    return () => cancelAnimationFrame(frame);
+  }, [active, pauseCams]);
   const [historyOffsetHours, setHistoryOffsetHours] = useState(1);
   const [focusPoint, setFocusPoint] = useState<{
     lat: number;
@@ -120,11 +162,17 @@ export default function MapPageClient({
     setSelectedStation(null);
     setSelectedReport(null);
     setSelectedStackId(null);
-    setHistoryEnabled(false);
+    pauseCams();
+    if (!camsEnabled) setHistoryEnabled(false);
     setViewMode("map");
-  }, []);
+  }, [pauseCams, camsEnabled, setHistoryEnabled]);
   useEffect(() => {
-    if (!requestInitially) return;
+    if (!requestInitially) {
+      openedRequestMode.current = false;
+      return;
+    }
+    if (openedRequestMode.current) return;
+    openedRequestMode.current = true;
     const frame = window.requestAnimationFrame(startRequest);
     return () => window.cancelAnimationFrame(frame);
   }, [requestInitially, startRequest]);
@@ -145,24 +193,24 @@ export default function MapPageClient({
 
   const loadFires = firms.load;
   useEffect(() => {
-    if (!showFires) return;
+    if (!showFires || camsEnabled || !active) return;
     if (!firms.loaded) void loadFires(1);
     const timer = window.setInterval(
       () => void loadFires(1, true),
       FIRMS_REFRESH_MS,
     );
     return () => window.clearInterval(timer);
-  }, [firms.loaded, loadFires, showFires]);
+  }, [firms.loaded, loadFires, showFires, camsEnabled, active]);
 
   const loadMapHistory = mapHistory.load;
   useEffect(() => {
     if (!historyEnabled) return;
-    const target = new Date();
+    const target = new Date(historyAnchor);
     target.setMinutes(0, 0, 0);
     target.setHours(target.getHours() - historyOffsetHours);
     const timer = window.setTimeout(() => void loadMapHistory(target), 240);
     return () => window.clearTimeout(timer);
-  }, [historyEnabled, historyOffsetHours, loadMapHistory]);
+  }, [historyEnabled, historyOffsetHours, historyAnchor, loadMapHistory]);
 
   const serviceAreaStations = useMemo(
     () => pm25.stations.filter((station) => station.in_service_area),
@@ -202,7 +250,7 @@ export default function MapPageClient({
       : null;
   const placeAir = useMemo(
     () =>
-      selectedPlace
+      selectedPlace && !camsEnabled
         ? assessPlaceAir(
             selectedPlace.lat,
             selectedPlace.lon,
@@ -211,7 +259,13 @@ export default function MapPageClient({
             new Date(placeClock),
           )
         : null,
-    [selectedPlace, serviceAreaStations, community.reports, placeClock],
+    [
+      selectedPlace,
+      serviceAreaStations,
+      community.reports,
+      placeClock,
+      camsEnabled,
+    ],
   );
   const mapStations = placeAir
     ? placeAir.stations.map(({ station }) => station)
@@ -267,16 +321,20 @@ export default function MapPageClient({
     setSelectedStation(null);
   }, []);
 
-  const selectRequest = useCallback((request: MeasurementRequestView) => {
-    setSelectedRequestId(request.id);
-    setSelectedStation(null);
-    setSelectedReport(null);
-    setSelectedStackId(null);
-    setSelectedPlace(null);
-    setHistoryEnabled(false);
-    setFocusPoint({ lat: request.lat, lon: request.lon });
-    setViewMode("map");
-  }, []);
+  const selectRequest = useCallback(
+    (request: MeasurementRequestView) => {
+      setSelectedRequestId(request.id);
+      setSelectedStation(null);
+      setSelectedReport(null);
+      setSelectedStackId(null);
+      setSelectedPlace(null);
+      pauseCams();
+      if (!camsEnabled) setHistoryEnabled(false);
+      setFocusPoint({ lat: request.lat, lon: request.lon });
+      setViewMode("map");
+    },
+    [pauseCams, camsEnabled, setHistoryEnabled],
+  );
   useEffect(() => {
     if (!initialRequestId || !active) {
       openedRequestLink.current = null;
@@ -293,14 +351,19 @@ export default function MapPageClient({
   }, [initialRequestId, active, requestData.rows, selectRequest]);
 
   const map = (
-    <main className="cp-map">
+    <main className="cp-map" data-mode={mode}>
       <MapView
+        dataMode={mode}
+        camsSurface={camsEnabled ? cams.surface : null}
+        camsPoint={camsEnabled && requestStep === "idle" ? camsPoint : null}
+        onViewportChange={setViewport}
         stations={mapStations}
         heatmapPoint={heatmapPoint}
         fires={
           requestStep === "idle" &&
           !selectedPlace &&
           !historyEnabled &&
+          !camsEnabled &&
           showFires
             ? firms.fires
             : []
@@ -342,12 +405,15 @@ export default function MapPageClient({
               : null
         }
         resetViewSignal={resetViewSignal}
-        showHeatmap={requestStep === "idle" && showHeatmap}
+        showHeatmap={requestStep === "idle" && !camsEnabled && showHeatmap}
         showStations={
-          requestStep === "idle" && (Boolean(selectedPlace) || showStations)
+          requestStep === "idle" &&
+          !camsEnabled &&
+          (Boolean(selectedPlace) || showStations)
         }
         showIndividualReports={
           requestStep === "idle" &&
+          !camsEnabled &&
           (Boolean(selectedPlace) || (!historyEnabled && showIndividualReports))
         }
         onMapClick={(lat, lon) => {
@@ -364,6 +430,12 @@ export default function MapPageClient({
             return;
           }
           if (requestStep === "form") return;
+          if (camsEnabled) {
+            pauseCams();
+            setSelectedRequestId(null);
+            setCamsPoint({ lat, lon });
+            return;
+          }
           setSelectedRequestId(null);
           if (!selectedPlace) setFocusPoint({ lat, lon });
           setSelectedStation(null);
@@ -406,6 +478,9 @@ export default function MapPageClient({
         </button>
       )}
       <MapChrome
+        camsEnabled={camsEnabled}
+        onToggleCams={changeCams}
+        onPanelChange={onPanelChange}
         viewMode={viewMode}
         stationCount={visibleStations.length}
         individualReportCount={
@@ -446,6 +521,17 @@ export default function MapPageClient({
             setFocusPoint({ lat: location.lat, lon: location.lon });
             return;
           }
+          if (camsEnabled) {
+            pauseCams();
+            setCamsPoint({
+              lat: location.lat,
+              lon: location.lon,
+              name: location.name,
+            });
+            setFocusPoint({ lat: location.lat, lon: location.lon });
+            setViewMode("map");
+            return;
+          }
           setPlaceClock(Date.now());
           setHistoryEnabled(false);
           mapHistory.clear();
@@ -468,6 +554,16 @@ export default function MapPageClient({
               lon: station.lon,
             });
             setRequestStep("pick");
+            setFocusPoint({ lat: station.lat, lon: station.lon });
+            return;
+          }
+          if (camsEnabled) {
+            pauseCams();
+            setCamsPoint({
+              lat: station.lat,
+              lon: station.lon,
+              name: station.name_th ?? station.name_en ?? station.id,
+            });
             setFocusPoint({ lat: station.lat, lon: station.lon });
             return;
           }
@@ -502,7 +598,7 @@ export default function MapPageClient({
           onReselect={() => setRequestStep("pick")}
           onClose={() => setRequestStep("idle")}
         />
-      ) : selectedRequest ? (
+      ) : selectedRequest && !camsEnabled ? (
         <RequestMapCard
           request={selectedRequest}
           onUpdated={(row) => {
@@ -512,6 +608,42 @@ export default function MapPageClient({
           now={requestData.now}
           onClose={() => setSelectedRequestId(null)}
         />
+      ) : camsEnabled ? (
+        !panelOpen && (
+          <CamsForecastControls
+            requestCard={
+              selectedRequest ? (
+                <RequestMapCard
+                  request={selectedRequest}
+                  now={requestData.now}
+                  onClose={() => setSelectedRequestId(null)}
+                  onUpdated={(row) => {
+                    requestData.upsert(row);
+                    if (row.status === "cancelled") setSelectedRequestId(null);
+                  }}
+                />
+              ) : null
+            }
+            grid={cams}
+            point={camsPoint}
+            onClosePoint={() => setCamsPoint(null)}
+            onExit={changeCams}
+            onRequest={() => {
+              if (!camsPoint) return;
+              startRequest();
+              setRequestPoint({
+                id: `cams:${camsPoint.lat}:${camsPoint.lon}`,
+                lat: camsPoint.lat,
+                lon: camsPoint.lon,
+                name: camsPoint.name ?? "จุดที่เลือกบนแผนที่",
+                address: "",
+                kind: camsPoint.name ? "place" : "point",
+                source: "local",
+              });
+              setRequestStep("form");
+            }}
+          />
+        )
       ) : selectedPlace && placeAir && !selectedReport && !selectedStation ? (
         <PlaceAirCard
           place={selectedPlace}
@@ -539,6 +671,7 @@ export default function MapPageClient({
         />
       ) : historyEnabled && !selectedStation ? (
         <MapHistoryControls
+          paused={!active || panelOpen}
           offsetHours={historyOffsetHours}
           targetAt={mapHistory.targetAt}
           stationCount={visibleStations.length}
@@ -566,6 +699,7 @@ export default function MapPageClient({
             historyEnabled || selectedPlace
               ? undefined
               : () => {
+                  setHistoryAnchor(Date.now());
                   setHistoryEnabled(true);
                   setSelectedStation(null);
                   setSelectedReport(null);

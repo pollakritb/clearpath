@@ -27,6 +27,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:unit:coverage
+      - run: npm run test:grid:db
       - run: npm run build
 
   backend:

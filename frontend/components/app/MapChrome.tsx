@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import type { FirmsLoadStatus } from "@/frontend/hooks/useFirms";
@@ -10,6 +10,9 @@ import MapLayersPanel from "./MapLayersPanel";
 import MapSearchPanel from "./MapSearchPanel";
 
 interface MapChromeProps {
+  camsEnabled?: boolean;
+  onToggleCams?: () => void;
+  onPanelChange?: (open: boolean) => void;
   viewMode: ViewMode;
   stationCount: number;
   individualReportCount: number;
@@ -40,6 +43,9 @@ interface MapChromeProps {
 type OpenPanel = "search" | "layers" | null;
 
 export default function MapChrome({
+  camsEnabled = false,
+  onToggleCams,
+  onPanelChange,
   viewMode,
   stationCount,
   individualReportCount,
@@ -62,6 +68,9 @@ export default function MapChrome({
   onStationSelect,
 }: MapChromeProps) {
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
+  useEffect(() => {
+    onPanelChange?.(openPanel !== null);
+  }, [openPanel, onPanelChange]);
   const closePanel = () => setOpenPanel(null);
   const togglePanel = (panel: Exclude<OpenPanel, null>) =>
     setOpenPanel((current) => (current === panel ? null : panel));
@@ -77,7 +86,13 @@ export default function MapChrome({
           <small>คุณภาพอากาศทั่วไทย</small>
         </div>
         <span className="cp-map-topbar__count">
-          {stationCount + individualReportCount} <small>จุดข้อมูล</small>
+          {camsEnabled ? (
+            "CAMS"
+          ) : (
+            <>
+              {stationCount + individualReportCount} <small>จุดข้อมูล</small>
+            </>
+          )}
         </span>
         {demoMode && <span className="cp-map-demo-badge">ข้อมูลจำลอง</span>}
       </div>
@@ -101,6 +116,7 @@ export default function MapChrome({
 
       {openPanel === "search" && (
         <MapSearchPanel
+          forecastMode={camsEnabled}
           stations={stations}
           onClose={closePanel}
           onLocationSelect={onLocationSelect}
@@ -109,6 +125,8 @@ export default function MapChrome({
       )}
       {openPanel === "layers" && (
         <MapLayersPanel
+          camsEnabled={camsEnabled}
+          onToggleCams={onToggleCams}
           viewMode={viewMode}
           stationCount={stationCount}
           individualReportCount={individualReportCount}

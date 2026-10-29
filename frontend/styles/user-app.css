@@ -7453,3 +7453,306 @@
 .cp-measure-create [role="alert"] {
   color: #aa322c;
 }
+
+/* Shared timeline: one dock, observation history or stored CAMS forecast. */
+.cp-map-timeline {
+  width: 100%;
+  position: relative;
+  inset: auto;
+  border-radius: 18px;
+  padding: 10px 12px;
+  box-shadow: none;
+}
+.cp-map-timeline .cp-map-history-dock__heading {
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 7px;
+}
+.cp-map-timeline .cp-map-history-dock__heading > span {
+  width: 28px;
+  height: 28px;
+}
+.cp-map-timeline .cp-map-history-dock__heading strong {
+  font-size: 15px;
+}
+.cp-map-timeline .cp-map-history-dock__heading small {
+  font-size: 11px;
+}
+.cp-map-timeline button,
+.cp-map-timeline select {
+  min-height: 44px;
+  min-width: 44px;
+}
+.cp-map-timeline__sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  font-size: 11px;
+  color: var(--cp-muted, #60756f);
+}
+.cp-map-timeline__sub > span:first-child {
+  flex: 1;
+}
+.cp-map-timeline__slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cp-map-timeline__slider button {
+  border: 0;
+  background: var(--cp-teal-soft);
+  border-radius: 12px;
+  color: var(--cp-teal);
+}
+.cp-map-timeline__slider input {
+  width: 100%;
+  height: 44px;
+  accent-color: var(--cp-teal);
+  touch-action: pan-x;
+}
+.cp-map-timeline__ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--cp-muted, #60756f);
+  padding-left: 52px;
+}
+.cp-map > .cp-map-timeline {
+  position: absolute;
+  inset: auto 12px 12px;
+  width: auto;
+  max-width: 500px;
+  margin: auto;
+  z-index: 1250;
+  box-shadow: 0 8px 25px #123b3820;
+}
+.cp-cams-dock {
+  position: absolute;
+  inset: auto 10px 10px;
+  z-index: 1250;
+  max-width: 500px;
+  margin: auto;
+  border: 1px solid #cce0dd;
+  border-radius: 19px;
+  background: #fffffff5;
+  box-shadow: 0 8px 25px #123b3820;
+}
+.cp-cams-point {
+  padding: 10px 13px;
+  border-bottom: 1px solid #dce9e7;
+}
+.cp-cams-point > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+.cp-cams-point strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cp-cams-point > div button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 24px;
+}
+.cp-cams-point p {
+  margin: 0;
+  font-size: 12px;
+}
+.cp-cams-point p b {
+  font-size: 27px;
+}
+.cp-cams-point small {
+  font-size: 11px;
+  color: #536f69;
+}
+.cp-cams-point__request {
+  display: block;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--cp-teal);
+  font-size: 12px;
+  padding: 0;
+}
+.cp-cams-day select {
+  border: 1px solid #d4e4e1;
+  border-radius: 9px;
+  max-width: 100px;
+  padding: 0 7px;
+  background: white;
+  color: #195d58;
+  font: inherit;
+}
+.cp-cams-info {
+  position: relative;
+}
+.cp-cams-info summary {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 19px;
+  list-style: none;
+}
+.cp-cams-info > div {
+  position: absolute;
+  right: 0;
+  bottom: 44px;
+  width: min(280px, 76vw);
+  padding: 14px;
+  border: 1px solid #c6deda;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 5px 20px #123b3820;
+  font-size: 12px;
+  line-height: 1.55;
+  z-index: 2;
+}
+.cp-cams-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 9px;
+  color: #496660;
+}
+.cp-cams-legend span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.cp-cams-legend i {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.cp-cams-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px 4px;
+  gap: 10px;
+}
+.cp-cams-footer button {
+  font-size: 11px;
+  color: var(--cp-teal);
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+}
+.cp-cams-canvas {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.4;
+  image-rendering: pixelated;
+}
+.cp-cams-observation-layers {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.cp-cams-observation-layers:disabled {
+  opacity: 0.5;
+}
+.cp-cams-mode-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #19645d;
+  padding: 5px 0;
+}
+.cp-history-timeline-host {
+  position: absolute;
+  inset: auto 12px 12px;
+  max-width: 500px;
+  margin: auto;
+  z-index: 1250;
+  box-shadow: 0 8px 25px #123b3820;
+  border-radius: 18px;
+}
+.cp-history-timeline-host[hidden] {
+  display: none;
+}
+.cp-cams-dock > .cp-request-map-card {
+  position: relative;
+  inset: auto;
+  transform: none;
+  width: 100%;
+  max-height: 30vh;
+  overflow: auto;
+  margin: 0;
+  border-radius: 18px 18px 0 0;
+  box-shadow: none;
+  padding: 10px 13px;
+}
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.cp-cams-dock .cp-map-history-dock__heading {
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+}
+.cp-cams-exit {
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  font-size: 24px;
+  color: #486660;
+}
+.cp-map[data-mode="cams"] .cp-mapctrls {
+  top: 76px !important;
+  bottom: auto;
+  left: 12px;
+  right: auto;
+}
+.cp-map[data-mode="cams"] .cp-mapctrls__zoom {
+  display: none !important;
+}
+@media (max-width: 768px) {
+  .cp-cams-dock,
+  .cp-history-timeline-host {
+    bottom: calc(var(--cp-mobile-nav-h) + 10px);
+  }
+  .cp-map[data-mode="cams"] .cp-mapctrls__error[role="status"] {
+    display: none;
+  }
+  .cp-map[data-mode="cams"] .cp-mapctrls__error[role="alert"] {
+    top: 52px;
+    bottom: auto;
+  }
+}
+@media (max-height: 600px) {
+  .cp-cams-point {
+    max-height: 25dvh;
+    overflow: auto;
+  }
+  .cp-map-timeline {
+    padding: 5px 10px;
+  }
+  .cp-cams-dock {
+    max-height: calc(100dvh - var(--cp-mobile-nav-h, 0px) - 80px);
+    overflow: auto;
+  }
+}
+@media (max-height: 600px) and (min-width: 600px) {
+  .cp-cams-dock {
+    left: auto;
+    right: 10px;
+    width: 360px;
+  }
+}

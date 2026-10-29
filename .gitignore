@@ -70,3 +70,6 @@ __pycache__/
 .mypy_cache/
 
 .vercel
+
+# Local browser QA artifacts
+.playwright-cli/

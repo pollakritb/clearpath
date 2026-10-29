@@ -271,3 +271,11 @@ def cron_measurement_requests(authorization: str | None = Header(default=None)):
     if not service.enabled():
         return {"status": "disabled"}
     return {"requests": service.process(), "outbox": notifications.process_outbox()}
+
+
+@router.get("/cron/cams-grid")
+async def cron_cams_grid(authorization: str | None = Header(default=None)):
+    _verify_cron(authorization)
+    from ..services.forecast_grid_sync import sync
+
+    return await sync()

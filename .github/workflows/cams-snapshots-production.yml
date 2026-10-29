@@ -35,3 +35,34 @@ jobs:
             printf '%s\n' "$response" | jq -e \
               '.status == "success" or .status == "partial" or .status == "not_due"' >/dev/null
           done
+
+  grid:
+    needs: collect
+    # Run even when station collection failed/skipped; only serialize upstream traffic.
+    # Enable separately only after the additive grid migration has been applied.
+    if: ${{ always() && github.repository == 'pollakritb/clearpath' && vars.CLEARPATH_CAMS_GRID_PRODUCTION_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Collect and atomically publish CAMS grid
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CRON_SECRET"
+          sleep 60
+          for checkpoint in $(seq 1 80); do
+            response=$(curl --fail --silent --show-error --retry 2 --retry-delay 3 --max-time 58 \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              "https://clearpath-gray.vercel.app/api/cron/cams-grid")
+            printf '%s\n' "$response" | jq -c '{status, completed_batches, batch_count, frame_count}'
+            status=$(printf '%s' "$response" | jq -r '.status')
+            case "$status" in
+              ready|not_due) exit 0 ;;
+              collecting|in_progress) sleep 6 ;;
+              *) echo "Grid collection failed or disabled"; exit 1 ;;
+            esac
+          done
+          echo "Grid checkpoint budget exhausted"
+          exit 1

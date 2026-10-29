@@ -254,3 +254,13 @@ export interface AuditLogsResponse {
   offset: number;
   has_more: boolean;
 }
+
+/** Client-rendered CAMS frame; never part of the public API contract barrel. */
+export interface GridSurface {
+  latitudes: number[];
+  longitudes: number[];
+  values: (number | null)[];
+  validAt: string;
+  generationId: string;
+}
+export type MapDataMode = "current" | "history" | "cams";

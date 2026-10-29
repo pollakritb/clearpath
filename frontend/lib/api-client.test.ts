@@ -72,6 +72,14 @@ describe("api client", () => {
 
     const calls: Array<() => Promise<unknown>> = [
       () => api.pm25Current(),
+      () => api.forecastGridMetadata(),
+      () =>
+        api.forecastGridFrames(
+          "generation",
+          "2030-01-01T00:00Z",
+          "2030-01-01T05:00Z",
+          { min_lat: 5, max_lat: 21, min_lon: 97, max_lon: 106 },
+        ),
       () => api.reverseLocation(13.8, 100.1),
       () => api.measurementRequests(),
       () => api.measurementRequest("request / one"),

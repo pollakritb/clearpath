@@ -9,6 +9,7 @@ import type { LocationSuggestion, Station } from "@/frontend/types";
 
 interface MapSearchPanelProps {
   embedded?: boolean;
+  forecastMode?: boolean;
   stations: Station[];
   onClose: () => void;
   onLocationSelect: (location: LocationSuggestion) => void;
@@ -20,6 +21,7 @@ const SEARCH_DEBOUNCE_MS = 450;
 
 export default function MapSearchPanel({
   embedded = false,
+  forecastMode = false,
   stations,
   onClose,
   onLocationSelect,
@@ -132,7 +134,9 @@ export default function MapSearchPanel({
           <small>
             {embedded
               ? "ค้นหาสถานที่ที่ต้องการให้ช่วยวัด แล้วเลือกพื้นที่และเวลา"
-              : `ดูค่าฝุ่นและแหล่งข้อมูลในระยะ ${PLACE_RADIUS_KM} กม.`}
+              : forecastMode
+                ? "ดูพยากรณ์ CAMS ของบริเวณที่เลือก"
+                : `ดูค่าฝุ่นและแหล่งข้อมูลในระยะ ${PLACE_RADIUS_KM} กม.`}
           </small>
         </div>
         {!embedded && (

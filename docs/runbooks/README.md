@@ -30,5 +30,7 @@
 - [Health source register](health-communication-source-register.md) — candidate
   official Thai sources and exact-copy approval procedure.
 
+- [Stored CAMS forecast map grid](cams-forecast-grid.md): independent grid ingestion, local preview, API and rollout.
+
 The executable checks are intentionally read-only unless their command includes
 an explicit `--apply` flag.

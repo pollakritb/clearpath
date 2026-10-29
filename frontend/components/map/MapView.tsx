@@ -2,7 +2,13 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { Circle, MapContainer, Marker, TileLayer } from "react-leaflet";
+import {
+  Circle,
+  CircleMarker,
+  MapContainer,
+  Marker,
+  TileLayer,
+} from "react-leaflet";
 
 import {
   DEFAULT_ZOOM,
@@ -20,6 +26,8 @@ import type {
 } from "@/frontend/types";
 import type { ViewportBounds } from "@/frontend/types/ui";
 
+import CamsCanvasLayer from "./CamsCanvasLayer";
+import type { GridSurface } from "@/frontend/types/ui";
 import AutoResize from "./AutoResize";
 import ClickHandler from "./ClickHandler";
 import FireLayer from "./FireLayer";
@@ -33,6 +41,9 @@ import ViewportReporter from "./ViewportReporter";
 import RequestMarkers from "./RequestMarkers";
 
 export interface MapViewProps {
+  dataMode?: string;
+  camsSurface?: GridSurface | null;
+  camsPoint?: { lat: number; lon: number } | null;
   stations: Station[];
   heatmapPoint: HeatmapPoint | null;
   fires: FirePoint[];
@@ -65,6 +76,9 @@ export interface MapViewProps {
 }
 
 export default function MapView({
+  dataMode = "current",
+  camsSurface = null,
+  camsPoint = null,
   stations,
   heatmapPoint,
   fires,
@@ -105,6 +119,20 @@ export default function MapView({
     >
       <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
 
+      <CamsCanvasLayer surface={camsSurface} />
+      {camsPoint && (
+        <CircleMarker
+          center={[camsPoint.lat, camsPoint.lon]}
+          radius={6}
+          pathOptions={{
+            color: "#195d58",
+            fillColor: "white",
+            fillOpacity: 1,
+            weight: 3,
+            interactive: false,
+          }}
+        />
+      )}
       {placePoint && (
         <>
           <Circle
@@ -177,6 +205,7 @@ export default function MapView({
 
       <AutoResize />
       <ViewportController
+        dataMode={dataMode}
         target={focusPoint}
         radiusKm={placePoint?.radiusKm ?? requestRadiusKm}
         resetViewSignal={resetViewSignal}

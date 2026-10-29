@@ -7,6 +7,8 @@ import type { FirmsLoadStatus } from "@/frontend/hooks/useFirms";
 import type { ViewMode } from "@/frontend/types/ui";
 
 interface MapLayersPanelProps {
+  camsEnabled?: boolean;
+  onToggleCams?: () => void;
   viewMode: ViewMode;
   stationCount: number;
   individualReportCount: number;
@@ -32,6 +34,8 @@ interface MapLayersPanelProps {
 }
 
 export default function MapLayersPanel({
+  camsEnabled = false,
+  onToggleCams,
   viewMode,
   stationCount,
   individualReportCount,
@@ -77,52 +81,71 @@ export default function MapLayersPanel({
         </button>
       </div>
 
-      <div className="cp-map-layer-list">
-        <LayerButton
-          active={showStations}
-          icon="station"
-          symbolClass="cp-layer-symbol--station"
-          title="สถานีตรวจวัดทางการ"
-          description={`Air4Thai · ${stationCount} สถานี`}
-          onClick={onToggleStations}
-        />
-        <LayerButton
-          active={showIndividualReports}
-          icon="user"
-          iconSize={20}
-          symbolClass="cp-layer-symbol--individual"
-          title="รายงานจากชุมชน"
-          description={`${individualReportCount} รายงาน · ภาพเครื่องวัดพร้อม GPS`}
-          onClick={onToggleIndividualReports}
-        />
-        <LayerButton
-          active={showHeatmap}
-          icon="activity"
-          symbolClass="cp-layer-symbol--surface"
-          title="ค่าฝุ่นจุดใกล้สุด"
-          description={
-            heatmapStatus === "location_denied"
-              ? "เปิด GPS เพื่อแสดงจุดใกล้คุณที่สุด"
-              : heatmapStatus === "location_unavailable"
+      {camsEnabled && (
+        <p className="cp-cams-mode-note">
+          กำลังแสดงพยากรณ์ CAMS · พักชั้นค่าตรวจวัดชั่วคราว
+        </p>
+      )}
+      {onToggleCams && (
+        <div className="cp-map-layer-list">
+          <LayerButton
+            active={camsEnabled}
+            icon="clock"
+            symbolClass="cp-layer-symbol--surface"
+            title="พยากรณ์ PM2.5"
+            description="CAMS · ภาพรวมระดับพื้นที่"
+            onClick={onToggleCams}
+          />
+        </div>
+      )}
+      <fieldset className="cp-cams-observation-layers" disabled={camsEnabled}>
+        <legend className="sr-only">ชั้นค่าตรวจวัด</legend>
+        <div className="cp-map-layer-list">
+          <LayerButton
+            active={showStations}
+            icon="station"
+            symbolClass="cp-layer-symbol--station"
+            title="สถานีตรวจวัดทางการ"
+            description={`Air4Thai · ${stationCount} สถานี`}
+            onClick={onToggleStations}
+          />
+          <LayerButton
+            active={showIndividualReports}
+            icon="user"
+            iconSize={20}
+            symbolClass="cp-layer-symbol--individual"
+            title="รายงานจากชุมชน"
+            description={`${individualReportCount} รายงาน · ภาพเครื่องวัดพร้อม GPS`}
+            onClick={onToggleIndividualReports}
+          />
+          <LayerButton
+            active={showHeatmap}
+            icon="activity"
+            symbolClass="cp-layer-symbol--surface"
+            title="ค่าฝุ่นจุดใกล้สุด"
+            description={
+              heatmapStatus === "location_denied"
                 ? "เปิด GPS เพื่อแสดงจุดใกล้คุณที่สุด"
-                : heatmapStatus === "no_location"
+                : heatmapStatus === "location_unavailable"
                   ? "เปิด GPS เพื่อแสดงจุดใกล้คุณที่สุด"
-                  : heatmapStatus === "no_data"
-                    ? "ยังไม่มีจุดข้อมูลบนแผนที่"
-                    : `ห่างจากคุณ ${distanceLabel}`
-          }
-          onClick={onToggleHeatmap}
-        />
-        <LayerButton
-          active={showFires}
-          icon="satellite"
-          symbolClass="cp-layer-symbol--fire"
-          title="จุดความร้อนดาวเทียม"
-          description={`NASA FIRMS · ${fireStatusLabel(fireStatus, fireCount)}`}
-          onClick={onToggleFires}
-        />
-      </div>
-
+                  : heatmapStatus === "no_location"
+                    ? "เปิด GPS เพื่อแสดงจุดใกล้คุณที่สุด"
+                    : heatmapStatus === "no_data"
+                      ? "ยังไม่มีจุดข้อมูลบนแผนที่"
+                      : `ห่างจากคุณ ${distanceLabel}`
+            }
+            onClick={onToggleHeatmap}
+          />
+          <LayerButton
+            active={showFires}
+            icon="satellite"
+            symbolClass="cp-layer-symbol--fire"
+            title="จุดความร้อนดาวเทียม"
+            description={`NASA FIRMS · ${fireStatusLabel(fireStatus, fireCount)}`}
+            onClick={onToggleFires}
+          />
+        </div>
+      </fieldset>
       <details
         className="cp-layer-legend"
         aria-labelledby="cp-layer-legend-title"
@@ -143,9 +166,9 @@ export default function MapLayersPanel({
           ))}
         </div>
         <p className="cp-map-layer-note">
-          วงสีใช้ค่าปัจจุบันจากจุดตรวจที่ใกล้ GPS คุณที่สุด 1 จุด
-          จากสถานีทางการและรายงานชุมชน โดยเทียบระยะห่างเท่านั้น รัศมี 12 กม.
-          เป็นขอบเขตการแสดงผล
+          {camsEnabled
+            ? "พยากรณ์ CAMS เป็นภาพรวมจากกริดประมาณ 45 กม. ไม่ใช่ค่าตรวจวัด ณ จุดนั้น"
+            : "วงสีใช้ค่าปัจจุบันจากจุดตรวจที่ใกล้ GPS คุณที่สุด 1 จุด จากสถานีทางการและรายงานชุมชน โดยเทียบระยะห่างเท่านั้น รัศมี 12 กม. เป็นขอบเขตการแสดงผล"}
         </p>
       </details>
 
@@ -155,6 +178,7 @@ export default function MapLayersPanel({
           ขอค่าฝุ่นจากชุมชน
         </Link>
         <button
+          disabled={camsEnabled}
           type="button"
           className="cp-focus"
           onClick={() => {

@@ -8,14 +8,19 @@ import { DEFAULT_ZOOM, THAILAND_CENTER } from "@/frontend/lib/constants";
 
 export default function ViewportController({
   target,
+  dataMode = "current",
   radiusKm,
   resetViewSignal = 0,
 }: {
+  dataMode?: string;
   target: { lat: number; lon: number } | null;
   radiusKm?: number;
   resetViewSignal?: number;
 }) {
   const map = useMap();
+  const lat = target?.lat,
+    lon = target?.lon;
+  const previousMode = useRef(dataMode);
   const previousResetSignal = useRef(resetViewSignal);
   const previousView = useRef<{
     lat: number;
@@ -23,6 +28,11 @@ export default function ViewportController({
     zoom: number;
   } | null>(null);
   useEffect(() => {
+    if (previousMode.current !== dataMode) {
+      previousMode.current = dataMode;
+      previousView.current = null;
+      return;
+    }
     if (resetViewSignal !== previousResetSignal.current) {
       previousResetSignal.current = resetViewSignal;
       previousView.current = null;
@@ -30,7 +40,7 @@ export default function ViewportController({
       return;
     }
     if (radiusKm) {
-      if (!target) return;
+      if (lat == null || lon == null) return;
       if (!previousView.current) {
         const center = map.getCenter();
         previousView.current = {
@@ -39,7 +49,7 @@ export default function ViewportController({
           zoom: map.getZoom(),
         };
       }
-      const bounds = L.latLng(target.lat, target.lon).toBounds(radiusKm * 2000);
+      const bounds = L.latLng(lat, lon).toBounds(radiusKm * 2000);
       map.fitBounds(bounds, {
         animate: true,
         paddingTopLeft: [18, 130],
@@ -48,12 +58,13 @@ export default function ViewportController({
     } else {
       const previous = previousView.current;
       previousView.current = null;
-      if (target) map.flyTo([target.lat, target.lon], 13, { duration: 0.8 });
+      if (lat != null && lon != null)
+        map.flyTo([lat, lon], 13, { duration: 0.8 });
       else if (previous)
         map.flyTo([previous.lat, previous.lon], previous.zoom, {
           duration: 0.8,
         });
     }
-  }, [map, target, radiusKm, resetViewSignal]);
+  }, [map, lat, lon, radiusKm, resetViewSignal, dataMode]);
   return null;
 }

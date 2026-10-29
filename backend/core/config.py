@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     # Isolated forecast evidence collection. No production schedule is registered.
     forecast_validation_enabled: bool = False
     # Storage-only CAMS collection; independent of the paused model pipeline.
+    cams_grid_collection_enabled: bool = False
     cams_snapshot_collection_enabled: bool = False
     cams_snapshot_expected_supabase_ref: str = ""
     # Exact, pre-reviewed station IDs from the private hourly-completeness scan.

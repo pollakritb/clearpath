@@ -34,6 +34,7 @@ from .routers import (
     cron,
     firms,
     forecast,
+    forecast_grid,
     history,
     locations,
     measurement,
@@ -107,6 +108,7 @@ def create_app() -> FastAPI:
     api.include_router(history.router, tags=["history"])
     api.include_router(locations.router, tags=["locations"])
     api.include_router(forecast.router, tags=["forecast"])
+    api.include_router(forecast_grid.router, tags=["forecast-grid"])
     api.include_router(community.router, tags=["community"])
     api.include_router(measurement.router, tags=["measurement-requests"])
     api.include_router(notifications.router, tags=["notifications"])
