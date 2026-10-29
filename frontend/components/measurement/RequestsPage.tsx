@@ -75,6 +75,12 @@ export function RequestSummary({
         วง {row.radius_km} กม. · รับรายงาน {date(row.starts_at)} –{" "}
         {date(row.expires_at)}
       </p>
+      <Link
+        href={`/?measurement_request=${encodeURIComponent(row.id)}`}
+        className="cp-measure-link cp-focus"
+      >
+        ดูจุดคำขอบนแผนที่
+      </Link>
       {actions && active && (
         <RequestAreaMap lat={row.lat} lon={row.lon} radius={row.radius_km} />
       )}

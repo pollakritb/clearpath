@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
 import MapChrome from "@/frontend/components/app/MapChrome";
@@ -11,6 +11,9 @@ import ReportStackCard from "@/frontend/components/app/ReportStackCard";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import MapRequestPanel from "@/frontend/components/measurement/MapRequestPanel";
+import RequestMapCard from "@/frontend/components/measurement/RequestMapCard";
+import { useMeasurementRequests } from "@/frontend/hooks/useMeasurementRequests";
+import { visibleMapRequests } from "@/frontend/lib/request-map";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import ListView from "@/frontend/components/panels/ListView";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
@@ -31,6 +34,7 @@ import type {
   CommunityReportStack,
   LocationSuggestion,
   Station,
+  MeasurementRequestView,
 } from "@/frontend/types";
 import type { ViewMode } from "@/frontend/types/ui";
 
@@ -43,12 +47,28 @@ export default function MapPageClient({
   showFiresInitially = false,
   initialReportId,
   requestInitially = false,
+  active = true,
+  initialRequestId,
 }: {
   showFiresInitially?: boolean;
   initialReportId?: string | null;
   requestInitially?: boolean;
+  active?: boolean;
+  initialRequestId?: string | null;
 }) {
   const currentUserId = useCurrentUserId();
+  const requestData = useMeasurementRequests(currentUserId, active);
+  const openedRequestLink = useRef<string | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
+    null,
+  );
+  const requestRows = visibleMapRequests(
+    requestData.rows,
+    requestData.now,
+    selectedRequestId ?? initialRequestId,
+  );
+  const selectedRequest =
+    requestRows.find((row) => row.id === selectedRequestId) ?? null;
   const pm25 = usePm25();
   const firms = useFirms();
   const community = useCommunityMapData();
@@ -87,6 +107,7 @@ export default function MapPageClient({
   const userLocation = locatedManually ?? currentLocation.location;
 
   const startRequest = useCallback(() => {
+    setSelectedRequestId(null);
     setRequestStep("pick");
     setRequestPoint(null);
     setRequestRadius(3);
@@ -209,12 +230,14 @@ export default function MapPageClient({
   }, [community, firms, pm25, showFires]);
 
   const selectStation = useCallback((station: Station) => {
+    setSelectedRequestId(null);
     setSelectedStation(station);
     setSelectedReport(null);
     setSelectedStackId(null);
   }, []);
 
   const selectReport = useCallback((report: CommunityReport) => {
+    setSelectedRequestId(null);
     setSelectedReport(report);
     setSelectedStation(null);
     setSelectedStackId(null);
@@ -233,10 +256,36 @@ export default function MapPageClient({
   }, [initialReportId, community.reports, selectReport]);
 
   const selectStack = useCallback((stack: CommunityReportStack) => {
+    setSelectedRequestId(null);
     setSelectedStackId(stack.id);
     setSelectedReport(null);
     setSelectedStation(null);
   }, []);
+
+  const selectRequest = useCallback((request: MeasurementRequestView) => {
+    setSelectedRequestId(request.id);
+    setSelectedStation(null);
+    setSelectedReport(null);
+    setSelectedStackId(null);
+    setSelectedPlace(null);
+    setHistoryEnabled(false);
+    setFocusPoint({ lat: request.lat, lon: request.lon });
+    setViewMode("map");
+  }, []);
+  useEffect(() => {
+    if (!initialRequestId || !active) {
+      openedRequestLink.current = null;
+      return;
+    }
+    if (openedRequestLink.current === initialRequestId) return;
+    const request = requestData.rows.find((row) => row.id === initialRequestId);
+    if (!request) return;
+    const frame = window.requestAnimationFrame(() => {
+      openedRequestLink.current = initialRequestId;
+      selectRequest(request);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [initialRequestId, active, requestData.rows, selectRequest]);
 
   const map = (
     <main className="cp-map">
@@ -254,6 +303,13 @@ export default function MapPageClient({
         reports={mapReports}
         reportStacks={mapStacks}
         reportPin={null}
+        measurementRequests={
+          requestStep === "idle" && !historyEnabled ? requestRows : []
+        }
+        selectedRequestId={selectedRequestId}
+        requestsNow={requestData.now}
+        onSelectRequest={selectRequest}
+        requestRadiusKm={selectedRequest?.radius_km}
         userLocation={userLocation}
         locationUnavailable={
           !userLocation &&
@@ -303,6 +359,7 @@ export default function MapPageClient({
             return;
           }
           if (requestStep === "form") return;
+          setSelectedRequestId(null);
           if (!selectedPlace) setFocusPoint({ lat, lon });
           setSelectedStation(null);
           setSelectedReport(null);
@@ -315,6 +372,7 @@ export default function MapPageClient({
         selectedReportId={selectedReport?.id}
         selectedReportStackId={selectedStack?.id}
         onLocate={(lat, lon, accuracy = 0) => {
+          setSelectedRequestId(null);
           setSelectedPlace(null);
           setSelectedStackId(null);
           setSelectedReport(null);
@@ -322,6 +380,7 @@ export default function MapPageClient({
           setFocusPoint({ lat, lon });
         }}
         onResetView={() => {
+          setSelectedRequestId(null);
           setRequestStep("idle");
           setSelectedStation(null);
           setSelectedReport(null);
@@ -375,6 +434,7 @@ export default function MapPageClient({
         }
         onToggleFires={() => setShowFires((value) => !value)}
         onLocationSelect={(location: LocationSuggestion) => {
+          setSelectedRequestId(null);
           if (requestStep !== "idle") {
             setRequestPoint(location);
             setRequestStep("pick");
@@ -423,6 +483,11 @@ export default function MapPageClient({
       )}
       {requestStep !== "idle" ? (
         <MapRequestPanel
+          onCreated={(row) => {
+            requestData.upsert(row);
+            setRequestStep("idle");
+            selectRequest(row);
+          }}
           radius={requestRadius}
           onRadiusChange={setRequestRadius}
           point={requestPoint}
@@ -430,6 +495,12 @@ export default function MapPageClient({
           onConfirm={() => setRequestStep("form")}
           onReselect={() => setRequestStep("pick")}
           onClose={() => setRequestStep("idle")}
+        />
+      ) : selectedRequest ? (
+        <RequestMapCard
+          request={selectedRequest}
+          now={requestData.now}
+          onClose={() => setSelectedRequestId(null)}
         />
       ) : selectedPlace && placeAir && !selectedReport && !selectedStation ? (
         <PlaceAirCard

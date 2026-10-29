@@ -20,12 +20,14 @@ export default function CreateRequest({
   mapContext = false,
   selectedRadius,
   onRadiusChange,
+  onCreated,
 }: {
   place: LocationSuggestion;
   initiallyOpen?: boolean;
   mapContext?: boolean;
   selectedRadius?: 1 | 3 | 5;
   onRadiusChange?: (radius: 1 | 3 | 5) => void;
+  onCreated?: (request: MeasurementRequestView) => void;
 }) {
   const login = useLoginPrompt();
   const [open, setOpen] = useState(initiallyOpen);
@@ -50,16 +52,16 @@ export default function CreateRequest({
     setError("");
     key.current ??= crypto.randomUUID();
     try {
-      setResult(
-        await api.createMeasurementRequest({
-          place_name: place.name,
-          lat: place.lat,
-          lon: place.lon,
-          radius_km: radius,
-          needed_by: scheduled ? new Date(`${time}+07:00`).toISOString() : null,
-          idempotency_key: key.current,
-        }),
-      );
+      const created = await api.createMeasurementRequest({
+        place_name: place.name,
+        lat: place.lat,
+        lon: place.lon,
+        radius_km: radius,
+        needed_by: scheduled ? new Date(`${time}+07:00`).toISOString() : null,
+        idempotency_key: key.current,
+      });
+      setResult(created);
+      onCreated?.(created);
       window.dispatchEvent(new Event(REQUESTS_CHANGED));
     } catch (e) {
       setError(apiErrorMessage(e, "สร้างคำขอไม่สำเร็จ กรุณาลองอีกครั้ง"));
@@ -101,7 +103,7 @@ export default function CreateRequest({
             </>
           )}
           <fieldset>
-            <legend>รัศมีรอบสถานที่</legend>
+            <legend>{mapContext ? "รัศมี" : "รัศมีรอบสถานที่"}</legend>
             <div className="cp-measure-options">
               {([1, 3, 5] as const).map((r) => (
                 <button
@@ -121,7 +123,9 @@ export default function CreateRequest({
             </div>
           </fieldset>
           <fieldset>
-            <legend>เวลาที่ต้องการข้อมูล</legend>
+            <legend>
+              {mapContext ? "ต้องการข้อมูล" : "เวลาที่ต้องการข้อมูล"}
+            </legend>
             <div className="cp-measure-options">
               <button
                 type="button"
@@ -164,13 +168,19 @@ export default function CreateRequest({
           <p>
             {scheduled
               ? "เริ่มขอช่วยวัด 30 นาทีก่อนเวลาที่เลือก"
-              : "เปิดรับรายงานใหม่เป็นเวลา 1 ชั่วโมง"}{" "}
+              : mapContext
+                ? "เปิดรับรายงาน 1 ชม."
+                : "เปิดรับรายงานใหม่เป็นเวลา 1 ชั่วโมง"}{" "}
             · ใช้เวลาไทย
           </p>
-          <small>
-            แจ้งผู้ที่ยินยอมช่วยวัดจากตำแหน่งเข้าเว็บล่าสุดในวง
-            ไม่มีการรับประกันว่าจะมีผู้ตอบ ไม่เปิดเผยชื่อหรือแผนการเดินทางของคุณ
-          </small>
+          <details className="cp-request-form-help">
+            <summary>รายละเอียดการส่งคำขอ</summary>
+            <small>
+              แจ้งผู้ที่ยินยอมช่วยวัดจากตำแหน่งเข้าเว็บล่าสุดในวง
+              ไม่มีการรับประกันว่าจะมีผู้ตอบ
+              ไม่เปิดเผยชื่อหรือแผนการเดินทางของคุณ
+            </small>
+          </details>
           <button
             type="button"
             className="cp-measure-primary"

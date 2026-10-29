@@ -1,11 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { api } from "@/frontend/lib/api-client";
 import { classifyPm25 } from "@/frontend/lib/aqi";
-import { REQUESTS_CHANGED } from "@/frontend/lib/measurement-events";
-import type { MeasurementRequestView } from "@/frontend/types";
+import { useMeasurementRequests } from "@/frontend/hooks/useMeasurementRequests";
 
 const formatTime = (value: string) =>
   new Date(value).toLocaleString("th-TH", {
@@ -20,49 +17,8 @@ export default function RequestTrackingCard({
 }: {
   userId: string | null;
 }) {
-  const [snapshot, setSnapshot] = useState<{
-    userId: string;
-    rows: MeasurementRequestView[];
-    now: number;
-  } | null>(null);
-  const [failedFor, setFailedFor] = useState<string | null>(null);
-  useEffect(() => {
-    if (!userId) return;
-    let alive = true;
-    let pending = false;
-    const refresh = async () => {
-      if (pending || document.visibilityState === "hidden") return;
-      pending = true;
-      try {
-        const response = await api.measurementRequests();
-        if (alive) {
-          setSnapshot({ userId, rows: response.requests, now: Date.now() });
-          setFailedFor(null);
-        }
-      } catch {
-        if (alive) setFailedFor(userId);
-      } finally {
-        pending = false;
-      }
-    };
-    const changed = () => {
-      void refresh();
-    };
-    void refresh();
-    const timer = window.setInterval(changed, 15000);
-    document.addEventListener("visibilitychange", changed);
-    window.addEventListener("focus", changed);
-    window.addEventListener(REQUESTS_CHANGED, changed);
-    return () => {
-      alive = false;
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", changed);
-      window.removeEventListener("focus", changed);
-      window.removeEventListener(REQUESTS_CHANGED, changed);
-    };
-  }, [userId]);
-
-  const data = snapshot?.userId === userId ? snapshot : null;
+  const requestData = useMeasurementRequests(userId);
+  const data = { rows: requestData.rows, now: requestData.now };
   const own = (data?.rows ?? [])
     .filter((row) => row.is_owner)
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
@@ -70,7 +26,7 @@ export default function RequestTrackingCard({
     (row) => row.status === "scheduled" || row.status === "active",
   );
   const row = open[0] ?? own[0];
-  const failed = Boolean(userId && failedFor === userId);
+  const failed = requestData.failed;
   if (!row)
     return (
       <Link href="/requests" className="cp-measure-entry cp-focus">

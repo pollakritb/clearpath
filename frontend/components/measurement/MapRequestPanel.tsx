@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import type { LocationSuggestion } from "@/frontend/types";
+import type {
+  LocationSuggestion,
+  MeasurementRequestView,
+} from "@/frontend/types";
 import CreateRequest from "./CreateRequest";
 
 export default function MapRequestPanel({
@@ -13,6 +16,7 @@ export default function MapRequestPanel({
   onClose,
   radius = 3,
   onRadiusChange,
+  onCreated,
 }: {
   point: LocationSuggestion | null;
   editing: boolean;
@@ -21,6 +25,7 @@ export default function MapRequestPanel({
   onClose: () => void;
   radius?: 1 | 3 | 5;
   onRadiusChange?: (radius: 1 | 3 | 5) => void;
+  onCreated?: (request: MeasurementRequestView) => void;
 }) {
   return (
     <section
@@ -36,35 +41,37 @@ export default function MapRequestPanel({
         <AppIcon name="close" size={19} />
       </button>
       <div className="cp-place-card__heading">
-        <span className="cp-place-card__eyebrow">ขอค่าฝุ่นจากชุมชน</span>
-        <h2>
-          {editing
-            ? "เลือกพื้นที่และเวลาที่ต้องการ"
-            : "แตะแผนที่เพื่อเลือกจุดที่จะขอ"}
-        </h2>
+        <h2>{editing ? "ขอค่าฝุ่นบริเวณนี้" : "เลือกจุดบนแผนที่"}</h2>
       </div>
-      {point ? (
-        <p className="cp-map-request-point">
-          <strong>{point.name}</strong>
-          <span>
-            {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
-          </span>
-        </p>
-      ) : (
-        <p>
-          เลื่อนหรือซูมแผนที่ แล้วแตะจุดที่ต้องการ
-          หรือค้นหาสถานที่ด้วยปุ่มแว่นขยาย
-        </p>
-      )}
-      {editing && point ? (
-        <>
+      <div className="cp-map-request-location">
+        {point ? (
+          <p className="cp-map-request-point">
+            <strong>
+              {point.kind === "point" ? "จุดที่เลือก" : point.name}
+            </strong>
+            <span>
+              {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
+            </span>
+          </p>
+        ) : (
+          <p>
+            เลื่อนหรือซูมแผนที่ แล้วแตะจุดที่ต้องการ
+            หรือค้นหาสถานที่ด้วยปุ่มแว่นขยาย
+          </p>
+        )}
+        {editing && point && (
           <button
             className="cp-map-request-reselect cp-focus"
             type="button"
+            aria-label="เปลี่ยนจุดบนแผนที่"
             onClick={onReselect}
           >
-            เปลี่ยนจุดบนแผนที่
+            เปลี่ยนจุด
           </button>
+        )}
+      </div>
+      {editing && point ? (
+        <>
           <CreateRequest
             key={`${point.lat}:${point.lon}`}
             place={point}
@@ -72,6 +79,7 @@ export default function MapRequestPanel({
             mapContext
             selectedRadius={radius}
             onRadiusChange={onRadiusChange}
+            onCreated={onCreated}
           />
         </>
       ) : (
@@ -87,9 +95,11 @@ export default function MapRequestPanel({
           </button>
         </>
       )}
-      <Link href="/requests" className="cp-measure-link cp-focus">
-        ดูคำขอของฉัน
-      </Link>
+      {!editing && (
+        <Link href="/requests" className="cp-measure-link cp-focus">
+          ดูคำขอของฉัน
+        </Link>
+      )}
     </section>
   );
 }

@@ -7176,26 +7176,54 @@
 }
 .cp-map-request-panel {
   max-height: min(42dvh, 330px);
+  padding: 10px 12px 12px;
+  border-radius: 18px;
+  background: #fff;
+}
+.cp-map-request-panel .cp-map-selection-card__close {
+  top: 6px;
+  right: 6px;
+  width: 44px;
+  height: 44px;
+}
+.cp-map-request-location {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 5px 0 8px;
+}
+.cp-map-request-panel .cp-map-request-point {
+  min-width: 0;
+  margin: 0;
+  font-size: 0.78rem;
+}
+.cp-map-request-point strong {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .cp-map-request-reselect {
   min-height: 44px;
   border: 1px solid #b6dfd7;
-  border-radius: 12px;
-  padding: 8px 12px;
+  flex: none;
+  border-radius: 10px;
+  padding: 6px 10px;
   background: #eaf7f3;
   color: #096f67;
-  font: inherit;
+  font: 600 0.76rem var(--font-sans);
   cursor: pointer;
 }
 .cp-measure-create[data-map-context="true"] .cp-measure-form {
-  margin-top: 12px;
+  margin-top: 4px;
   padding: 0;
   border: 0;
   background: transparent;
+  gap: 7px;
 }
 .cp-map-request-panel h2 {
-  margin: 5px 0 10px;
-  font-size: 1.05rem;
+  margin: 4px 0 8px;
+  font-size: 0.92rem;
 }
 .cp-map-request-panel p {
   font-size: 0.85rem;
@@ -7218,7 +7246,82 @@
 }
 .cp-map-request-point span {
   color: #5c716d;
-  font-size: 0.8rem;
+  font-size: 0.73rem;
+}
+.cp-map-request-panel .cp-measure-create {
+  margin: 0;
+}
+.cp-map-request-panel .cp-measure-form legend,
+.cp-map-request-panel .cp-measure-form label {
+  margin: 0 0 4px;
+  font-size: 0.76rem;
+}
+.cp-map-request-panel .cp-measure-options {
+  gap: 6px;
+}
+.cp-map-request-panel .cp-measure-options button {
+  flex: 1;
+  min-height: 44px;
+  padding: 6px 8px;
+  font-size: 0.78rem;
+}
+.cp-map-request-panel .cp-measure-form p {
+  margin: 0;
+  font-size: 0.73rem;
+}
+.cp-map-request-panel .cp-measure-form input {
+  font-size: 16px;
+}
+.cp-request-form-help {
+  font-size: 0.73rem;
+  color: #5c716d;
+}
+.cp-request-form-help summary {
+  cursor: pointer;
+}
+.cp-map-request-panel .cp-request-form-help {
+  order: 1;
+}
+.cp-request-map-card {
+  background: #fff;
+}
+.cp-request-map-card h2 {
+  margin: 5px 0;
+  font-size: 0.95rem;
+}
+.cp-request-map-card p {
+  margin: 5px 0;
+  font-size: 0.78rem;
+}
+.cp-request-marker__pin {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 3px solid #fff;
+  border-radius: 12px 12px 12px 3px;
+  transform: rotate(-45deg);
+  background: var(--request-color);
+  box-shadow: 0 2px 9px #123a3440;
+}
+.cp-request-marker__pin > span {
+  color: #fff;
+  transform: rotate(45deg);
+  font: 800 22px/1 var(--font-sans);
+}
+.cp-request-marker__label {
+  position: absolute;
+  top: 43px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 7px;
+  border: 1px solid #ccdcd5;
+  border-radius: 8px;
+  background: #fff;
+  color: #234e43;
+  box-shadow: 0 2px 5px #163a3218;
+  white-space: nowrap;
+  font: 700 10px/1.4 var(--font-sans);
 }
 .cp-measure-create > .cp-measure-primary {
   width: 100%;

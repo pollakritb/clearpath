@@ -15,6 +15,7 @@ import type {
   CommunityReport,
   CommunityReportStack,
   FirePoint,
+  MeasurementRequestView,
   Station,
 } from "@/frontend/types";
 import type { ViewportBounds } from "@/frontend/types/ui";
@@ -29,6 +30,7 @@ import ReportMarkers from "./ReportMarkers";
 import StationMarkers from "./StationMarkers";
 import ViewportController from "./ViewportController";
 import ViewportReporter from "./ViewportReporter";
+import RequestMarkers from "./RequestMarkers";
 
 export interface MapViewProps {
   stations: Station[];
@@ -37,6 +39,11 @@ export interface MapViewProps {
   reports: CommunityReport[];
   reportStacks: CommunityReportStack[];
   reportPin: { lat: number; lon: number } | null;
+  measurementRequests?: MeasurementRequestView[];
+  selectedRequestId?: string | null;
+  requestsNow?: number;
+  requestRadiusKm?: number;
+  onSelectRequest?: (request: MeasurementRequestView) => void;
   userLocation?: { lat: number; lon: number; accuracy: number } | null;
   locationUnavailable?: boolean;
   focusPoint?: { lat: number; lon: number } | null;
@@ -64,6 +71,11 @@ export default function MapView({
   reports,
   reportStacks,
   reportPin,
+  measurementRequests = [],
+  selectedRequestId = null,
+  requestsNow = 0,
+  requestRadiusKm,
+  onSelectRequest,
   userLocation = null,
   locationUnavailable = false,
   focusPoint = null,
@@ -140,6 +152,12 @@ export default function MapView({
         />
       )}
       {fires.length > 0 && <FireLayer fires={fires} />}
+      <RequestMarkers
+        requests={measurementRequests}
+        selectedId={selectedRequestId}
+        now={requestsNow}
+        onSelect={onSelectRequest}
+      />
 
       {reportPin && (
         <Marker
@@ -160,7 +178,7 @@ export default function MapView({
       <AutoResize />
       <ViewportController
         target={focusPoint}
-        radiusKm={placePoint?.radiusKm}
+        radiusKm={placePoint?.radiusKm ?? requestRadiusKm}
         resetViewSignal={resetViewSignal}
       />
       {onViewportChange && <ViewportReporter onChange={onViewportChange} />}
