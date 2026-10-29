@@ -36,6 +36,7 @@ from .routers import (
     forecast,
     history,
     locations,
+    measurement,
     notifications,
     pm25,
     validate,
@@ -107,6 +108,7 @@ def create_app() -> FastAPI:
     api.include_router(locations.router, tags=["locations"])
     api.include_router(forecast.router, tags=["forecast"])
     api.include_router(community.router, tags=["community"])
+    api.include_router(measurement.router, tags=["measurement-requests"])
     api.include_router(notifications.router, tags=["notifications"])
     api.include_router(admin.router, tags=["admin"])
     api.include_router(validate.router, tags=["validate"])

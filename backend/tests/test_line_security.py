@@ -3,6 +3,8 @@ import hashlib
 import hmac
 from datetime import UTC, datetime, timedelta
 
+import httpx
+
 from backend.algorithms.line_security import (
     extract_link_code,
     hash_link_code,
@@ -11,6 +13,19 @@ from backend.algorithms.line_security import (
 )
 from backend.core.config import settings
 from backend.services import line_messaging
+
+
+def test_line_retry_key_treats_previously_accepted_push_as_success(monkeypatch):
+    calls = []
+    monkeypatch.setattr(line_messaging, "_headers", lambda: {})
+
+    def post(url, **kwargs):
+        calls.append(kwargs)
+        return httpx.Response(409, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", post)
+    line_messaging._post(line_messaging.LINE_PUSH_URL, {}, retry_key="stable-key")
+    assert calls[0]["headers"]["X-Line-Retry-Key"] == "stable-key"
 
 
 def test_line_signature_uses_raw_request_body():

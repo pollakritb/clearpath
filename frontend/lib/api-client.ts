@@ -1,6 +1,11 @@
 // typed fetch wrappers — frontend รู้จักแค่ /api/* (same-origin)
 
 import type {
+  MeasurementRequestCreate,
+  MeasurementRequestView,
+  MeasurementRequestsResponse,
+  MeasurementHelperSettings,
+  MeasurementPresenceUpdate,
   ActivitiesResponse,
   Activity,
   ActivityCreate,
@@ -107,6 +112,49 @@ async function invalidateAfter<T>(request: Promise<T>, ...keys: string[]) {
 }
 
 export const api = {
+  measurementRequests: () =>
+    http<MeasurementRequestsResponse>("/api/measurement-requests", {
+      auth: true,
+      cache: "no-store",
+    }),
+  measurementRequest: (id: string) =>
+    http<MeasurementRequestView>(
+      `/api/measurement-requests/${encodeURIComponent(id)}`,
+      { auth: true, cache: "no-store" },
+    ),
+  createMeasurementRequest: (body: MeasurementRequestCreate) =>
+    http<MeasurementRequestView>("/api/measurement-requests", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  cancelMeasurementRequest: (id: string) =>
+    http<MeasurementRequestView>(
+      `/api/measurement-requests/${encodeURIComponent(id)}/cancel`,
+      { method: "POST", auth: true },
+    ),
+  declineMeasurementRequest: (id: string) =>
+    http<MeasurementRequestView>(
+      `/api/measurement-requests/${encodeURIComponent(id)}/decline`,
+      { method: "POST", auth: true },
+    ),
+  measurementHelper: () =>
+    http<MeasurementHelperSettings>("/api/measurement-requests/helper", {
+      auth: true,
+      cache: "no-store",
+    }),
+  setMeasurementHelper: (enabled: boolean) =>
+    http<MeasurementHelperSettings>("/api/measurement-requests/helper", {
+      method: "PUT",
+      auth: true,
+      body: JSON.stringify({ enabled }),
+    }),
+  measurementPresence: (body: MeasurementPresenceUpdate) =>
+    http<MeasurementHelperSettings>("/api/measurement-requests/presence", {
+      method: "PUT",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
   pm25Current: () => http<StationsResponse>("/api/pm25/current"),
 
   weather: (lat: number, lon: number) =>

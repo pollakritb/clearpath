@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/frontend/components/auth/AuthProvider";
 import { LoginPromptProvider } from "@/frontend/components/auth/LoginPromptProvider";
+import HelperPresence from "@/frontend/components/measurement/HelperPresence";
 import PwaRegistrar from "@/frontend/components/app/PwaRegistrar";
 import PersistentMapPage from "@/frontend/components/app/PersistentMapPage";
 
@@ -45,6 +46,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <LoginPromptProvider>
+            <HelperPresence />
             <Suspense fallback={null}>
               <PersistentMapPage />
             </Suspense>

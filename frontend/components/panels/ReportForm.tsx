@@ -19,6 +19,7 @@ import CameraCapture, { type CameraEvidence } from "./CameraCapture";
 import LocationCard from "./report/LocationCard";
 
 interface ReportFormProps {
+  measurementRequestId?: string;
   location: ReportLocation | null;
   locationError?: string | null;
   onRequestLocation: () => void;
@@ -40,6 +41,7 @@ const OCR_STATUS_MESSAGES: Record<ReportDraftResponse["ocr_status"], string> = {
 export default function ReportForm({
   location,
   locationError,
+  measurementRequestId,
   onRequestLocation,
   onSubmitted,
 }: ReportFormProps) {
@@ -166,6 +168,9 @@ export default function ReportForm({
       if (!canSubmit) return;
       const result = await api.submitReportDraft(draft.id, {
         user_claimed_pm25: Number(claimedPm25),
+        ...(measurementRequestId
+          ? { measurement_request_id: measurementRequestId }
+          : {}),
         hide_identity: hideIdentity,
         measurement_stable: false,
         measurement_duration_seconds: 0,

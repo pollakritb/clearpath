@@ -11,6 +11,8 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
+    measurement_requests_enabled: bool = False
+
     # External APIs
     geoapify_api_key: str = ""
     firms_map_key: str = ""

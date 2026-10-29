@@ -33,9 +33,14 @@ def _headers() -> dict[str, str]:
     }
 
 
-def _post(url: str, payload: dict) -> None:
+def _post(url: str, payload: dict, retry_key: str | None = None) -> None:
     try:
-        response = httpx.post(url, json=payload, headers=_headers(), timeout=15.0)
+        headers = _headers()
+        if retry_key:
+            headers["X-Line-Retry-Key"] = retry_key
+        response = httpx.post(url, json=payload, headers=headers, timeout=15.0)
+        if retry_key and response.status_code == 409:
+            return  # The same LINE push was already accepted.
         response.raise_for_status()
     except httpx.HTTPError as exc:
         raise UpstreamError("LINE Messaging API ส่งข้อความไม่สำเร็จ") from exc
@@ -214,6 +219,9 @@ def send_to_user(user_id: str, payload: dict) -> int:
             "to": row["line_user_id"],
             "messages": [{"type": "text", "text": text}],
         },
+        **(
+            {"retry_key": str(payload["retry_key"])} if payload.get("retry_key") else {}
+        ),
     )
     return 1
 

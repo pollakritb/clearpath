@@ -175,6 +175,7 @@ export interface ReportDraftResponse {
 }
 
 export interface ReportDraftSubmit {
+  measurement_request_id?: string | null;
   user_claimed_pm25: number;
   hide_identity?: boolean;
   device_model?: string | null;

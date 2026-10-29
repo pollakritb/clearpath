@@ -39,8 +39,10 @@ const MapView = dynamic(() => import("@/frontend/components/map/MapView"), {
 
 export default function MapPageClient({
   showFiresInitially = false,
+  initialReportId,
 }: {
   showFiresInitially?: boolean;
+  initialReportId?: string | null;
 }) {
   const currentUserId = useCurrentUserId();
   const pm25 = usePm25();
@@ -189,6 +191,18 @@ export default function MapPageClient({
     setSelectedStation(null);
     setSelectedStackId(null);
   }, []);
+
+  useEffect(() => {
+    if (!initialReportId) return;
+    const report = community.reports.find((row) => row.id === initialReportId);
+    if (!report) return;
+    const frame = window.requestAnimationFrame(() => {
+      selectReport(report);
+      setSelectedPlace(null);
+      setFocusPoint({ lat: report.lat, lon: report.lon });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [initialReportId, community.reports, selectReport]);
 
   const selectStack = useCallback((stack: CommunityReportStack) => {
     setSelectedStackId(stack.id);

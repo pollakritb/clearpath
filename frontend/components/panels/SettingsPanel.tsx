@@ -6,6 +6,7 @@ import AuthControl from "@/frontend/components/auth/AuthControl";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
 
+import HelperSettings from "@/frontend/components/measurement/HelperSettings";
 import NotificationSettings from "./community/NotificationSettings";
 import DataIssueForm from "./community/DataIssueForm";
 
@@ -36,6 +37,7 @@ export default function SettingsPanel({
             <p>เลือกช่องทาง ระดับฝุ่น และพื้นที่ที่สำคัญกับคุณ</p>
           </span>
         </div>
+        <HelperSettings />
         <NotificationSettings />
       </section>
     );

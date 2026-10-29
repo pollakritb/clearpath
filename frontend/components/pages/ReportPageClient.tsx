@@ -4,9 +4,14 @@ import { useCallback, useState } from "react";
 
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import ReportForm from "@/frontend/components/panels/ReportForm";
+import RequestContext from "@/frontend/components/measurement/RequestContext";
 import type { ReportLocation } from "@/frontend/types/ui";
 
-export default function ReportPageClient() {
+export default function ReportPageClient({
+  requestId,
+}: {
+  requestId?: string;
+}) {
   const [location, setLocation] = useState<ReportLocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -49,7 +54,9 @@ export default function ReportPageClient() {
       icon="camera"
       header={{ showDataStatus: false }}
     >
+      {requestId && <RequestContext requestId={requestId} />}
       <ReportForm
+        measurementRequestId={requestId}
         location={location}
         locationError={locationError}
         onRequestLocation={requestLocation}

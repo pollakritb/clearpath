@@ -1,6 +1,7 @@
 """Community evidence, moderation and reward contracts."""
 
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -176,6 +177,7 @@ class ReportDraftResponse(BaseModel):
 
 
 class ReportDraftSubmit(BaseModel):
+    measurement_request_id: UUID | None = None
     user_claimed_pm25: float = Field(ge=0, le=1000)
     hide_identity: bool = False
     device_model: str | None = Field(default=None, max_length=80)

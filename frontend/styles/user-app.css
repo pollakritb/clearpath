@@ -6926,3 +6926,181 @@
     padding: 16px;
   }
 }
+
+/* Community measurement requests: one clear action and compact supporting details. */
+.cp-measure-stack {
+  display: grid;
+  gap: 14px;
+}
+.cp-measure-card {
+  padding: 18px;
+  border: 1px solid var(--cp-line);
+  border-radius: 20px;
+  background: #fff;
+  margin-bottom: 14px;
+}
+.cp-measure-card h2,
+.cp-measure-card h3 {
+  margin: 10px 0;
+  font-size: 1.05rem;
+}
+.cp-measure-card p,
+.cp-measure-form p {
+  margin: 8px 0;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--cp-subink);
+}
+.cp-measure-card small,
+.cp-measure-form small {
+  display: block;
+  font-size: 0.76rem;
+  line-height: 1.7;
+  color: var(--cp-subink);
+}
+.cp-measure-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.cp-measure-badge {
+  background: #e4f5f1;
+  color: #08766f;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.cp-measure-card[data-status="fulfilled"] {
+  border-color: #19ad75;
+}
+.cp-measure-primary {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #087c76;
+  color: white;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cp-measure-primary:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.cp-measure-link {
+  display: block;
+  padding: 12px 0 4px;
+  color: #087c76;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.cp-measure-create {
+  margin: 12px 0;
+}
+.cp-measure-create > .cp-measure-primary {
+  width: 100%;
+}
+.cp-measure-form {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f1f8f6;
+  display: grid;
+  gap: 10px;
+}
+.cp-measure-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.cp-measure-form legend,
+.cp-measure-form label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin: 8px 0;
+}
+.cp-measure-form input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 44px;
+  font: inherit;
+  padding: 8px;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  background: white;
+}
+.cp-measure-options {
+  display: flex;
+  gap: 8px;
+}
+.cp-measure-options button,
+.cp-measure-actions button {
+  min-height: 44px;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 8px 12px;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+}
+.cp-measure-options button[aria-pressed="true"] {
+  background: #d7f0ea;
+  color: #076c65;
+  border-color: #087c76;
+}
+.cp-measure-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.cp-measure-toggle {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.7;
+}
+.cp-measure-toggle input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  accent-color: #087c76;
+}
+.cp-measure-result {
+  border-left: 4px solid;
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 14px;
+}
+.cp-measure-result > strong {
+  font-size: 2rem;
+  display: block;
+  font-family: var(--font-plex-mono);
+}
+.cp-measure-result strong small {
+  display: inline;
+}
+.cp-measure-result a {
+  color: #08766f;
+  font-size: 0.82rem;
+}
+.cp-measure-card [role="alert"],
+.cp-measure-create [role="alert"] {
+  color: #aa322c;
+}

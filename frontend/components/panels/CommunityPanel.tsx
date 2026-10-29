@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
@@ -28,6 +29,9 @@ export default function CommunityPanel({ announcements }: CommunityPanelProps) {
             className="cp-community-card cp-community-inbox-card"
             aria-label="การแจ้งเตือนของฉัน"
           >
+            <Link href="/requests" className="cp-measure-link">
+              คำขอค่าฝุ่นของฉัน / ช่วยชุมชนรายงาน
+            </Link>
             <NotificationInbox />
           </section>
         )}

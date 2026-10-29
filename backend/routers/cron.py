@@ -261,3 +261,13 @@ async def cron_gistda_air(
         if only_if_due
         else provider_sync.sync_gistda()
     )
+
+
+@router.get("/cron/measurement-requests")
+def cron_measurement_requests(authorization: str | None = Header(default=None)):
+    _verify_cron(authorization)
+    from ..services.measurement import service
+
+    if not service.enabled():
+        return {"status": "disabled"}
+    return {"requests": service.process(), "outbox": notifications.process_outbox()}

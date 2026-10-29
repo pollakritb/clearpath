@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   description: "ส่งภาพเครื่องวัด PM2.5 พร้อม GPS ให้ระบบตรวจหลักฐานอัตโนมัติ",
 };
 
-export default function ReportPage() {
-  return <ReportPageClient />;
+export default async function ReportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ request?: string }>;
+}) {
+  const { request } = await searchParams;
+  return <ReportPageClient requestId={request} />;
 }

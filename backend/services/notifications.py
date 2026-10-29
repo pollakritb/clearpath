@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from time import monotonic
 from uuid import uuid4
 
 from ..algorithms.notification_policy import is_quiet_hour
@@ -138,14 +139,42 @@ def enqueue_user_notification(
     return notification
 
 
-def process_outbox(limit: int = 100) -> dict:
+def process_outbox(limit: int = 100, budget_seconds: float | None = None) -> dict:
     processed = delivered = failed = deferred = dead = 0
+    deadline = (
+        monotonic() + budget_seconds if budget_seconds is not None else float("inf")
+    )
     for event in supabase_client.list_pending_outbox(min(max(limit, 1), 100)):
+        if monotonic() >= deadline:
+            break
         processed += 1
         attempts = int(event.get("attempts") or 0) + 1
         try:
             payload = dict(event.get("payload") or {})
             channel = payload.pop("channel", None)
+            if payload.get("measurement_request_id"):
+                from .measurement import (
+                    service as measurement_service,
+                )
+                from .measurement import (
+                    store as measurement_store,
+                )
+
+                if not measurement_store.claim_delivery(str(event["id"])):
+                    continue
+                if not measurement_service.delivery_allowed(
+                    str(event["user_id"]), payload
+                ):
+                    dead += 1
+                    supabase_client.update_outbox_event(
+                        str(event["id"]),
+                        {
+                            "status": "dead",
+                            "last_error": "measurement_request_closed_or_opted_out",
+                            "payload": {"tag": payload.get("tag")},
+                        },
+                    )
+                    continue
             count = (
                 deliver_to_channel(str(event["user_id"]), payload, str(channel))
                 if channel

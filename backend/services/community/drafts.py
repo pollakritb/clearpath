@@ -254,6 +254,27 @@ async def submit_draft(
         not values.get("device_model") or not values.get("calibrated_at")
     ):
         raise ValueError("เครื่องที่ระบุว่าสอบเทียบแล้วต้องมีรุ่นเครื่องและวันที่สอบเทียบ")
+    if values.get("measurement_request_id"):
+        from ..measurement import (
+            service as measurement_service,
+        )
+        from ..measurement import (
+            store as measurement_store,
+        )
+
+        if measurement_service.enabled():
+            context = await run_in_threadpool(
+                measurement_store.get, str(values["measurement_request_id"])
+            )
+            if context is not None:
+                try:
+                    await run_in_threadpool(measurement_service.view, context, user_id)
+                except KeyError as exc:
+                    raise ValueError("ไม่พบคำขอที่คุณมีสิทธิ์เข้าถึง") from exc
+                draft["image_metadata"] = {
+                    **(draft.get("image_metadata") or {}),
+                    "measurement_request_id": context["id"],
+                }
     profile = await run_in_threadpool(supabase_client.ensure_profile, user_id)
     official, _source = await get_current_stations()
     nearest_location = min(
@@ -467,6 +488,18 @@ async def submit_draft(
         else "automatic_rejected"
     )
     presented["_review_reasons"] = list(decision["reasons"])
+    # A failed fanout must never roll back a valid report; cron reconciles later.
+    from ..measurement import service as measurement_service
+
+    if measurement_service.enabled():
+        try:
+            await run_in_threadpool(measurement_service.process)
+        except Exception:
+            import logging
+
+            logging.getLogger("clearpath.measurement").exception(
+                "measurement_report_reconciliation_failed"
+            )
     return presented
 
 

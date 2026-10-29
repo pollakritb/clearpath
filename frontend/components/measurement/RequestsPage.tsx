@@ -1,0 +1,265 @@
+"use client";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
+import UserPageShell from "@/frontend/components/app/UserPageShell";
+import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import { classifyPm25 } from "@/frontend/lib/aqi";
+import type { MeasurementRequestView, RequestStatus } from "@/frontend/types";
+
+const RequestAreaMap = dynamic(() => import("./RequestAreaMap"), {
+  ssr: false,
+});
+
+export const REQUEST_LABELS: Record<RequestStatus, string> = {
+  scheduled: "รอถึงเวลาเริ่มขอ",
+  active: "กำลังรอผู้ช่วยรายงาน",
+  fulfilled: "ได้รับค่าฝุ่นแล้ว",
+  expired: "หมดเวลา · ยังไม่มีคำตอบ",
+  cancelled: "ยกเลิกแล้ว",
+};
+const date = (value: string) =>
+  new Date(value).toLocaleString("th-TH", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+export function RequestSummary({
+  row,
+  actions = false,
+  onChanged,
+}: {
+  row: MeasurementRequestView;
+  actions?: boolean;
+  onChanged?: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const cls = classifyPm25(row.result?.pm25);
+  const active = row.status === "scheduled" || row.status === "active";
+  const minutesLeft = Math.max(
+    0,
+    Math.ceil((Date.parse(row.expires_at) - now) / 60000),
+  );
+  async function act(kind: "cancel" | "decline") {
+    setBusy(true);
+    setError("");
+    try {
+      if (kind === "cancel") await api.cancelMeasurementRequest(row.id);
+      else await api.declineMeasurementRequest(row.id);
+      onChanged?.();
+    } catch (e) {
+      setError(apiErrorMessage(e, "บันทึกไม่สำเร็จ"));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <article className="cp-measure-card" data-status={row.status}>
+      <div className="cp-measure-heading">
+        <span className="cp-measure-badge">{REQUEST_LABELS[row.status]}</span>
+        <small>{row.is_owner ? "คำขอของฉัน" : "คำขอให้ช่วยวัด"}</small>
+      </div>
+      <h2>{row.place_name}</h2>
+      <p>
+        วง {row.radius_km} กม. · รับรายงาน {date(row.starts_at)} –{" "}
+        {date(row.expires_at)}
+      </p>
+      {actions && active && (
+        <RequestAreaMap lat={row.lat} lon={row.lon} radius={row.radius_km} />
+      )}
+      {active && (
+        <p>
+          {minutesLeft > 0
+            ? `เหลือเวลารับรายงาน ${minutesLeft} นาที`
+            : "หมดเวลารับรายงานแล้ว กำลังสรุปผล"}
+        </p>
+      )}
+      {row.is_owner && active && (
+        <p>
+          {row.recipient_count
+            ? `มีผู้เข้าเกณฑ์รับคำขอ ${row.recipient_count} คน · ไม่ใช่จำนวนที่อ่านแล้ว`
+            : "ยังไม่มีผู้เข้าเกณฑ์รับคำขอ ระบบจะตรวจอีกครั้งระหว่างเปิดรับ"}
+        </p>
+      )}
+      {!row.is_owner && row.matched_location_at && (
+        <p>
+          เลือกคุณจาก GPS เข้าเว็บล่าสุดเมื่อ {date(row.matched_location_at)}{" "}
+          ตำแหน่งนี้อาจเปลี่ยนแล้ว
+        </p>
+      )}
+      {row.result && (
+        <div
+          className="cp-measure-result"
+          style={{ background: cls.tint, borderColor: cls.color }}
+        >
+          <strong style={{ color: cls.color }}>
+            {row.result.pm25} <small>µg/m³</small>
+          </strong>
+          <span>{cls.level}</span>
+          <p>
+            วัดเมื่อ {date(row.result.captured_at)} · ห่างจากเป้าหมายประมาณ{" "}
+            {row.result_distance_km} กม.
+          </p>
+          <Link href={`/?report=${row.result.id}`}>
+            ดูหมุดและรายละเอียดรายงาน
+          </Link>
+        </div>
+      )}
+      {row.status === "fulfilled" && !row.result && (
+        <p>รายงานที่ตอบคำขอนี้ไม่เปิดเผยแล้ว</p>
+      )}
+      {row.status === "active" && (
+        <small>
+          รับเฉพาะรายงานใหม่ที่ผ่านตรวจอัตโนมัติในพื้นที่และช่วงเวลานี้
+          ไม่รับประกันว่าจะมีผู้ตอบ
+        </small>
+      )}
+      {!actions ? (
+        <Link href={`/requests/${row.id}`} className="cp-measure-link">
+          ติดตามคำขอ
+        </Link>
+      ) : (
+        <div className="cp-measure-actions">
+          {!row.is_owner &&
+            row.status === "active" &&
+            minutesLeft > 0 &&
+            !row.declined && (
+              <Link
+                href={`/report?request=${row.id}`}
+                className="cp-measure-primary"
+              >
+                ช่วยรายงาน
+              </Link>
+            )}
+          {!row.is_owner && active && !row.declined && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void act("decline")}
+            >
+              ไม่สะดวก
+            </button>
+          )}
+          {row.is_owner && active && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void act("cancel")}
+            >
+              ยกเลิกคำขอ
+            </button>
+          )}
+          {row.declined && <p>คุณเลือกไม่สะดวกช่วยวัดคำขอนี้แล้ว</p>}
+        </div>
+      )}
+      {error && <p role="alert">{error}</p>}
+    </article>
+  );
+}
+
+export default function RequestsPage({ requestId }: { requestId?: string }) {
+  const auth = useAuth();
+  const login = useLoginPrompt();
+  const signedIn = Boolean(auth.user || auth.localDemo);
+  const account = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
+  const [loaded, setLoaded] = useState<{
+    account: string;
+    requestId?: string;
+    rows: MeasurementRequestView[];
+  } | null>(null);
+  const rows =
+    loaded?.account === account && loaded.requestId === requestId
+      ? loaded.rows
+      : [];
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => {
+    if (!signedIn) return;
+    try {
+      const data = requestId
+        ? [await api.measurementRequest(requestId)]
+        : (await api.measurementRequests()).requests;
+      setLoaded({ account, requestId, rows: data });
+      setError("");
+    } catch (e) {
+      setError(apiErrorMessage(e, "โหลดคำขอไม่สำเร็จ"));
+    } finally {
+      setLoading(false);
+    }
+  }, [requestId, signedIn, account]);
+  useEffect(() => {
+    let alive = true;
+    const refresh = () => {
+      if (alive && document.visibilityState !== "hidden") void load();
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 30000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [load]);
+  return (
+    <UserPageShell
+      tab="overview"
+      icon="community"
+      header={{
+        title: "ขอค่าฝุ่นจากชุมชน",
+        description: "ติดตามคำขอและช่วยรายงานในบริเวณที่วัดได้",
+        showDataStatus: false,
+      }}
+    >
+      <div className="cp-measure-stack">
+        <Link href="/" className="cp-measure-link">
+          ค้นหาสถานที่เพื่อขอค่าฝุ่น
+        </Link>
+        {!auth.loading && !auth.user && !auth.localDemo ? (
+          <button
+            type="button"
+            className="cp-measure-primary"
+            onClick={() => login.openLoginPrompt()}
+          >
+            เข้าสู่ระบบเพื่อดูคำขอ
+          </button>
+        ) : (
+          <>
+            {loading && <p role="status">กำลังโหลดคำขอ…</p>}
+            {error && <p role="alert">{error}</p>}
+            {rows.map((row) => (
+              <RequestSummary
+                key={row.id}
+                row={row}
+                actions={!!requestId}
+                onChanged={() => void load()}
+              />
+            ))}
+            {!loading && !rows.length && !error && (
+              <div className="cp-measure-card">
+                <h2>ยังไม่มีคำขอ</h2>
+                <p>
+                  เลือกสถานที่บนแผนที่เพื่อขอค่าฝุ่น
+                  หรือเปิดรับคำขอช่วยวัดในการตั้งค่า
+                </p>
+              </div>
+            )}
+          </>
+        )}
+        <Link href="/settings/notifications" className="cp-measure-link">
+          ตั้งค่าการรับคำขอและ LINE
+        </Link>
+      </div>
+    </UserPageShell>
+  );
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import CreateRequest from "@/frontend/components/measurement/CreateRequest";
 import { useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -102,6 +103,7 @@ export default function PlaceAirCard({
           </span>
           <AppIcon name="chevron" size={18} />
         </button>
+        <CreateRequest key={place.id} place={place} />
       </section>
     );
   }
@@ -291,6 +293,7 @@ export default function PlaceAirCard({
           "ข้อมูลท้องถิ่น ClearPath"
         )}
       </small>
+      <CreateRequest key={place.id} place={place} />
     </section>
   );
 }
