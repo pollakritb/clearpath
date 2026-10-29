@@ -72,20 +72,38 @@ describe("api client", () => {
 
     const calls: Array<() => Promise<unknown>> = [
       () => api.pm25Current(),
+      () => api.measurementRequests(),
+      () => api.measurementRequest("request / one"),
+      () => api.createMeasurementRequest({} as never),
+      () => api.cancelMeasurementRequest("request / one"),
+      () => api.declineMeasurementRequest("request / one"),
+      () => api.measurementHelper(),
+      () => api.setMeasurementHelper(true),
+      () => api.measurementPresence({} as never),
       () => api.weather(13.8, 100.1),
       () => api.firms(),
       () => api.history("station / one"),
       () => api.mapHistory("2026-09-19T03:00:00.000Z"),
       () => api.forecast("station / one"),
+      () => api.forecast({ lat: 13.8, lon: 100.1 }),
       () => api.communityReports(),
       () => api.communityMapPoints(),
       () => api.reportDataIssue({} as never),
       () => api.captureSession(),
       () => api.reviewQueue(13.8, 100.1),
       () => api.createReportDraft(form),
+      () =>
+        api.photoMetadata(
+          new File(["image"], "meter.jpg", { type: "image/jpeg" }),
+        ),
       () => api.submitReportDraft("draft-1", {} as never),
       () => api.deleteReportDraft("draft-1"),
       () => api.rateReport("report-1", {} as never),
+      () => api.reportEngagement("report-1"),
+      () => api.myReportEngagement("report-1"),
+      () => api.clearReportReaction("report-1"),
+      () => api.addReportComment("report-1", {} as never),
+      () => api.removeReportComment("report-1", "comment-1"),
       () => api.announcements(),
       () => api.activities(),
       () => api.leaderboard(),
@@ -125,6 +143,8 @@ describe("api client", () => {
       () => api.adminForecastReleaseDecisions(),
       () => api.adminNotificationOutbox(),
       () => api.adminDataIssues(),
+      () => api.updateAdminDataIssue("issue / one", {} as never),
+      () => api.adminAuditLogs(),
     ];
 
     for (const call of calls) {
@@ -152,6 +172,12 @@ describe("api client", () => {
     expect(new Headers(authenticated?.[1]?.headers).get("Authorization")).toBe(
       "Bearer access-token",
     );
+    for (const [url, options] of fetchMock.mock.calls) {
+      if (String(url).startsWith("/api/measurement-requests"))
+        expect(new Headers(options?.headers).get("Authorization")).toBe(
+          "Bearer access-token",
+        );
+    }
 
     const multipart = fetchMock.mock.calls.find(
       ([url]) => url === "/api/community/report-drafts",
@@ -188,5 +214,42 @@ describe("api client", () => {
       apiErrorMessage(new ApiError("Useful detail", 400), "fallback"),
     ).toBe("Useful detail");
     expect(apiErrorMessage(new Error("internal"), "fallback")).toBe("fallback");
+  });
+
+  it("exports audit logs with the current token and preserves access-denied failures", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("audit rows"));
+    expect(await (await api.downloadAdminAuditLogs()).text()).toBe(
+      "audit rows",
+    );
+    expect(
+      new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).get(
+        "Authorization",
+      ),
+    ).toBe("Bearer access-token");
+    mockedGetAccessToken.mockResolvedValueOnce(null);
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response("denied", { status: 403 }),
+    );
+    await expect(api.downloadAdminAuditLogs()).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(
+      new Headers(vi.mocked(fetch).mock.calls[1][1]?.headers).has(
+        "Authorization",
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps HTTP status text when an error response has no detail", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({}), {
+        status: 503,
+        statusText: "Unavailable",
+      }),
+    );
+    await expect(api.pm25Current()).rejects.toMatchObject({
+      message: "Unavailable",
+      status: 503,
+    });
   });
 });
