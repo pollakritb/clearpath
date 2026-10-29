@@ -81,10 +81,10 @@ describe("stored forecast grid loading", () => {
     rerender({ enabled: true, active: true });
     await advance();
     expect(result.current.surface?.values[0]).toBe(10);
-    expect(api.forecastGridFrames).toHaveBeenCalledTimes(1);
+    expect(api.forecastGridFrames).toHaveBeenCalledTimes(2);
     act(() => result.current.select(meta().valid_times[2]));
     await advance();
-    expect(api.forecastGridFrames).toHaveBeenCalledTimes(1);
+    expect(api.forecastGridFrames).toHaveBeenCalledTimes(2);
     act(() => result.current.togglePlay());
     await advance(1500);
     expect(result.current.at).toBe(meta().valid_times[3]);
@@ -198,4 +198,64 @@ it("reports a missing complete frame without a perpetual loading indicator", asy
   await advance();
   expect(result.current.loading).toBe(false);
   expect(result.current.noFrame).toBe(true);
+});
+
+it("keeps the displayed frame and timestamp while an uncached selected window is loading", async () => {
+  vi.mocked(api.forecastGridMetadata).mockResolvedValue(meta("buffering-grid"));
+  let finish: (v: ForecastGridFrames) => void = () => {};
+  vi.mocked(api.forecastGridFrames).mockImplementation(async (g, s, e) =>
+    s === meta().valid_times[6]
+      ? new Promise((resolve) => {
+          finish = resolve;
+        })
+      : packet(g, s, e),
+  );
+  const { result, rerender } = renderHook(
+    ({ bounds }) => useForecastGrid(true, true, bounds),
+    {
+      initialProps: {
+        bounds: null as {
+          min_lat: number;
+          max_lat: number;
+          min_lon: number;
+          max_lon: number;
+        } | null,
+      },
+    },
+  );
+  await advance();
+  expect(result.current.surface).not.toBeNull();
+  act(() => result.current.select(meta().valid_times[8]));
+  await advance();
+  expect(result.current.requestedAt).toBe(meta().valid_times[8]);
+  expect(result.current.at).toBe(meta().valid_times[0]);
+  expect(result.current.surface?.validAt).toBe(meta().valid_times[0]);
+  expect(result.current.pendingAt).toBe(meta().valid_times[8]);
+  const calls = vi.mocked(api.forecastGridFrames).mock.calls.length;
+  rerender({
+    bounds: { min_lat: 15, max_lat: 17, min_lon: 101, max_lon: 104 },
+  });
+  await advance();
+  expect(api.forecastGridFrames).toHaveBeenCalledTimes(calls);
+  await act(async () =>
+    finish(
+      packet("buffering-grid", meta().valid_times[6], meta().valid_times[11]),
+    ),
+  );
+  expect(result.current.at).toBe(meta().valid_times[8]);
+  expect(result.current.pendingAt).toBeNull();
+});
+
+it("warms every future window before playback and then supports offline seeking", async () => {
+  vi.mocked(api.forecastGridMetadata).mockResolvedValue(meta("prewarm-grid"));
+  const { result } = renderHook(() => useForecastGrid(true, true, null));
+  await advance();
+  expect(result.current.preparedFrames).toBe(12);
+  expect(result.current.playing).toBe(false);
+  const calls = vi.mocked(api.forecastGridFrames).mock.calls.length;
+  vi.mocked(api.forecastGridFrames).mockRejectedValue(new Error("offline"));
+  act(() => result.current.select(meta().valid_times[10]));
+  expect(result.current.surface?.validAt).toBe(meta().valid_times[10]);
+  await advance();
+  expect(api.forecastGridFrames).toHaveBeenCalledTimes(calls);
 });

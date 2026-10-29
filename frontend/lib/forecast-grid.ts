@@ -85,21 +85,41 @@ export function gridValue(
   );
   const y = (lat - a[row]) / (a[row + 1] - a[row]),
     x = (lon - b[col]) / (b[col + 1] - b[col]);
-  const corners = [
-    [row, col, (1 - x) * (1 - y)],
-    [row, col + 1, x * (1 - y)],
-    [row + 1, col, (1 - x) * y],
-    [row + 1, col + 1, x * y],
-  ];
-  let sum = 0;
-  for (const [r, c, w] of corners) {
-    if (w <= 1e-10) continue;
-    const value = surface.values[r * b.length + c];
-    if (value == null || !Number.isFinite(value) || value < 0) return null;
-    sum += value * w;
-  }
-  return sum;
+  return sampleGridCell(surface.values, b.length, row, col, x, y);
 }
+/** Shared by the exact point sampler and raster renderer. Zero-weight missing nodes are harmless. */
+export function sampleGridCell(
+  values: (number | null)[],
+  columns: number,
+  row: number,
+  col: number,
+  x: number,
+  y: number,
+): number | null {
+  const index = row * columns + col;
+  const a = values[index],
+    b = values[index + 1],
+    c = values[index + columns],
+    d = values[index + columns + 1];
+  const wa = (1 - x) * (1 - y),
+    wb = x * (1 - y),
+    wc = (1 - x) * y,
+    wd = x * y;
+  if (
+    (wa > 1e-10 && (a == null || !Number.isFinite(a) || a < 0)) ||
+    (wb > 1e-10 && (b == null || !Number.isFinite(b) || b < 0)) ||
+    (wc > 1e-10 && (c == null || !Number.isFinite(c) || c < 0)) ||
+    (wd > 1e-10 && (d == null || !Number.isFinite(d) || d < 0))
+  )
+    return null;
+  return (
+    (wa > 1e-10 ? a! * wa : 0) +
+    (wb > 1e-10 ? b! * wb : 0) +
+    (wc > 1e-10 ? c! * wc : 0) +
+    (wd > 1e-10 ? d! * wd : 0)
+  );
+}
+
 export function bangkokDay(at: string) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Bangkok",

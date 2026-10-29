@@ -7651,8 +7651,7 @@
 .cp-cams-canvas {
   position: absolute;
   pointer-events: none;
-  opacity: 0.4;
-  image-rendering: pixelated;
+  image-rendering: auto;
 }
 .cp-cams-observation-layers {
   border: 0;
@@ -7755,4 +7754,10 @@
     right: 10px;
     width: 360px;
   }
+}
+
+.cp-cams-ramp {
+  height: 5px;
+  margin: 4px 13px 0;
+  border-radius: 99px;
 }

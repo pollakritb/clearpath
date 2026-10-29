@@ -341,20 +341,29 @@ export default function MapPageClient({
       return;
     }
     if (openedRequestLink.current === initialRequestId) return;
-    const request = requestData.rows.find((row) => row.id === initialRequestId);
+    const request = visibleMapRequests(requestData.rows, requestData.now).find(
+      (row) => row.id === initialRequestId,
+    );
     if (!request || request.status === "cancelled") return;
     const frame = window.requestAnimationFrame(() => {
       openedRequestLink.current = initialRequestId;
       selectRequest(request);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [initialRequestId, active, requestData.rows, selectRequest]);
+  }, [
+    initialRequestId,
+    active,
+    requestData.rows,
+    requestData.now,
+    selectRequest,
+  ]);
 
   const map = (
     <main className="cp-map" data-mode={mode}>
       <MapView
         dataMode={mode}
         camsSurface={camsEnabled ? cams.surface : null}
+        camsPreload={camsEnabled ? cams.preloadSurfaces : undefined}
         camsPoint={camsEnabled && requestStep === "idle" ? camsPoint : null}
         onViewportChange={setViewport}
         stations={mapStations}

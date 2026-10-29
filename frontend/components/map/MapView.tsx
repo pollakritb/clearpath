@@ -43,6 +43,7 @@ import RequestMarkers from "./RequestMarkers";
 export interface MapViewProps {
   dataMode?: string;
   camsSurface?: GridSurface | null;
+  camsPreload?: GridSurface[];
   camsPoint?: { lat: number; lon: number } | null;
   stations: Station[];
   heatmapPoint: HeatmapPoint | null;
@@ -78,6 +79,7 @@ export interface MapViewProps {
 export default function MapView({
   dataMode = "current",
   camsSurface = null,
+  camsPreload,
   camsPoint = null,
   stations,
   heatmapPoint,
@@ -119,7 +121,7 @@ export default function MapView({
     >
       <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
 
-      <CamsCanvasLayer surface={camsSurface} />
+      <CamsCanvasLayer surface={camsSurface} preload={camsPreload} />
       {camsPoint && (
         <CircleMarker
           center={[camsPoint.lat, camsPoint.lon]}

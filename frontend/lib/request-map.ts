@@ -18,7 +18,9 @@ export function requestMapStatus(
   return (row.status === "active" || row.status === "scheduled") &&
     Date.parse(row.expires_at) <= now
     ? "expired"
-    : row.status;
+    : row.status === "scheduled" && Date.parse(row.starts_at) <= now
+      ? "active"
+      : row.status;
 }
 
 export function visibleMapRequests(
@@ -28,13 +30,16 @@ export function visibleMapRequests(
 ) {
   return rows.filter((row) => {
     if (!Number.isFinite(row.lat) || !Number.isFinite(row.lon)) return false;
-    if (row.status === "cancelled") return false;
-    if (row.id === selectedId) return true;
+    const expires = Date.parse(row.expires_at);
     const state = requestMapStatus(row, now);
-    return (
-      state === "active" ||
-      state === "scheduled" ||
-      Date.parse(row.expires_at) >= now - 24 * 3600000
-    );
+    if (
+      !Number.isFinite(expires) ||
+      expires <= now ||
+      state === "expired" ||
+      state === "cancelled"
+    )
+      return false;
+    if (row.id === selectedId) return true;
+    return state === "active" || state === "scheduled" || state === "fulfilled";
   });
 }

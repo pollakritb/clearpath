@@ -28,10 +28,14 @@ history, nearest-reading surface, reports and measurement requests. Keep
   publication detects an upstream change during collection; discard/retry
   rather than blend it. The collection has a 20-minute lifetime.
 - Canvas samples concentration by bilinear interpolation in latitude/longitude,
-  then uses `classifyPm25` for colours. Cards use the exact same sampler. No IDW,
-  station blending, extrapolation or filling missing corners. Opacity is 0.4.
-  Raster sampling is capped at 480 × 480 pixels and redrawn without remounting
-  Leaflet. A transparent missing area is never encoded as zero.
+  then uses a continuous ramp derived from the central PM2.5 palette. Category
+  thresholds are unchanged; cards use the same sampler and colour function.
+  No IDW, station blending, extrapolation or filling missing corners. Opacity
+  is 0.4. A 512 × 960 geographic Canvas raster is kept in one native Leaflet
+  image overlay, so pan/zoom never clears or rebuilds it. Raster resolution
+  does not increase model resolution. Missing areas remain transparent.
+  Up to eight compressed raster URLs are cached; the next two frames are
+  rendered during idle time.
 
 Provider references: [API](https://open-meteo.com/en/docs/air-quality-api),
 [terms and limits](https://open-meteo.com/en/terms).
@@ -60,8 +64,13 @@ Backend uses the server-only Supabase service role. RPCs are security invoker.
   row/column origin and shape, frames in row-major order, plus supporting nodes.
   Missing values are null. A retired generation returns 410.
 - Metadata axes are sent once. Frames are pinned to that generation and grid
-  version; the browser rejects mismatches. The cache holds at most 12 windows
-  of six frames, keyed by generation, quantized viewport and actual times.
+  version; the browser rejects mismatches. The browser requests the bounded
+  national grid in six-hour windows, not per viewport. It prepares all remaining
+  forecast windows on opening CAMS with two concurrent requests, even before
+  playback. Cache holds at most 40 windows keyed by generation and actual times.
+  Closing CAMS stops queued prefetch work. Pan/zoom makes no new frame requests.
+  An uncached time keeps the last surface and its actual timestamp visible
+  with a loading notice until the requested frame is ready.
 
 Public reads never invoke upstream. Fetch failures are sanitized as 502; a
 missing/unconfigured database is not silently replaced with generated forecasts.
@@ -125,7 +134,10 @@ Supabase store to verify PostgREST integration and RLS on that stack too.
 - Current/history → CAMS → return restores mode, history time and observation
   layer choices without moving the viewport or resuming playback.
 - One timeline, no station/report/nearest-reading/hotspot overlay in CAMS.
-  GPS and authorized measurement requests remain usable.
+  GPS and authorized measurement requests remain usable. Request pins disappear
+  at their deadline, including stale API rows and selected/deep-linked requests;
+  cancellation/expiry history remains on the requests page. A local boundary
+  timer hides expired pins even when polling fails.
 - Taps/searches use grid values at the selected timestamp; request creation uses
   the selected coordinate and pauses playback. Opening panels, leaving the map
   or hiding the browser pauses playback; playback ends without looping.

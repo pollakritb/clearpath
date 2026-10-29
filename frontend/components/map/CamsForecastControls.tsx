@@ -1,6 +1,11 @@
 "use client";
 import type { ReactNode } from "react";
-import { AQI_LEGEND, classifyPm25 } from "@/frontend/lib/aqi";
+import {
+  AQI_LEGEND,
+  classifyPm25,
+  forecastColor,
+  FORECAST_COLOR_STOPS,
+} from "@/frontend/lib/aqi";
 import {
   bangkokDay,
   formatForecastTime,
@@ -33,19 +38,22 @@ export default function CamsForecastControls({
   const currentDay = at ? bangkokDay(at) : (days[0] ?? "");
   const message =
     error ??
-    (loading
-      ? "กำลังโหลดพยากรณ์…"
-      : grid.outOfBounds
-        ? "ไม่มีข้อมูลบริเวณนี้"
-        : grid.unavailable
-          ? "ยังไม่มีพยากรณ์ที่ใช้งานได้"
-          : grid.noFrame || (surface && surface.values.every((v) => v === null))
-            ? "ไม่มีข้อมูลช่วงนี้"
-            : grid.notice
-              ? grid.notice
-              : meta?.stale
-                ? "ใช้ชุดข้อมูลเดิม · ตรวจเวลาอัปเดต"
-                : "CAMS · ภาพรวมระดับพื้นที่");
+    (grid.pendingAt && grid.surface
+      ? `กำลังเตรียม ${formatForecastTime(grid.pendingAt)} · แสดงเวลาเดิมระหว่างรอ`
+      : loading
+        ? "กำลังโหลดพยากรณ์…"
+        : grid.outOfBounds
+          ? "ไม่มีข้อมูลบริเวณนี้"
+          : grid.unavailable
+            ? "ยังไม่มีพยากรณ์ที่ใช้งานได้"
+            : grid.noFrame ||
+                (surface && surface.values.every((v) => v === null))
+              ? "ไม่มีข้อมูลช่วงนี้"
+              : grid.notice
+                ? grid.notice
+                : meta?.stale
+                  ? "ใช้ชุดข้อมูลเดิม · ตรวจเวลาอัปเดต"
+                  : "CAMS · ภาพรวมระดับพื้นที่");
   return (
     <div className="cp-cams-dock">
       {requestCard}
@@ -66,7 +74,7 @@ export default function CamsForecastControls({
             </button>
           </div>
           <p>
-            <b style={{ color: cls.color }}>
+            <b style={{ color: forecastColor(value) }}>
               {loading ? "…" : value == null ? "ไม่มีข้อมูล" : value.toFixed(1)}
             </b>
             {value != null && <> µg/m³ · {cls.level}</>}
@@ -95,10 +103,16 @@ export default function CamsForecastControls({
           </button>
         }
         time={at ? formatForecastTime(at) : "ยังไม่มีช่วงเวลา"}
-        value={at ? Math.max(0, times.indexOf(at)) : 0}
+        value={
+          grid.requestedAt ? Math.max(0, times.indexOf(grid.requestedAt)) : 0
+        }
         max={times.length - 1}
         rangeLabel="เลือกเวลาพยากรณ์ CAMS"
-        valueText={at ? formatForecastTime(at) : "ไม่มีข้อมูล"}
+        valueText={
+          grid.requestedAt
+            ? formatForecastTime(grid.requestedAt)
+            : "ไม่มีข้อมูล"
+        }
         startLabel="ตอนนี้"
         endLabel={
           times.length ? formatForecastTime(times[times.length - 1]) : ""
@@ -159,6 +173,10 @@ export default function CamsForecastControls({
             <div>
               <strong>CAMS Global · Open-Meteo</strong>
               <p>
+                เตรียมล่วงหน้า {grid.preparedFrames}/{times.length} ช่วงเวลา ·
+                สีไล่ระดับจากพาเลต PM2.5
+              </p>
+              <p>
                 ภาพรวมประมาณ 45 กม. ค่าระหว่างกริดเป็นค่าประมาณ ไม่ใช่ค่าตรวจวัด
                 ณ จุดนั้น
               </p>
@@ -182,6 +200,13 @@ export default function CamsForecastControls({
             </div>
           </details>
         }
+      />
+      <div
+        className="cp-cams-ramp"
+        aria-hidden="true"
+        style={{
+          background: `linear-gradient(to right, ${FORECAST_COLOR_STOPS.map((stop) => `${stop.color} ${(100 * stop.value) / FORECAST_COLOR_STOPS.at(-1)!.value}%`).join(",")})`,
+        }}
       />
       <div
         className="cp-cams-legend"

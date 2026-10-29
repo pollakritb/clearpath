@@ -1,77 +1,64 @@
 "use client";
 import L from "leaflet";
-import { useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
-import { classifyPm25 } from "@/frontend/lib/aqi";
-import { gridValue } from "@/frontend/lib/forecast-grid";
+import { CAMS_RASTER_BOUNDS, camsRasterUrl } from "@/frontend/lib/cams-raster";
 import type { GridSurface } from "@/frontend/types/ui";
 
-/** Pixel colours come from the same concentration sampler used by the tap card. */
+/** One Canvas-generated geographic raster. Leaflet keeps it visible during pan and zoom. */
 export default function CamsCanvasLayer({
   surface,
+  preload,
 }: {
   surface: GridSurface | null;
+  preload?: GridSurface[];
 }) {
   const map = useMap();
+  const layer = useRef<L.ImageOverlay | null>(null);
+  useLayoutEffect(
+    () => () => {
+      layer.current?.remove();
+      layer.current = null;
+    },
+    [map],
+  );
   useLayoutEffect(() => {
-    if (!surface) return;
-    const canvas = L.DomUtil.create("canvas", "cp-cams-canvas");
-    canvas.setAttribute("aria-hidden", "true");
-    map.getPanes().overlayPane.appendChild(canvas);
-    let raf = 0;
-    const draw = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const size = map.getSize();
-        const scale = Math.max(3, size.x / 480, size.y / 480);
-        const width = Math.ceil(size.x / scale),
-          height = Math.ceil(size.y / scale);
-        canvas.width = width;
-        canvas.height = height;
-        canvas.style.width = `${size.x}px`;
-        canvas.style.height = `${size.y}px`;
-        L.DomUtil.setPosition(canvas, map.containerPointToLayerPoint([0, 0]));
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        const image = ctx.createImageData(width, height);
-        const lats = Array.from(
-          { length: height },
-          (_, i) => map.containerPointToLatLng([0, (i + 0.5) * scale]).lat,
-        );
-        const lons = Array.from(
-          { length: width },
-          (_, i) => map.containerPointToLatLng([(i + 0.5) * scale, 0]).lng,
-        );
-        for (let y = 0; y < height; y++)
-          for (let x = 0; x < width; x++) {
-            const value = gridValue(surface, lats[y], lons[x]);
-            if (value == null) continue;
-            const hex = classifyPm25(value).color;
-            const index = (y * width + x) * 4;
-            image.data[index] = parseInt(hex.slice(1, 3), 16);
-            image.data[index + 1] = parseInt(hex.slice(3, 5), 16);
-            image.data[index + 2] = parseInt(hex.slice(5, 7), 16);
-            image.data[index + 3] = 255;
-          }
-        ctx.putImageData(image, 0, 0);
-      });
-    };
-    const hide = () => {
-      canvas.style.visibility = "hidden";
-    };
-    const redraw = () => {
-      canvas.style.visibility = "visible";
-      draw();
-    };
-    map.on("moveend resize zoomend", redraw);
-    map.on("zoomstart", hide);
-    draw();
-    return () => {
-      cancelAnimationFrame(raf);
-      map.off("moveend resize zoomend", redraw);
-      map.off("zoomstart", hide);
-      canvas.remove();
-    };
+    if (!surface) {
+      layer.current?.remove();
+      layer.current = null;
+      return;
+    }
+    const url = camsRasterUrl(surface);
+    if (layer.current) layer.current.setUrl(url);
+    else {
+      layer.current = L.imageOverlay(url, CAMS_RASTER_BOUNDS, {
+        opacity: 0.4,
+        interactive: false,
+        className: "cp-cams-canvas",
+        zIndex: 0,
+      }).addTo(map);
+      layer.current.getElement()?.setAttribute("aria-hidden", "true");
+    }
   }, [map, surface]);
+  useEffect(() => {
+    if (!surface || !preload?.length) return;
+    let token = 0,
+      index = 0;
+    const idle = typeof window.requestIdleCallback === "function";
+    const warm = () => {
+      camsRasterUrl(preload[index++]);
+      if (index < preload.length) schedule();
+    };
+    const schedule = () => {
+      token = idle
+        ? window.requestIdleCallback(warm, { timeout: 1000 })
+        : window.setTimeout(warm, 60);
+    };
+    schedule();
+    return () => {
+      if (idle) window.cancelIdleCallback(token);
+      else clearTimeout(token);
+    };
+  }, [surface, preload]);
   return null;
 }

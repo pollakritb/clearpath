@@ -7,19 +7,19 @@ import {
   normalizeGridBounds,
   surfaceFor,
 } from "@/frontend/lib/forecast-grid";
+import {
+  cachedGridWindow,
+  gridWindow,
+  gridWindows,
+  loadGridWindow,
+  preparedGridFrames,
+} from "@/frontend/lib/forecast-grid-cache";
 import type {
   ForecastGridMetadata,
   ForecastGridFrames,
 } from "@/frontend/types";
 import type { ViewportBounds } from "@/frontend/types/ui";
 
-// Bounded cache: at most 12 windows of up to six nationwide frames (~few MB).
-const cache = new Map<string, ForecastGridFrames>();
-function remember(key: string, value: ForecastGridFrames) {
-  cache.delete(key);
-  cache.set(key, value);
-  while (cache.size > 12) cache.delete(cache.keys().next().value!);
-}
 export function useForecastGrid(
   enabled: boolean,
   active: boolean,
@@ -27,32 +27,28 @@ export function useForecastGrid(
 ) {
   const [meta, setMeta] = useState<ForecastGridMetadata | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [packet, setPacket] = useState<{
+    data: ForecastGridFrames;
+    at: string;
+  } | null>(null);
   const [playing, setPlaying] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [revision, reload] = useState(0);
+  const [, cacheChanged] = useState(0);
   const previousMeta = useRef<ForecastGridMetadata | null>(null);
-  const selectedRef = useRef<string | null>(null);
-  useEffect(() => {
-    selectedRef.current = selected;
-  }, [selected]);
+  const selectedRef = useRef<string | null>(null),
+    playingRef = useRef(playing);
   useEffect(() => {
     previousMeta.current = meta;
-  }, [meta]);
-  const [error, setError] = useState<string | null>(null);
-  const [packet, setPacket] = useState<{
-    key: string;
-    data: ForecastGridFrames;
-  } | null>(null);
-  const [revision, reload] = useState(0);
-  const visible = enabled && active;
-  const playingRef = useRef(playing);
-  useEffect(() => {
+    selectedRef.current = selected;
     playingRef.current = playing;
-  }, [playing]);
+  }, [meta, selected, playing]);
+  const visible = enabled && active;
   const times = useMemo(() => (meta ? forecastTimes(meta) : []), [meta]);
-  const at =
+  const requestedAt =
     selected && times.includes(selected) ? selected : (times[0] ?? null);
-  const bbox = normalizeGridBounds(viewport);
-  const bboxKey = JSON.stringify(bbox);
+  const outOfBounds = !normalizeGridBounds(viewport);
   useEffect(() => {
     if (!visible) return;
     let alive = true;
@@ -61,24 +57,29 @@ export function useForecastGrid(
       try {
         const next = await api.forecastGridMetadata();
         if (!alive || playingRef.current) return;
-        if (
+        const target = nearestTime(
+          forecastTimes(next),
+          selectedRef.current ?? Math.floor(Date.now() / 3600000) * 3600000,
+        );
+        const changed =
           previousMeta.current?.generation_id &&
-          next.generation_id !== previousMeta.current.generation_id
-        ) {
+          next.generation_id !== previousMeta.current.generation_id;
+        // Keep the old generation whole until the selected new frame is ready.
+        const first =
+          changed && target && next.status === "ready"
+            ? await loadGridWindow(next, gridWindow(next, target))
+            : null;
+        if (!alive || playingRef.current) return;
+        if (changed)
           setNotice(
             selectedRef.current &&
               !forecastTimes(next).includes(selectedRef.current)
               ? "ชุดพยากรณ์ใหม่ไม่มีเวลาเดิม · เลื่อนไปเวลาที่ใกล้ที่สุด"
               : "อัปเดตชุดพยากรณ์แล้ว",
           );
-        }
+        if (first && target) setPacket({ data: first, at: target });
         setMeta(next);
-        setSelected((old) =>
-          nearestTime(
-            forecastTimes(next),
-            old ?? Math.floor(Date.now() / 3_600_000) * 3_600_000,
-          ),
-        );
+        setSelected(target);
         setError(null);
       } catch (e) {
         if (alive) setError(apiErrorMessage(e, "โหลดพยากรณ์ไม่สำเร็จ"));
@@ -91,61 +92,16 @@ export function useForecastGrid(
       document.removeEventListener("visibilitychange", load);
     };
   }, [visible, revision]);
-  const bucketBoundary = at
-    ? Math.floor(Date.parse(at) / (6 * 3_600_000)) * 6 * 3_600_000
-    : 0;
-  const bucketStart = at
-    ? times.find((t) => Date.parse(t) >= bucketBoundary)
-    : undefined;
-  const windowTimes = bucketStart
-    ? times
-        .filter(
-          (t) =>
-            new Date(t).getTime() >= new Date(bucketStart).getTime() &&
-            new Date(t).getTime() <=
-              new Date(bucketStart).getTime() + 5 * 3_600_000,
-        )
-        .slice(0, 6)
-    : [];
-  // Bucket windows by their actual timestamp list, retaining the selected frame.
-  const start = windowTimes[0],
-    end = windowTimes.at(-1);
-  const requestKey =
-    visible && meta?.generation_id && bbox && start && end
-      ? `${meta.generation_id}:${bboxKey}:${start}:${end}`
-      : "";
   useEffect(() => {
-    if (!requestKey || !meta?.generation_id || !start || !end) return;
-    const bounds = JSON.parse(bboxKey) as ViewportBounds;
+    if (!visible || !meta?.generation_id || !requestedAt) return;
     let alive = true;
-    const abort = new AbortController();
-    const timer = window.setTimeout(() => {
-      const hit = cache.get(requestKey);
-      const load = hit
-        ? Promise.resolve(hit)
-        : api.forecastGridFrames(
-            meta.generation_id!,
-            start,
-            end,
-            bounds,
-            abort.signal,
-          );
-      void load
+    const timer = setTimeout(() => {
+      void loadGridWindow(meta, gridWindow(meta, requestedAt))
         .then((data) => {
-          if (!alive) return;
-          if (
-            data.generation_id !== meta.generation_id ||
-            data.grid_version !== meta.grid_version ||
-            data.rows < 2 ||
-            data.columns < 2 ||
-            data.frames.some(
-              (f) => f.values.length !== data.rows * data.columns,
-            )
-          )
-            throw Error("grid generation or geometry mismatch");
-          remember(requestKey, data);
-          setPacket({ key: requestKey, data });
-          setError(null);
+          if (alive) {
+            setPacket({ data, at: requestedAt });
+            setError(null);
+          }
         })
         .catch((e) => {
           if (alive) {
@@ -155,143 +111,149 @@ export function useForecastGrid(
             );
           }
         });
-    }, 180);
+    }, 80);
+    // An obsolete request may finish into the bounded cache, but never change selection.
     return () => {
       alive = false;
       clearTimeout(timer);
-      abort.abort();
     };
-  }, [
-    requestKey,
-    meta?.generation_id,
-    meta?.grid_version,
-    start,
-    end,
-    bboxKey,
-    revision,
-  ]);
-  // During playback, prefetch just the next window. No background work while hidden/off.
+  }, [visible, meta, requestedAt, revision]);
   useEffect(() => {
-    if (
-      !playing ||
-      !visible ||
-      packet?.key !== requestKey ||
-      !meta?.generation_id ||
-      !end ||
-      !bbox
-    )
-      return;
-    const nextStart = times.find((t) => Date.parse(t) > Date.parse(end));
-    const next = nextStart
-      ? times
-          .filter(
-            (t) =>
-              Date.parse(t) >= Date.parse(nextStart) &&
-              Date.parse(t) <= Date.parse(nextStart) + 5 * 3_600_000,
-          )
-          .slice(0, 6)
-      : [];
-    if (!next.length) return;
-    const key = `${meta.generation_id}:${bboxKey}:${next[0]}:${next.at(-1)}`;
-    if (cache.has(key)) return;
-    const abort = new AbortController();
+    if (!visible || !meta?.generation_id) return;
     let alive = true;
-    void api
-      .forecastGridFrames(
-        meta.generation_id,
-        next[0],
-        next.at(-1)!,
-        bbox,
-        abort.signal,
-      )
-      .then((data) => {
-        if (alive && data.generation_id === meta.generation_id)
-          remember(key, data);
-      })
-      .catch(() => {});
+    const prepare = async () => {
+      const target = nearestTime(
+        forecastTimes(meta),
+        selectedRef.current ?? Math.floor(Date.now() / 3600000) * 3600000,
+      );
+      if (!target) return;
+      try {
+        await loadGridWindow(meta, gridWindow(meta, target));
+      } catch {
+        return;
+      }
+      if (!alive) return;
+      cacheChanged((v) => v + 1);
+      const windows = gridWindows(meta).filter(
+        (w) =>
+          w.some((at) => times.includes(at)) && !cachedGridWindow(meta, w[0]),
+      );
+      windows.sort(
+        (a, b) =>
+          Math.abs(Date.parse(a[0]) - Date.parse(target)) -
+          Math.abs(Date.parse(b[0]) - Date.parse(target)),
+      );
+      // Two small requests at a time; warm the entire horizon even before playback.
+      const worker = async () => {
+        while (alive && windows.length) {
+          const window = windows.shift()!;
+          try {
+            await loadGridWindow(meta, window);
+            if (alive) cacheChanged((v) => v + 1);
+          } catch {
+            /* foreground selection exposes errors and supports retry */
+          }
+        }
+      };
+      await Promise.all([worker(), worker()]);
+    };
+    void prepare();
+    // Already-started reads can complete into cache; no further prefetch starts after cleanup.
     return () => {
       alive = false;
-      abort.abort();
     };
-    // Bounds are represented by bboxKey.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    playing,
-    visible,
-    packet,
-    requestKey,
-    meta?.generation_id,
-    end,
-    bboxKey,
-    times,
-  ]);
-  // Reuse a prefetched window containing this timestamp, independent of slider request key.
-  const cached =
-    visible && at && meta?.generation_id
-      ? [...cache.entries()]
-          .reverse()
-          .find(
-            ([key, value]) =>
-              key.startsWith(`${meta.generation_id}:${bboxKey}:`) &&
-              value.frames.some(
-                (f) =>
-                  new Date(f.valid_at).getTime() === new Date(at).getTime(),
-              ),
-          )?.[1]
-      : undefined;
-  const data = packet?.key === requestKey ? packet.data : cached;
-  const surface = useMemo(
-    () => (visible && at && meta && data ? surfaceFor(meta, data, at) : null),
-    [visible, at, meta, data],
-  );
-  const noFrame = Boolean(visible && at && data && !surface);
+  }, [visible, meta, revision, times]);
+  const data =
+    meta && requestedAt ? cachedGridWindow(meta, requestedAt) : undefined;
+  const surface = useMemo(() => {
+    if (!visible || !meta || !requestedAt) return null;
+    if (data) return surfaceFor(meta, data, requestedAt);
+    return packet ? surfaceFor(meta, packet.data, packet.at) : null;
+  }, [visible, meta, requestedAt, data, packet]);
+  const at = surface?.validAt ?? requestedAt;
+  const pendingAt = visible && requestedAt && !data ? requestedAt : null;
+  const noFrame = Boolean(visible && data && requestedAt && !surface);
   const loading =
     visible &&
     !error &&
-    (!meta ||
-      (meta.status === "ready" && Boolean(bbox) && !surface && !noFrame));
+    (!meta || (meta.status === "ready" && !data && !surface));
+  const rememberSelection = useCallback(
+    (value: string) => {
+      setSelected(value);
+      const hit = meta ? cachedGridWindow(meta, value) : undefined;
+      if (hit) setPacket({ data: hit, at: value });
+    },
+    [meta],
+  );
+  const pause = useCallback(() => setPlaying(false), []);
+  const choose = useCallback(
+    (value: string) => {
+      pause();
+      rememberSelection(value);
+    },
+    [pause, rememberSelection],
+  );
   useEffect(() => {
-    if (!visible || !playing || !surface || error) return;
-    const timer = window.setTimeout(() => {
-      const index = times.indexOf(at!);
-      if (index >= times.length - 1) setPlaying(false);
-      else setSelected(times[index + 1]);
+    if (!visible || !playing || !surface || pendingAt || error) return;
+    const timer = setTimeout(() => {
+      const i = times.indexOf(at!);
+      if (i >= times.length - 1) setPlaying(false);
+      else rememberSelection(times[i + 1]);
     }, 1400);
     return () => clearTimeout(timer);
-  }, [visible, playing, surface, at, times, error]);
+  }, [
+    visible,
+    playing,
+    surface,
+    pendingAt,
+    error,
+    times,
+    at,
+    rememberSelection,
+  ]);
   useEffect(() => {
-    const pause = () => {
-      if (document.hidden) setPlaying(false);
+    const stop = () => {
+      if (document.hidden) pause();
     };
-    document.addEventListener("visibilitychange", pause);
-    return () => document.removeEventListener("visibilitychange", pause);
-  }, []);
-  const pause = useCallback(() => setPlaying(false), []);
+    document.addEventListener("visibilitychange", stop);
+    return () => document.removeEventListener("visibilitychange", stop);
+  }, [pause]);
   useEffect(() => {
     if (visible) return;
     const frame = requestAnimationFrame(pause);
     return () => cancelAnimationFrame(frame);
   }, [visible, pause]);
-  const choose = useCallback((value: string) => {
-    setPlaying(false);
-    setSelected(value);
-  }, []);
   const goNow = useCallback(() => choose(times[0] ?? ""), [choose, times]);
+  const preparedFrames = meta ? preparedGridFrames(meta, times) : 0;
+  const preloadSurfaces = useMemo(() => {
+    if (!visible || !meta || !at || !preparedFrames) return [];
+    return times
+      .slice(times.indexOf(at) + 1, times.indexOf(at) + 3)
+      .flatMap((time) => {
+        const hit = cachedGridWindow(meta, time);
+        const frame = hit ? surfaceFor(meta, hit, time) : null;
+        return frame ? [frame] : [];
+      });
+  }, [visible, meta, at, times, preparedFrames]);
   return {
+    preloadSurfaces,
     meta,
     notice,
     times,
     at,
+    requestedAt,
+    pendingAt,
     surface,
     noFrame,
     loading,
     error,
+    preparedFrames,
     playing: playing && visible,
     select: choose,
     pause,
     togglePlay: () => {
       if (playing) {
-        setPlaying(false);
+        pause();
         return;
       }
       if (
@@ -302,11 +264,14 @@ export function useForecastGrid(
         times.indexOf(at) === times.length - 1
       )
         return;
-      setPlaying((v) => !v);
+      setPlaying(true);
     },
     now: goNow,
-    retry: () => reload((v) => v + 1),
+    retry: () => {
+      setError(null);
+      reload((v) => v + 1);
+    },
     unavailable: meta?.status === "unavailable",
-    outOfBounds: !bbox,
+    outOfBounds,
   };
 }

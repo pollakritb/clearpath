@@ -13,6 +13,42 @@ export function useMeasurementRequests(userId: string | null, active = true) {
   } | null>(null);
   const [failedFor, setFailedFor] = useState<string | null>(null);
   const sequence = useRef(0);
+  const [clock, setClock] = useState(() => Date.now());
+  useEffect(() => {
+    if (!userId || !active) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      const now = Date.now();
+      setClock(now);
+      schedule(now);
+    };
+    const schedule = (now: number) => {
+      const boundaries = (snapshot?.userId === userId ? snapshot.rows : [])
+        .flatMap((row) => [
+          Date.parse(row.starts_at),
+          Date.parse(row.expires_at),
+        ])
+        .filter((at) => Number.isFinite(at) && at > now);
+      const delay = boundaries.length
+        ? Math.min(60000, Math.max(1, Math.min(...boundaries) - now + 1))
+        : 60000;
+      timer = setTimeout(tick, delay);
+    };
+    schedule(Date.now());
+    const resume = () => {
+      if (document.visibilityState !== "hidden") {
+        clearTimeout(timer);
+        tick();
+      }
+    };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("focus", resume);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("focus", resume);
+    };
+  }, [userId, active, snapshot]);
   useEffect(() => {
     if (!userId) return;
     const updated = (event: Event) => {
@@ -93,7 +129,7 @@ export function useMeasurementRequests(userId: string | null, active = true) {
   const data = snapshot?.userId === userId ? snapshot : null;
   return {
     rows: data?.rows ?? [],
-    now: data?.now ?? 0,
+    now: Math.max(data?.now ?? 0, clock),
     failed: Boolean(userId && failedFor === userId),
     upsert,
   };

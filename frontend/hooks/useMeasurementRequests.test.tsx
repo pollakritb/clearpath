@@ -1,3 +1,4 @@
+import { visibleMapRequests } from "@/frontend/lib/request-map";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useMeasurementRequests } from "./useMeasurementRequests";
@@ -88,4 +89,35 @@ it("drops an old account response after signing out", async () => {
     resolve({ requests: [{ id: "private" } as MeasurementRequestView] }),
   );
   expect(result.current.rows).toEqual([]);
+});
+
+it("expires cached map requests at their deadline even when the API is unavailable", async () => {
+  vi.useFakeTimers();
+  const start = Date.parse("2030-01-01T00:00Z");
+  vi.setSystemTime(start);
+  const row = {
+    id: "deadline",
+    status: "active",
+    lat: 14,
+    lon: 100,
+    starts_at: new Date(start - 1000).toISOString(),
+    expires_at: new Date(start + 2000).toISOString(),
+  } as MeasurementRequestView;
+  mocks.list
+    .mockResolvedValueOnce({ requests: [row] })
+    .mockRejectedValue(new Error("offline"));
+  const { result, unmount } = renderHook(() =>
+    useMeasurementRequests("viewer"),
+  );
+  await act(async () => {});
+  expect(result.current.rows).toHaveLength(1);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(2001);
+  });
+  expect(result.current.now).toBeGreaterThan(Date.parse(row.expires_at));
+  expect(visibleMapRequests(result.current.rows, result.current.now)).toEqual(
+    [],
+  );
+  unmount();
+  vi.useRealTimers();
 });

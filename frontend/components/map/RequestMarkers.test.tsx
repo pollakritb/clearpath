@@ -71,7 +71,7 @@ it("selects a saved request and shows its exact requested radius without injecti
     "3000",
   );
 });
-it("keeps active and recent completed requests, hides old or cancelled ones unless explicitly selected", () => {
+it("hides expired and cancelled requests even when selected, and keeps live requests", () => {
   const old = {
     ...request,
     id: "old",
@@ -99,7 +99,6 @@ it("keeps active and recent completed requests, hides old or cancelled ones unle
   ]);
   expect(visibleMapRequests(rows, now, "old").map((r) => r.id)).toEqual([
     "r",
-    "old",
     "completed",
   ]);
   expect(
@@ -108,4 +107,25 @@ it("keeps active and recent completed requests, hides old or cancelled ones unle
   expect(
     requestMapStatus({ ...request, expires_at: "2026-10-29T23:00:00Z" }, now),
   ).toBe("expired");
+});
+
+it("hides a past deadline before the server status changes and activates a due scheduled request", () => {
+  const stale = { ...request, expires_at: new Date(now - 1).toISOString() };
+  expect(visibleMapRequests([stale], now, stale.id)).toEqual([]);
+  expect(
+    visibleMapRequests([{ ...request, expires_at: "invalid" }], now),
+  ).toEqual([]);
+  expect(
+    requestMapStatus(
+      {
+        ...request,
+        status: "scheduled",
+        starts_at: new Date(now - 1).toISOString(),
+      },
+      now,
+    ),
+  ).toBe("active");
+  expect(
+    visibleMapRequests([{ ...request, status: "expired" }], now, request.id),
+  ).toEqual([]);
 });

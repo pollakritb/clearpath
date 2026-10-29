@@ -95,3 +95,38 @@ export const AQI_LEGEND = [
   },
   { range: "≥75.1", level: "มีผลกระทบต่อสุขภาพ", color: "#ef4444", glyph: "✦" },
 ];
+
+/** CAMS-only continuous display ramp; observation categories and their colours stay unchanged. */
+export const FORECAST_COLOR_STOPS = BANDS.map(([upper, , , color], index) => {
+  const lower = index ? BANDS[index - 1][0] : 0;
+  const end = Number.isFinite(upper)
+    ? upper
+    : lower + (lower - BANDS[index - 2][0]);
+  return { value: (lower + end) / 2, color };
+});
+const rgb = (hex: string) => parseInt(hex.slice(1), 16);
+export function forecastColorPacked(raw: number): number {
+  const value = Math.round(raw * 100) / 100;
+  if (value <= FORECAST_COLOR_STOPS[0].value)
+    return rgb(FORECAST_COLOR_STOPS[0].color);
+  for (let i = 1; i < FORECAST_COLOR_STOPS.length; i++) {
+    const a = FORECAST_COLOR_STOPS[i - 1],
+      b = FORECAST_COLOR_STOPS[i];
+    if (value <= b.value) {
+      const t = (value - a.value) / (b.value - a.value),
+        start = rgb(a.color),
+        end = rgb(b.color);
+      const channel = (shift: number) =>
+        Math.round(
+          ((start >> shift) & 255) * (1 - t) + ((end >> shift) & 255) * t,
+        );
+      return (channel(16) << 16) | (channel(8) << 8) | channel(0);
+    }
+  }
+  return rgb(FORECAST_COLOR_STOPS.at(-1)!.color);
+}
+export function forecastColor(value: number | null | undefined): string {
+  return value == null || !Number.isFinite(value)
+    ? UNKNOWN.color
+    : `#${forecastColorPacked(value).toString(16).padStart(6, "0")}`;
+}
