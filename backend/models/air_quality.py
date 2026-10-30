@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from .community import CommunityReport, CommunityReportStack
+
 
 class Station(BaseModel):
     id: str
@@ -46,6 +48,8 @@ class HistoryResponse(BaseModel):
 
 
 class MapHistoryResponse(BaseModel):
+    reports: list[CommunityReport] = Field(default_factory=list)
+    stacks: list[CommunityReportStack] = Field(default_factory=list)
     target_at: str
     source: Literal["air4thai"] = "air4thai"
     stations: list[Station]

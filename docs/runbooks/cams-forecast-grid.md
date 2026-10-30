@@ -38,7 +38,11 @@ history, nearest-reading surface, reports and measurement requests. Keep
   image overlay, so pan/zoom never clears or rebuilds it. Raster resolution
   does not increase model resolution. Missing areas remain transparent.
   Up to eight compressed raster URLs are cached; the next two frames are
-  rendered during idle time.
+  rendered during idle time. Pixel interpolation runs in a bundled Web Worker
+  with OffscreenCanvas; unsupported/failed workers fall back to cooperative
+  32-row rendering and asynchronous PNG encoding. Raster decoding completes
+  before the surface, point value and displayed timestamp change together.
+  Playback waits for presentation acknowledgement before advancing a frame.
 
 Provider references: [API](https://open-meteo.com/en/docs/air-quality-api),
 [terms and limits](https://open-meteo.com/en/terms).
@@ -71,9 +75,20 @@ Backend uses the server-only Supabase service role. RPCs are security invoker.
   national grid in six-hour windows, not per viewport. It prepares all remaining
   forecast windows on opening CAMS with two concurrent requests, even before
   playback. Cache holds at most 40 windows keyed by generation and actual times.
+  Missing timestamps and transient failures are retried up to three total
+  attempts (300/600 ms backoff); authorization/client errors are not retried.
+  The prepared counter counts actual frames containing usable data. Partial
+  results remain honest, and manual retry invalidates incomplete windows.
   Closing CAMS stops queued prefetch work. Pan/zoom makes no new frame requests.
   An uncached time keeps the last surface and its actual timestamp visible
   with a loading notice until the requested frame is ready.
+- While open, the timeline advances at hour boundaries; Now calculates from
+  the actual clock, and expired horizons cannot keep displaying old frames.
+  Metadata refreshes every five minutes, on focus/return and after playback
+  pauses. Superseded metadata/image results cannot overwrite newer choices.
+  New generations are not installed during playback.
+- A point outside the Thailand mask explicitly says it is outside the forecast
+  area, separately from missing data inside Thailand.
 
 Public reads never invoke upstream. Fetch failures are sanitized as 502; a
 missing/unconfigured database is not silently replaced with generated forecasts.

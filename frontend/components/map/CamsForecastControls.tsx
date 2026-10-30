@@ -32,6 +32,7 @@ export default function CamsForecastControls({
   onExit: () => void;
 }) {
   const { meta, at, times, surface, loading, error } = grid;
+  const outside = !!point && !isInThailand(point.lat, point.lon);
   const value =
     point && surface && isInThailand(point.lat, point.lon)
       ? gridValue(surface, point.lat, point.lon)
@@ -52,10 +53,10 @@ export default function CamsForecastControls({
             : grid.noFrame ||
                 (surface && surface.values.every((v) => v === null))
               ? "ไม่มีข้อมูลช่วงนี้"
-              : grid.notice
-                ? grid.notice
-                : meta?.stale
-                  ? "ใช้ชุดข้อมูลเดิม · ตรวจเวลาอัปเดต"
+              : meta?.stale
+                ? "ใช้ชุดข้อมูลเดิม · ตรวจเวลาอัปเดต"
+                : grid.notice
+                  ? grid.notice
                   : "CAMS · ภาพรวมระดับพื้นที่");
   return (
     <div className="cp-cams-dock">
@@ -77,19 +78,30 @@ export default function CamsForecastControls({
             </button>
           </div>
           <p>
-            <b style={{ color: forecastColor(value) }}>
-              {loading ? "…" : value == null ? "ไม่มีข้อมูล" : value.toFixed(1)}
+            <b
+              data-message={outside || value == null ? "true" : undefined}
+              style={{ color: forecastColor(value) }}
+            >
+              {outside
+                ? "นอกพื้นที่พยากรณ์ประเทศไทย"
+                : loading
+                  ? "…"
+                  : value == null
+                    ? "ไม่มีข้อมูล"
+                    : value.toFixed(1)}
             </b>
             {value != null && <> µg/m³ · {cls.level}</>}
           </p>
           <small>{at ? formatForecastTime(at) : ""} · CAMS</small>
-          <button
-            type="button"
-            className="cp-cams-point__request cp-focus"
-            onClick={onRequest}
-          >
-            ขอให้ชุมชนช่วยวัดบริเวณนี้ →
-          </button>
+          {!outside && (
+            <button
+              type="button"
+              className="cp-cams-point__request cp-focus"
+              onClick={onRequest}
+            >
+              ขอให้ชุมชนช่วยวัดบริเวณนี้ →
+            </button>
+          )}
         </section>
       )}
       <MapTimelineControls
@@ -222,9 +234,9 @@ export default function CamsForecastControls({
           </span>
         ))}
       </div>
-      {error && (
+      {(error || grid.noFrame) && (
         <div className="cp-cams-footer">
-          {error && (
+          {(error || grid.noFrame) && (
             <button type="button" onClick={grid.retry}>
               ลองใหม่
             </button>

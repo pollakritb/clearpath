@@ -7568,6 +7568,10 @@
 .cp-cams-point p b {
   font-size: 27px;
 }
+.cp-cams-point p b[data-message="true"] {
+  font-size: 14px;
+  line-height: 1.5;
+}
 .cp-cams-point small {
   font-size: 11px;
   color: #536f69;

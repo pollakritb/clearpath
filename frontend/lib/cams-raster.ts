@@ -8,11 +8,11 @@ export const CAMS_RASTER_BOUNDS: [[number, number], [number, number]] = [
 ];
 const mercator = (lat: number) => Math.asinh(Math.tan((lat * Math.PI) / 180));
 /** Sample in Web Mercator so Leaflet's pan/zoom transforms align the raster exactly. */
-export function renderCamsPixels(
+function* rasterRows(
   surface: GridSurface,
   width = 512,
   height = 960,
-): Uint8ClampedArray {
+): Generator<void, Uint8ClampedArray> {
   const pixels = new Uint8ClampedArray(width * height * 4);
   const north = mercator(21),
     south = mercator(5);
@@ -43,6 +43,7 @@ export function renderCamsPixels(
   const colours = new Uint32Array(maxColour + 1);
   const known = new Uint8Array(colours.length);
   for (let y = 0; y < height; y++) {
+    if (y % 32 === 0) yield;
     const row = ys[y];
     if (!row) continue;
     for (let x = 0; x < width; x++) {
@@ -75,22 +76,28 @@ export function renderCamsPixels(
   }
   return pixels;
 }
-const images = new Map<string, string>();
-/** Eight compressed frames, not 120 full-size canvases, bound raster memory on mobile. */
-export function camsRasterUrl(surface: GridSurface): string {
-  const key = `${surface.generationId}:${surface.validAt}`;
-  const hit = images.get(key);
-  if (hit) return hit;
-  const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 960;
-  const context = canvas.getContext("2d");
-  if (!context) throw Error("Canvas unavailable");
-  const image = context.createImageData(canvas.width, canvas.height);
-  image.data.set(renderCamsPixels(surface, canvas.width, canvas.height));
-  context.putImageData(image, 0, 0);
-  const url = canvas.toDataURL("image/png");
-  images.set(key, url);
-  while (images.size > 8) images.delete(images.keys().next().value!);
-  return url;
+/** Synchronous entry for worker and pure numerical tests. */
+export function renderCamsPixels(
+  surface: GridSurface,
+  width = 512,
+  height = 960,
+) {
+  const rows = rasterRows(surface, width, height);
+  let result = rows.next();
+  while (!result.done) result = rows.next();
+  return result.value;
+}
+/** Cooperative fallback for browsers without OffscreenCanvas workers. */
+export async function renderCamsPixelsAsync(
+  surface: GridSurface,
+  width = 512,
+  height = 960,
+) {
+  const rows = rasterRows(surface, width, height);
+  let result = rows.next();
+  while (!result.done) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    result = rows.next();
+  }
+  return result.value;
 }

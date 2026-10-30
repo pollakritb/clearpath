@@ -2,7 +2,11 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
-import type { MapHistoryResponse, Station } from "@/frontend/types";
+import type {
+  CommunityReport,
+  MapHistoryResponse,
+  Station,
+} from "@/frontend/types";
 import { useMapHistory } from "./useMapHistory";
 
 vi.mock("@/frontend/lib/api-client", () => ({
@@ -19,6 +23,8 @@ const history = (
   target_at: string,
 ): MapHistoryResponse => ({
   stations,
+  reports: [],
+  stacks: [],
   target_at,
   source: "air4thai",
   count: stations.length,
@@ -113,4 +119,22 @@ describe("useMapHistory", () => {
     expect(result.current.stations).toEqual([]);
     expect(result.current.targetAt).toBeNull();
   });
+});
+
+it("loads reports belonging to the historical response and removes them on expiry, stale responses or clear", async () => {
+  const report = { id: "historical-user", pm25: 28 } as CommunityReport;
+  vi.mocked(api.mapHistory)
+    .mockResolvedValueOnce({
+      ...history([], firstTime.toISOString()),
+      reports: [report],
+    })
+    .mockResolvedValueOnce(history([], secondTime.toISOString()));
+  const { result } = renderHook(useMapHistory);
+  await act(async () => result.current.load(firstTime));
+  expect(result.current.reports).toEqual([report]);
+  await act(async () => result.current.load(secondTime));
+  expect(result.current.reports).toEqual([]);
+  act(() => result.current.clear());
+  expect(result.current.reports).toEqual([]);
+  expect(result.current.stacks).toEqual([]);
 });

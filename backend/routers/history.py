@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query
 
 from ..models.schemas import HistoryPoint, HistoryResponse, MapHistoryResponse, Station
 from ..services import supabase_client
-from ..services.map_history import get_map_history
+from ..services.map_history import get_map_history, get_map_history_community
 
 router = APIRouter()
 
@@ -36,11 +36,14 @@ async def map_history(
     if target < earliest:
         target = earliest
     rows = await get_map_history(target, max_age_minutes=max_age_minutes)
+    reports, stacks = await get_map_history_community(target, rows)
     stations = [
         Station(**{key: row.get(key) for key in Station.model_fields}) for row in rows
     ]
     return MapHistoryResponse(
         target_at=target.astimezone(UTC).isoformat(),
+        reports=reports,
+        stacks=stacks,
         stations=stations,
         count=len(stations),
         max_age_minutes=max_age_minutes,

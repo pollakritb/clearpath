@@ -5,7 +5,7 @@ import {
   forecastColorPacked,
   classifyPm25,
 } from "./aqi";
-import { renderCamsPixels } from "./cams-raster";
+import { renderCamsPixels, renderCamsPixelsAsync } from "./cams-raster";
 import type { GridSurface } from "@/frontend/types/ui";
 const grid: GridSurface = {
   latitudes: [4.4, 21.6],
@@ -51,4 +51,10 @@ describe("smooth forecast presentation", () => {
       [...pixels].filter((_, i) => i % 4 === 3).every((alpha) => alpha === 0),
     ).toBe(true);
   });
+});
+
+it("cooperative rendering produces the same numerical raster as worker rendering", async () => {
+  expect(await renderCamsPixelsAsync(grid, 32, 64)).toEqual(
+    renderCamsPixels(grid, 32, 64),
+  );
 });

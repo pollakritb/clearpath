@@ -195,9 +195,10 @@ it("reports a missing complete frame without a perpetual loading indicator", asy
     frames: [],
   });
   const { result } = renderHook(() => useForecastGrid(true, true, null));
-  await advance();
+  await advance(1200);
   expect(result.current.loading).toBe(false);
   expect(result.current.noFrame).toBe(true);
+  expect(result.current.preparedFrames).toBe(0);
 });
 
 it("keeps the displayed frame and timestamp while an uncached selected window is loading", async () => {
@@ -258,4 +259,67 @@ it("warms every future window before playback and then supports offline seeking"
   expect(result.current.surface?.validAt).toBe(meta().valid_times[10]);
   await advance();
   expect(api.forecastGridFrames).toHaveBeenCalledTimes(calls);
+});
+
+it("advances the available horizon and Now button at an hour boundary while the page stays open", async () => {
+  vi.mocked(api.forecastGridMetadata).mockResolvedValue(meta("hour-clock"));
+  const { result } = renderHook(() => useForecastGrid(true, true, null));
+  await advance();
+  await advance(40 * 60000);
+  expect(result.current.times[0]).toBe(meta().valid_times[1]);
+  act(() => result.current.now());
+  expect(result.current.requestedAt).toBe(meta().valid_times[1]);
+  vi.setSystemTime(Date.parse("2030-01-01T12:01Z"));
+  act(() => window.dispatchEvent(new Event("focus")));
+  await advance();
+  expect(result.current.unavailable).toBe(true);
+  expect(result.current.surface).toBeNull();
+});
+
+it("checks for new generations on pause, without replacing the dataset mid-playback", async () => {
+  const first = meta("poll-old");
+  vi.mocked(api.forecastGridMetadata).mockResolvedValue(first);
+  const { result } = renderHook(() => useForecastGrid(true, true, null));
+  await advance();
+  act(() => result.current.togglePlay());
+  vi.mocked(api.forecastGridMetadata).mockResolvedValue(meta("poll-new"));
+  act(() => window.dispatchEvent(new Event("focus")));
+  await advance();
+  expect(result.current.meta?.generation_id).toBe("poll-old");
+  act(() => result.current.pause());
+  await advance();
+  expect(result.current.meta?.generation_id).toBe("poll-new");
+  expect(result.current.surface?.generationId).toBe("poll-new");
+});
+
+it("ignores metadata responses superseded by a newer refresh", async () => {
+  let finish: (v: ForecastGridMetadata) => void = () => {};
+  vi.mocked(api.forecastGridMetadata)
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    )
+    .mockResolvedValue(meta("latest-metadata"));
+  const { result } = renderHook(() => useForecastGrid(true, true, null));
+  await advance();
+  act(() => window.dispatchEvent(new Event("focus")));
+  await advance();
+  await act(async () => finish(meta("late-metadata")));
+  expect(result.current.meta?.generation_id).toBe("latest-metadata");
+});
+
+it("waits for the displayed raster before advancing playback on slow devices", async () => {
+  vi.mocked(api.forecastGridMetadata).mockResolvedValue(meta("slow-raster"));
+  const { result } = renderHook(() => useForecastGrid(true, true, null, true));
+  await advance();
+  act(() => result.current.togglePlay());
+  await advance(3000);
+  expect(result.current.at).toBe(meta().valid_times[0]);
+  act(() => result.current.didPresent(result.current.surface!));
+  await advance(1500);
+  expect(result.current.at).toBe(meta().valid_times[1]);
+  await advance(3000);
+  expect(result.current.at).toBe(meta().valid_times[1]);
 });

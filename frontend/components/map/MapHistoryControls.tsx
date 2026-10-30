@@ -7,6 +7,7 @@ export default function MapHistoryControls({
   offsetHours,
   targetAt,
   stationCount,
+  reportCount = 0,
   loading,
   error,
   onOffsetChange,
@@ -16,6 +17,7 @@ export default function MapHistoryControls({
   offsetHours: number;
   targetAt: string | null;
   stationCount: number;
+  reportCount?: number;
   loading: boolean;
   error: string | null;
   onOffsetChange: (hours: number) => void;
@@ -66,7 +68,11 @@ export default function MapHistoryControls({
           setPlaying(false);
           onReturnCurrent();
         }}
-        summary={loading ? "กำลังโหลด…" : `${stationCount} สถานี`}
+        summary={
+          loading
+            ? "กำลังโหลด…"
+            : `${stationCount} สถานี · ${reportCount} รายงาน`
+        }
         error={error}
       />
     </div>

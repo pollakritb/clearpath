@@ -1005,6 +1005,20 @@ def list_reports(status: str, limit: int) -> list[dict]:
         return [dict(row) for row in rows[:limit]]
 
 
+def get_map_history_reports(target_at: datetime, max_age_minutes: float) -> list[dict]:
+    from ..algorithms.map_history import select_map_history_reports
+
+    with _LOCK:
+        return [
+            dict(row)
+            for row in select_map_history_reports(
+                list(_REPORTS.values()),
+                target_at=target_at,
+                max_age_minutes=max_age_minutes,
+            )
+        ]
+
+
 def list_user_reports(user_id: str, limit: int) -> list[dict]:
     with _LOCK:
         rows = [

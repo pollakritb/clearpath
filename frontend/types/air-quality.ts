@@ -1,3 +1,5 @@
+import type { CommunityReport, CommunityReportStack } from "./community";
+
 export interface Station {
   id: string;
   name_th: string | null;
@@ -39,6 +41,8 @@ export interface HistoryResponse {
 }
 
 export interface MapHistoryResponse {
+  reports: CommunityReport[];
+  stacks: CommunityReportStack[];
   target_at: string;
   source: "air4thai";
   stations: Station[];

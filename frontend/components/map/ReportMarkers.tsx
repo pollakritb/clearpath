@@ -147,6 +147,7 @@ export default function ReportMarkers({
             )}
             title={label}
             alt={label}
+            zIndexOffset={report.id === selectedId ? 1700 : 1500}
             eventHandlers={{ click: () => onSelect?.(report) }}
           />
         );

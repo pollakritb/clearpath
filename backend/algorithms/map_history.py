@@ -1,6 +1,6 @@
 """Pure selection logic for historical map snapshots."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from .area import is_thailand
 
@@ -72,3 +72,35 @@ def select_map_history_stations(
             }
         )
     return snapshot
+
+
+def select_map_history_reports(
+    reports: list[dict], *, target_at: datetime, max_age_minutes: float = 180
+) -> list[dict]:
+    """Approved reports exist only after publication, until measurement expiry.
+
+    The reference is the selected map time, never the current wall clock.
+    Expiry is exclusive; malformed publication/capture times fail closed.
+    """
+    target = _as_utc(target_at)
+    if target is None:
+        raise ValueError("target_at must be a valid datetime")
+    selected = []
+    for row in reports:
+        captured = _as_utc(row.get("captured_at"))
+        created = _as_utc(row.get("created_at"))
+        published = (
+            _as_utc(row.get("moderated_at")) if row.get("moderated_at") else created
+        )
+        if (
+            row.get("status") != "approved"
+            or row.get("pm25") is None
+            or captured is None
+            or created is None
+            or published is None
+            or max(captured, created, published) > target
+            or target >= captured + timedelta(minutes=max_age_minutes)
+        ):
+            continue
+        selected.append(row)
+    return selected

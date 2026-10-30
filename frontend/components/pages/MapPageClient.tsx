@@ -11,6 +11,7 @@ import ReportStackCard from "@/frontend/components/app/ReportStackCard";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import CamsForecastControls from "@/frontend/components/map/CamsForecastControls";
 import { useMapDataMode } from "@/frontend/hooks/useMapDataMode";
+import { useCamsPresentation } from "@/frontend/hooks/useCamsPresentation";
 import { useForecastGrid } from "@/frontend/hooks/useForecastGrid";
 import type { ViewportBounds } from "@/frontend/types/ui";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
@@ -116,7 +117,9 @@ export default function MapPageClient({
     lon: number;
     name?: string;
   } | null>(null);
-  const cams = useForecastGrid(camsEnabled, active, viewport);
+  const cams = useCamsPresentation(
+    useForecastGrid(camsEnabled, active, viewport, true),
+  );
   const pauseCams = cams.pause;
   const resetCamsTime = cams.now;
   const [historyAnchor, setHistoryAnchor] = useState(() => Date.now());
@@ -221,7 +224,9 @@ export default function MapPageClient({
     [community.reports],
   );
   const selectedStack =
-    community.stacks.find((stack) => stack.id === selectedStackId) ?? null;
+    (historyEnabled ? mapHistory.stacks : community.stacks).find(
+      (stack) => stack.id === selectedStackId,
+    ) ?? null;
   const effectiveFocusPoint =
     focusPoint ?? (community.demoMode ? DEMO_COMMUNITY_CENTER : null);
   const visibleStations = historyEnabled
@@ -250,7 +255,7 @@ export default function MapPageClient({
       : null;
   const placeAir = useMemo(
     () =>
-      selectedPlace && !camsEnabled
+      selectedPlace && !camsEnabled && !historyEnabled
         ? assessPlaceAir(
             selectedPlace.lat,
             selectedPlace.lon,
@@ -265,6 +270,7 @@ export default function MapPageClient({
       community.reports,
       placeClock,
       camsEnabled,
+      historyEnabled,
     ],
   );
   const mapStations = placeAir
@@ -273,12 +279,16 @@ export default function MapPageClient({
   const mapReports = placeAir
     ? placeAir.reports.map(({ report }) => report)
     : historyEnabled
-      ? []
+      ? mapHistory.reports
       : community.reports;
-  const mapStacks = historyEnabled || placeAir ? [] : community.stacks;
+  const mapStacks = placeAir
+    ? []
+    : historyEnabled
+      ? mapHistory.stacks
+      : community.stacks;
   const selectedStackReports = selectedStack
     ? selectedStack.report_ids
-        .map((id) => community.reports.find((report) => report.id === id))
+        .map((id) => mapReports.find((report) => report.id === id))
         .filter((report): report is CommunityReport => Boolean(report))
     : [];
 
@@ -414,7 +424,12 @@ export default function MapPageClient({
               : null
         }
         resetViewSignal={resetViewSignal}
-        showHeatmap={requestStep === "idle" && !camsEnabled && showHeatmap}
+        showHeatmap={
+          requestStep === "idle" &&
+          !camsEnabled &&
+          !historyEnabled &&
+          showHeatmap
+        }
         showStations={
           requestStep === "idle" &&
           !camsEnabled &&
@@ -423,7 +438,7 @@ export default function MapPageClient({
         showIndividualReports={
           requestStep === "idle" &&
           !camsEnabled &&
-          (Boolean(selectedPlace) || (!historyEnabled && showIndividualReports))
+          (Boolean(selectedPlace) || showIndividualReports)
         }
         onMapClick={(lat, lon) => {
           if (requestStep === "pick") {
@@ -493,12 +508,14 @@ export default function MapPageClient({
         viewMode={viewMode}
         stationCount={visibleStations.length}
         individualReportCount={
-          historyEnabled ? 0 : communitySourceCounts.individual
+          historyEnabled
+            ? countCommunitySources(mapHistory.reports).individual
+            : communitySourceCounts.individual
         }
         fireCount={historyEnabled ? 0 : firms.fires.length}
         fireStatus={firms.status}
         demoMode={community.demoMode}
-        stations={serviceAreaStations}
+        stations={historyEnabled ? visibleStations : serviceAreaStations}
         showHeatmap={showHeatmap}
         heatmapDistanceKm={heatmapDistanceKm}
         heatmapStatus={
@@ -513,7 +530,7 @@ export default function MapPageClient({
                 : "no_location"
         }
         showStations={showStations}
-        showIndividualReports={historyEnabled ? false : showIndividualReports}
+        showIndividualReports={showIndividualReports}
         showFires={historyEnabled ? false : showFires}
         onViewModeChange={setViewMode}
         onToggleHeatmap={() => setShowHeatmap((value) => !value)}
@@ -678,17 +695,20 @@ export default function MapPageClient({
           onSelectReport={(report) => setSelectedReport(report)}
           onClose={() => setSelectedStackId(null)}
         />
-      ) : historyEnabled && !selectedStation ? (
+      ) : historyEnabled && !selectedStation && !selectedReport ? (
         <MapHistoryControls
           paused={!active || panelOpen}
           offsetHours={historyOffsetHours}
           targetAt={mapHistory.targetAt}
           stationCount={visibleStations.length}
+          reportCount={mapHistory.reports.length}
           loading={mapHistory.loading}
           error={mapHistory.error}
           onOffsetChange={(hours) => {
             setHistoryOffsetHours(hours);
             setSelectedStation(null);
+            setSelectedReport(null);
+            setSelectedStackId(null);
           }}
           onReturnCurrent={() => {
             setHistoryEnabled(false);

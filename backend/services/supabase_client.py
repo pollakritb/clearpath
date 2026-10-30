@@ -1859,6 +1859,41 @@ def list_community_reports(status: str = "approved", limit: int = 200) -> list[d
     return _execute_read(query.execute).data or []
 
 
+def get_map_history_reports(
+    target_at: datetime, max_age_minutes: float = 180
+) -> list[dict]:
+    """Read all approved reports in a bounded historical lifetime, with pagination."""
+    if settings.local_demo_mode:
+        return local_store.get_map_history_reports(target_at, max_age_minutes)
+    target = target_at.astimezone(UTC)
+    cutoff = target - timedelta(minutes=max_age_minutes)
+    rows: list[dict] = []
+    page_size = 1000
+    while True:
+        offset = len(rows)
+        page = (
+            _execute_read(
+                lambda start=offset: (
+                    get_client()
+                    .table("community_reports")
+                    .select("*")
+                    .eq("status", "approved")
+                    .gt("captured_at", cutoff.isoformat())
+                    .lte("captured_at", target.isoformat())
+                    .lte("created_at", target.isoformat())
+                    .order("captured_at")
+                    .order("id")
+                    .range(start, start + page_size - 1)
+                    .execute()
+                )
+            ).data
+            or []
+        )
+        rows.extend(page)
+        if len(page) < page_size:
+            return rows
+
+
 def list_user_reports(user_id: str, limit: int = 50) -> list[dict]:
     if settings.local_demo_mode:
         rows = local_store.list_user_reports(user_id, limit)

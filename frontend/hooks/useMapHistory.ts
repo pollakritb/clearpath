@@ -3,9 +3,15 @@
 import { useCallback, useRef, useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
-import type { Station } from "@/frontend/types";
+import type {
+  CommunityReport,
+  CommunityReportStack,
+  Station,
+} from "@/frontend/types";
 
 export function useMapHistory() {
+  const [reports, setReports] = useState<CommunityReport[]>([]);
+  const [stacks, setStacks] = useState<CommunityReportStack[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
   const [targetAt, setTargetAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -20,10 +26,14 @@ export function useMapHistory() {
       const response = await api.mapHistory(at.toISOString());
       if (sequence !== requestSequence.current) return;
       setStations(response.stations);
+      setReports(response.reports ?? []);
+      setStacks(response.stacks ?? []);
       setTargetAt(response.target_at);
     } catch (error) {
       if (sequence !== requestSequence.current) return;
       setStations([]);
+      setReports([]);
+      setStacks([]);
       setTargetAt(at.toISOString());
       setError(apiErrorMessage(error, "โหลดค่าฝุ่นย้อนหลังไม่สำเร็จ"));
     } finally {
@@ -34,10 +44,12 @@ export function useMapHistory() {
   const clear = useCallback(() => {
     requestSequence.current += 1;
     setStations([]);
+    setReports([]);
+    setStacks([]);
     setTargetAt(null);
     setError(null);
     setLoading(false);
   }, []);
 
-  return { stations, targetAt, loading, error, load, clear };
+  return { reports, stacks, stations, targetAt, loading, error, load, clear };
 }

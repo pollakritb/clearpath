@@ -1,5 +1,7 @@
 """Turn stored community evidence into privacy-safe API representations."""
 
+from datetime import datetime
+
 from ...algorithms.community_quality import (
     corroboration_count,
     evaluate_gap_fill,
@@ -29,6 +31,7 @@ def present_report(
     include_image: bool = True,
     include_exact_location: bool = False,
     include_private_metadata: bool = False,
+    reference_at: datetime | None = None,
 ) -> dict:
     """Build an API report while enforcing publication and location rules."""
     reasons = row.get("trust_reasons") or []
@@ -44,6 +47,7 @@ def present_report(
         exact_lon,
         official_stations,
         max_age_minutes=90,
+        now=reference_at,
     )
     role = (
         "supplementary"
@@ -51,8 +55,10 @@ def present_report(
         else "gap_fill"
     )
     captured_at = str(row["captured_at"])
-    fresh = is_report_fresh(captured_at, max_age_minutes=PUBLIC_REPORT_MAX_AGE_MINUTES)
-    age = capture_age_minutes(captured_at)
+    fresh = is_report_fresh(
+        captured_at, max_age_minutes=PUBLIC_REPORT_MAX_AGE_MINUTES, now=reference_at
+    )
+    age = capture_age_minutes(captured_at, now=reference_at)
     evidence_verified = row["status"] == "approved"
     moderation_note = str(row.get("moderation_note") or "")
     verification_method = (

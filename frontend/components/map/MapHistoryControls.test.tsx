@@ -12,6 +12,7 @@ describe("MapHistoryControls", () => {
         offsetHours={6}
         targetAt="2026-09-19T03:00:00.000Z"
         stationCount={42}
+        reportCount={3}
         loading={false}
         error={null}
         onOffsetChange={onOffsetChange}
@@ -19,7 +20,7 @@ describe("MapHistoryControls", () => {
       />,
     );
 
-    expect(screen.getByText("42 สถานี")).not.toBeNull();
+    expect(screen.getByText("42 สถานี · 3 รายงาน")).not.toBeNull();
     const slider = screen.getByRole("slider", {
       name: "เลือกชั่วโมงย้อนหลัง",
     });

@@ -2,8 +2,12 @@
 import L from "leaflet";
 import { useEffect, useId, useLayoutEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
-import { CAMS_RASTER_BOUNDS, camsRasterUrl } from "@/frontend/lib/cams-raster";
+import { CAMS_RASTER_BOUNDS } from "@/frontend/lib/cams-raster";
 import { THAILAND_CLIP_PATH } from "@/frontend/lib/thailand-boundary";
+import {
+  cachedCamsRaster,
+  prepareCamsRaster,
+} from "@/frontend/lib/cams-raster-client";
 import type { GridSurface } from "@/frontend/types/ui";
 
 /** One Canvas-generated geographic raster. Leaflet keeps it visible during pan and zoom. */
@@ -30,7 +34,8 @@ export default function CamsCanvasLayer({
       layer.current = null;
       return;
     }
-    const url = camsRasterUrl(surface);
+    const url = cachedCamsRaster(surface);
+    if (!url) return;
     if (layer.current) layer.current.setUrl(url);
     else {
       layer.current = L.imageOverlay(url, CAMS_RASTER_BOUNDS, {
@@ -50,7 +55,7 @@ export default function CamsCanvasLayer({
       index = 0;
     const idle = typeof window.requestIdleCallback === "function";
     const warm = () => {
-      camsRasterUrl(preload[index++]);
+      void prepareCamsRaster(preload[index++]).catch(() => {});
       if (index < preload.length) schedule();
     };
     const schedule = () => {

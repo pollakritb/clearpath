@@ -171,6 +171,11 @@ export default function MapStatusCard({
         )}
         <div className="cp-map-compact-heading">
           <SourceBadge kind={source} compact />
+          {historicalAt && (
+            <span className="cp-map-demo-label">
+              ย้อนหลัง · {formatTime(historicalAt)}
+            </span>
+          )}
           {isDemo && <span className="cp-map-demo-label">ข้อมูลตัวอย่าง</span>}
           <h1>{isCommunity ? communityArea : stationName}</h1>
         </div>
@@ -287,10 +292,15 @@ export default function MapStatusCard({
       {source === "individual" && report && (
         <p className="cp-map-report-freshness">
           <AppIcon name="clock" size={16} />
-          {report.is_fresh ? "รายงานล่าสุด" : "รายงานเก่า"} · ตรวจวัด
+          {historicalAt
+            ? "รายงาน ณ เวลาย้อนหลัง"
+            : report.is_fresh
+              ? "รายงานล่าสุด"
+              : "รายงานเก่า"}{" "}
+          · ตรวจวัด
           {report.age_minutes == null
             ? "ไม่ทราบเวลา"
-            : `${Math.round(report.age_minutes)} นาทีที่แล้ว`}
+            : `${Math.round(report.age_minutes)} นาที${historicalAt ? "ก่อนเวลาที่เลือก" : "ที่แล้ว"}`}
         </p>
       )}
 
@@ -506,7 +516,7 @@ export default function MapStatusCard({
         </details>
       )}
 
-      {source === "individual" && report && (
+      {source === "individual" && report && !historicalAt && (
         <ReportEngagement key={report.id} report={report} />
       )}
 
