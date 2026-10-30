@@ -10,8 +10,11 @@ history, nearest-reading surface, reports and measurement requests. Keep
   `cell_selection=nearest`, `hourly=pm2_5`, `forecast_days=5`, UTC.
 - Version `cams-global-0.4-th-v1`: 44 latitudes × 26 longitudes = 1,144 nodes,
   including one supporting grid interval around the Thailand bounding rectangle.
-  Output is clipped to 5–21°N, 97–106°E. This is rectangular coverage, not a
-  political-boundary mask. No road-scale resolution is implied.
+  Data coverage is 5–21°N, 97–106°E. The displayed raster is vector-clipped
+  to the Natural Earth 10m Thailand multipolygon (including islands); point
+  details use the same geometry. Supporting grid nodes remain available for
+  interpolation along the border. See `frontend/lib/geo/README.md` for the
+  pinned source and public-domain license. No road-scale resolution is implied.
 - The national grid was checked against the API on 2026-10-29 UTC: all requested
   nodes matched returned coordinates within 0.001°, with 120 hourly timestamps.
   The local JSON artifact was 577,802 bytes. Four-byte numeric payload is about

@@ -13,6 +13,7 @@ import {
   nearestTime,
 } from "@/frontend/lib/forecast-grid";
 import type { useForecastGrid } from "@/frontend/hooks/useForecastGrid";
+import { isInThailand } from "@/frontend/lib/thailand-boundary";
 import MapTimelineControls from "./MapTimelineControls";
 
 export default function CamsForecastControls({
@@ -32,7 +33,9 @@ export default function CamsForecastControls({
 }) {
   const { meta, at, times, surface, loading, error } = grid;
   const value =
-    point && surface ? gridValue(surface, point.lat, point.lon) : null;
+    point && surface && isInThailand(point.lat, point.lon)
+      ? gridValue(surface, point.lat, point.lon)
+      : null;
   const cls = classifyPm25(value);
   const days = [...new Set(times.map(bangkokDay))];
   const currentDay = at ? bangkokDay(at) : (days[0] ?? "");

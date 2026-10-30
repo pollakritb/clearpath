@@ -1,8 +1,9 @@
 "use client";
 import L from "leaflet";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useId, useLayoutEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import { CAMS_RASTER_BOUNDS, camsRasterUrl } from "@/frontend/lib/cams-raster";
+import { THAILAND_CLIP_PATH } from "@/frontend/lib/thailand-boundary";
 import type { GridSurface } from "@/frontend/types/ui";
 
 /** One Canvas-generated geographic raster. Leaflet keeps it visible during pan and zoom. */
@@ -14,6 +15,7 @@ export default function CamsCanvasLayer({
   preload?: GridSurface[];
 }) {
   const map = useMap();
+  const clipId = `cams-thailand-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const layer = useRef<L.ImageOverlay | null>(null);
   useLayoutEffect(
     () => () => {
@@ -38,8 +40,10 @@ export default function CamsCanvasLayer({
         zIndex: 0,
       }).addTo(map);
       layer.current.getElement()?.setAttribute("aria-hidden", "true");
+      const element = layer.current.getElement();
+      if (element) element.style.clipPath = `url(#${clipId})`;
     }
-  }, [map, surface]);
+  }, [map, surface, clipId]);
   useEffect(() => {
     if (!surface || !preload?.length) return;
     let token = 0,
@@ -60,5 +64,19 @@ export default function CamsCanvasLayer({
       else clearTimeout(token);
     };
   }, [surface, preload]);
-  return null;
+  return (
+    <svg
+      width="0"
+      height="0"
+      aria-hidden="true"
+      focusable="false"
+      style={{ position: "absolute", pointerEvents: "none" }}
+    >
+      <defs>
+        <clipPath id={clipId} clipPathUnits="objectBoundingBox">
+          <path d={THAILAND_CLIP_PATH} clipRule="evenodd" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
 }
