@@ -4,6 +4,8 @@ import L from "leaflet";
 import { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 
+import type { MapFocusPoint } from "@/frontend/types/ui";
+
 import { DEFAULT_ZOOM, THAILAND_CENTER } from "@/frontend/lib/constants";
 
 export default function ViewportController({
@@ -13,13 +15,16 @@ export default function ViewportController({
   resetViewSignal = 0,
 }: {
   dataMode?: string;
-  target: { lat: number; lon: number } | null;
+  target: MapFocusPoint | null;
   radiusKm?: number;
   resetViewSignal?: number;
 }) {
   const map = useMap();
   const lat = target?.lat,
     lon = target?.lon;
+  const pin = target?.pin,
+    token = target?.token;
+  const previousPin = useRef<string | null>(null);
   const previousMode = useRef(dataMode);
   const previousResetSignal = useRef(resetViewSignal);
   const previousView = useRef<{
@@ -28,15 +33,32 @@ export default function ViewportController({
     zoom: number;
   } | null>(null);
   useEffect(() => {
+    const pinKey = pin ? `${lat}:${lon}:${token}` : null;
+    const changedPin = pinKey != null && pinKey !== previousPin.current;
+    previousPin.current = pinKey;
     if (previousMode.current !== dataMode) {
       previousMode.current = dataMode;
       previousView.current = null;
-      return;
+      if (!changedPin) return;
     }
     if (resetViewSignal !== previousResetSignal.current) {
       previousResetSignal.current = resetViewSignal;
       previousView.current = null;
       map.flyTo(THAILAND_CENTER, DEFAULT_ZOOM, { duration: 0.8 });
+      return;
+    }
+    if (pin) {
+      if (!changedPin || lat == null || lon == null) return;
+      previousView.current = null;
+      const zoom = Math.min(map.getMaxZoom(), Math.max(map.getZoom(), 15));
+      const height = map.getSize().y;
+      const top = Math.min(130, height * 0.2);
+      const bottom = Math.min(300, height * 0.4);
+      const center = map.unproject(
+        map.project([lat, lon], zoom).add([0, (bottom - top) / 2]),
+        zoom,
+      );
+      map.flyTo(center, zoom, { duration: 0.65 });
       return;
     }
     if (radiusKm) {
@@ -65,6 +87,6 @@ export default function ViewportController({
           duration: 0.8,
         });
     }
-  }, [map, lat, lon, radiusKm, resetViewSignal, dataMode]);
+  }, [map, lat, lon, pin, token, radiusKm, resetViewSignal, dataMode]);
   return null;
 }

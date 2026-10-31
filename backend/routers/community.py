@@ -21,8 +21,6 @@ from ..models.schemas import (
     CommunityReportsResponse,
     CommunityReportStack,
     DataIssueCreate,
-    LeaderboardEntry,
-    LeaderboardResponse,
     OperationResponse,
     PhotoMetadata,
     RatingResult,
@@ -35,6 +33,7 @@ from ..models.schemas import (
     ReportRatingRequest,
     ReportReactionRequest,
 )
+from ..models.xp import XPLeaderboard
 from ..services import capture as capture_service
 from ..services import community as community_service
 from ..services import (
@@ -108,10 +107,18 @@ async def local_image(image_path: str, token: str = Query(...)):
 
 @router.get("/community/reports", response_model=CommunityReportsResponse)
 async def reports(limit: int = Query(200, ge=1, le=500)):
+    from ..core.errors import UpstreamError
+    from ..services.community import xp
+
+    try:
+        state = await run_in_threadpool(xp.control)
+    except UpstreamError:
+        state = {"reset_version": None}
     rows, stacks = await run_in_threadpool(
         community_service.list_public_map_reports, limit
     )
     return CommunityReportsResponse(
+        reset_version=state["reset_version"],
         reports=[CommunityReport(**r) for r in rows],
         count=len(rows),
         stacks=[CommunityReportStack(**stack) for stack in stacks],
@@ -120,10 +127,7 @@ async def reports(limit: int = Query(200, ge=1, le=500)):
 
 @router.get("/community/map-points", response_model=CommunityMapPointsResponse)
 async def community_map_points():
-    from ..algorithms.community_quality import aggregate_community_reports
-
-    reports = await run_in_threadpool(community_service.list_reports, "approved", 500)
-    points = aggregate_community_reports(reports)
+    points = await run_in_threadpool(community_service.list_map_points)
     return CommunityMapPointsResponse(
         points=[CommunityMapPoint(**point) for point in points], count=len(points)
     )
@@ -286,8 +290,12 @@ async def submit_report_draft(
         raise HTTPException(404, detail="ไม่พบ draft") from exc
     except ValueError as exc:
         raise HTTPException(400, detail=str(exc)) from exc
+    from ..services.community import xp
+
+    reward = await run_in_threadpool(xp.result_for_report, str(report["id"]), user.id)
     review_outcome = report.get("_review_outcome", "automatic_rejected")
     return ReportCreateResponse(
+        xp=reward,
         report=CommunityReport(**report),
         ocr_available=report.get("ocr_pm25") is not None,
         review_outcome=review_outcome,
@@ -476,9 +484,11 @@ async def my_profile(user: AuthenticatedUser = Depends(require_user)):
         supabase_client.get_user_weekly_points, user.id
     )
     rows = await run_in_threadpool(supabase_client.list_user_reports, user.id, 50)
-    from ..algorithms.gamification import derive_badges
+    from ..services.community import xp
 
+    participation = await run_in_threadpool(xp.summary, user.id)
     return CommunityProfileResponse(
+        xp=participation,
         user_id=user.id,
         display_name=profile.get("display_name"),
         reputation_score=int(profile.get("reputation_score") or 0),
@@ -486,37 +496,19 @@ async def my_profile(user: AuthenticatedUser = Depends(require_user)):
         helpful_reviews=int(profile.get("helpful_reviews") or 0),
         weekly_points=weekly_points,
         role=user.role,
-        badges=derive_badges(
-            reputation_score=int(profile.get("reputation_score") or 0),
-            approved_reports=int(profile.get("approved_reports") or 0),
-            helpful_reviews=int(profile.get("helpful_reviews") or 0),
-        ),
+        badges=participation["achievements"] if participation else [],
         created_at=profile.get("created_at"),
         reports=[CommunityReport(**row) for row in rows],
     )
 
 
-@router.get("/community/leaderboard", response_model=LeaderboardResponse)
-async def leaderboard(limit: int = Query(20, ge=1, le=100)):
-    rows = await run_in_threadpool(supabase_client.get_weekly_leaderboard, limit)
-    from ..algorithms.gamification import derive_badges
+@router.get("/community/leaderboard", response_model=XPLeaderboard)
+def leaderboard(
+    period: Literal["all", "7d", "30d"] = "all", offset: int = Query(0, ge=0, le=100000)
+):
+    from ..services.community import xp
 
-    return LeaderboardResponse(
-        users=[
-            LeaderboardEntry(
-                user_id=str(r["id"]),
-                display_name=r.get("display_name"),
-                rank=index,
-                weekly_points=int(r.get("weekly_points") or 0),
-                badges=derive_badges(
-                    reputation_score=0,
-                    approved_reports=int(r.get("approved_reports") or 0),
-                    helpful_reviews=int(r.get("helpful_reviews") or 0),
-                ),
-            )
-            for index, r in enumerate(rows, start=1)
-        ]
-    )
+    return XPLeaderboard(**xp.board(period, offset))
 
 
 @router.get("/community/announcements", response_model=AnnouncementsResponse)
@@ -537,3 +529,25 @@ async def announcements(response: Response):
 async def activities():
     rows = await run_in_threadpool(supabase_client.get_activities)
     return ActivitiesResponse(activities=[Activity(**r) for r in rows])
+
+
+@router.get("/community/report-images/{report_id}")
+def public_report_image(
+    report_id: str, expires: int, signature: str = Query(max_length=64)
+):
+    from ..services.community import public_images
+    from ..services.image_fingerprint import detect_image_mime
+
+    try:
+        content = public_images.read(report_id, expires, signature)
+        mime = detect_image_mime(content)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(404, detail="ภาพหมดอายุหรือไม่พร้อมแสดง") from exc
+    return Response(
+        content,
+        media_type=mime,
+        headers={
+            "Cache-Control": "private, max-age=300",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

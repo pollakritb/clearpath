@@ -264,3 +264,11 @@ export interface GridSurface {
   generationId: string;
 }
 export type MapDataMode = "current" | "history" | "cams";
+
+/** Explicit pin selections are repeatable and keep their pin above the detail card. */
+export interface MapFocusPoint {
+  lat: number;
+  lon: number;
+  pin?: boolean;
+  token?: number;
+}

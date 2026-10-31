@@ -35,6 +35,20 @@ describe("api client", () => {
     mockedGetAccessToken.mockResolvedValue("access-token");
   });
 
+  it("accepts a successful 204 reversal without trying to parse a JSON body", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await expect(
+      api.reverseXP("event", "confirmed manipulation"),
+    ).resolves.toBeUndefined();
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/community/xp/events/event/reverse",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ reason: "confirmed manipulation" }),
+      }),
+    );
+  });
+
   it("invalidates affected public data only after successful writes", async () => {
     await loadPublicData(PUBLIC_DATA_KEYS.reports, 60_000, async () => ({
       count: 1,

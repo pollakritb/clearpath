@@ -49,9 +49,13 @@ async def get_map_history_community(
     )
 
     def present():
+        from .community import xp
+
+        identities = xp.public_identities(selected)
         reports = [
             present_report(
                 row,
+                identities=identities,
                 official_stations=stations,
                 approved_reports=selected,
                 include_image=True,

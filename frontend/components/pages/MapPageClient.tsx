@@ -1,4 +1,5 @@
 "use client";
+import type { MapFocusPoint } from "@/frontend/types/ui";
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -32,6 +33,7 @@ import { useMapHistory } from "@/frontend/hooks/useMapHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
 import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
 import { haversineKm } from "@/frontend/lib/distance";
+import { useOwnedReportIds } from "@/frontend/hooks/useOwnedReportIds";
 import { nearestHeatmapPoint } from "@/frontend/lib/nearest-surface";
 import { assessPlaceAir, PLACE_RADIUS_KM } from "@/frontend/lib/place-air";
 import { countCommunitySources } from "@/frontend/lib/dashboard";
@@ -68,6 +70,7 @@ export default function MapPageClient({
   const requestData = useMeasurementRequests(currentUserId, active);
   const openedRequestMode = useRef(false);
   const openedRequestLink = useRef<string | null>(null);
+  const openedReportLink = useRef<string | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
     null,
   );
@@ -147,10 +150,7 @@ export default function MapPageClient({
     return () => cancelAnimationFrame(frame);
   }, [active, pauseCams]);
   const [historyOffsetHours, setHistoryOffsetHours] = useState(1);
-  const [focusPoint, setFocusPoint] = useState<{
-    lat: number;
-    lon: number;
-  } | null>(null);
+  const [focusPoint, setFocusPoint] = useState<MapFocusPoint | null>(null);
   const [locatedManually, setLocatedManually] =
     useState<CurrentLocation | null>(null);
   const [resetViewSignal, setResetViewSignal] = useState(0);
@@ -234,15 +234,36 @@ export default function MapPageClient({
     : serviceAreaStations;
   // The nearest reading always uses GPS and both current public sources.
   // Map filters, place searches and history must not change the candidates.
+  useEffect(() => {
+    const reset = () => {
+      setSelectedReport(null);
+      setSelectedStackId(null);
+      setSelectedRequestId(null);
+    };
+    window.addEventListener("cp-community-reset", reset);
+    return () => window.removeEventListener("cp-community-reset", reset);
+  }, []);
+  const ownedReports = useOwnedReportIds(currentUserId, community.reports);
   const heatmapPoint = useMemo(
     () =>
       nearestHeatmapPoint(
         userLocation,
         pm25.stations,
-        community.reports,
+        ownedReports.ready
+          ? community.reports.filter(
+              (report) => !ownedReports.ids.has(report.id),
+            )
+          : [],
         currentUserId,
       ),
-    [userLocation, pm25.stations, community.reports, currentUserId],
+    [
+      userLocation,
+      pm25.stations,
+      community.reports,
+      currentUserId,
+      ownedReports.ids,
+      ownedReports.ready,
+    ],
   );
   const heatmapDistanceKm =
     userLocation && heatmapPoint
@@ -298,38 +319,63 @@ export default function MapPageClient({
     void Promise.allSettled(tasks);
   }, [community, firms, pm25, showFires]);
 
-  const selectStation = useCallback((station: Station) => {
-    setSelectedRequestId(null);
-    setSelectedStation(station);
-    setSelectedReport(null);
-    setSelectedStackId(null);
+  const focusPin = useCallback((point: { lat: number; lon: number }) => {
+    setFocusPoint((previous) => ({
+      lat: point.lat,
+      lon: point.lon,
+      pin: true,
+      token: (previous?.token ?? 0) + 1,
+    }));
   }, []);
 
-  const selectReport = useCallback((report: CommunityReport) => {
-    setSelectedRequestId(null);
-    setSelectedReport(report);
-    setSelectedStation(null);
-    setSelectedStackId(null);
-  }, []);
+  const selectStation = useCallback(
+    (station: Station) => {
+      focusPin(station);
+      setSelectedRequestId(null);
+      setSelectedStation(station);
+      setSelectedReport(null);
+      setSelectedStackId(null);
+    },
+    [focusPin],
+  );
+
+  const selectReport = useCallback(
+    (report: CommunityReport) => {
+      focusPin(report);
+      setSelectedRequestId(null);
+      setSelectedReport(report);
+      setSelectedStation(null);
+      setSelectedStackId(null);
+    },
+    [focusPin],
+  );
 
   useEffect(() => {
-    if (!initialReportId) return;
+    if (!initialReportId) {
+      openedReportLink.current = null;
+      return;
+    }
+    if (openedReportLink.current === initialReportId) return;
     const report = community.reports.find((row) => row.id === initialReportId);
     if (!report) return;
     const frame = window.requestAnimationFrame(() => {
+      openedReportLink.current = initialReportId;
       selectReport(report);
       setSelectedPlace(null);
-      setFocusPoint({ lat: report.lat, lon: report.lon });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [initialReportId, community.reports, selectReport]);
 
-  const selectStack = useCallback((stack: CommunityReportStack) => {
-    setSelectedRequestId(null);
-    setSelectedStackId(stack.id);
-    setSelectedReport(null);
-    setSelectedStation(null);
-  }, []);
+  const selectStack = useCallback(
+    (stack: CommunityReportStack) => {
+      focusPin(stack);
+      setSelectedRequestId(null);
+      setSelectedStackId(stack.id);
+      setSelectedReport(null);
+      setSelectedStation(null);
+    },
+    [focusPin],
+  );
 
   const selectRequest = useCallback(
     (request: MeasurementRequestView) => {
@@ -340,7 +386,11 @@ export default function MapPageClient({
       setSelectedPlace(null);
       pauseCams();
       if (!camsEnabled) setHistoryEnabled(false);
-      setFocusPoint({ lat: request.lat, lon: request.lon });
+      setFocusPoint((previous) => ({
+        lat: request.lat,
+        lon: request.lon,
+        token: (previous?.token ?? 0) + 1,
+      }));
       setViewMode("map");
     },
     [pauseCams, camsEnabled, setHistoryEnabled],
@@ -595,7 +645,6 @@ export default function MapPageClient({
           }
           setSelectedPlace(null);
           selectStation(station);
-          setFocusPoint({ lat: station.lat, lon: station.lon });
           setViewMode("map");
         }}
       />
@@ -692,7 +741,10 @@ export default function MapPageClient({
         <ReportStackCard
           stack={selectedStack}
           reports={selectedStackReports}
-          onSelectReport={(report) => setSelectedReport(report)}
+          onSelectReport={(report) => {
+            setSelectedReport(report);
+            focusPin(report);
+          }}
           onClose={() => setSelectedStackId(null)}
         />
       ) : historyEnabled && !selectedStation && !selectedReport ? (

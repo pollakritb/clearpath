@@ -1,5 +1,7 @@
 "use client";
 
+import AdminXPPanel from "@/frontend/components/admin/AdminXPPanel";
+import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
@@ -8,6 +10,8 @@ import type { CommunityReport } from "@/frontend/types";
 import AdminReportCard from "./admin/AdminReportCard";
 
 export default function AdminPanel() {
+  const auth = useAuth();
+  const [xpOpen, setXpOpen] = useState(false);
   const [reports, setReports] = useState<CommunityReport[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +51,12 @@ export default function AdminPanel() {
 
   return (
     <section className="cp-admin-panel">
+      {auth.role === "admin" && (
+        <details onToggle={(e) => setXpOpen(e.currentTarget.open)}>
+          <summary className="cp-focus">คะแนนชุมชนและประวัติการยกเลิก</summary>
+          {xpOpen && <AdminXPPanel />}
+        </details>
+      )}
       <div className="cp-admin-section-heading">
         <div>
           <span className="cp-eyebrow">Automatic review log</span>

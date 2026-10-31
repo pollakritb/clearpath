@@ -39,7 +39,10 @@ vi.mock("./CameraCapture", () => ({
   ),
 }));
 vi.mock("./report/LocationCard", () => ({ default: () => null }));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.draft.mockResolvedValue({
@@ -106,9 +109,49 @@ it.each([
     await waitFor(() => expect(onSubmitted).toHaveBeenCalledOnce());
     expect(mocks.submit).toHaveBeenCalledWith("draft", {
       user_claimed_pm25: 42.5,
+      bonus_gps: null,
       hide_identity: hideIdentity,
       measurement_stable: false,
       measurement_duration_seconds: 0,
     });
+  },
+);
+
+it.each([true, false])(
+  "refreshes bonus GPS automatically and still submits when GPS succeeds=%s",
+  async (gpsWorks) => {
+    vi.stubGlobal("navigator", {
+      geolocation: {
+        getCurrentPosition: (
+          success: PositionCallback,
+          error: PositionErrorCallback,
+        ) =>
+          gpsWorks
+            ? success({
+                coords: { latitude: 13.8, longitude: 100.1, accuracy: 10 },
+              } as GeolocationPosition)
+            : error({ code: 1 } as GeolocationPositionError),
+      },
+    });
+    const submitted = vi.fn();
+    render(
+      <ReportForm
+        measurementRequestId="request"
+        location={{ lat: 13.8, lon: 100.1, accuracy: 10, source: "gps" }}
+        onRequestLocation={vi.fn()}
+        onSubmitted={submitted}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "เลือกภาพทดสอบ" }));
+    await screen.findByText("PM2.5 42.5 µg/m³");
+    fireEvent.click(screen.getByRole("button", { name: "ส่งรายงาน" }));
+    await waitFor(() => expect(submitted).toHaveBeenCalledOnce());
+    expect(mocks.submit).toHaveBeenCalledWith(
+      "draft",
+      expect.objectContaining({
+        measurement_request_id: "request",
+        bonus_gps: gpsWorks ? { lat: 13.8, lon: 100.1, accuracy_m: 10 } : null,
+      }),
+    );
   },
 );

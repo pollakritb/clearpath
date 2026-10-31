@@ -1,3 +1,4 @@
+import type { ParticipationRank, XPSummary, XPResult } from "./xp";
 export type ReportStatus = "pending" | "approved" | "rejected";
 export type VerificationMethod = "pending" | "automatic" | "admin";
 export type CommunityDataRole = "supplementary" | "gap_fill";
@@ -31,6 +32,8 @@ export interface CaptureSessionResponse {
 }
 
 export interface CommunityReport {
+  member_id?: string | null;
+  participation_rank?: ParticipationRank | null;
   capture_source?: "camera" | "gallery";
   image_metadata?: Record<string, unknown> | null;
   id: string;
@@ -100,6 +103,7 @@ export interface CommunityReport {
 }
 
 export interface CommunityReportsResponse {
+  reset_version?: string | null;
   reports: CommunityReport[];
   count: number;
   stacks: CommunityReportStack[];
@@ -137,6 +141,7 @@ export interface CommunityMapPointsResponse {
 }
 
 export interface ReportCreateResponse {
+  xp?: XPResult | null;
   report: CommunityReport;
   ocr_available: boolean;
   ocr_status:
@@ -174,7 +179,14 @@ export interface ReportDraftResponse {
   image_preview_url: string | null;
 }
 
+export interface BonusGPS {
+  lat: number;
+  lon: number;
+  accuracy_m: number;
+}
+
 export interface ReportDraftSubmit {
+  bonus_gps?: BonusGPS | null;
   measurement_request_id?: string | null;
   user_claimed_pm25: number;
   hide_identity?: boolean;
@@ -202,6 +214,7 @@ export interface RatingResult {
   rating_count: number;
   rating_average: number;
   consensus: RatingDirection;
+  /** Legacy reputation only; this field never awards participation XP. */
   reward_points: number;
 }
 
@@ -244,6 +257,7 @@ export interface UserReputation {
 }
 
 export interface CommunityProfileResponse extends UserReputation {
+  xp?: XPSummary | null;
   created_at: string | null;
   reports: CommunityReport[];
 }

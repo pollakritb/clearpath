@@ -1,5 +1,6 @@
 "use client";
 
+import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
 import { useRef, useState } from "react";
 
 import Link from "next/link";
@@ -490,10 +491,21 @@ export default function MapStatusCard({
                   : "ผู้รายงานเลือกปิดบังตัวตน"}
               </small>
               <strong>
-                {showReporterProfile
-                  ? (report.display_name ?? "สมาชิกชุมชน")
-                  : "ไม่เปิดเผยตัวตน"}
+                {showReporterProfile ? (
+                  report.member_id ? (
+                    <Link href={`/members/${report.member_id}`}>
+                      {report.display_name ?? "สมาชิกชุมชน"}
+                    </Link>
+                  ) : (
+                    (report.display_name ?? "สมาชิกชุมชน")
+                  )
+                ) : (
+                  "ไม่เปิดเผยตัวตน"
+                )}
               </strong>
+              {showReporterProfile && report.participation_rank && (
+                <ParticipationBadge rank={report.participation_rank} />
+              )}
             </div>
           </div>
         </section>

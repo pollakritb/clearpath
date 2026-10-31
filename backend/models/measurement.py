@@ -7,6 +7,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from .community import CommunityReport
+from .xp import HelpClaim
 
 RequestStatus = Literal["scheduled", "active", "fulfilled", "expired", "cancelled"]
 
@@ -37,6 +38,8 @@ class MeasurementPresenceUpdate(BaseModel):
 
 
 class MeasurementRequestView(BaseModel):
+    help_claim: HelpClaim | None = None
+    xp_enabled: bool = False
     id: str
     place_name: str
     lat: float

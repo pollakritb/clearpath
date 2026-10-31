@@ -100,12 +100,14 @@ export function useMeasurementRequests(userId: string | null, active = true) {
     document.addEventListener("visibilitychange", changed);
     window.addEventListener("focus", changed);
     window.addEventListener(REQUESTS_CHANGED, changed);
+    window.addEventListener("cp-community-reset", changed);
     return () => {
       alive = false;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", changed);
       window.removeEventListener("focus", changed);
       window.removeEventListener(REQUESTS_CHANGED, changed);
+      window.removeEventListener("cp-community-reset", changed);
     };
   }, [userId, active]);
   const upsert = useCallback(

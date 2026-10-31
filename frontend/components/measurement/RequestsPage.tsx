@@ -43,6 +43,8 @@ export function RequestSummary({
   actions?: boolean;
   onChanged?: (request: MeasurementRequestView) => void;
 }) {
+  const router = useRouter();
+  const [claimDeadline, setClaimDeadline] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => Date.now());
@@ -170,16 +172,41 @@ export function RequestSummary({
       ) : (
         <div className="cp-measure-actions">
           {!row.is_owner &&
-            row.status === "active" &&
+            (row.status === "active" ||
+              (row.help_claim && Date.parse(row.help_claim.deadline) > now)) &&
             minutesLeft > 0 &&
-            !row.declined && (
+            !row.declined &&
+            (row.xp_enabled ? (
+              <button
+                type="button"
+                className="cp-measure-primary"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  setError("");
+                  try {
+                    const claim = await api.claimMeasurementHelp(row.id);
+                    setClaimDeadline(claim.deadline);
+                    router.push(`/report?request=${row.id}`);
+                  } catch (e) {
+                    setError(apiErrorMessage(e, "เริ่มช่วยวัดไม่สำเร็จ"));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {row.help_claim
+                  ? "วัดต่อจากภารกิจเดิม · +5 XP"
+                  : "ช่วยวัดคำขอนี้ · +5 XP"}
+              </button>
+            ) : (
               <Link
                 href={`/report?request=${row.id}`}
                 className="cp-measure-primary"
               >
                 ช่วยรายงาน
               </Link>
-            )}
+            ))}
           {!row.is_owner && active && !row.declined && (
             <button
               type="button"
@@ -201,6 +228,12 @@ export function RequestSummary({
           )}
           {row.declined && <p>คุณเลือกไม่สะดวกช่วยวัดคำขอนี้แล้ว</p>}
         </div>
+      )}
+      {claimDeadline && (
+        <p role="status">
+          เริ่มช่วยวัดแล้ว · ส่งก่อน {date(claimDeadline)} ·
+          โบนัสขึ้นกับเงื่อนไข GPS และโควตา
+        </p>
       )}
       {error && <p role="alert">{error}</p>}
     </article>

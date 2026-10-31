@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     )
 
     measurement_requests_enabled: bool = False
+    community_xp_enabled: bool = False
 
     # External APIs
     geoapify_api_key: str = ""

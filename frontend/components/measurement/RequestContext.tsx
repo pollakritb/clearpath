@@ -48,8 +48,21 @@ export default function RequestContext({ requestId }: { requestId: string }) {
             วง {row.radius_km} กม. · ก่อน{" "}
             {new Date(row.expires_at).toLocaleString("th-TH")}
           </p>
+          {row.xp_enabled && !row.help_claim && row.status === "active" && (
+            <p>โบนัส +5 XP ต้องกด “ช่วยวัดคำขอนี้” ในหน้าคำขอก่อนถ่ายภาพ</p>
+          )}
+          {row.help_claim && (
+            <p>
+              โบนัสช่วยคำขอ +5 XP · ส่งก่อน{" "}
+              {new Date(row.help_claim.deadline).toLocaleTimeString("th-TH", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              · ภาพใหม่ไม่เกิน 15 นาที และ GPS คลาดเคลื่อนไม่เกิน 200 ม.
+            </p>
+          )}
           <small>
-            {row.status === "active"
+            {row.status === "active" || row.help_claim
               ? "ระบบใช้เวลาและ GPS ของภาพตรวจพื้นที่อัตโนมัติ ไม่ต้องกรอกเพิ่ม"
               : "คำขอนี้ยังไม่เปิดรับหรือสิ้นสุดแล้ว รายงานยังส่งเข้าชุมชนตามปกติได้"}
           </small>

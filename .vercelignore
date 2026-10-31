@@ -8,3 +8,6 @@ playwright-report
 .playwright-mcp
 .venv
 node_modules
+
+.community-reset-backups
+.playwright-cli

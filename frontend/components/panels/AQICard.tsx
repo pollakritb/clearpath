@@ -1,5 +1,7 @@
 "use client";
 
+import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
+
 import HistoryChart from "@/frontend/components/panels/HistoryChart";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { classifyPm25 } from "@/frontend/lib/aqi";
@@ -104,6 +106,9 @@ export default function AQICard({
         >
           <div>
             <div style={{ fontWeight: 700, fontSize: "1em" }}>{name}</div>
+            {report?.show_reporter_profile && report.participation_rank && (
+              <ParticipationBadge rank={report.participation_rank} />
+            )}
             <div style={{ fontSize: ".78em", marginTop: 4 }}>
               {sourceLabel}
               {distanceKm != null &&

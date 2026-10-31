@@ -21,7 +21,7 @@ const state = vi.hoisted(() => ({
   reports: [
     {
       id: "own",
-      user_id: "viewer",
+      user_id: "anonymous-public-token",
       display_name: "ตัวเอง",
       lat: 13.8,
       lon: 100.1,
@@ -41,7 +41,11 @@ const state = vi.hoisted(() => ({
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: state.noop }) }));
 vi.mock("@/frontend/lib/api-client", () => ({
-  api: { measurementRequests: state.listRequests },
+  api: {
+    ownReportIds: vi.fn(async () => ({ ids: ["own"] })),
+    xpSummary: vi.fn(async () => null),
+    measurementRequests: state.listRequests,
+  },
 }));
 vi.mock("@/frontend/components/auth/AuthProvider", () => ({
   useCurrentUserId: () => state.viewerId,
@@ -89,10 +93,13 @@ beforeEach(() => {
 });
 
 describe("Today nearest source", () => {
-  it("shows a neighbor report instead of the farther station and excludes self", () => {
+  it("shows a neighbor report instead of the farther station and excludes self", async () => {
     render(<TodayPageClient />);
-    expect(screen.getByText("19")).toBeTruthy();
-    expect(screen.getByText("รายงานจาก เพื่อนบ้าน")).toBeTruthy();
+    expect(await screen.findByText("19")).toBeTruthy();
+    expect(await screen.findByText("รายงานจาก เพื่อนบ้าน")).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: /อันดับชุมชน/ }).getAttribute("href"),
+    ).toBe("/leaderboard");
     expect(state.noop).toHaveBeenCalledWith({ lat: 13.801, lon: 100.1 }, 120);
     expect(
       screen.getByRole("region", { name: "ค่าฝุ่นใกล้ที่สุดและพยากรณ์" }),

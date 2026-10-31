@@ -1,0 +1,360 @@
+.cp-xp {
+  display: grid;
+  gap: 20px;
+  color: #173a37;
+  line-height: 1.6;
+  font-size: 14px;
+}
+.cp-xp h2 {
+  font-size: 19px;
+  line-height: 1.4;
+  margin: 6px 0;
+}
+.cp-xp-profile {
+  background: linear-gradient(140deg, #e6f6f2, #f0f5ff);
+  padding: 18px;
+  border-radius: 20px;
+}
+.cp-xp-eyebrow,
+.cp-xp-note {
+  font-size: 12px;
+  color: #546e69;
+}
+.cp-xp-total {
+  font-size: 32px;
+  font-weight: 750;
+  margin: 12px 0;
+}
+.cp-xp-total small {
+  font-size: 12px;
+  font-weight: 500;
+}
+.cp-xp progress {
+  width: 100%;
+  height: 8px;
+  accent-color: #087f79;
+}
+.cp-xp-badge {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 650;
+  border-radius: 99px;
+  padding: 3px 8px;
+  color: #08776e;
+  background: #d9f1eb;
+  white-space: normal;
+}
+.cp-xp-badge[data-rank="reporter"] {
+  color: #2459ac;
+  background: #e5efff;
+}
+.cp-xp-badge[data-rank="caretaker"] {
+  color: #4346a2;
+  background: #eaeaff;
+}
+.cp-xp-badge[data-rank="guardian"] {
+  color: #7540ab;
+  background: #f1e7fa;
+}
+.cp-xp-badge[data-rank="champion"] {
+  color: #855400;
+  background: #fff0cb;
+}
+.cp-xp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cp-xp-chips > span {
+  font-size: 11px;
+  padding: 4px 8px;
+  background: #fff8df;
+  border-radius: 8px;
+  color: #806018;
+}
+.cp-xp-periods {
+  display: flex;
+  gap: 4px;
+  background: #eff4f3;
+  border-radius: 12px;
+  padding: 4px;
+}
+.cp-xp button {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid #c5dcd7;
+  background: #fff;
+  color: #12665e;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.cp-xp button:focus-visible,
+.cp-xp summary:focus-visible {
+  outline: 3px solid #3983e7;
+  outline-offset: 3px;
+}
+.cp-xp-periods button {
+  flex: 1;
+  border: 0;
+  font-size: 13px;
+}
+.cp-xp-periods button[aria-pressed="true"] {
+  background: #087f79;
+  color: white;
+}
+.cp-xp-self {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: #edf6f3;
+  border-radius: 10px;
+  font-size: 12px;
+}
+.cp-xp-self span {
+  margin-left: auto;
+}
+.cp-xp-leaders {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.cp-xp-leaders li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e4ece9;
+}
+.cp-xp-leaders li > b {
+  width: 24px;
+  font-size: 13px;
+}
+.cp-xp-avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e7f2ef;
+  color: #08776e;
+}
+.cp-xp-leaders li > .cp-xp-person {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+.cp-xp-leaders strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.cp-xp-leaders li > span:last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.cp-xp-leaders small {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+}
+.cp-xp summary {
+  min-height: 44px;
+  display: list-item;
+  padding: 10px 0;
+  cursor: pointer;
+  font-weight: 650;
+}
+.cp-xp label {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+.cp-xp input:not([type="checkbox"]) {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  border: 1px solid #bed8d1;
+  border-radius: 10px;
+  padding: 8px;
+  font: inherit;
+}
+.cp-xp .cp-xp-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.cp-xp-checkbox input {
+  width: 20px;
+  height: 20px;
+  accent-color: #087f79;
+}
+.cp-xp-event {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  border-bottom: 1px solid #e3ebe8;
+  padding: 10px 0;
+  font-size: 12px;
+}
+.cp-xp-event small {
+  display: block;
+  color: #596f69;
+}
+.cp-xp-event b {
+  white-space: nowrap;
+}
+.cp-xp-empty {
+  text-align: center;
+  padding: 20px;
+  color: #596f69;
+}
+.cp-xp-success {
+  padding: 12px 14px;
+  background: #e8f6ef;
+  border-radius: 14px;
+  color: #12665e;
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+}
+.cp-xp-success small {
+  font-size: 12px;
+}
+.cp-xp button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.cp-xp .cp-xp-total {
+  font-size: 30px;
+  line-height: 1.25;
+  font-weight: 750;
+  margin: 12px 0;
+}
+.cp-xp .cp-xp-total small {
+  font-size: 12px;
+  font-weight: 500;
+}
+.cp-xp-success.cp-xp-rankup {
+  animation: cp-xp-rank-in 0.3s ease-out;
+}
+@keyframes cp-xp-rank-in {
+  from {
+    opacity: 0.3;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cp-xp-success.cp-xp-rankup {
+    animation: none;
+  }
+}
+.cp-xp-page {
+  padding: 16px;
+  box-sizing: border-box;
+}
+.cp-xp-entry {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  text-decoration: none;
+  color: #12665e;
+}
+.cp-xp-entry > span {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+}
+.cp-xp-entry small {
+  font-size: 12px;
+  color: #5b716c;
+}
+
+.cp-xp-person {
+  min-height: 44px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+.cp-xp-page {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+/* The legacy mobile sidebar forces compact type with !important. Scope the
+   participation page's readable sizes here without resizing other panels. */
+.cp-xp p,
+.cp-xp label {
+  font-size: 14px !important;
+}
+.cp-xp p.cp-xp-note {
+  font-size: 13px !important;
+}
+.cp-xp p.cp-xp-total {
+  font-size: 30px !important;
+}
+.cp-xp h2 {
+  font-size: 19px !important;
+}
+.cp-xp-page > button {
+  justify-self: start;
+  max-width: 100%;
+}
+
+.cp-leaderboard-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid #d6e5e1;
+  border-radius: 18px;
+  background: linear-gradient(110deg, #ffffff, #f0f8f6);
+  color: #173a37;
+  text-decoration: none;
+}
+.cp-leaderboard-entry__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #e0f2ed;
+  color: #08776f;
+}
+.cp-leaderboard-entry__copy {
+  display: grid;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+.cp-leaderboard-entry__copy > strong {
+  font-size: 14px;
+}
+.cp-leaderboard-entry__detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 12px;
+  color: #526e67;
+}
+.cp-leaderboard-entry > svg {
+  flex-shrink: 0;
+  color: #08776f;
+}

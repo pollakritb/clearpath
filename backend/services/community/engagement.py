@@ -16,12 +16,24 @@ def _approved_report(report_id: str) -> dict:
 
 
 def _present_comment(row: dict, viewer_id: str | None = None) -> dict:
+    import hashlib
+    import hmac
+
+    from ...core.config import settings
+    from . import xp
+
+    identity = xp.public_identity(str(row["user_id"])) if xp.enabled() else {}
+    token = hmac.new(
+        settings.effective_capture_secret.encode(),
+        f"comment:{row['id']}".encode(),
+        hashlib.sha256,
+    ).hexdigest()[:32]
     return {
         "id": str(row["id"]),
         "report_id": str(row["report_id"]),
-        "user_id": str(row["user_id"]),
-        "display_name": row.get("display_name") or "สมาชิก ClearPath",
-        "avatar_url": row.get("avatar_url"),
+        "user_id": identity.get("member_id") or token,
+        "display_name": identity.get("alias") or "สมาชิก ClearPath",
+        "avatar_url": None,
         "body": str(row["body"]),
         "created_at": str(row["created_at"]),
         "is_own": viewer_id is not None and str(row["user_id"]) == viewer_id,

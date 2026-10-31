@@ -73,3 +73,6 @@ __pycache__/
 
 # Local browser QA artifacts
 .playwright-cli/
+
+# Encrypted community reset archives and their separate keys
+/.community-reset-backups/

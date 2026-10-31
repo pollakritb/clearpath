@@ -63,6 +63,31 @@ def create_app() -> FastAPI:
     )
 
     @app.middleware("http")
+    async def community_maintenance(request: Request, call_next):
+        from starlette.concurrency import run_in_threadpool
+
+        from .services.community import xp
+
+        if (
+            request.method in {"POST", "PUT", "PATCH", "DELETE"}
+            and request.url.path.startswith(
+                ("/api/community/", "/api/measurement-requests")
+            )
+            and xp.configured()
+        ):
+            try:
+                state = await run_in_threadpool(xp.control)
+                if state["maintenance"]:
+                    return JSONResponse(
+                        {"detail": "ระบบชุมชนกำลังปรับปรุง กรุณาลองอีกครั้ง"},
+                        status_code=503,
+                        headers={"Retry-After": "60"},
+                    )
+            except UpstreamError:
+                pass  # XP availability must not block report publication.
+        return await call_next(request)
+
+    @app.middleware("http")
     async def request_observability(request: Request, call_next):
         supplied = request.headers.get("x-request-id", "")
         request_id = (
@@ -109,6 +134,9 @@ def create_app() -> FastAPI:
     api.include_router(locations.router, tags=["locations"])
     api.include_router(forecast.router, tags=["forecast"])
     api.include_router(forecast_grid.router, tags=["forecast-grid"])
+    from .routers import xp
+
+    api.include_router(xp.router, tags=["community-xp"])
     api.include_router(community.router, tags=["community"])
     api.include_router(measurement.router, tags=["measurement-requests"])
     api.include_router(notifications.router, tags=["notifications"])

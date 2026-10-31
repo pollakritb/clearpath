@@ -39,17 +39,18 @@ def test_report_submission_defaults_to_visible_identity():
     assert body.hide_identity is False
 
 
-def test_public_report_exposes_opted_in_google_profile():
+def test_public_report_exposes_opted_in_clearpath_alias():
     report = present_report(
         _report(show_reporter_profile=True),
         include_image=False,
     )
 
     assert report["show_reporter_profile"] is True
-    assert report["display_name"] == "Google Reporter"
-    assert report["reporter_avatar_url"].startswith(
-        "https://lh3.googleusercontent.com/"
-    )
+    assert report["display_name"].startswith("สมาชิก CP-")
+    assert report["reporter_avatar_url"] is None
+    assert report["user_id"] != "user-1"
+    assert report["member_id"]
+    assert report["participation_rank"]["label"] == "นักสำรวจอากาศ"
 
 
 def test_community_sensor_never_exposes_personal_profile():

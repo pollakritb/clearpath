@@ -65,7 +65,8 @@ def test_comment_lifecycle_tracks_public_count_and_owner(monkeypatch):
 
     summary = engagement.get_engagement(report_id, commenter_id)
     assert summary["comment_count"] == 1
-    assert summary["comments"][0]["display_name"] == "ผู้แสดงความคิดเห็น"
+    assert summary["comments"][0]["display_name"].startswith("สมาชิก CP-")
+    assert summary["comments"][0]["user_id"] != commenter_id
     assert summary["comments"][0]["is_own"] is True
 
     assert engagement.remove_comment(comment["id"], owner_id) is False

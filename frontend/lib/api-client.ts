@@ -1,3 +1,14 @@
+import type { OwnedReportIDs } from "@/frontend/types/xp";
+import type { XPAdminOverview } from "@/frontend/types/xp";
+import type { PublicMember } from "@/frontend/types/xp";
+import type {
+  XPLeaderboard,
+  XPSummary,
+  XPSettings,
+  XPEventsResponse,
+  HelpClaim,
+  XPResult,
+} from "@/frontend/types/xp";
 // typed fetch wrappers — frontend รู้จักแค่ /api/* (same-origin)
 
 import type {
@@ -31,7 +42,6 @@ import type {
   NotificationPreferences,
   NotificationsResponse,
   OperationResponse,
-  LeaderboardResponse,
   ReportCreateResponse,
   ReportComment,
   ReportCommentCreate,
@@ -105,6 +115,7 @@ async function http<T>(url: string, init?: HttpOptions): Promise<T> {
     }
     throw new ApiError(detail, res.status);
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -351,7 +362,59 @@ export const api = {
 
   activities: () => http<ActivitiesResponse>("/api/community/activities"),
 
-  leaderboard: () => http<LeaderboardResponse>("/api/community/leaderboard"),
+  leaderboard: (period: "all" | "7d" | "30d" = "all", offset = 0) =>
+    http<XPLeaderboard>(
+      `/api/community/leaderboard?period=${period}&offset=${offset}`,
+    ),
+  myLeaderboard: (period: "all" | "7d" | "30d" = "all", offset = 0) =>
+    http<XPLeaderboard>(
+      `/api/community/me/leaderboard?period=${period}&offset=${offset}`,
+      { auth: true, cache: "no-store" },
+    ),
+  publicMember: (id: string) =>
+    http<PublicMember>(`/api/community/members/${encodeURIComponent(id)}`),
+  xpAdminOverview: () =>
+    http<XPAdminOverview>("/api/community/xp/admin", {
+      auth: true,
+      cache: "no-store",
+    }),
+  reverseXP: (id: string, reason: string) =>
+    http<void>(`/api/community/xp/events/${encodeURIComponent(id)}/reverse`, {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ reason }),
+    }),
+  xpSummary: () =>
+    http<XPSummary | null>("/api/community/me/xp", {
+      auth: true,
+      cache: "no-store",
+    }),
+  xpEvents: (offset = 0) =>
+    http<XPEventsResponse>(`/api/community/me/xp-events?offset=${offset}`, {
+      auth: true,
+      cache: "no-store",
+    }),
+  xpSettings: (body: XPSettings) =>
+    http<XPSummary>("/api/community/me/xp", {
+      method: "PUT",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  claimMeasurementHelp: (id: string) =>
+    http<HelpClaim>(`/api/community/help-claims/${encodeURIComponent(id)}`, {
+      method: "POST",
+      auth: true,
+    }),
+  reportXP: (id: string) =>
+    http<XPResult>(`/api/community/me/reports/${encodeURIComponent(id)}/xp`, {
+      auth: true,
+      cache: "no-store",
+    }),
+  ownReportIds: () =>
+    http<OwnedReportIDs>("/api/community/me/report-ids", {
+      auth: true,
+      cache: "no-store",
+    }),
 
   notificationPreferences: () =>
     http<NotificationPreferences>("/api/notifications/preferences", {

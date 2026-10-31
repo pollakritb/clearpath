@@ -5,18 +5,16 @@ import { useState } from "react";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import { useCommunityRewards } from "@/frontend/hooks/useCommunity";
 
 import MyContribution from "./community/MyContribution";
 import ReviewQueue from "./community/ReviewQueue";
-import RewardsSection from "./community/RewardsSection";
+import Link from "next/link";
 
 export default function ProfilePanel() {
   const auth = useAuth();
   const loginPrompt = useLoginPrompt();
   const signedIn = Boolean(auth.user || auth.localDemo);
   const [gratitudeOpen, setGratitudeOpen] = useState(false);
-  const [rewardsOpen, setRewardsOpen] = useState(false);
 
   return (
     <section className="cp-profile-page cp-section-enter">
@@ -72,41 +70,18 @@ export default function ProfilePanel() {
       )}
 
       {signedIn && (
-        <details
-          className="cp-community-disclosure"
-          onToggle={(event) => setRewardsOpen(event.currentTarget.open)}
+        <Link
+          href="/leaderboard"
+          className="cp-community-disclosure cp-xp-entry cp-focus"
         >
-          <summary className="cp-focus">
-            <span className="cp-community-disclosure__icon">
-              <AppIcon name="activity" size={20} />
-            </span>
-            <span>
-              <strong>กิจกรรมและอันดับ</strong>
-              <small>ดูภารกิจและผู้ช่วยชุมชนในช่วง 7 วัน</small>
-            </span>
-            <AppIcon name="chevron" size={18} />
-          </summary>
-          {rewardsOpen && (
-            <div className="cp-community-disclosure__body">
-              <ProfileRewards />
-            </div>
-          )}
-        </details>
+          <AppIcon name="activity" size={22} />
+          <span>
+            <strong>อันดับชุมชน</strong>
+            <small>XP สะสม ยศ และอันดับการมีส่วนร่วม</small>
+          </span>
+          <AppIcon name="chevron" size={18} />
+        </Link>
       )}
     </section>
-  );
-}
-
-function ProfileRewards() {
-  const rewards = useCommunityRewards();
-  if (rewards.loading) {
-    return (
-      <p className="cp-muted-status" role="status">
-        กำลังโหลดกิจกรรม…
-      </p>
-    );
-  }
-  return (
-    <RewardsSection activities={rewards.activities} leaders={rewards.leaders} />
   );
 }

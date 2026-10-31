@@ -17,7 +17,8 @@
     "audit:ci": "node scripts/npm-audit-ci.mjs",
     "format": "prettier --write app frontend *.json *.mjs *.ts *.md docs/**/*.md",
     "format:check": "prettier --check app frontend e2e *.json *.mjs *.ts *.md docs/**/*.md",
-    "test:grid:db": "node scripts/test-cams-grid.mjs"
+    "test:grid:db": "node scripts/test-cams-grid.mjs",
+    "test:xp:db": "node scripts/test-community-xp.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

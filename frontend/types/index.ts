@@ -11,3 +11,4 @@ export * from "./validation";
 export * from "./measurement";
 
 export * from "./forecast-grid";
+export * from "./xp";

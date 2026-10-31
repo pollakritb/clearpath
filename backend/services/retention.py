@@ -9,6 +9,27 @@ from . import supabase_client
 
 
 def cleanup_expired_reports(limit: int = 200) -> dict:
+    from .community import xp
+
+    if xp.configured():
+        try:
+            if xp.control()["maintenance"]:
+                return {
+                    "eligible": 0,
+                    "evidence_purged": 0,
+                    "drafts_deleted": 0,
+                    "failures": 0,
+                    "skipped": "community_maintenance",
+                }
+        except Exception:
+            # Unavailable community control must not interrupt official ingestion.
+            return {
+                "eligible": 0,
+                "evidence_purged": 0,
+                "drafts_deleted": 0,
+                "failures": 0,
+                "skipped": "community_control_unavailable",
+            }
     rows = supabase_client.list_expired_report_evidence(limit)
     deleted = 0
     failures = 0

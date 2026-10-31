@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
+import LeaderboardEntryCard from "@/frontend/components/community/LeaderboardEntryCard";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
+import { useOwnedReportIds } from "@/frontend/hooks/useOwnedReportIds";
 import { nearestHeatmapPoint } from "@/frontend/lib/nearest-surface";
 import NationalSummary from "@/frontend/components/app/NationalSummary";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
@@ -45,15 +47,27 @@ export default function TodayPageClient({
         : null,
     [serviceAreaStations, stationId],
   );
+  const ownedReports = useOwnedReportIds(currentUserId, community.reports);
   const nearestPoint = useMemo(
     () =>
       nearestHeatmapPoint(
         currentLocation.location,
         pm25.stations,
-        community.reports,
+        ownedReports.ready
+          ? community.reports.filter(
+              (report) => !ownedReports.ids.has(report.id),
+            )
+          : [],
         currentUserId,
       ),
-    [currentLocation.location, pm25.stations, community.reports, currentUserId],
+    [
+      currentLocation.location,
+      pm25.stations,
+      community.reports,
+      currentUserId,
+      ownedReports.ids,
+      ownedReports.ready,
+    ],
   );
   const automaticStation =
     nearestPoint?.source === "station"
@@ -183,6 +197,7 @@ export default function TodayPageClient({
             error={forecast.error}
           />
         </section>
+        <LeaderboardEntryCard userId={currentUserId} />
       </div>
     </UserPageShell>
   );

@@ -274,6 +274,8 @@ async def submit_draft(
                 draft["image_metadata"] = {
                     **(draft.get("image_metadata") or {}),
                     "measurement_request_id": context["id"],
+                    "bonus_gps_at_submission": values.get("bonus_gps"),
+                    "bonus_gps_received_at": datetime.now(UTC).isoformat(),
                 }
     profile = await run_in_threadpool(supabase_client.ensure_profile, user_id)
     official, _source = await get_current_stations()
@@ -336,6 +338,10 @@ async def submit_draft(
             verified_identity.get("display_name") or verified_identity.get("avatar_url")
         )
     )
+    from . import xp
+
+    if xp.enabled():
+        show_reporter_profile = not bool(values.get("hide_identity", False))
     report_row = {
         "id": report_id,
         "user_id": user_id,

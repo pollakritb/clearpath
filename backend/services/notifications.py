@@ -140,6 +140,22 @@ def enqueue_user_notification(
 
 
 def process_outbox(limit: int = 100, budget_seconds: float | None = None) -> dict:
+    from .community import xp
+
+    if xp.configured():
+        try:
+            paused = xp.control()["maintenance"]
+        except Exception:
+            paused = True
+        if paused:
+            return {
+                "processed": 0,
+                "delivered": 0,
+                "failed": 0,
+                "deferred": 0,
+                "dead": 0,
+                "paused": True,
+            }
     processed = delivered = failed = deferred = dead = 0
     deadline = (
         monotonic() + budget_seconds if budget_seconds is not None else float("inf")

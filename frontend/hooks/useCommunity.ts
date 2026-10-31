@@ -16,12 +16,10 @@ import {
 } from "@/frontend/lib/public-data-cache";
 import { getSupabaseBrowserClient } from "@/frontend/lib/supabase";
 import type {
-  Activity,
   Announcement,
   CommunityReport,
   CommunityReportStack,
   CommunityReportsResponse,
-  LeaderboardEntry,
   AnnouncementsResponse,
 } from "@/frontend/types";
 
@@ -57,6 +55,19 @@ export function useCommunityMapData() {
   const [demoMode, setDemoMode] = useState(false);
 
   const applyResult = useCallback((result: CommunityReportsResponse) => {
+    if (result.reset_version) {
+      try {
+        const previous = localStorage.getItem("cp-community-reset-version");
+        if (previous && previous !== result.reset_version)
+          window.dispatchEvent(new Event("cp-community-reset"));
+        localStorage.setItem(
+          "cp-community-reset-version",
+          result.reset_version,
+        );
+      } catch {
+        /* Storage may be disabled. */
+      }
+    }
     const demo = isCommunityDemoMode();
     const stackDemo = isCommunityStackDemoMode();
     setDemoMode(demo);
@@ -197,31 +208,4 @@ export function useAnnouncements() {
   }, []);
 
   return { announcements, loading, error, refresh };
-}
-
-export function useCommunityRewards() {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    void Promise.allSettled([api.activities(), api.leaderboard()]).then(
-      ([activityResult, leaderResult]) => {
-        if (cancelled) return;
-        if (activityResult.status === "fulfilled") {
-          setActivities(activityResult.value.activities);
-        }
-        if (leaderResult.status === "fulfilled") {
-          setLeaders(leaderResult.value.users);
-        }
-        setLoading(false);
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { activities, leaders, loading };
 }

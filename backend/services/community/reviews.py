@@ -147,7 +147,7 @@ def rate_report(
                     user_id=reviewer_id,
                     event_type="reward",
                     title="คำขอบคุณของคุณช่วยชุมชน",
-                    body="ดาวที่คุณให้สอดคล้องกับความเห็นของชุมชน รับเพิ่ม 2 คะแนน",
+                    body="ดาวที่คุณให้สอดคล้องกับชุมชนและช่วยประเมินคุณภาพข้อมูล การให้ดาวไม่เพิ่ม XP",
                     url="/",
                     entity_type="community_report",
                     entity_id=report_id,

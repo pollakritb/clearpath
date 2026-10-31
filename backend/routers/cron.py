@@ -266,8 +266,11 @@ async def cron_gistda_air(
 @router.get("/cron/measurement-requests")
 def cron_measurement_requests(authorization: str | None = Header(default=None)):
     _verify_cron(authorization)
+    from ..services.community import xp
     from ..services.measurement import service
 
+    if xp.configured() and xp.control()["maintenance"]:
+        return {"status": "maintenance"}
     if not service.enabled():
         return {"status": "disabled"}
     return {"requests": service.process(), "outbox": notifications.process_outbox()}
@@ -279,3 +282,11 @@ async def cron_cams_grid(authorization: str | None = Header(default=None)):
     from ..services.forecast_grid_sync import sync
 
     return await sync()
+
+
+@router.get("/cron/community-xp")
+def community_xp(authorization: str | None = Header(default=None)):
+    _verify_cron(authorization)
+    from ..services.community import xp
+
+    return xp.process()

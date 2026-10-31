@@ -304,8 +304,9 @@ def test_complete_automatic_review_rating_reward_and_privacy_flow(
     assert public["gps_accuracy_m"] is None
     assert public["ocr_pm25"] is None
     assert public["user_claimed_pm25"] is None
-    assert public["show_reporter_profile"] is False
-    assert public["display_name"] is None
+    assert public["show_reporter_profile"] is True
+    assert public["display_name"].startswith("สมาชิก CP-")
+    assert public["user_id"] != reporter.id
     assert public["reporter_avatar_url"] is None
     assert (public["lat"], public["lon"]) != (13.8199, 100.0622)
     assert public["location_precision_m"] > 0
@@ -389,8 +390,14 @@ def test_complete_automatic_review_rating_reward_and_privacy_flow(
     leaderboard = client.get("/api/community/leaderboard")
     assert leaderboard.status_code == 200
     leaders = leaderboard.json()["users"]
-    assert any(item["user_id"] == reporter.id for item in leaders)
-    assert [item["rank"] for item in leaders] == list(range(1, len(leaders) + 1))
+    from backend.services.community import xp
+
+    member_id = xp.summary(reporter.id)["member_id"]
+    assert any(item["member_id"] == member_id for item in leaders)
+    assert all("user_id" not in item for item in leaders)
+    assert [item["rank"] for item in leaders] == sorted(
+        item["rank"] for item in leaders
+    )
     assert all("reputation_score" not in item for item in leaders)
     assert all("approved_reports" not in item for item in leaders)
 

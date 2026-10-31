@@ -11,3 +11,6 @@ pykrige>=1.7
 # Evaluation metrics and report figures (scripts/evaluate_interpolation.py).
 matplotlib>=3.8
 xgboost>=3.0,<4.0
+
+# Encrypted, operator-approved community reset backups (development tooling only).
+cryptography>=50.0,<51.0

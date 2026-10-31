@@ -24,7 +24,7 @@ import type {
   MeasurementRequestView,
   Station,
 } from "@/frontend/types";
-import type { ViewportBounds } from "@/frontend/types/ui";
+import type { MapFocusPoint, ViewportBounds } from "@/frontend/types/ui";
 
 import CamsCanvasLayer from "./CamsCanvasLayer";
 import type { GridSurface } from "@/frontend/types/ui";
@@ -58,7 +58,7 @@ export interface MapViewProps {
   onSelectRequest?: (request: MeasurementRequestView) => void;
   userLocation?: { lat: number; lon: number; accuracy: number } | null;
   locationUnavailable?: boolean;
-  focusPoint?: { lat: number; lon: number } | null;
+  focusPoint?: MapFocusPoint | null;
   placePoint?: { lat: number; lon: number; radiusKm: number } | null;
   resetViewSignal?: number;
   showHeatmap: boolean;

@@ -72,7 +72,7 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
     setError(null);
     setMessage(null);
     try {
-      const result = await api.rateReport(reportId, {
+      await api.rateReport(reportId, {
         rating,
         reviewer_lat: location.lat,
         reviewer_lon: location.lon,
@@ -81,11 +81,7 @@ export default function ReviewQueue({ onRefresh }: { onRefresh: () => void }) {
       setNearby((current) =>
         current.filter((report) => report.id !== reportId),
       );
-      setMessage(
-        result.reward_points > 0
-          ? `ส่งคำขอบคุณพร้อม ${rating} ดาวแล้ว คุณได้รับ ${result.reward_points} คะแนนเพราะความเห็นสอดคล้องกับชุมชน`
-          : `ส่งคำขอบคุณพร้อม ${rating} ดาวแล้ว ระบบจะพิจารณารางวัลเมื่อมีความเห็นจากชุมชนเพียงพอ`,
-      );
+      setMessage(`ส่งคำขอบคุณพร้อม ${rating} ดาวแล้ว · การให้ดาวไม่เพิ่ม XP`);
       onRefresh();
     } catch (cause) {
       setError(apiErrorMessage(cause, "ส่งคำขอบคุณไม่สำเร็จ"));

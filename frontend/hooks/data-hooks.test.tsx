@@ -25,11 +25,7 @@ vi.mock("@/frontend/lib/supabase", () => ({
   getSupabaseBrowserClient: () => realtimeMocks.client,
 }));
 
-import {
-  useAnnouncements,
-  useCommunityMapData,
-  useCommunityRewards,
-} from "./useCommunity";
+import { useAnnouncements, useCommunityMapData } from "./useCommunity";
 import { useFirms } from "./useFirms";
 import { useForecast } from "./useForecast";
 import { useHistory } from "./useHistory";
@@ -295,7 +291,7 @@ describe("data hooks", () => {
     expect(apiMocks.forecast).toHaveBeenCalledTimes(2);
   });
 
-  it("loads announcements and community reward summaries defensively", async () => {
+  it("loads announcements defensively", async () => {
     apiMocks.announcements.mockResolvedValueOnce({
       announcements: [{ id: "announcement-1" }],
       count: 1,
@@ -310,14 +306,10 @@ describe("data hooks", () => {
     });
 
     const announcements = renderHook(() => useAnnouncements());
-    const rewards = renderHook(() => useCommunityRewards());
     await waitFor(() =>
       expect(announcements.result.current.loading).toBe(false),
     );
-    await waitFor(() => expect(rewards.result.current.loading).toBe(false));
     expect(announcements.result.current.announcements).toHaveLength(1);
-    expect(rewards.result.current.activities).toHaveLength(1);
-    expect(rewards.result.current.leaders).toHaveLength(1);
 
     apiMocks.announcements.mockRejectedValueOnce(new Error("news failed"));
     await act(async () => announcements.result.current.refresh());

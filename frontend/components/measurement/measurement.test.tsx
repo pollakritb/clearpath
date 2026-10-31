@@ -22,11 +22,16 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   search: vi.fn(),
   back: vi.fn(),
+  push: vi.fn(),
+  claim: vi.fn(),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ back: mocks.back }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ back: mocks.back, push: mocks.push }),
+}));
 vi.mock("@/frontend/lib/api-client", () => ({
   api: {
     createMeasurementRequest: mocks.create,
+    claimMeasurementHelp: mocks.claim,
     measurementHelper: mocks.helper,
     setMeasurementHelper: mocks.setHelper,
     measurementPresence: mocks.presence,
@@ -236,6 +241,7 @@ it("allows a helper to decline and links reporting without manual measurement in
       row={{
         ...row,
         is_owner: false,
+        xp_enabled: true,
         matched_location_at: new Date().toISOString(),
       }}
       actions
@@ -243,10 +249,52 @@ it("allows a helper to decline and links reporting without manual measurement in
     />,
   );
   expect(
-    screen.getByRole("link", { name: "ช่วยรายงาน" }).getAttribute("href"),
-  ).toBe("/report?request=request");
+    screen.getByRole("button", { name: "ช่วยวัดคำขอนี้ · +5 XP" }),
+  ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "ไม่สะดวก" }));
   await waitFor(() => expect(onChanged).toHaveBeenCalled());
   expect(mocks.decline).toHaveBeenCalledWith("request");
   expect(screen.queryByRole("button", { name: "ยกเลิกคำขอ" })).toBeNull();
+});
+
+it("keeps normal help reporting available before XP is activated", () => {
+  render(
+    <RequestSummary
+      row={{ ...row, is_owner: false, xp_enabled: false }}
+      actions
+    />,
+  );
+  expect(
+    screen.getByRole("link", { name: "ช่วยรายงาน" }).getAttribute("href"),
+  ).toBe("/report?request=request");
+  expect(screen.queryByRole("button", { name: /\+5 XP/ })).toBeNull();
+});
+
+it("records the claim before navigating into camera reporting", async () => {
+  let finish: (value: unknown) => void = () => undefined;
+  mocks.claim.mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
+  render(
+    <RequestSummary
+      row={{ ...row, is_owner: false, xp_enabled: true }}
+      actions
+    />,
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "ช่วยวัดคำขอนี้ · +5 XP" }),
+  );
+  expect(mocks.claim).toHaveBeenCalledWith("request");
+  expect(mocks.push).not.toHaveBeenCalled();
+  finish({
+    request_id: "request",
+    started_at: new Date().toISOString(),
+    deadline: new Date(Date.now() + 60000).toISOString(),
+    potential_xp: 5,
+  });
+  await waitFor(() =>
+    expect(mocks.push).toHaveBeenCalledWith("/report?request=request"),
+  );
 });

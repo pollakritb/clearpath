@@ -1,3 +1,4 @@
+import type { HelpClaim } from "./xp";
 import type { CommunityReport } from "./community";
 export type RequestStatus =
   "scheduled" | "active" | "fulfilled" | "expired" | "cancelled";
@@ -23,6 +24,8 @@ export interface MeasurementPresenceUpdate {
   observed_at: string;
 }
 export interface MeasurementRequestView {
+  help_claim?: HelpClaim | null;
+  xp_enabled?: boolean;
   id: string;
   place_name: string;
   lat: number;

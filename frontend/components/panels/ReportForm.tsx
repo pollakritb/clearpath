@@ -1,5 +1,7 @@
 "use client";
 
+import ReportXPResult from "@/frontend/components/community/ReportXPResult";
+
 import { useEffect, useRef, useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
@@ -8,7 +10,6 @@ import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { T } from "@/frontend/lib/ui";
-import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
 import type { ReportLocation } from "@/frontend/types/ui";
 import type {
   ReportCreateResponse,
@@ -55,7 +56,27 @@ export default function ReportForm({
   const [completed, setCompleted] = useState<ReportCreateResponse | null>(null);
   const [hideIdentity, setHideIdentity] = useState(false);
   const auth = useAuth();
-  const reporterProfile = googleReporterProfile(auth.user);
+  const [participation, setParticipation] = useState<{
+    owner: string;
+    alias: string;
+  } | null>(null);
+  const owner = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
+  const publicAlias =
+    participation?.owner === owner ? participation.alias : null;
+  useEffect(() => {
+    if (owner === "guest" || !api.xpSummary) return;
+    let active = true;
+    void api
+      .xpSummary()
+      .then((profile) => {
+        if (active && profile)
+          setParticipation({ owner, alias: profile.alias });
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [owner]);
   const loginPrompt = useLoginPrompt();
   const activeStep = draft ? 3 : evidence ? 2 : 1;
 
@@ -166,7 +187,31 @@ export default function ReportForm({
     setMessage(null);
     try {
       if (!canSubmit) return;
+      const bonusGPS =
+        measurementRequestId && navigator.geolocation
+          ? await new Promise<{
+              lat: number;
+              lon: number;
+              accuracy_m: number;
+            } | null>((resolve) =>
+              navigator.geolocation.getCurrentPosition(
+                (position) =>
+                  resolve(
+                    position.coords.accuracy <= 200
+                      ? {
+                          lat: position.coords.latitude,
+                          lon: position.coords.longitude,
+                          accuracy_m: position.coords.accuracy,
+                        }
+                      : null,
+                  ),
+                () => resolve(null),
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+              ),
+            )
+          : null;
       const result = await api.submitReportDraft(draft.id, {
+        bonus_gps: bonusGPS,
         user_claimed_pm25: Number(claimedPm25),
         ...(measurementRequestId
           ? { measurement_request_id: measurementRequestId }
@@ -235,6 +280,10 @@ export default function ReportForm({
               </ul>
             </div>
           ) : null}
+          <ReportXPResult
+            reportId={completed.report.id}
+            initial={completed.xp}
+          />
           <dl className="cp-report-success__meta">
             <div>
               <dt>สถานะ</dt>
@@ -454,15 +503,12 @@ export default function ReportForm({
                       <strong>
                         {hideIdentity
                           ? "ไม่เปิดเผยตัวตน"
-                          : (reporterProfile?.displayName ??
-                            "แสดงโปรไฟล์ผู้รายงาน")}
+                          : (publicAlias ?? "สมาชิก ClearPath")}
                       </strong>
                       <small>
                         {hideIdentity
-                          ? "ชื่อและรูปโปรไฟล์จะไม่แสดงในรายงานนี้"
-                          : reporterProfile
-                            ? "ชื่อและรูปโปรไฟล์ Google จะแสดงในรายงานนี้"
-                            : "บัญชีนี้ยังไม่มีโปรไฟล์ Google ที่แสดงได้"}
+                          ? "ไม่แสดงนามแฝง ยศ หรือลิงก์สมาชิกในรายงานนี้"
+                          : "แสดงเฉพาะนามแฝงและยศ ClearPath ไม่แสดงชื่อ Google"}
                       </small>
                     </div>
                   </div>

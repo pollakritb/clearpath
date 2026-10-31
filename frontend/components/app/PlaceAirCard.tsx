@@ -1,5 +1,7 @@
 "use client";
 
+import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
+
 import Link from "next/link";
 import { useState } from "react";
 
@@ -258,6 +260,10 @@ export default function PlaceAirCard({
                       ? (report.display_name ?? "ผู้รายงาน")
                       : "ผู้รายงานไม่เปิดเผยตัวตน"}
                   </strong>
+                  {report.show_reporter_profile &&
+                    report.participation_rank && (
+                      <ParticipationBadge rank={report.participation_rank} />
+                    )}
                   <small>
                     {distance(distanceKm, true)} · {age(ageMinutes)} ·
                     ดูภาพและรายละเอียด

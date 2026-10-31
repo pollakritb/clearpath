@@ -51,6 +51,8 @@ def view(row: dict, viewer_id: str) -> dict:
             distance = round(
                 haversine_km(row["lat"], row["lon"], result["lat"], result["lon"]), 1
             )
+    from ..community import xp
+
     return {
         key: row[key]
         for key in (
@@ -65,6 +67,8 @@ def view(row: dict, viewer_id: str) -> dict:
             "status",
         )
     } | {
+        "help_claim": xp.existing_claim(viewer_id, row) if not owner else None,
+        "xp_enabled": xp.enabled(),
         "is_owner": owner,
         "recipient_count": len(store.recipients(row["id"])) if owner else 0,
         "declined": bool(invitation and invitation.get("declined")),

@@ -1,5 +1,7 @@
 "use client";
 
+import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
+
 import { useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -103,6 +105,10 @@ export default function ReportStackCard({
                       ? (report.display_name ?? "ผู้รายงาน")
                       : "ไม่เปิดเผยตัวตน"}
                   </strong>
+                  {report.show_reporter_profile &&
+                    report.participation_rank && (
+                      <ParticipationBadge rank={report.participation_rank} />
+                    )}
                   <small>
                     {reportTime(report.captured_at)} · แตะดูภาพและรายละเอียด
                   </small>

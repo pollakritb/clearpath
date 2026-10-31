@@ -48,9 +48,9 @@ export default function MyContribution() {
         <div
           style={{ background: T.chip, borderRadius: "9px", padding: ".6em" }}
         >
-          <small>คะแนนความน่าเชื่อถือ</small>
+          <small>XP สะสม</small>
           <strong style={{ display: "block", fontFamily: T.mono }}>
-            {profile.reputation_score}
+            {profile.xp?.lifetime_xp ?? "—"}
           </strong>
         </div>
         <div

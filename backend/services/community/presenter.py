@@ -32,6 +32,7 @@ def present_report(
     include_exact_location: bool = False,
     include_private_metadata: bool = False,
     reference_at: datetime | None = None,
+    identities: dict[str, dict] | None = None,
 ) -> dict:
     """Build an API report while enforcing publication and location rules."""
     reasons = row.get("trust_reasons") or []
@@ -116,13 +117,51 @@ def present_report(
                 secret_seed=f"{settings.effective_capture_secret}:{row['id']}",
             )
 
+    # Public identifiers never contain Supabase Auth IDs. Anonymous reports use
+    # a distinct per-report token so they cannot be joined across accounts.
+    import hashlib
+    import hmac
+
+    from . import public_images, xp
+
+    identity = {}
+    if show_reporter_profile and xp.enabled():
+        try:
+            identity = (
+                (identities.get(str(row["user_id"])) or {})
+                if identities is not None
+                else xp.public_identity(str(row["user_id"]))
+            )
+        except Exception:
+            # Decoration outages must not roll back an automatic publication or
+            # expose the Google identity as a fallback.
+            identity = {}
+    public_token = hmac.new(
+        settings.effective_capture_secret.encode(),
+        f"report:{row['id']}".encode(),
+        hashlib.sha256,
+    ).hexdigest()[:32]
     return {
+        "member_id": identity.get("member_id"),
+        "participation_rank": identity.get("rank"),
         "id": str(row["id"]),
-        "user_id": str(row["user_id"]),
-        "display_name": row.get("display_name") if expose_reporter_identity else None,
-        "reporter_avatar_url": (
-            row.get("reporter_avatar_url") if expose_reporter_identity else None
-        ),
+        "user_id": str(row["user_id"])
+        if include_private_metadata or include_exact_location
+        else identity.get("member_id") or public_token,
+        "display_name": (
+            identity.get("alias")
+            or (
+                row.get("display_name")
+                if include_private_metadata or include_exact_location
+                else None
+            )
+        )
+        if expose_reporter_identity
+        else None,
+        "reporter_avatar_url": row.get("reporter_avatar_url")
+        if expose_reporter_identity
+        and (include_private_metadata or include_exact_location)
+        else None,
         "show_reporter_profile": show_reporter_profile,
         "lat": lat,
         "lon": lon,
@@ -154,8 +193,12 @@ def present_report(
         "peer_up": int(row.get("peer_up") or 0),
         "peer_down": int(row.get("peer_down") or 0),
         "image_url": (
-            supabase_client.signed_report_image_url(row.get("image_path"))
-            if include_image
+            (
+                supabase_client.signed_report_image_url(row.get("image_path"))
+                if include_private_metadata or include_exact_location
+                else public_images.url(str(row["id"]))
+            )
+            if include_image and row.get("image_path")
             else None
         ),
         "admin_verified": admin_verified,
@@ -247,9 +290,13 @@ def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
         if status == "approved"
         else supabase_client.list_community_reports("approved", 500)
     )
+    from . import xp
+
+    identities = xp.public_identities(rows)
     reports = [
         present_report(
             row,
+            identities=identities,
             official_stations=official,
             approved_reports=approved,
             # Approved report photos stay in the private bucket. Public clients
@@ -269,9 +316,13 @@ def list_public_map_reports(limit: int = 200) -> tuple[list[dict], list[dict]]:
     """Return public reports and stacks built from private coordinates in one snapshot."""
     raw = supabase_client.list_community_reports("approved", limit)
     official = supabase_client.get_stations()
+    from . import xp
+
+    identities = xp.public_identities(raw)
     reports = [
         present_report(
             row,
+            identities=identities,
             official_stations=official,
             approved_reports=raw,
             include_image=True,
@@ -325,3 +376,19 @@ def list_reviewable_reports(
 
     nearby.sort(key=lambda item: item[0])
     return [report for _, report in nearby[:limit]]
+
+
+def list_map_points() -> list[dict]:
+    from ...algorithms.community_quality import aggregate_community_reports
+    from . import xp
+
+    raw = supabase_client.list_community_reports("approved", 500)
+    identities = xp.public_identities(raw)
+    reports = [
+        present_report(
+            row, approved_reports=raw, include_image=False, identities=identities
+        )
+        | {"user_id": str(row["user_id"])}
+        for row in raw
+    ]
+    return aggregate_community_reports(reports)

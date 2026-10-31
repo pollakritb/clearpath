@@ -3,6 +3,7 @@
 @import "../frontend/styles/user-app.css";
 @import "../frontend/styles/mobile-redesign.css";
 @import "../frontend/styles/admin-app.css";
+@import "../frontend/styles/community-xp.css";
 
 .cp-error-page {
   min-height: 100dvh;

@@ -19,6 +19,7 @@ from .community import (
     AnnouncementCreate,
     AnnouncementsResponse,
     AnnouncementUpdate,
+    BonusGPS,
     CaptureSessionResponse,
     CommunityDataRole,
     CommunityMapPoint,
@@ -82,6 +83,21 @@ from .notifications import (
 from .validation import LoocvMetrics, ValidationResponse
 
 __all__ = [
+    "BonusGPS",
+    "HelpClaim",
+    "OwnedReportIDs",
+    "ParticipationRank",
+    "PublicMember",
+    "XPAdminEvent",
+    "XPAdminOverview",
+    "XPEvent",
+    "XPEventsResponse",
+    "XPLeader",
+    "XPLeaderboard",
+    "XPResult",
+    "XPReversalRequest",
+    "XPSettings",
+    "XPSummary",
     "ForecastGridMetadata",
     "ForecastGridFrame",
     "ForecastGridFrames",
@@ -156,3 +172,20 @@ __all__ = [
     "ValidationResponse",
     "Weather",
 ]
+
+from .xp import (  # noqa: F401
+    HelpClaim,
+    OwnedReportIDs,
+    ParticipationRank,
+    PublicMember,
+    XPAdminEvent,
+    XPAdminOverview,
+    XPEvent,
+    XPEventsResponse,
+    XPLeader,
+    XPLeaderboard,
+    XPResult,
+    XPReversalRequest,
+    XPSettings,
+    XPSummary,
+)

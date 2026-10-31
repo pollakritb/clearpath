@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from .xp import ParticipationRank, XPResult, XPSummary
+
 ReportStatus = Literal["pending", "approved", "rejected"]
 VerificationMethod = Literal["pending", "automatic", "admin"]
 CommunityDataRole = Literal["supplementary", "gap_fill"]
@@ -37,6 +39,8 @@ class CommunityReport(BaseModel):
     image_metadata: dict | None = None
     id: str
     user_id: str
+    member_id: str | None = None
+    participation_rank: ParticipationRank | None = None
     display_name: str | None = None
     reporter_avatar_url: str | None = None
     show_reporter_profile: bool = False
@@ -117,6 +121,7 @@ class CommunityReportStack(BaseModel):
 
 
 class CommunityReportsResponse(BaseModel):
+    reset_version: str | None = None
     reports: list[CommunityReport]
     count: int
     stacks: list[CommunityReportStack] = Field(default_factory=list)
@@ -146,6 +151,7 @@ class DataIssueCreate(BaseModel):
 
 
 class ReportCreateResponse(BaseModel):
+    xp: XPResult | None = None
     report: CommunityReport
     ocr_available: bool
     review_outcome: Literal["automatic_approved", "automatic_rejected"]
@@ -176,7 +182,14 @@ class ReportDraftResponse(BaseModel):
     image_preview_url: str | None = None
 
 
+class BonusGPS(BaseModel):
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+    accuracy_m: float = Field(ge=0, le=200)
+
+
 class ReportDraftSubmit(BaseModel):
+    bonus_gps: BonusGPS | None = None
     measurement_request_id: UUID | None = None
     user_claimed_pm25: float = Field(ge=0, le=1000)
     hide_identity: bool = False
@@ -204,7 +217,9 @@ class RatingResult(BaseModel):
     rating_count: int
     rating_average: float
     consensus: RatingDirection
-    reward_points: int = 0
+    reward_points: int = Field(
+        default=0, description="Legacy reputation only; never participation XP"
+    )
 
 
 class ReportReactionRequest(BaseModel):
@@ -246,6 +261,7 @@ class UserReputation(BaseModel):
 
 
 class CommunityProfileResponse(UserReputation):
+    xp: XPSummary | None = None
     created_at: str | None = None
     reports: list[CommunityReport] = Field(default_factory=list)
 
