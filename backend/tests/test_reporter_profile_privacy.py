@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from backend.algorithms.community_xp import rank_progress
 from backend.models.community import ReportDraftSubmit
 from backend.services.community.presenter import present_report
 
@@ -43,6 +44,13 @@ def test_public_report_exposes_opted_in_clearpath_alias():
     report = present_report(
         _report(show_reporter_profile=True),
         include_image=False,
+        identities={
+            "user-1": {
+                "member_id": "public-member-1",
+                "alias": "สมาชิก CP-ABC123",
+                "rank": rank_progress(0, 0),
+            }
+        },
     )
 
     assert report["show_reporter_profile"] is True
