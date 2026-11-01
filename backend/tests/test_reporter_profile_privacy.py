@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from backend.algorithms.community_xp import rank_progress
 from backend.models.community import ReportDraftSubmit
+from backend.services.community import xp
 from backend.services.community.presenter import present_report
 
 
@@ -40,7 +41,8 @@ def test_report_submission_defaults_to_visible_identity():
     assert body.hide_identity is False
 
 
-def test_public_report_exposes_opted_in_clearpath_alias():
+def test_public_report_exposes_opted_in_clearpath_alias(monkeypatch):
+    monkeypatch.setattr(xp, "enabled", lambda: True)
     report = present_report(
         _report(show_reporter_profile=True),
         include_image=False,

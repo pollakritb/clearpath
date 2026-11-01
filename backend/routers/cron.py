@@ -101,7 +101,7 @@ async def cron_sync(authorization: str | None = Header(default=None)):
 
     run_id = creation_key("sync_runs")
     started_at = datetime.now(UTC).isoformat()
-    await run_in_threadpool(
+    persisted_run = await run_in_threadpool(
         supabase_client.create_sync_run,
         {
             "id": run_id,
@@ -110,6 +110,7 @@ async def cron_sync(authorization: str | None = Header(default=None)):
             "started_at": started_at,
         },
     )
+    run_id = str(persisted_run["id"])
     try:
         stations = await air4thai.fetch_stations()
         ingestion = air4thai.get_last_ingestion_diagnostics()

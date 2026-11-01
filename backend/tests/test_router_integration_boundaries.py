@@ -177,7 +177,7 @@ def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch)
     monkeypatch.setattr(
         cron.supabase_client,
         "create_sync_run",
-        lambda row: sync_runs.append(row) or row,
+        lambda row: sync_runs.append(row) or {**row, "id": "SYN-000123"},
     )
     monkeypatch.setattr(cron.supabase_client, "latest_primary_sync_run", lambda: None)
     monkeypatch.setattr(cron.supabase_client, "upsert_stations", lambda rows: len(rows))
@@ -206,6 +206,7 @@ def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch)
     )
     assert response.status_code == 200
     assert response.json()["stations"] == 1
+    assert response.json()["run_id"] == "SYN-000123"
     assert response.json()["forecast_inputs"]["weather"] == 1
     assert sync_runs[-1]["source"] == "air4thai_github_backup"
     assert sync_updates[-1]["status"] == "success"

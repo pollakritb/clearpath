@@ -29,7 +29,9 @@ def test_collect_cams_snapshots_stores_future_hours_without_predictions(monkeypa
         supabase_client, "get_latest_provider_sync_run", lambda _provider: None
     )
     monkeypatch.setattr(
-        supabase_client, "create_provider_sync_run", lambda row: runs.append(row)
+        supabase_client,
+        "create_provider_sync_run",
+        lambda row: runs.append(row) or {**row, "id": "CPS-000001"},
     )
     monkeypatch.setattr(
         supabase_client,
@@ -141,7 +143,9 @@ def test_cams_batch_collects_only_its_stations(monkeypatch):
         lambda _provider, *, batch_index: None,
     )
     monkeypatch.setattr(
-        supabase_client, "create_provider_sync_run", lambda row: runs.append(row)
+        supabase_client,
+        "create_provider_sync_run",
+        lambda row: runs.append(row) or {**row, "id": "CPS-000001"},
     )
     monkeypatch.setattr(supabase_client, "update_provider_sync_run", lambda *_: None)
     monkeypatch.setattr(
@@ -187,7 +191,11 @@ def test_collect_cams_snapshots_marks_missing_hour_partial(monkeypatch):
     monkeypatch.setattr(
         supabase_client, "get_latest_provider_sync_run", lambda _provider: None
     )
-    monkeypatch.setattr(supabase_client, "create_provider_sync_run", lambda _row: None)
+    monkeypatch.setattr(
+        supabase_client,
+        "create_provider_sync_run",
+        lambda row: {**row, "id": "CPS-000001"},
+    )
     monkeypatch.setattr(
         supabase_client,
         "update_provider_sync_run",

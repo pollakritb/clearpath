@@ -41,6 +41,9 @@ def test_expired_or_tampered_camera_session_is_rejected(monkeypatch):
 def test_capture_session_is_bound_and_consumed_once(monkeypatch):
     monkeypatch.setattr(capture.settings, "capture_session_secret", "test-secret")
     monkeypatch.setattr(
+        capture.supabase_client, "stable_identifier", lambda _entity, value: value
+    )
+    monkeypatch.setattr(
         capture.supabase_client, "create_capture_session", lambda row: row
     )
     monkeypatch.setattr(

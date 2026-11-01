@@ -28,7 +28,7 @@ def _install_store(monkeypatch):
     monkeypatch.setattr(
         provider_sync.supabase_client,
         "create_provider_sync_run",
-        lambda row: created.append(row) or row,
+        lambda row: created.append(row) or {**row, "id": f"CPS-{len(created):06d}"},
     )
     monkeypatch.setattr(
         provider_sync.supabase_client,
@@ -175,6 +175,9 @@ def test_gistda_sync_records_success_behind_legal_metadata(monkeypatch):
     result = asyncio.run(provider_sync.sync_gistda())
 
     assert result["status"] == "success"
+    assert result["run_id"] == "CPS-000001"
+    assert all(row["sync_run_id"] == result["run_id"] for row in snapshots)
+    assert updated[0][0] == result["run_id"]
     assert result["snapshots"] == 2
     assert created[0]["metadata"] == {"licence_gate": "approved"}
     assert all(row["provider"] == "gistda" for row in snapshots)

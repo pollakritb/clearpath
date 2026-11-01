@@ -233,7 +233,7 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
 
     run_id = creation_key("forecast_provider_sync_runs")
     retrieved_at = datetime.now(UTC).replace(microsecond=0)
-    supabase_client.create_provider_sync_run(
+    persisted_run = supabase_client.create_provider_sync_run(
         {
             "id": run_id,
             "provider": "openmeteo_cams",
@@ -250,6 +250,7 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
             },
         }
     )
+    run_id = str(persisted_run["id"])
     try:
         forecasts = await openmeteo_air.get_forecasts(stations, forecast_days=5)
         snapshots = []
@@ -438,7 +439,7 @@ async def sync_gistda() -> dict:
     stations = _valid_stations()
     run_id = creation_key("forecast_provider_sync_runs")
     issued_at = datetime.now(UTC).replace(microsecond=0)
-    supabase_client.create_provider_sync_run(
+    persisted_run = supabase_client.create_provider_sync_run(
         {
             "id": run_id,
             "provider": "gistda",
@@ -448,6 +449,7 @@ async def sync_gistda() -> dict:
             "metadata": {"licence_gate": "approved"},
         }
     )
+    run_id = str(persisted_run["id"])
     semaphore = asyncio.Semaphore(4)
 
     async def fetch(station: dict) -> tuple[str, list[dict], str | None]:
@@ -515,7 +517,7 @@ async def sync_openmeteo() -> dict:
     stations = _valid_stations()
     run_id = creation_key("forecast_provider_sync_runs")
     issued_at = datetime.now(UTC).replace(microsecond=0)
-    supabase_client.create_provider_sync_run(
+    persisted_run = supabase_client.create_provider_sync_run(
         {
             "id": run_id,
             "provider": "openmeteo_cams",
@@ -524,6 +526,7 @@ async def sync_openmeteo() -> dict:
             "started_at": issued_at.isoformat(),
         }
     )
+    run_id = str(persisted_run["id"])
     try:
         by_station = await openmeteo_air.get_forecasts(stations)
         snapshots = [
