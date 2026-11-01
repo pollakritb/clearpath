@@ -271,6 +271,9 @@ def claim(user_id: str, request_id: str) -> dict:
         if not row:
             raise KeyError()
         service.view(row, user_id)
+        invitation = store.recipient(request_id, user_id)
+        if invitation and invitation.get("declined"):
+            raise ValueError("คุณเลือกไม่สะดวกช่วยวัดคำขอนี้แล้ว")
         existing = _CLAIMS.get((request_id, user_id))
         now = datetime.now(UTC)
         deadline = stamp(row["expires_at"])

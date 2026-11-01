@@ -86,10 +86,10 @@ def create(row: dict) -> dict:
             elif (
                 sum(
                     r["status"] in {"active", "scheduled"}
-                    and r["expires_at"] > now.isoformat()
+                    and datetime.fromisoformat(r["expires_at"]) > now
                     for r in owned
                 )
-                >= 2
+                >= 1
             ):
                 result = {"error": "active_limit"}
             else:
@@ -99,7 +99,7 @@ def create(row: dict) -> dict:
         raise ValueError(
             "ขอได้ไม่เกิน 3 ครั้งต่อวัน"
             if result["error"] == "daily_limit"
-            else "เปิดคำขอพร้อมกันได้ไม่เกิน 2 คำขอ"
+            else "มีคำขอที่เปิดอยู่แล้ว กรุณารอให้สำเร็จ ยกเลิก หรือหมดอายุก่อนสร้างใหม่"
         )
     return result["row"]
 
@@ -188,6 +188,37 @@ def recipients(request_id: str) -> list[dict]:
                 .order("user_id")
             )
         )
+    )
+
+
+def is_open(row: dict) -> bool:
+    return row["status"] in {"active", "scheduled"} and datetime.fromisoformat(
+        row["expires_at"].replace("Z", "+00:00")
+    ) > datetime.now(UTC)
+
+
+def visible(user_id: str) -> list[dict]:
+    """All open requests for signed-in viewers plus their private history."""
+    if settings.local_demo_mode:
+        with _LOCK:
+            opened = [deepcopy(row) for row in REQUESTS.values() if is_open(row)]
+    else:
+        opened = list(
+            pages(
+                lambda: (
+                    db.get_client()
+                    .table("measurement_requests")
+                    .select("*")
+                    .in_("status", ["active", "scheduled"])
+                    .gt("expires_at", datetime.now(UTC).isoformat())
+                    .order("id")
+                )
+            )
+        )
+    return sorted(
+        {row["id"]: row for row in [*mine(user_id), *opened]}.values(),
+        key=lambda row: row["created_at"],
+        reverse=True,
     )
 
 

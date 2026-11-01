@@ -40,7 +40,10 @@ def require_enabled():
 def view(row: dict, viewer_id: str) -> dict:
     owner = row["user_id"] == viewer_id
     invitation = store.recipient(row["id"], viewer_id)
-    if not owner and invitation is None:
+    from ..community import xp
+
+    claim = xp.existing_claim(viewer_id, row) if not owner else None
+    if not owner and invitation is None and claim is None and not store.is_open(row):
         raise KeyError("ไม่พบคำขอ")
     result = None
     distance = None
@@ -52,8 +55,6 @@ def view(row: dict, viewer_id: str) -> dict:
             distance = round(
                 haversine_km(row["lat"], row["lon"], result["lat"], result["lon"]), 1
             )
-    from ..community import xp
-
     return {
         key: row[key]
         for key in (
@@ -68,7 +69,7 @@ def view(row: dict, viewer_id: str) -> dict:
             "status",
         )
     } | {
-        "help_claim": xp.existing_claim(viewer_id, row) if not owner else None,
+        "help_claim": claim,
         "xp_enabled": xp.enabled(),
         "is_owner": owner,
         "recipient_count": len(store.recipients(row["id"])) if owner else 0,

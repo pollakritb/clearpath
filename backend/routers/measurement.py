@@ -54,7 +54,7 @@ def create(body: MeasurementRequestCreate, user: User):
 def listing(user: User):
     return call(
         lambda: {
-            "requests": [service.view(row, user.id) for row in store.mine(user.id)]
+            "requests": [service.view(row, user.id) for row in store.visible(user.id)]
         }
     )
 

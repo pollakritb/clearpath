@@ -390,4 +390,67 @@ await pg.query("select private.prune_recent_history(1)");
 console.log(
   "Retired model feature tables: nonempty guard, 41-table inventory, retained CAMS/community and working cleanup passed.",
 );
+// Open discovery must allow volunteering without an invitation; quotas remain atomic.
+await pg.exec(migration("open_measurement_requests_single_active"));
+const requestRow = (n, owner = 2) => ({
+  ...row,
+  user_id: owner,
+  legacy_id: uid(n),
+  idempotency_key: uid(n + 1),
+  fingerprint: `open-${n}`,
+  starts_at: new Date().toISOString(),
+  expires_at: new Date(Date.now() + 3600000).toISOString(),
+});
+const makeRequest = async (data) =>
+  (await pg.query("select create_measurement_request($1) s", [data])).rows[0].s;
+const openRow = requestRow(800);
+const firstOpen = (await makeRequest(openRow)).row;
+assert(firstOpen);
+assert.equal((await makeRequest(openRow)).row.id, firstOpen.id);
+assert.equal((await makeRequest(requestRow(802))).error, "active_limit");
+const volunteer = (
+  await pg.query("select claim_community_help(3,$1) s", [firstOpen.id])
+).rows[0].s;
+assert.equal(volunteer.potential_xp, 5);
+assert.equal(
+  (
+    await pg.query(
+      "select count(*) n from measurement_request_recipients where request_id=$1",
+      [firstOpen.id],
+    )
+  ).rows[0].n,
+  0,
+);
+assert.equal(
+  (await pg.query("select claim_community_help(3,$1) s", [firstOpen.id]))
+    .rows[0].s.started_at,
+  volunteer.started_at,
+);
+await pg.query("select finish_measurement_request($1,'cancelled')", [
+  firstOpen.id,
+]);
+const afterCancel = (await makeRequest(requestRow(804))).row;
+assert(afterCancel);
+await pg.query("select finish_measurement_request($1,'fulfilled')", [
+  afterCancel.id,
+]);
+assert((await makeRequest(requestRow(806))).row);
+const clockRow = (await makeRequest(requestRow(810, 3))).row;
+assert(clockRow);
+await pg.query(
+  "update measurement_requests set starts_at=now()-interval '1 hour', expires_at=now()-interval '1 second' where id=$1",
+  [clockRow.id],
+);
+assert((await makeRequest(requestRow(812, 3))).row);
+assert.equal(
+  (
+    await pg.query(
+      "select has_function_privilege('authenticated','public.claim_community_help(bigint,bigint)','execute') allowed",
+    )
+  ).rows[0].allowed,
+  false,
+);
+console.log(
+  "Single active slot, retries, cancellation/success/expiry release, and uninvited volunteering passed.",
+);
 await pg.close();

@@ -199,11 +199,12 @@ def test_concurrent_duplicate_creation_and_quota(env):
     with ThreadPoolExecutor(max_workers=8) as pool:
         rows = list(pool.map(lambda _: create(owner), range(8)))
     assert len({row["id"] for row in rows}) == 1
-    create(owner, radius_km=1)
-    with pytest.raises(ValueError, match="พร้อมกัน"):
-        create(owner, radius_km=5)
-    for row in list(store.REQUESTS.values()):
-        service.cancel(row["id"], owner)
+    with pytest.raises(ValueError, match="มีคำขอที่เปิดอยู่แล้ว"):
+        create(owner, radius_km=1)
+    first = rows[0]
+    service.cancel(first["id"], owner)
+    second = create(owner, radius_km=1)
+    store.finish(second["id"], "fulfilled")
     third = create(owner, radius_km=5)
     service.cancel(third["id"], owner)
     with pytest.raises(ValueError, match="ต่อวัน"):
@@ -274,8 +275,7 @@ def test_scheduled_cancel_expire_and_authorization(env):
     helper_at(helper)
     service.process()
     assert not store.recipient(req["id"], helper)
-    with pytest.raises(KeyError):
-        service.view(store.get(req["id"]), outsider)
+    assert not service.view(store.get(req["id"]), outsider)["is_owner"]
     with pytest.raises(KeyError):
         service.cancel(req["id"], helper)
     service.cancel(req["id"], owner)
@@ -357,9 +357,15 @@ def test_api_hides_requests_and_recipient_coordinates(env):
     assert result.status_code == 201, result.text
     rid = result.json()["id"]
     current[0] = outsider
-    assert client.get(f"/api/measurement-requests/{rid}").status_code == 404
+    detail = client.get(f"/api/measurement-requests/{rid}")
+    assert detail.status_code == 200
+    assert detail.json()["is_owner"] is False
+    assert "user_id" not in detail.json()
+    assert detail.json()["matched_location_at"] is None
     assert client.post(f"/api/measurement-requests/{rid}/cancel").status_code == 404
-    assert client.get("/api/measurement-requests").json()["requests"] == []
+    assert [
+        r["id"] for r in client.get("/api/measurement-requests").json()["requests"]
+    ] == [rid]
     current[0] = helper
     assert (
         client.put(
@@ -383,3 +389,40 @@ def test_api_hides_requests_and_recipient_coordinates(env):
     detail = client.get(f"/api/measurement-requests/{rid}").json()
     assert not detail["is_owner"] and detail["matched_location_at"]
     assert "user_id" not in detail and "recipients" not in detail
+
+
+def test_open_requests_visible_without_consent_but_closed_history_stays_private(env):
+    owner, helper, outsider = env
+    req = create(owner)
+    assert [r["id"] for r in store.visible(outsider)] == [req["id"]]
+    assert not store.PRESENCES and not store.RECIPIENTS
+    service.cancel(req["id"], owner)
+    assert store.visible(outsider) == []
+    with pytest.raises(KeyError):
+        service.view(store.get(req["id"]), outsider)
+    assert store.visible(owner)[0]["id"] == req["id"]
+
+
+def test_expired_clock_releases_slot_even_before_worker(env):
+    owner, *_ = env
+    req = create(owner)
+    store.REQUESTS[req["id"]]["expires_at"] = (
+        datetime.now(UTC) - timedelta(seconds=1)
+    ).isoformat()
+    assert not store.is_open(store.get(req["id"]))
+    assert create(owner, radius_km=1)["id"] != req["id"]
+
+
+def test_different_simultaneous_requests_only_one_open_slot(env):
+    owner, *_ = env
+
+    def attempt(i):
+        try:
+            return create(owner, lat=13.8 + i / 10000)
+        except ValueError:
+            return None
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(attempt, range(8)))
+    assert sum(row is not None for row in results) == 1
+    assert len(store.REQUESTS) == 1

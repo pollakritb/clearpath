@@ -207,15 +207,18 @@ export function RequestSummary({
                 ช่วยรายงาน
               </Link>
             ))}
-          {!row.is_owner && active && !row.declined && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void act("decline")}
-            >
-              ไม่สะดวก
-            </button>
-          )}
+          {!row.is_owner &&
+            active &&
+            row.matched_location_at &&
+            !row.declined && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void act("decline")}
+              >
+                ไม่สะดวก
+              </button>
+            )}
           {row.is_owner && active && (
             <button
               type="button"
@@ -317,7 +320,7 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
       icon="community"
       header={{
         title: "ติดตามคำขอค่าฝุ่น",
-        description: "คำขอของฉันและคำขอจากคนอื่นที่ส่งถึงคุณ",
+        description: "คำขอของฉันและคำขอที่ยังเปิดอยู่จากคนอื่น",
         showDataStatus: false,
       }}
     >
@@ -377,7 +380,7 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
                         : group.label === "ประวัติคำขอ"
                           ? "ยังไม่มีประวัติคำขอ"
                           : group.label
-                            ? "ยังไม่มีคำขอจากคนอื่นที่ส่งถึงคุณ"
+                            ? "ยังไม่มีคำขอที่ยังเปิดอยู่จากคนอื่น"
                             : "ไม่พบคำขอ"}
                     </p>
                   </div>
