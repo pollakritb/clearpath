@@ -1,6 +1,6 @@
 # ClearPath — Data dictionary
 
-Schema รุ่น 2: PK/FK ของข้อมูลภายในใช้ BIGINT; API ส่ง code เป็น string เช่น `RPT-000001`. นี่คือ schema เป้าหมายจาก migration ที่ทดสอบแล้ว 44 ตาราง; **ยังไม่ยืนยัน production cutover**. ดู [สถานะ recovery](../runbooks/identifier-cutover-recovery-2026-11-01.md).
+Schema รุ่น 2: PK/FK ของข้อมูลภายในใช้ BIGINT; API ส่ง code เป็น string เช่น `RPT-000001`. สร้างจาก catalog โปรเจกต์ `kmvxwfrmmictzuxbsncr` ที่ตรวจสอบแล้ว 44 ตาราง. ดู [การย้ายไปโปรเจกต์ใหม่](../runbooks/fresh-project-2026-11-01.md).
 
 UUID ที่เหลือใช้กับ Supabase Auth, token/lease/idempotency หรือคอลัมน์ `legacy_*` เพื่อรองรับข้อมูลและลิงก์เดิม. ใน schema เป้าหมายไม่มี UUID เป็น PK ของตาราง public. Sequence ข้ามเลขได้และไม่เริ่มใหม่ทุกปี; code มีอย่างน้อย 6 หลักและไม่ตัดเลขที่ยาวกว่า 6 หลัก.
 

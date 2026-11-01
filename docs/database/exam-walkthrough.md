@@ -1,6 +1,6 @@
 # ClearPath — แนวตรวจฐานข้อมูลสำหรับสอบ
 
-สถานะงาน: โค้ดรองรับ numeric keys และ code พร้อม และ restore/migration rehearsal ด้วยข้อมูลจริงผ่านแล้ว แต่ production cutover ยังยืนยันไม่ได้ เพราะ WAL disk เต็มและฐานข้อมูลอยู่ระหว่าง recovery. ดู [สถานะและขั้นตอนกู้](../runbooks/identifier-cutover-recovery-2026-11-01.md). ห้ามนำเสนอว่าย้าย production สำเร็จแล้ว.
+สถานะฐานข้อมูลใหม่: `ClearPath_Final` ใช้ numeric PK/FK และ generated code แล้ว ตรวจ ID 23 ประเภทและความสัมพันธ์ 50 จุดผ่าน พร้อมข้อมูลสถานี/ประวัติ 3 วันและบัญชีผู้ใช้เริ่มใหม่. ดู [การย้ายโปรเจกต์และหลักฐานตรวจ](../runbooks/fresh-project-2026-11-01.md). โปรเจกต์เดิมยังเป็น incident แยกต่างหาก; ตัวอย่าง expand ด้านล่างอธิบายวิธีย้าย schema เดิม.
 
 ใช้ [data dictionary](data-dictionary.md) ควบคู่ [ERD](erd.mmd). Schema baseline มี 44 ตาราง: ข้อมูลสถานี/อากาศ, CAMS, ชุมชน, คำขอวัด, การแจ้งเตือน และ XP.
 

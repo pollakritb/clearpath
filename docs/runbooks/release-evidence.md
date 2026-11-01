@@ -12,8 +12,8 @@ GPS coordinates, email addresses, or provider response bodies into this file.
 | Release branch       | `main`                              |
 | Production origin    | `https://clearpath-gray.vercel.app` |
 | Vercel scope/project | `jec3/clearpath`                    |
-| Supabase project     | `ClearPath`                         |
-| Supabase project ref | `qnrtryspglioqhdxglzu`              |
+| Supabase project     | `ClearPath_Final`                   |
+| Supabase project ref | `kmvxwfrmmictzuxbsncr`              |
 | Source of truth      | ClearPath Supabase project only     |
 
 The immutable release SHA must be read from `/api/ready`; do not trust the

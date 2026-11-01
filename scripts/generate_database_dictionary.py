@@ -60,7 +60,15 @@ PURPOSE = {
 }
 
 
-def generate(catalog: dict, output: Path, *, production_verified: bool = False):
+def generate(
+    catalog: dict,
+    output: Path,
+    *,
+    production_verified: bool = False,
+    verified_project_ref: str | None = None,
+):
+    if verified_project_ref and not re.fullmatch(r"[a-z]{20}", verified_project_ref):
+        raise ValueError("invalid verified project reference")
     tables = {}
     for c in catalog["columns"]:
         tables.setdefault(c["table_name"], []).append(c)
@@ -81,7 +89,9 @@ def generate(catalog: dict, output: Path, *, production_verified: bool = False):
         "",
         "Schema รุ่น 2: PK/FK ของข้อมูลภายในใช้ BIGINT; API ส่ง code เป็น string เช่น `RPT-000001`. "
         + (
-            "สร้างจาก production catalog ที่ตรวจสอบแล้ว 44 ตาราง."
+            f"สร้างจาก catalog โปรเจกต์ `{verified_project_ref}` ที่ตรวจสอบแล้ว 44 ตาราง. ดู [การย้ายไปโปรเจกต์ใหม่](../runbooks/fresh-project-2026-11-01.md)."
+            if verified_project_ref
+            else "สร้างจาก production catalog ที่ตรวจสอบแล้ว 44 ตาราง."
             if production_verified
             else "นี่คือ schema เป้าหมายจาก migration ที่ทดสอบแล้ว 44 ตาราง; **ยังไม่ยืนยัน production cutover**. ดู [สถานะ recovery](../runbooks/identifier-cutover-recovery-2026-11-01.md)."
         ),
@@ -194,7 +204,9 @@ def generate(catalog: dict, output: Path, *, production_verified: bool = False):
         graph.append(f'    {parent} ||--o{{ {c["table"]} : "{col}"')
     graph.insert(
         1,
-        "    %% Numeric target schema; production verification required"
+        f"    %% Verified numeric schema for {verified_project_ref}"
+        if verified_project_ref
+        else "    %% Numeric target schema; production verification required"
         if not production_verified
         else "    %% Verified numeric production schema",
     )
@@ -205,12 +217,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("catalog", type=Path)
     parser.add_argument("--verified-production", action="store_true")
+    parser.add_argument("--verified-project-ref")
     parser.add_argument("--output", type=Path, default=Path("docs/database"))
     args = parser.parse_args()
     generate(
         json.loads(args.catalog.read_text()),
         args.output,
         production_verified=args.verified_production,
+        verified_project_ref=args.verified_project_ref,
     )
 
 

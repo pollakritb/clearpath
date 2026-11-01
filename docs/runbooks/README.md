@@ -1,5 +1,7 @@
 # ClearPath operations runbooks
 
+- [Replacement database](fresh-project-2026-11-01.md) — ClearPath_Final, numeric keys, 72-hour seed, fresh accounts and bounded retention.
+
 - [Production deployment](production-deployment.md) — Supabase, secrets, Vercel,
   cron and acceptance checks.
 - [Release evidence and production baseline](release-evidence.md) — stable

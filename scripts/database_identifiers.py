@@ -63,7 +63,7 @@ def main() -> int:
     from dotenv import dotenv_values
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--project-ref", default="qnrtryspglioqhdxglzu")
+    parser.add_argument("--project-ref", required=True)
     parser.add_argument("--env-file", type=Path, default=Path(".env.deploy.local"))
     parser.add_argument("--require-expanded", action="store_true")
     args = parser.parse_args()
