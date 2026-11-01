@@ -19,7 +19,8 @@
     "format:check": "prettier --check app frontend e2e *.json *.mjs *.ts *.md docs/**/*.md",
     "test:grid:db": "node scripts/test-cams-grid.mjs",
     "test:xp:db": "node scripts/test-community-xp.mjs",
-    "test:identifiers:db": "node scripts/test-database-identifiers.mjs"
+    "test:identifiers:db": "node scripts/test-database-identifiers.mjs",
+    "test:identifiers:cutover": "node scripts/test-numeric-identifiers.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

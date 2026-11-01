@@ -7,7 +7,6 @@ import hmac
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Literal
-from uuid import uuid4
 
 from fastapi import APIRouter, Header, HTTPException, Query
 from starlette.concurrency import run_in_threadpool
@@ -27,6 +26,7 @@ from ..services import (
     supabase_client,
 )
 from ..services import alerts as alert_service
+from ..services.record_keys import creation_key
 
 router = APIRouter()
 logger = logging.getLogger("clearpath.forecast-monitoring")
@@ -99,7 +99,7 @@ async def cron_sync(authorization: str | None = Header(default=None)):
             # A failed status lookup must never disable the independent backup.
             logger.exception("primary_sync_status_unavailable")
 
-    run_id = str(uuid4())
+    run_id = creation_key("sync_runs")
     started_at = datetime.now(UTC).isoformat()
     await run_in_threadpool(
         supabase_client.create_sync_run,

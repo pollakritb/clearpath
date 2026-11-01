@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from time import monotonic
-from uuid import uuid4
 
 from ..algorithms.notification_policy import is_quiet_hour
 from ..core.errors import ConfigurationError, UpstreamError
 from . import line_messaging, supabase_client
+from .record_keys import creation_key
 
 MAX_OUTBOX_ATTEMPTS = 8
 
@@ -97,7 +97,7 @@ def enqueue_user_notification(
     now = datetime.now(UTC).isoformat()
     notification = supabase_client.create_user_notification(
         {
-            "id": str(uuid4()),
+            "id": creation_key("user_notifications"),
             "user_id": user_id,
             "event_type": event_type,
             "title": title,
@@ -119,7 +119,7 @@ def enqueue_user_notification(
     for channel in channels:
         supabase_client.create_outbox_event(
             {
-                "id": str(uuid4()),
+                "id": creation_key("notification_outbox"),
                 "user_id": user_id,
                 "notification_id": notification.get("id"),
                 "event_key": f"{deduplication_key}:{channel}",
@@ -272,7 +272,7 @@ def publish_alert(
     payload: dict | None = None,
 ) -> dict | None:
     row = {
-        "id": str(uuid4()),
+        "id": creation_key("alert_events"),
         "deduplication_key": deduplication_key,
         "source": source,
         "kind": kind,

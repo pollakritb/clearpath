@@ -4,7 +4,7 @@ Baseline: production `422013d`, 44 public tables, XP migration `20261030213750`.
 
 ## Implementation state
 
-The repository contains the **expand migration and its rehearsal**. Production application PK/FKs, Auth, APIs, tokens and links still use their existing UUIDs. No cutover release is included in this migration. Do not drop/rename legacy columns, enable a cutover switch, or claim that the complete ID migration has shipped.
+The repository contains the expand migration, numeric cutover, dual-schema application bridge, encrypted backup utility and SQL/authorization/privacy rehearsals. The rollout control has been applied with version 1 and maintenance off. Production remains on UUID keys until the restored-data rehearsal and atomic cutover below complete.
 
 The migration adds 19 UUID-entity numeric identities plus readable codes for 23 entity tables (four already have numeric primary keys), 50 numeric relationship columns, a separate MBR identity, private legacy aliases and 44 restricted review views. Existing business values, RLS ownership policies and UUID PK/FKs remain intact.
 
@@ -47,4 +47,6 @@ The script reads the management token from the environment or `.env.deploy.local
 
 If expansion fails before commit, roll back its transaction. If a committed expansion causes a problem, prefer leaving the additive columns unused while correcting the issue; the deployed UUID application continues using its original keys. Do not drop mappings/sequences after new records have been allocated and do not renumber identifiers.
 
-The cutover requires a separate tested release: numeric PK/FKs and RPC types, `auth_user_id` linkage, entity-aware legacy/code resolution, stable privacy/dedup namespaces, old signed tokens/images, typed API/frontend changes, demo mode and all workers. Stop before switching production keys until these dependencies are implemented and verified. After writes reopen, use forward fixes rather than restoring an older backup over newer data.
+The bridge uses BIGINT at the PostgREST boundary and code strings in domain/API rows. Opaque UUID creation retry keys go to `legacy_id`, not the PK. Existing aliases and signed links remain valid. Schema version 2 is published in the same transaction as all key/RPC/RLS changes. The write pause also covers GET cron routes and Storage object writes. After writes reopen, use forward fixes rather than restoring an older backup over newer data.
+
+Additional checks: `npm run test:identifiers:cutover` exercises moderation, XP/help claims, CAMS publication, notice deduplication, old aliases and numeric ownership RLS. Private production rehearsal: `node scripts/rehearse-identifier-backup.mjs /absolute/private/unpacked-backup`.

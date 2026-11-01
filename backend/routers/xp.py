@@ -1,11 +1,11 @@
 """Authenticated XP settings, event history and explicitly claimed help tasks."""
 
 from typing import Annotated, Literal
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..core.auth import AuthenticatedUser, require_admin, require_user
+from ..core.identifiers import MemberID, ReportID, RequestID, XPEventID
 from ..models.xp import (
     HelpClaim,
     OwnedReportIDs,
@@ -60,7 +60,7 @@ def history(user: User, offset: Annotated[int, Query(ge=0, le=100000)] = 0):
 
 
 @router.post("/help-claims/{request_id}", response_model=HelpClaim)
-def claim(request_id: UUID, user: User):
+def claim(request_id: RequestID, user: User):
     try:
         return xp.claim(user.id, str(request_id))
     except (KeyError, ValueError) as exc:
@@ -69,7 +69,7 @@ def claim(request_id: UUID, user: User):
 
 @router.post("/xp/events/{event_id}/reverse", status_code=204)
 def reverse(
-    event_id: UUID,
+    event_id: XPEventID,
     body: XPReversalRequest,
     admin: Annotated[AuthenticatedUser, Depends(require_admin)],
 ):
@@ -81,7 +81,7 @@ def reverse(
 
 
 @router.get("/me/reports/{report_id}/xp", response_model=XPResult)
-def report_result(report_id: UUID, user: User):
+def report_result(report_id: ReportID, user: User):
     from ..services import supabase_client as db
 
     row = db.get_community_report(str(report_id))
@@ -126,7 +126,7 @@ def owned_ids(user: User):
 
 
 @router.get("/members/{member_id}", response_model=PublicMember)
-def member(member_id: UUID):
+def member(member_id: MemberID):
     try:
         return PublicMember(**xp.public_member(str(member_id)))
     except KeyError as exc:

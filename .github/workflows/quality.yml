@@ -33,6 +33,7 @@ jobs:
           python-version: "3.12"
       - run: npm run test:xp:db
       - run: npm run test:identifiers:db
+      - run: npm run test:identifiers:cutover
       - run: npm run build
 
   backend:

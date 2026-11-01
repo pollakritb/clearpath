@@ -8,7 +8,6 @@ import math
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
 
 from ..algorithms.distance import haversine_km
 from ..algorithms.external_forecast import (
@@ -21,6 +20,7 @@ from ..core.errors import UpstreamError
 from . import gistda_air, openmeteo_air, supabase_client
 from .forecast_models import SUPPORTED_HORIZONS
 from .forecast_provider_registry import PROVIDERS
+from .record_keys import creation_key
 
 logger = logging.getLogger(__name__)
 
@@ -231,7 +231,7 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
     if not stations:
         return {"status": "no_stations", "snapshot_count": 0}
 
-    run_id = str(uuid4())
+    run_id = creation_key("forecast_provider_sync_runs")
     retrieved_at = datetime.now(UTC).replace(microsecond=0)
     supabase_client.create_provider_sync_run(
         {
@@ -369,7 +369,7 @@ def _persist_provider_evidence(
         station = station_by_id.get(station_id)
         if not station or not horizon_rows:
             continue
-        evidence_run_id = str(uuid4())
+        evidence_run_id = creation_key("forecast_provider_sync_runs")
         runs.append(
             {
                 "id": evidence_run_id,
@@ -436,7 +436,7 @@ async def sync_gistda() -> dict:
     """Sync GISTDA only after both feature and legal gates are enabled."""
 
     stations = _valid_stations()
-    run_id = str(uuid4())
+    run_id = creation_key("forecast_provider_sync_runs")
     issued_at = datetime.now(UTC).replace(microsecond=0)
     supabase_client.create_provider_sync_run(
         {
@@ -513,7 +513,7 @@ async def sync_gistda() -> dict:
 
 async def sync_openmeteo() -> dict:
     stations = _valid_stations()
-    run_id = str(uuid4())
+    run_id = creation_key("forecast_provider_sync_runs")
     issued_at = datetime.now(UTC).replace(microsecond=0)
     supabase_client.create_provider_sync_run(
         {

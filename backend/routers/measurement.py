@@ -1,11 +1,11 @@
 """Thin authenticated boundary for community measurement requests."""
 
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..core.auth import AuthenticatedUser, require_user
+from ..core.identifiers import RequestID
 from ..models.measurement import (
     MeasurementHelperConsent,
     MeasurementHelperSettings,
@@ -60,7 +60,7 @@ def listing(user: User):
 
 
 @router.get("/{request_id}", response_model=MeasurementRequestView)
-def detail(request_id: UUID, user: User):
+def detail(request_id: RequestID, user: User):
     def load():
         row = store.get(str(request_id))
         if not row:
@@ -71,10 +71,10 @@ def detail(request_id: UUID, user: User):
 
 
 @router.post("/{request_id}/cancel", response_model=MeasurementRequestView)
-def cancel(request_id: UUID, user: User):
+def cancel(request_id: RequestID, user: User):
     return call(lambda: service.cancel(str(request_id), user.id))
 
 
 @router.post("/{request_id}/decline", response_model=MeasurementRequestView)
-def decline(request_id: UUID, user: User):
+def decline(request_id: RequestID, user: User):
     return call(lambda: service.decline(str(request_id), user.id))

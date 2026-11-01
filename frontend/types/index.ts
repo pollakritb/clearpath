@@ -1,4 +1,6 @@
 // Public TypeScript contract barrel. Keep mirrored with backend/models/schemas.py.
+// Entity IDs stay strings: RPT-/REQ-/MBR-/CGN- codes after numeric DB cutover.
+// Never parse BIGINT identifiers into JavaScript numbers; old UUID links remain valid.
 
 export * from "./air-quality";
 export * from "./community";

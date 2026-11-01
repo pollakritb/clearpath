@@ -1,9 +1,9 @@
 """Social engagement kept separate from report verification and Trust Score."""
 
 from datetime import UTC, datetime
-from uuid import uuid4
 
 from .. import supabase_client
+from ..record_keys import creation_key
 
 
 def _approved_report(report_id: str) -> dict:
@@ -25,7 +25,7 @@ def _present_comment(row: dict, viewer_id: str | None = None) -> dict:
     identity = xp.public_identity(str(row["user_id"])) if xp.enabled() else {}
     token = hmac.new(
         settings.effective_capture_secret.encode(),
-        f"comment:{row['id']}".encode(),
+        f"comment:{row.get('legacy_id') or row['id']}".encode(),
         hashlib.sha256,
     ).hexdigest()[:32]
     return {
@@ -96,7 +96,7 @@ def add_comment(
     now = datetime.now(UTC).isoformat()
     saved = supabase_client.create_report_comment(
         {
-            "id": str(uuid4()),
+            "id": creation_key("report_comments"),
             "report_id": report_id,
             "user_id": user_id,
             "body": cleaned,

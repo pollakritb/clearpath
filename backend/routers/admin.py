@@ -38,6 +38,7 @@ from ..services import (
 )
 from ..services import community as community_service
 from ..services.forecast_models import artifact_statuses
+from ..services.record_keys import creation_key
 
 router = APIRouter()
 
@@ -181,7 +182,7 @@ async def create_announcement(
     row = await run_in_threadpool(
         supabase_client.create_announcement,
         {
-            "id": str(uuid4()),
+            "id": creation_key("announcements"),
             **body.model_dump(),
             "published": body.status == "published",
             "published_at": now,
@@ -382,7 +383,7 @@ async def create_activity(
 ):
     row = await run_in_threadpool(
         supabase_client.create_activity,
-        {"id": str(uuid4()), **body.model_dump(), "active": True},
+        {"id": creation_key("activities"), **body.model_dump(), "active": True},
     )
     await run_in_threadpool(
         supabase_client.create_audit_log,

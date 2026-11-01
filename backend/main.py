@@ -63,6 +63,45 @@ def create_app() -> FastAPI:
     )
 
     @app.middleware("http")
+    async def identifier_maintenance(request: Request, call_next):
+        # GET cron endpoints also mutate data. Pause all workers, not just the UI.
+        if (
+            settings.has_supabase
+            and not settings.local_demo_mode
+            and (
+                request.method in {"POST", "PUT", "PATCH", "DELETE"}
+                or request.url.path.startswith("/api/cron/")
+            )
+        ):
+            from starlette.concurrency import run_in_threadpool
+
+            from .services.identifier_client import IdentifierClient
+            from .services.supabase_client import get_client
+
+            def paused():
+                client = get_client()
+                return isinstance(client, IdentifierClient) and bool(
+                    client.raw.rpc("identifier_schema_state", {})
+                    .execute()
+                    .data["maintenance"]
+                )
+
+            try:
+                if await run_in_threadpool(paused):
+                    return JSONResponse(
+                        {"detail": "ระบบกำลังปรับปรุงฐานข้อมูล กรุณาลองใหม่"},
+                        status_code=503,
+                        headers={"Retry-After": "60"},
+                    )
+            except Exception:
+                return JSONResponse(
+                    {"detail": "ระบบฐานข้อมูลยังไม่พร้อม กรุณาลองใหม่"},
+                    status_code=503,
+                    headers={"Retry-After": "60"},
+                )
+        return await call_next(request)
+
+    @app.middleware("http")
     async def community_maintenance(request: Request, call_next):
         from starlette.concurrency import run_in_threadpool
 

@@ -1,7 +1,6 @@
 """Community gratitude/star feedback workflows."""
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
 
 from ...algorithms.distance import haversine_km
 from ...algorithms.trust import (
@@ -12,6 +11,7 @@ from ...algorithms.trust import (
     star_rating_direction,
 )
 from .. import notifications, supabase_client
+from ..record_keys import creation_key
 from .constants import DAILY_REVIEW_REWARD_LIMIT
 from .presenter import present_report
 
@@ -99,7 +99,7 @@ def rate_report(
     )
     supabase_client.create_public_map_event(
         {
-            "id": str(uuid4()),
+            "id": creation_key("public_map_events"),
             "event_type": "report_updated",
             "entity_id": report_id,
             "created_at": datetime.now(UTC).isoformat(),

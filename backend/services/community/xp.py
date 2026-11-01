@@ -6,7 +6,6 @@ import logging
 from datetime import UTC, datetime, timedelta
 from threading import RLock
 from time import monotonic
-from uuid import uuid4
 
 from ...algorithms.community_xp import (
     POLICY_VERSION,
@@ -21,6 +20,7 @@ from ...algorithms.community_xp import (
 from ...core.config import settings
 from ...core.errors import ConfigurationError, UpstreamError
 from .. import supabase_client as db
+from ..record_keys import creation_key
 
 logger = logging.getLogger("clearpath.xp")
 _LOCK = RLock()
@@ -63,7 +63,7 @@ def account(user_id: str) -> dict:
     if settings.local_demo_mode:
         with _LOCK:
             if user_id not in _ACCOUNTS:
-                member_id = str(uuid4())
+                member_id = creation_key("community_members")
                 _ACCOUNTS[user_id] = dict(
                     user_id=user_id,
                     member_id=member_id,
@@ -431,7 +431,7 @@ def _reward_demo(report: dict):
         ):
             _EVENTS.append(
                 dict(
-                    id=str(uuid4()),
+                    id=creation_key("community_xp_events"),
                     user_id=uid,
                     report_id=report["id"],
                     kind=kind,
@@ -694,7 +694,7 @@ def reverse_event(event_id: str, reason: str, admin_id: str):
         _EVENTS.append(
             event
             | dict(
-                id=str(uuid4()),
+                id=creation_key("community_xp_events"),
                 kind="reversal",
                 points=-event["points"],
                 reason=f"{admin_id}: {reason}",

@@ -1,0 +1,340 @@
+// Atomic cutover against actual schema and write RPCs, with legacy retry evidence.
+import { PGlite } from "@electric-sql/pglite";
+import { readFileSync, readdirSync } from "node:fs";
+import assert from "node:assert/strict";
+const pg = new PGlite();
+const sql = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
+const migration = (suffix) =>
+  sql(
+    "../supabase/migrations/" +
+      readdirSync(new URL("../supabase/migrations/", import.meta.url)).find(
+        (x) => x.endsWith(suffix + ".sql"),
+      ),
+  );
+const uid = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
+await pg.exec(sql("../backend/tests/fixtures/identifiers_baseline.sql"));
+await pg.exec(migration("identifier_rollout_control"));
+await pg.exec(
+  "insert into community_xp_control(singleton,enabled,maintenance) values(true,false,false)",
+);
+for (const n of [1, 2, 3]) {
+  await pg.query("insert into auth.users values($1)", [uid(n)]);
+  await pg.query("insert into profiles(id) values($1)", [uid(n)]);
+}
+await pg.query(
+  "insert into capture_sessions(id,user_id,issued_at,expires_at) values($1,$2,now(),now()+interval '5 minutes')",
+  [uid(10), uid(1)],
+);
+await pg.query(
+  "insert into community_reports(id,user_id,capture_session_id,lat,lon,pm25,status,captured_at,public_lat,public_lon) values($1,$2,$3,14,100,20,'approved',now(),14.001,100.001)",
+  [uid(100), uid(1), uid(10)],
+);
+await pg.query(
+  "insert into report_comments(id,report_id,user_id,body) values($1,$2,$3,'dummy')",
+  [uid(200), uid(100), uid(2)],
+);
+await pg.query(
+  "insert into community_xp_accounts(user_id,member_id) values($1,$2)",
+  [uid(1), uid(300)],
+);
+await pg.query(
+  "insert into community_xp_events(user_id,report_id,kind,points,reason,occurred_at) values($1,$2,'report',10,'granted',now())",
+  [uid(1), uid(100)],
+);
+const before = (await pg.query("select * from community_reports")).rows[0];
+await pg.exec("begin");
+await pg.exec(migration("readable_identifiers_expand"));
+await pg.exec("commit");
+// A cutover without the global write pause is rejected before any mutation.
+await pg.exec("begin");
+await assert.rejects(
+  pg.exec(migration("numeric_identifier_cutover")),
+  /requires_write_pause/,
+);
+await pg.exec("rollback");
+await pg.exec("update private.identifier_control set maintenance=true");
+await assert.rejects(
+  pg.query("update profiles set display_name='blocked'"),
+  /identifier_maintenance/,
+);
+await pg.exec("begin");
+await pg.exec(migration("numeric_identifier_cutover"));
+await pg.exec("commit");
+assert.equal(
+  (await pg.query("select identifier_schema_state() s")).rows[0].s.version,
+  2,
+);
+await pg.exec("update private.identifier_control set maintenance=false");
+const profiles = (await pg.query("select * from profiles order by id")).rows;
+assert.equal(profiles[0].code, "USR-000001");
+assert.equal(profiles[0].auth_user_id, uid(1));
+const r = (await pg.query("select * from community_reports")).rows[0];
+assert.equal(r.id, 1);
+assert.equal(r.user_id, 1);
+assert.equal(r.capture_session_id, 1);
+assert.equal(r.legacy_id, uid(100));
+assert.equal(r.public_lat, before.public_lat);
+assert.equal(r.public_lon, before.public_lon);
+assert.equal(r.updated_at.getTime(), before.updated_at.getTime());
+const legacy = (
+  await pg.query("select identifier_resolve('community_reports',$1) s", [
+    uid(100),
+  ])
+).rows[0].s;
+assert.equal(legacy.code, "RPT-000001");
+assert.equal(
+  (
+    await pg.query(
+      "select identifier_resolve('community_reports','USR-000001') s",
+    )
+  ).rows[0].s,
+  null,
+);
+// Existing aliases do not become a different entity when a failed pending insert is retried.
+await pg.query(
+  "insert into capture_sessions(legacy_id,user_id,issued_at,expires_at) values($1,2,now(),now()+interval '5 minutes')",
+  [uid(11)],
+);
+await pg.query(
+  "insert into community_reports(legacy_id,user_id,capture_session_id,lat,lon,captured_at) values($1,2,2,14,100,now())",
+  [uid(101)],
+);
+const retryID = (
+  await pg.query("select id from community_reports where legacy_id=$1", [
+    uid(101),
+  ])
+).rows[0].id;
+await pg.query("delete from community_reports where id=$1", [retryID]);
+await pg.query(
+  "insert into community_reports(legacy_id,user_id,capture_session_id,lat,lon,captured_at) values($1,2,2,14,100,now())",
+  [uid(101)],
+);
+assert.equal(
+  (
+    await pg.query("select id from community_reports where legacy_id=$1", [
+      uid(101),
+    ])
+  ).rows[0].id,
+  retryID,
+);
+// Finalize automatically via the existing moderation RPC; notification/reputation dedup stays stable.
+await pg.query(
+  "select moderate_community_report_v2($1,null,'approve',25,null,'{\"image_clear\":true,\"value_matches_display\":true,\"location_plausible\":true,\"no_screen_recapture_signs\":true}','automatic-review-test',65,'[]')",
+  [retryID],
+);
+assert.equal(
+  (await pg.query("select deduplication_key from user_notifications")).rows[0]
+    .deduplication_key,
+  "report_status:" + uid(101),
+);
+assert.equal(
+  (await pg.query("select idempotency_key from reputation_events")).rows[0]
+    .idempotency_key,
+  "moderation:v2:" + uid(101),
+);
+// JSON RPCs generate numeric identities and retain UUID idempotency keys.
+const now = new Date(),
+  row = {
+    legacy_id: uid(400),
+    user_id: 1,
+    idempotency_key: uid(401),
+    fingerprint: "dummy",
+    place_name: "dummy",
+    lat: 14,
+    lon: 100,
+    radius_km: 3,
+    starts_at: now.toISOString(),
+    expires_at: new Date(+now + 3600000).toISOString(),
+    status: "active",
+    result_report_id: null,
+    dispatch_cursor: null,
+    last_processed_at: null,
+    created_at: now.toISOString(),
+    updated_at: now.toISOString(),
+  };
+const created = (
+  await pg.query("select create_measurement_request($1) s", [row])
+).rows[0].s.row;
+assert.equal(created.code, "REQ-000001");
+assert.equal(
+  (
+    await pg.query("select create_measurement_request($1) s", [
+      { ...row, legacy_id: uid(402) },
+    ])
+  ).rows[0].s.row.id,
+  created.id,
+);
+await pg.query("select finish_measurement_request($1,'expired')", [created.id]);
+const notice = {
+  legacy_id: uid(500),
+  user_id: 1,
+  event_type: "measurement_expired",
+  title: "dummy",
+  body: "dummy",
+  url: "/requests/REQ-000001",
+  entity_type: "measurement_request",
+  entity_id: "REQ-000001",
+  payload: {},
+  deduplication_key: "measurement:" + uid(400) + ":expired:" + uid(1),
+  read_at: null,
+  created_at: now.toISOString(),
+};
+const outbox = {
+  legacy_id: uid(501),
+  legacy_notification_id: uid(500),
+  user_id: 1,
+  notification_id: null,
+  event_key: notice.deduplication_key + ":line",
+  payload: { retry_key: uid(501) },
+  status: "pending",
+  attempts: 0,
+  next_attempt_at: now.toISOString(),
+  last_error: null,
+  processed_at: null,
+  created_at: now.toISOString(),
+  updated_at: now.toISOString(),
+};
+for (let i = 0; i < 2; i++)
+  await pg.query("select notify_measurement_request($1,$2)", [notice, outbox]);
+assert.equal(
+  (await pg.query("select count(*) n from user_notifications where user_id=1"))
+    .rows[0].n,
+  1,
+);
+assert.equal(
+  (await pg.query("select count(*) n from notification_outbox where user_id=1"))
+    .rows[0].n,
+  1,
+);
+assert.equal(
+  (
+    await pg.query(
+      "select payload->>'retry_key' s from notification_outbox where user_id=1",
+    )
+  ).rows[0].s,
+  uid(501),
+);
+// XP worker consumes code references in metadata without changing quotas/trust.
+await pg.exec("update community_xp_control set enabled=true");
+const helpRequest = (
+  await pg.query("select create_measurement_request($1) s", [
+    {
+      ...row,
+      legacy_id: uid(410),
+      idempotency_key: uid(411),
+      fingerprint: "help",
+      starts_at: new Date(+now - 3600000).toISOString(),
+    },
+  ])
+).rows[0].s.row;
+await pg.query(
+  "insert into measurement_request_recipients(request_id,user_id,matched_location_at) values($1,3,now())",
+  [helpRequest.id],
+);
+await pg.query("select claim_community_help(3,$1)", [helpRequest.id]);
+await pg.query(
+  "update community_help_claims set started_at=now()-interval '10 minutes' where request_id=$1",
+  [helpRequest.id],
+);
+const cap = (
+  await pg.query(
+    "insert into capture_sessions(user_id,issued_at,expires_at) values(3,now(),now()+interval '5 minutes') returning id",
+  )
+).rows[0].id;
+const xpReport = (
+  await pg.query(
+    "insert into community_reports(user_id,capture_session_id,lat,lon,captured_at) values(3,$1,14,100,now()-interval '1 minute') returning id",
+    [cap],
+  )
+).rows[0].id;
+await pg.query(
+  "insert into report_evidence(report_id,image_metadata) values($1,$2)",
+  [
+    xpReport,
+    {
+      measurement_request_id: helpRequest.code,
+      bonus_gps_at_submission: { lat: 14, lon: 100, accuracy_m: 10 },
+    },
+  ],
+);
+await pg.query(
+  "update community_reports set status='approved',pm25=20,moderated_at=now() where id=$1",
+  [xpReport],
+);
+await pg.exec(
+  "select process_community_xp(50);select process_community_xp(50)",
+);
+assert.equal(
+  (await pg.query("select lifetime_xp from community_xp_totals(3)")).rows[0]
+    .lifetime_xp,
+  15,
+);
+// CAMS publication must use named columns after legacy fields have been retained.
+const lease = uid(999),
+  slot = new Date();
+slot.setUTCHours(Math.floor(slot.getUTCHours() / 6) * 6, 0, 0, 0);
+const job = (
+  await pg.query("select claim_cams_grid($1,$2,$3,1) s", [
+    slot.toISOString(),
+    lease,
+    { id: "test-grid", latitudes: [13, 14], longitudes: [99, 100] },
+  ])
+).rows[0].s;
+assert.equal(job.status, "claimed");
+assert.equal(
+  (
+    await pg.query("select lease_token from cams_grid_jobs where id=$1", [
+      job.id,
+    ])
+  ).rows[0].lease_token,
+  lease,
+);
+await pg.query("select checkpoint_cams_grid($1,$2,0,$3)", [
+  job.id,
+  lease,
+  { cells: [] },
+]);
+await pg.query("select publish_cams_grid($1,$2,$3,'dummy-fingerprint')", [
+  job.id,
+  lease,
+  [
+    {
+      valid_at: new Date(+now + 3600000).toISOString(),
+      values: [10, 11, 12, 13],
+    },
+  ],
+]);
+assert.equal(
+  (await pg.query("select generation_id from cams_grid_active")).rows[0]
+    .generation_id,
+  job.generation_id,
+);
+// RLS uses explicit auth linkage and never compares bigint to auth.uid().
+await pg.exec("set role authenticated");
+await pg.query("select set_config('request.jwt.claim.sub',$1,false)", [uid(1)]);
+assert.equal((await pg.query("select count(*) n from profiles")).rows[0].n, 1);
+assert.equal(
+  (await pg.query("select count(*) n from user_notifications")).rows[0].n,
+  1,
+);
+await pg.query("select set_config('request.jwt.claim.sub',$1,false)", [uid(3)]);
+assert.equal(
+  (await pg.query("select count(*) n from user_notifications")).rows[0].n,
+  0,
+);
+await assert.rejects(
+  pg.query("select identifier_resolve('profiles','USR-000001')"),
+  /permission denied/,
+);
+await pg.exec("reset role");
+// All entity/reference PK columns are numeric; natural/composite provider keys remain intact.
+const keys = (
+  await pg.query(
+    "select c.relname,a.attname,t.typname from pg_constraint k join pg_class c on c.oid=k.conrelid join pg_namespace n on n.oid=c.relnamespace cross join lateral unnest(k.conkey) key(attnum) join pg_attribute a on a.attrelid=c.oid and a.attnum=key.attnum join pg_type t on t.oid=a.atttypid where k.contype='p' and n.nspname='public'",
+  )
+).rows;
+assert(!keys.some((k) => k.typname === "uuid"));
+console.log(
+  "Numeric cutover: pause/rollback guards, bigint PK/FK, old aliases, stable pins/dedup, retry resurrection, moderation, request/outbox RPCs and ownership RLS passed.",
+);
+await pg.close();

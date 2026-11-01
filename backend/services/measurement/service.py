@@ -6,7 +6,7 @@ import hashlib
 import logging
 from datetime import UTC, datetime, timedelta, timezone
 from time import monotonic
-from uuid import NAMESPACE_URL, uuid4, uuid5
+from uuid import NAMESPACE_URL, uuid5
 
 from ...algorithms.distance import haversine_km
 from ...algorithms.measurement_requests import (
@@ -20,6 +20,7 @@ from ...core.config import settings
 from .. import line_messaging
 from .. import supabase_client as db
 from ..community.presenter import present_report
+from ..record_keys import creation_key
 from . import store
 
 logger = logging.getLogger("clearpath.measurement")
@@ -97,7 +98,7 @@ def create(user_id: str, values: dict) -> dict:
     ).hexdigest()
     row = store.create(
         {
-            "id": str(uuid4()),
+            "id": creation_key("measurement_requests"),
             "user_id": user_id,
             "idempotency_key": str(values["idempotency_key"]),
             "fingerprint": fingerprint,
@@ -154,7 +155,9 @@ def decline(request_id: str, user_id: str) -> dict:
 
 def notify(row: dict, user_id: str, kind: str, matched_location_at: str | None = None):
     now = datetime.now(UTC).isoformat()
-    key = f"measurement:{row['id']}:{kind}:{user_id}"
+    request_key = row.get("legacy_id") or row["id"]
+    account_key = db.stable_identifier("profiles", user_id)
+    key = f"measurement:{request_key}:{kind}:{account_key}"
     nid, oid = (
         str(uuid5(NAMESPACE_URL, f"{key}:{suffix}")) for suffix in ("inbox", "line")
     )

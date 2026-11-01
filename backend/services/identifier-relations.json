@@ -1,0 +1,302 @@
+[
+  {
+    "table": "announcements",
+    "column": "created_by",
+    "parent": "profiles",
+    "numeric_column": "created_by_numeric_id"
+  },
+  {
+    "table": "announcements",
+    "column": "updated_by",
+    "parent": "profiles",
+    "numeric_column": "updated_by_numeric_id"
+  },
+  {
+    "table": "audit_logs",
+    "column": "actor_id",
+    "parent": "profiles",
+    "numeric_column": "actor_numeric_id"
+  },
+  {
+    "table": "cams_grid_active",
+    "column": "generation_id",
+    "parent": "cams_grid_generations",
+    "numeric_column": "generation_numeric_id"
+  },
+  {
+    "table": "cams_grid_chunks",
+    "column": "job_id",
+    "parent": "cams_grid_jobs",
+    "numeric_column": "job_numeric_id"
+  },
+  {
+    "table": "cams_grid_frames",
+    "column": "generation_id",
+    "parent": "cams_grid_generations",
+    "numeric_column": "generation_numeric_id"
+  },
+  {
+    "table": "cams_grid_jobs",
+    "column": "generation_id",
+    "parent": "cams_grid_generations",
+    "numeric_column": "generation_numeric_id"
+  },
+  {
+    "table": "capture_sessions",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "community_help_claims",
+    "column": "request_id",
+    "parent": "measurement_requests",
+    "numeric_column": "request_numeric_id"
+  },
+  {
+    "table": "community_help_claims",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "community_reports",
+    "column": "capture_session_id",
+    "parent": "capture_sessions",
+    "numeric_column": "capture_session_numeric_id"
+  },
+  {
+    "table": "community_reports",
+    "column": "duplicate_of_report_id",
+    "parent": "community_reports",
+    "numeric_column": "duplicate_of_report_numeric_id"
+  },
+  {
+    "table": "community_reports",
+    "column": "moderated_by",
+    "parent": "profiles",
+    "numeric_column": "moderated_by_numeric_id"
+  },
+  {
+    "table": "community_reports",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "community_xp_accounts",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "community_xp_events",
+    "column": "report_id",
+    "parent": "community_reports",
+    "numeric_column": "report_numeric_id"
+  },
+  {
+    "table": "community_xp_events",
+    "column": "request_id",
+    "parent": "measurement_requests",
+    "numeric_column": "request_numeric_id"
+  },
+  {
+    "table": "community_xp_events",
+    "column": "requester_id",
+    "parent": "profiles",
+    "numeric_column": "requester_numeric_id"
+  },
+  {
+    "table": "community_xp_events",
+    "column": "reverses",
+    "parent": "community_xp_events",
+    "numeric_column": "reverses_numeric_id"
+  },
+  {
+    "table": "community_xp_events",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "community_xp_jobs",
+    "column": "report_id",
+    "parent": "community_reports",
+    "numeric_column": "report_numeric_id"
+  },
+  {
+    "table": "community_xp_jobs",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "data_issue_reports",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "forecast_provider_snapshots",
+    "column": "sync_run_id",
+    "parent": "forecast_provider_sync_runs",
+    "numeric_column": "sync_run_numeric_id"
+  },
+  {
+    "table": "line_notification_links",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "measurement_delivery_leases",
+    "column": "event_id",
+    "parent": "notification_outbox",
+    "numeric_column": "event_numeric_id"
+  },
+  {
+    "table": "measurement_helper_presence",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "measurement_request_recipients",
+    "column": "request_id",
+    "parent": "measurement_requests",
+    "numeric_column": "request_numeric_id"
+  },
+  {
+    "table": "measurement_request_recipients",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "measurement_requests",
+    "column": "dispatch_cursor",
+    "parent": "profiles",
+    "numeric_column": "dispatch_cursor_numeric_id"
+  },
+  {
+    "table": "measurement_requests",
+    "column": "result_report_id",
+    "parent": "community_reports",
+    "numeric_column": "result_report_numeric_id"
+  },
+  {
+    "table": "measurement_requests",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "notification_outbox",
+    "column": "notification_id",
+    "parent": "user_notifications",
+    "numeric_column": "notification_numeric_id"
+  },
+  {
+    "table": "notification_outbox",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "notification_preferences",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "public_map_events",
+    "column": "entity_id",
+    "parent": "community_reports",
+    "numeric_column": "entity_numeric_id"
+  },
+  {
+    "table": "report_comments",
+    "column": "report_id",
+    "parent": "community_reports",
+    "numeric_column": "report_numeric_id"
+  },
+  {
+    "table": "report_comments",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "report_drafts",
+    "column": "capture_session_id",
+    "parent": "capture_sessions",
+    "numeric_column": "capture_session_numeric_id"
+  },
+  {
+    "table": "report_drafts",
+    "column": "duplicate_of_report_id",
+    "parent": "community_reports",
+    "numeric_column": "duplicate_of_report_numeric_id"
+  },
+  {
+    "table": "report_drafts",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "report_evidence",
+    "column": "capture_session_id",
+    "parent": "capture_sessions",
+    "numeric_column": "capture_session_numeric_id"
+  },
+  {
+    "table": "report_evidence",
+    "column": "report_id",
+    "parent": "community_reports",
+    "numeric_column": "report_numeric_id"
+  },
+  {
+    "table": "report_reactions",
+    "column": "report_id",
+    "parent": "community_reports",
+    "numeric_column": "report_numeric_id"
+  },
+  {
+    "table": "report_reactions",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "report_reviews",
+    "column": "report_id",
+    "parent": "community_reports",
+    "numeric_column": "report_numeric_id"
+  },
+  {
+    "table": "report_reviews",
+    "column": "reviewer_id",
+    "parent": "profiles",
+    "numeric_column": "reviewer_numeric_id"
+  },
+  {
+    "table": "reputation_events",
+    "column": "report_id",
+    "parent": "community_reports",
+    "numeric_column": "report_numeric_id"
+  },
+  {
+    "table": "reputation_events",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  },
+  {
+    "table": "user_notifications",
+    "column": "user_id",
+    "parent": "profiles",
+    "numeric_column": "user_numeric_id"
+  }
+]

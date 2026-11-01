@@ -32,7 +32,7 @@ def test_get_client_disables_http2_for_supabase_transport(monkeypatch):
     monkeypatch.setattr(supabase_client.httpx, "Client", fake_http_client)
     monkeypatch.setattr(supabase_client, "create_client", fake_create_client)
 
-    assert supabase_client.get_client() is created_client
+    assert supabase_client.get_client().raw is created_client
     assert captured["transport"] == {"http2": False, "retries": 2}
     assert captured["http_client"]["transport"] is transport
     assert captured["create"][2].httpx_client is http_client

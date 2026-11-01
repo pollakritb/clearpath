@@ -2,10 +2,10 @@
 
 from datetime import datetime, timedelta
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Response
 
+from ..core.identifiers import GenerationID
 from ..models.forecast_grid import ForecastGridFrames, ForecastGridMetadata
 from ..services import forecast_grid
 
@@ -21,7 +21,7 @@ def metadata(response: Response):
 @router.get("/frames", response_model=ForecastGridFrames)
 def frames(
     response: Response,
-    generation_id: UUID,
+    generation_id: GenerationID,
     start: datetime,
     end: datetime,
     min_lat: Annotated[float, Query(ge=5, le=21)],

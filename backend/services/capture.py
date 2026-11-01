@@ -11,11 +11,11 @@ import hashlib
 import hmac
 import time
 from datetime import UTC, datetime
-from uuid import uuid4
 
 from ..core.config import settings
 from ..core.errors import ConfigurationError
 from . import supabase_client
+from .record_keys import creation_key
 
 
 def _secret() -> bytes:
@@ -29,11 +29,9 @@ def _secret() -> bytes:
 
 def issue_session(user_id: str, now: int | None = None) -> dict:
     issued_at = int(now if now is not None else time.time())
-    session_id = str(uuid4())
-    payload = f"{session_id}.{user_id}.{issued_at}"
-    signature = hmac.new(_secret(), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    session_id = creation_key("capture_sessions")
     expires_at = issued_at + settings.capture_session_ttl_seconds
-    supabase_client.create_capture_session(
+    stored = supabase_client.create_capture_session(
         {
             "id": session_id,
             "user_id": user_id,
@@ -42,6 +40,9 @@ def issue_session(user_id: str, now: int | None = None) -> dict:
             "consumed_at": None,
         }
     )
+    session_id = str(stored["id"])
+    payload = f"{session_id}.{user_id}.{issued_at}"
+    signature = hmac.new(_secret(), payload.encode("utf-8"), hashlib.sha256).hexdigest()
     return {
         "token": f"{payload}.{signature}",
         "session_id": session_id,
@@ -57,7 +58,9 @@ def verify_session(token: str, user_id: str, now: int | None = None) -> dict:
     except (AttributeError, TypeError, ValueError) as exc:
         raise ValueError("camera session ไม่ถูกต้อง กรุณาถ่ายรูปใหม่") from exc
 
-    if token_user_id != user_id:
+    if token_user_id != user_id and token_user_id != supabase_client.stable_identifier(
+        "profiles", user_id
+    ):
         raise ValueError("camera session ไม่ได้ออกให้บัญชีนี้")
 
     payload = f"{session_id}.{token_user_id}.{issued_at}"

@@ -40,7 +40,7 @@ def frames(generation_id: str, start: datetime, end: datetime, bounds: tuple) ->
     width = len(grid["longitudes"])
     data = store.frames(generation_id, start.isoformat(), end.isoformat())
     return {
-        "generation_id": generation_id,
+        "generation_id": row["id"],
         "grid_version": grid["id"],
         "row_start": r0,
         "column_start": c0,

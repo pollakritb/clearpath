@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
-from uuid import uuid4
 
 from .. import supabase_client
+from ..record_keys import creation_key
 
 _EMAIL = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 _URL = re.compile(r"(?i)\b(?:https?://|www\.)\S+")
@@ -35,7 +35,7 @@ def create_data_issue(user_id: str, values: dict) -> dict:
     now = datetime.now(UTC).isoformat()
     return supabase_client.create_data_issue(
         {
-            "id": str(uuid4()),
+            "id": creation_key("data_issue_reports"),
             "user_id": user_id,
             "category": str(values["category"]),
             "reference_id": values.get("reference_id") or None,

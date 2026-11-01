@@ -114,7 +114,7 @@ def present_report(
             lat, lon, location_precision = obfuscate_coordinates(
                 exact_lat,
                 exact_lon,
-                secret_seed=f"{settings.effective_capture_secret}:{row['id']}",
+                secret_seed=f"{settings.effective_capture_secret}:{row.get('legacy_id') or row['id']}",
             )
 
     # Public identifiers never contain Supabase Auth IDs. Anonymous reports use
@@ -138,7 +138,7 @@ def present_report(
             identity = {}
     public_token = hmac.new(
         settings.effective_capture_secret.encode(),
-        f"report:{row['id']}".encode(),
+        f"report:{row.get('legacy_id') or row['id']}".encode(),
         hashlib.sha256,
     ).hexdigest()[:32]
     return {

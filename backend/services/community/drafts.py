@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from uuid import NAMESPACE_URL, uuid4, uuid5
+from uuid import NAMESPACE_URL, uuid5
 
 from starlette.concurrency import run_in_threadpool
 
@@ -14,6 +14,7 @@ from ...algorithms.trust import calculate_trust_score, is_thailand_area
 from ...core.config import settings
 from ...core.errors import UpstreamError
 from .. import capture, image_fingerprint, ocr, photo_metadata, supabase_client
+from ..record_keys import creation_key
 from ..stations import get_current_stations
 from .automatic_review import finalize_automatic_review
 from .evidence import IMAGE_EXTENSIONS, find_duplicate
@@ -24,7 +25,10 @@ DRAFT_TTL_MINUTES = 15
 
 def _report_id_for_draft(draft_id: str) -> str:
     """Use the draft as the natural idempotency key for final submission."""
-    return str(uuid5(NAMESPACE_URL, f"https://clearpath.app/report-drafts/{draft_id}"))
+    return creation_key(
+        "community_reports",
+        str(uuid5(NAMESPACE_URL, f"https://clearpath.app/report-drafts/{draft_id}")),
+    )
 
 
 def _parse_client_time(
@@ -147,7 +151,7 @@ async def create_draft(
         }
     ocr_status = classify_ocr_result(ocr_result)
 
-    draft_id = str(uuid4())
+    draft_id = creation_key("report_drafts")
     image_path = f"drafts/{user_id}/{draft_id}.{IMAGE_EXTENSIONS[content_type]}"
     original_image_path = (
         f"originals/{user_id}/{draft_id}.{IMAGE_EXTENSIONS[metadata['mime']]}"
@@ -229,7 +233,7 @@ async def submit_draft(
     draft = await run_in_threadpool(supabase_client.get_report_draft, draft_id, user_id)
     if not draft:
         raise KeyError(draft_id)
-    report_id = _report_id_for_draft(draft_id)
+    report_id = _report_id_for_draft(str(draft.get("legacy_id") or draft["id"]))
     existing_report = await run_in_threadpool(
         supabase_client.get_community_report, report_id
     )

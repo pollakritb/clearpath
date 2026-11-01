@@ -19,8 +19,10 @@ from supabase import Client, ClientOptions, create_client
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
 from . import local_store
+from .identifier_client import IdentifierClient
 
 _client: Client | None = None
+_identifier_client: IdentifierClient | None = None
 _READ_RETRY_DELAYS_SECONDS = (0.05, 0.15)
 logger = logging.getLogger("clearpath.supabase")
 
@@ -40,8 +42,8 @@ STATION_COLS = [
 ]
 
 
-def get_client() -> Client:
-    global _client
+def get_client() -> IdentifierClient:
+    global _client, _identifier_client
     if _client is None:
         if not settings.has_supabase:
             raise ConfigurationError(
@@ -57,7 +59,19 @@ def get_client() -> Client:
             settings.supabase_service_role_key,
             options=ClientOptions(httpx_client=http_client),
         )
-    return _client
+    if _identifier_client is None or _identifier_client.raw is not _client:
+        _identifier_client = IdentifierClient(_client)
+    return _identifier_client
+
+
+def stable_identifier(entity: str, value: str) -> str:
+    """Preserve legacy privacy, deduplication and signing namespaces."""
+    if settings.local_demo_mode:
+        return value
+    client = get_client()
+    if isinstance(client, IdentifierClient) and client.numeric():
+        return str(client.identity(entity, value)["legacy_id"])
+    return value
 
 
 def _execute_read[T](operation: Callable[[], T]) -> T:
@@ -562,6 +576,14 @@ def ensure_profile(
             updates["identity_provider"] = identity_provider
         if not updates:
             return current
+        client = get_client()
+        if (
+            isinstance(client, IdentifierClient)
+            and client.raw.rpc("identifier_schema_state", {})
+            .execute()
+            .data["maintenance"]
+        ):
+            return current
         rows = (
             get_client()
             .table("profiles")
@@ -582,8 +604,8 @@ def ensure_profile(
         "helpful_reviews": 0,
         "role": role or "user",
     }
-    get_client().table("profiles").insert(row).execute()
-    return row
+    rows = get_client().table("profiles").insert(row).execute().data or []
+    return rows[0] if rows else row
 
 
 def get_profile(user_id: str) -> dict:
@@ -798,7 +820,9 @@ def take_rate_limit(
         .rpc(
             "take_rate_limit",
             {
-                "p_actor_key": actor_key,
+                "p_actor_key": stable_identifier("profiles", actor_key)
+                if actor_key.startswith("USR-")
+                else actor_key,
                 "p_action": action,
                 "p_window_seconds": window_seconds,
                 "p_limit": limit,
@@ -2172,7 +2196,10 @@ def apply_reputation_event(
 ) -> dict:
     if settings.local_demo_mode:
         return local_store.apply_event(user_id, points, reason, report_id)
-    key = idempotency_key or f"{reason}:{report_id or user_id}"
+    key = (
+        idempotency_key
+        or f"{reason}:{stable_identifier('community_reports' if report_id else 'profiles', report_id or user_id)}"
+    )
     result = (
         get_client()
         .rpc(
