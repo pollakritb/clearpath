@@ -1,57 +1,54 @@
 # ClearPath — Data dictionary
 
-Schema รุ่น 3: PK/FK ของข้อมูลภายในใช้ BIGINT; API ส่ง code เป็น string เช่น `RPT-000001`. สร้างจาก catalog โปรเจกต์ `kmvxwfrmmictzuxbsncr` ที่ตรวจสอบแล้ว 44 ตาราง. ดู [การย้ายไปโปรเจกต์ใหม่](../runbooks/fresh-project-2026-11-01.md).
+Schema รุ่น 3: PK/FK ของข้อมูลภายในใช้ BIGINT; API ส่ง code เป็น string เช่น `RPT-000001`. สร้างจาก catalog โปรเจกต์ `kmvxwfrmmictzuxbsncr` ที่ตรวจสอบแล้ว 41 ตาราง. ดู [การย้ายไปโปรเจกต์ใหม่](../runbooks/fresh-project-2026-11-01.md).
 
 ตาราง public ไม่มี `legacy_id` หรือ `legacy_*` แล้ว. UUID ที่เหลือใช้กับ Supabase Auth และ token/lease/idempotency ตามหน้าที่. ไม่มี UUID เป็น PK ของตาราง public. Sequence ข้ามเลขได้และไม่เริ่มใหม่ทุกปี; code มีอย่างน้อย 6 หลักและไม่ตัดเลขที่ยาวกว่า 6 หลัก.
 
 ## ภาพรวมตาราง
 
-| ตาราง                            | หน้าที่                                                | Primary key                               | Code                                   |
-| -------------------------------- | ------------------------------------------------------ | ----------------------------------------- | -------------------------------------- |
-| `activities`                     | กิจกรรมหรือเนื้อหาประกอบชุมชน                          | `(id)`                                    | ACT-000001                             |
-| `alert_events`                   | ประวัติการสร้างเหตุการณ์แจ้งเตือนเพื่อป้องกันการส่งซ้ำ | `(id)`                                    | ALT-000001                             |
-| `announcements`                  | ประกาศของระบบ                                          | `(id)`                                    | ANN-000001                             |
-| `audit_logs`                     | บันทึกตรวจสอบการทำงานย้อนหลัง                          | `(id)`                                    | AUD-000001                             |
-| `cams_grid_active`               | ตัวชี้ generation ของพื้นผิว CAMS ที่กำลังให้บริการ    | `(id)`                                    | คีย์สัมพันธ์ / natural key / singleton |
-| `cams_grid_chunks`               | ข้อมูลชั่วคราวระหว่างเก็บกริดทีละ batch                | `(job_id, batch_index)`                   | คีย์สัมพันธ์ / natural key / singleton |
-| `cams_grid_definitions`          | นิยามแกนพิกัดกริดจากแหล่งข้อมูลภายนอก                  | `(id)`                                    | คีย์สัมพันธ์ / natural key / singleton |
-| `cams_grid_frames`               | ค่าพยากรณ์ของกริดในแต่ละเวลา                           | `(generation_id, valid_at)`               | คีย์สัมพันธ์ / natural key / singleton |
-| `cams_grid_generations`          | รอบข้อมูลกริดที่เผยแพร่พร้อมกันเป็นชุด                 | `(id)`                                    | CGN-000001                             |
-| `cams_grid_jobs`                 | งานรวบรวมกริดและสถานะ lease/retry                      | `(id)`                                    | CGJ-000001                             |
-| `capture_sessions`               | หลักฐาน session กล้องที่มีอายุสั้นและใช้ได้ครั้งเดียว  | `(id)`                                    | CAP-000001                             |
-| `community_help_claims`          | การเริ่มช่วยวัดตามคำขอก่อนถ่ายภาพ                      | `(request_id, user_id)`                   | คีย์สัมพันธ์ / natural key / singleton |
-| `community_reports`              | รายงาน PM2.5 พร้อมผลตัดสิน OCR และ Trust               | `(id)`                                    | RPT-000001                             |
-| `community_xp_accounts`          | บัญชี XP และตัวตนสมาชิกสาธารณะแยกจากบัญชีเข้าสู่ระบบ   | `(user_id)`                               | MBR-000001 (member_id แยกจาก USR)      |
-| `community_xp_control`           | สวิตช์และ maintenance ของ XP; ไม่ใช่รหัสรายการ         | `(singleton)`                             | คีย์สัมพันธ์ / natural key / singleton |
-| `community_xp_events`            | สมุดรายการ XP แบบเก็บประวัติและ reversal               | `(id)`                                    | XPE-000001                             |
-| `community_xp_jobs`              | คิวคำนวณ XP จากผลตัดสินรายงาน                          | `(report_id)`                             | คีย์สัมพันธ์ / natural key / singleton |
-| `data_issue_reports`             | ปัญหาคุณภาพข้อมูลที่ผู้ใช้แจ้ง                         | `(id)`                                    | ISS-000001                             |
-| `fire_feature_snapshots`         | snapshot satellite hotspot ประกอบการวิเคราะห์สถานี     | `(station_id, recorded_at)`               | คีย์สัมพันธ์ / natural key / singleton |
-| `forecast_data_quality_daily`    | สรุปคุณภาพข้อมูลรายวันแยกแหล่งและสถานี                 | `(quality_date, source_name, station_id)` | คีย์สัมพันธ์ / natural key / singleton |
-| `forecast_provider_snapshots`    | หลักฐานพยากรณ์ดิบจาก CAMS แยกสถานีและเวลา              | `(id)`                                    | CFS-000001                             |
-| `forecast_provider_sync_runs`    | ประวัติการรับข้อมูลพยากรณ์จาก provider                 | `(id)`                                    | CPS-000001                             |
-| `line_notification_links`        | การผูกบัญชีกับ LINE และสถานะ consent/การเชื่อมต่อ      | `(user_id)`                               | คีย์สัมพันธ์ / natural key / singleton |
-| `line_webhook_events`            | รหัสเหตุการณ์ภายนอกสำหรับป้องกัน webhook ซ้ำ           | `(event_id)`                              | คีย์สัมพันธ์ / natural key / singleton |
-| `measurement_delivery_leases`    | lease การส่งแจ้งเตือนคำขอวัด ป้องกัน worker ส่งชนกัน   | `(event_id)`                              | คีย์สัมพันธ์ / natural key / singleton |
-| `measurement_helper_presence`    | สถานะอาสาช่วยวัดและ GPS ล่าสุดแบบ private              | `(user_id)`                               | คีย์สัมพันธ์ / natural key / singleton |
-| `measurement_request_recipients` | รายชื่อผู้ได้รับคำเชิญและสถานะปฏิเสธคำขอ               | `(request_id, user_id)`                   | คีย์สัมพันธ์ / natural key / singleton |
-| `measurement_requests`           | คำขอวัดตามสถานที่ ช่วงเวลา และรัศมี                    | `(id)`                                    | REQ-000001                             |
-| `notification_outbox`            | คิวส่งข้อความพร้อม retry และ deduplication             | `(id)`                                    | OBX-000001                             |
-| `notification_preferences`       | การตั้งค่าและ consent การแจ้งเตือน                     | `(user_id)`                               | คีย์สัมพันธ์ / natural key / singleton |
-| `pm25_readings`                  | ประวัติค่าฝุ่นจากสถานีทางการ                           | `(id)`                                    | OBS-000001                             |
-| `profiles`                       | บัญชีภายใน สิทธิ์ และคะแนนความน่าเชื่อถือ              | `(id)`                                    | USR-000001                             |
-| `public_map_events`              | เหตุการณ์สำหรับอัปเดตข้อมูลบนแผนที่                    | `(id)`                                    | MAP-000001                             |
-| `rate_limit_windows`             | จำนวนการเรียก action ในแต่ละช่วงเวลา                   | `(actor_key, action, window_started_at)`  | คีย์สัมพันธ์ / natural key / singleton |
-| `report_comments`                | ความคิดเห็นต่อรายงาน                                   | `(id)`                                    | CMT-000001                             |
-| `report_drafts`                  | ภาพและ OCR ระหว่างเตรียมส่งรายงาน                      | `(id)`                                    | DRF-000001                             |
-| `report_evidence`                | หลักฐาน private แบบหนึ่งต่อหนึ่งกับรายงาน              | `(report_id)`                             | คีย์สัมพันธ์ / natural key / singleton |
-| `report_reactions`               | ปฏิกิริยาต่อรายงาน หนึ่งรายการต่อผู้ใช้                | `(report_id, user_id)`                    | คีย์สัมพันธ์ / natural key / singleton |
-| `report_reviews`                 | คำขอบคุณและดาวพร้อมหลักฐานระยะ GPS                     | `(id)`                                    | REV-000001                             |
-| `reputation_events`              | ประวัติการเปลี่ยนคะแนน Trust/Reputation                | `(id)`                                    | REP-000001                             |
-| `stations`                       | สถานีทางการ ใช้รหัสที่ provider กำหนด                  | `(id)`                                    | คีย์สัมพันธ์ / natural key / singleton |
-| `sync_runs`                      | ประวัติการ sync Air4Thai                               | `(id)`                                    | SYN-000001                             |
-| `user_notifications`             | กล่องแจ้งเตือนภายในระบบ                                | `(id)`                                    | NTF-000001                             |
-| `weather_observations`           | ประวัติอากาศที่ผูกสถานีและเวลา                         | `(station_id, recorded_at)`               | คีย์สัมพันธ์ / natural key / singleton |
+| ตาราง                            | หน้าที่                                                | Primary key                              | Code                                   |
+| -------------------------------- | ------------------------------------------------------ | ---------------------------------------- | -------------------------------------- |
+| `activities`                     | กิจกรรมหรือเนื้อหาประกอบชุมชน                          | `(id)`                                   | ACT-000001                             |
+| `alert_events`                   | ประวัติการสร้างเหตุการณ์แจ้งเตือนเพื่อป้องกันการส่งซ้ำ | `(id)`                                   | ALT-000001                             |
+| `announcements`                  | ประกาศของระบบ                                          | `(id)`                                   | ANN-000001                             |
+| `audit_logs`                     | บันทึกตรวจสอบการทำงานย้อนหลัง                          | `(id)`                                   | AUD-000001                             |
+| `cams_grid_active`               | ตัวชี้ generation ของพื้นผิว CAMS ที่กำลังให้บริการ    | `(id)`                                   | คีย์สัมพันธ์ / natural key / singleton |
+| `cams_grid_chunks`               | ข้อมูลชั่วคราวระหว่างเก็บกริดทีละ batch                | `(job_id, batch_index)`                  | คีย์สัมพันธ์ / natural key / singleton |
+| `cams_grid_definitions`          | นิยามแกนพิกัดกริดจากแหล่งข้อมูลภายนอก                  | `(id)`                                   | คีย์สัมพันธ์ / natural key / singleton |
+| `cams_grid_frames`               | ค่าพยากรณ์ของกริดในแต่ละเวลา                           | `(generation_id, valid_at)`              | คีย์สัมพันธ์ / natural key / singleton |
+| `cams_grid_generations`          | รอบข้อมูลกริดที่เผยแพร่พร้อมกันเป็นชุด                 | `(id)`                                   | CGN-000001                             |
+| `cams_grid_jobs`                 | งานรวบรวมกริดและสถานะ lease/retry                      | `(id)`                                   | CGJ-000001                             |
+| `capture_sessions`               | หลักฐาน session กล้องที่มีอายุสั้นและใช้ได้ครั้งเดียว  | `(id)`                                   | CAP-000001                             |
+| `community_help_claims`          | การเริ่มช่วยวัดตามคำขอก่อนถ่ายภาพ                      | `(request_id, user_id)`                  | คีย์สัมพันธ์ / natural key / singleton |
+| `community_reports`              | รายงาน PM2.5 พร้อมผลตัดสิน OCR และ Trust               | `(id)`                                   | RPT-000001                             |
+| `community_xp_accounts`          | บัญชี XP และตัวตนสมาชิกสาธารณะแยกจากบัญชีเข้าสู่ระบบ   | `(user_id)`                              | MBR-000001 (member_id แยกจาก USR)      |
+| `community_xp_control`           | สวิตช์และ maintenance ของ XP; ไม่ใช่รหัสรายการ         | `(singleton)`                            | คีย์สัมพันธ์ / natural key / singleton |
+| `community_xp_events`            | สมุดรายการ XP แบบเก็บประวัติและ reversal               | `(id)`                                   | XPE-000001                             |
+| `community_xp_jobs`              | คิวคำนวณ XP จากผลตัดสินรายงาน                          | `(report_id)`                            | คีย์สัมพันธ์ / natural key / singleton |
+| `data_issue_reports`             | ปัญหาคุณภาพข้อมูลที่ผู้ใช้แจ้ง                         | `(id)`                                   | ISS-000001                             |
+| `forecast_provider_snapshots`    | หลักฐานพยากรณ์ดิบจาก CAMS แยกสถานีและเวลา              | `(id)`                                   | CFS-000001                             |
+| `forecast_provider_sync_runs`    | ประวัติการรับข้อมูลพยากรณ์จาก provider                 | `(id)`                                   | CPS-000001                             |
+| `line_notification_links`        | การผูกบัญชีกับ LINE และสถานะ consent/การเชื่อมต่อ      | `(user_id)`                              | คีย์สัมพันธ์ / natural key / singleton |
+| `line_webhook_events`            | รหัสเหตุการณ์ภายนอกสำหรับป้องกัน webhook ซ้ำ           | `(event_id)`                             | คีย์สัมพันธ์ / natural key / singleton |
+| `measurement_delivery_leases`    | lease การส่งแจ้งเตือนคำขอวัด ป้องกัน worker ส่งชนกัน   | `(event_id)`                             | คีย์สัมพันธ์ / natural key / singleton |
+| `measurement_helper_presence`    | สถานะอาสาช่วยวัดและ GPS ล่าสุดแบบ private              | `(user_id)`                              | คีย์สัมพันธ์ / natural key / singleton |
+| `measurement_request_recipients` | รายชื่อผู้ได้รับคำเชิญและสถานะปฏิเสธคำขอ               | `(request_id, user_id)`                  | คีย์สัมพันธ์ / natural key / singleton |
+| `measurement_requests`           | คำขอวัดตามสถานที่ ช่วงเวลา และรัศมี                    | `(id)`                                   | REQ-000001                             |
+| `notification_outbox`            | คิวส่งข้อความพร้อม retry และ deduplication             | `(id)`                                   | OBX-000001                             |
+| `notification_preferences`       | การตั้งค่าและ consent การแจ้งเตือน                     | `(user_id)`                              | คีย์สัมพันธ์ / natural key / singleton |
+| `pm25_readings`                  | ประวัติค่าฝุ่นจากสถานีทางการ                           | `(id)`                                   | OBS-000001                             |
+| `profiles`                       | บัญชีภายใน สิทธิ์ และคะแนนความน่าเชื่อถือ              | `(id)`                                   | USR-000001                             |
+| `public_map_events`              | เหตุการณ์สำหรับอัปเดตข้อมูลบนแผนที่                    | `(id)`                                   | MAP-000001                             |
+| `rate_limit_windows`             | จำนวนการเรียก action ในแต่ละช่วงเวลา                   | `(actor_key, action, window_started_at)` | คีย์สัมพันธ์ / natural key / singleton |
+| `report_comments`                | ความคิดเห็นต่อรายงาน                                   | `(id)`                                   | CMT-000001                             |
+| `report_drafts`                  | ภาพและ OCR ระหว่างเตรียมส่งรายงาน                      | `(id)`                                   | DRF-000001                             |
+| `report_evidence`                | หลักฐาน private แบบหนึ่งต่อหนึ่งกับรายงาน              | `(report_id)`                            | คีย์สัมพันธ์ / natural key / singleton |
+| `report_reactions`               | ปฏิกิริยาต่อรายงาน หนึ่งรายการต่อผู้ใช้                | `(report_id, user_id)`                   | คีย์สัมพันธ์ / natural key / singleton |
+| `report_reviews`                 | คำขอบคุณและดาวพร้อมหลักฐานระยะ GPS                     | `(id)`                                   | REV-000001                             |
+| `reputation_events`              | ประวัติการเปลี่ยนคะแนน Trust/Reputation                | `(id)`                                   | REP-000001                             |
+| `stations`                       | สถานีทางการ ใช้รหัสที่ provider กำหนด                  | `(id)`                                   | คีย์สัมพันธ์ / natural key / singleton |
+| `sync_runs`                      | ประวัติการ sync Air4Thai                               | `(id)`                                   | SYN-000001                             |
+| `user_notifications`             | กล่องแจ้งเตือนภายในระบบ                                | `(id)`                                   | NTF-000001                             |
 
 ## กติกาคีย์และสิทธิ์
 
@@ -62,7 +59,7 @@ Schema รุ่น 3: PK/FK ของข้อมูลภายในใช้
 - Historical references ใน XP/map events อาจไม่มี FK เพื่อเก็บประวัติหลังลบปลายทาง; ห้ามสร้างรายการใหม่เพียงเพื่อทำให้ reference ดูครบ.
 - รหัสที่เดาได้ไม่ใช่สิทธิ์: API ยังตรวจผู้ส่ง/เจ้าของ/ผู้รับคำเชิญ และ RLS เชื่อมกับ auth_user_id.
 - รหัสสถานี, grid definition, LINE webhook event และ security tokens คงรูปแบบจากแหล่งเดิม.
-- `review` มี 44 security_invoker views สำหรับตรวจข้อมูลด้วย postgres/service_role ฝั่ง server; ไม่มีพิกัดจริง รูป private หรือ mapping MBR → USR ใน view บัญชีสมาชิก.
+- `review` มี 41 security_invoker views สำหรับตรวจข้อมูลด้วย postgres/service_role ฝั่ง server; ไม่มีพิกัดจริง รูป private หรือ mapping MBR → USR ใน view บัญชีสมาชิก.
 
 ## คอลัมน์รายตาราง
 
@@ -398,39 +395,6 @@ Schema รุ่น 3: PK/FK ของข้อมูลภายในใช้
 | `id`           | `bigint`      | NO   | `IDENTITY (GENERATED ALWAYS)`                                                              |
 | `code`         | `text`        | YES  | `('ISS-'::text &#124;&#124; lpad((id)::text, GREATEST(6, length((id)::text)), '0'::text))` |
 | `user_id`      | `bigint`      | NO   | `—`                                                                                        |
-
-### fire_feature_snapshots
-
-snapshot satellite hotspot ประกอบการวิเคราะห์สถานี.
-
-| คอลัมน์                | Type               | Null | Default / generation |
-| ---------------------- | ------------------ | ---- | -------------------- |
-| `station_id`           | `text`             | NO   | `—`                  |
-| `recorded_at`          | `timestamptz`      | NO   | `—`                  |
-| `hotspot_count`        | `integer`          | NO   | `0`                  |
-| `weighted_frp`         | `double precision` | NO   | `0`                  |
-| `upwind_hotspot_count` | `integer`          | NO   | `0`                  |
-| `source_at`            | `timestamptz`      | NO   | `—`                  |
-| `ingested_at`          | `timestamptz`      | NO   | `now()`              |
-| `source_status`        | `text`             | NO   | `'observed'::text`   |
-
-### forecast_data_quality_daily
-
-สรุปคุณภาพข้อมูลรายวันแยกแหล่งและสถานี.
-
-| คอลัมน์            | Type          | Null | Default / generation |
-| ------------------ | ------------- | ---- | -------------------- |
-| `quality_date`     | `date`        | NO   | `—`                  |
-| `source_name`      | `text`        | NO   | `—`                  |
-| `station_id`       | `text`        | NO   | `—`                  |
-| `expected_hours`   | `integer`     | NO   | `—`                  |
-| `observed_hours`   | `integer`     | NO   | `—`                  |
-| `missing_hours`    | `integer`     | NO   | `—`                  |
-| `duplicate_hours`  | `integer`     | NO   | `—`                  |
-| `invalid_rows`     | `integer`     | NO   | `—`                  |
-| `newest_source_at` | `timestamptz` | YES  | `—`                  |
-| `details`          | `jsonb`       | NO   | `'{}'::jsonb`        |
-| `reconciled_at`    | `timestamptz` | NO   | `now()`              |
 
 ### forecast_provider_snapshots
 
@@ -850,20 +814,3 @@ lease การส่งแจ้งเตือนคำขอวัด ป้�
 | `id`                | `bigint`      | NO   | `IDENTITY (GENERATED ALWAYS)`                                                              |
 | `code`              | `text`        | YES  | `('NTF-'::text &#124;&#124; lpad((id)::text, GREATEST(6, length((id)::text)), '0'::text))` |
 | `user_id`           | `bigint`      | NO   | `—`                                                                                        |
-
-### weather_observations
-
-ประวัติอากาศที่ผูกสถานีและเวลา.
-
-| คอลัมน์         | Type               | Null | Default / generation |
-| --------------- | ------------------ | ---- | -------------------- |
-| `station_id`    | `text`             | NO   | `—`                  |
-| `recorded_at`   | `timestamptz`      | NO   | `—`                  |
-| `temperature`   | `double precision` | YES  | `—`                  |
-| `humidity`      | `double precision` | YES  | `—`                  |
-| `wind_speed`    | `double precision` | YES  | `—`                  |
-| `wind_deg`      | `double precision` | YES  | `—`                  |
-| `rain_mm`       | `double precision` | YES  | `—`                  |
-| `source_at`     | `timestamptz`      | NO   | `—`                  |
-| `ingested_at`   | `timestamptz`      | NO   | `now()`              |
-| `source_status` | `text`             | NO   | `'observed'::text`   |

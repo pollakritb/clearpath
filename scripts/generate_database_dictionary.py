@@ -136,7 +136,7 @@ def generate(
         "- Historical references ใน XP/map events อาจไม่มี FK เพื่อเก็บประวัติหลังลบปลายทาง; ห้ามสร้างรายการใหม่เพียงเพื่อทำให้ reference ดูครบ.",
         "- รหัสที่เดาได้ไม่ใช่สิทธิ์: API ยังตรวจผู้ส่ง/เจ้าของ/ผู้รับคำเชิญ และ RLS เชื่อมกับ auth_user_id.",
         "- รหัสสถานี, grid definition, LINE webhook event และ security tokens คงรูปแบบจากแหล่งเดิม.",
-        "- `review` มี 44 security_invoker views สำหรับตรวจข้อมูลด้วย postgres/service_role ฝั่ง server; ไม่มีพิกัดจริง รูป private หรือ mapping MBR → USR ใน view บัญชีสมาชิก.",
+        f"- `review` มี {len(tables)} security_invoker views สำหรับตรวจข้อมูลด้วย postgres/service_role ฝั่ง server; ไม่มีพิกัดจริง รูป private หรือ mapping MBR → USR ใน view บัญชีสมาชิก.",
         "",
         "## คอลัมน์รายตาราง",
         "",

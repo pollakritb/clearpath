@@ -87,15 +87,6 @@ erDiagram
         text code
         bigint user_id FK
     }
-    fire_feature_snapshots {
-        text station_id PK
-        timestamptz recorded_at PK
-    }
-    forecast_data_quality_daily {
-        date quality_date PK
-        text source_name PK
-        text station_id PK
-    }
     forecast_provider_snapshots {
         text station_id FK
         bigint id PK
@@ -201,13 +192,6 @@ erDiagram
         text code
         bigint user_id FK
     }
-    weather_observations {
-        text station_id PK
-        timestamptz recorded_at PK
-    }
-    stations ||--o{ fire_feature_snapshots : "station_id"
-    stations ||--o{ forecast_data_quality_daily : "station_id"
-    stations ||--o{ weather_observations : "station_id"
     stations ||--o{ pm25_readings : "station_id"
     cams_grid_definitions ||--o{ cams_grid_generations : "grid_id"
     profiles ||--o{ announcements : "created_by"

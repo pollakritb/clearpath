@@ -1,5 +1,7 @@
 # ClearPath_Final — replacement database
 
+Current inventory: **41 public tables and 41 review views** after retiring the three empty model-input/quality tables on 2026-11-01. Earlier counts below describe the bootstrap snapshot.
+
 The replacement project is `kmvxwfrmmictzuxbsncr` (Seoul,
 `ap-northeast-2`). The old project `qnrtryspglioqhdxglzu` and its encrypted
 local backup are retained. No paid upgrade was performed.
@@ -161,3 +163,24 @@ numeric PK allocation by the caller. Existing read-only requests that cross
 the schema commit may be rebuilt once; mutations are never replayed after an
 uncertain network exception. The backend resolves private privacy metadata in
 batches and does not expose it through public response models.
+
+## Retired model feature tables
+
+Migration `20261101065151_retire_model_feature_storage.sql` removed only
+`weather_observations`, `fire_feature_snapshots`, and
+`forecast_data_quality_daily`, plus their three review views. All were confirmed
+empty and their schema/dependency metadata was saved privately before DDL.
+The migration locks and rechecks emptiness, uses no CASCADE, and replaces
+`private.prune_recent_history` before dropping the tables. Unexpected data or
+an unreviewed dependency aborts the transaction.
+
+The legacy model-input collector and quality reconciliation now return explicit
+retired responses with no provider/DB I/O. The old live training exporter
+fails before querying. Production preflight requires retained storage only.
+Public weather, raw CAMS, the map and satellite-hotspot layer retain their
+independent adapters. In particular `/api/firms` still calls `fire_feed` and
+FIRMS, preserving the Nakhon Pathom / 12-hour hotspot policy.
+
+Verified locally: nonempty-table rejection, 41 public tables/views, retained
+CAMS/community storage, cleanup after the drop, and FIRMS layer response with
+DB access forbidden. Backend: 501 tests, 81.43% coverage.

@@ -1,6 +1,6 @@
 # ClearPath Supabase data map
 
-Current replacement database: **ClearPath_Final (`kmvxwfrmmictzuxbsncr`), 44 public tables with numeric keys**. Use the [current data dictionary](database/data-dictionary.md) and [replacement runbook](runbooks/fresh-project-2026-11-01.md). The inventory below is a historical audit of the old project.
+Current replacement database: **ClearPath_Final (`kmvxwfrmmictzuxbsncr`), 41 public tables with numeric keys**. Use the [current data dictionary](database/data-dictionary.md) and [replacement runbook](runbooks/fresh-project-2026-11-01.md). The inventory below is a historical audit of the old project.
 
 Historical production schema: **33 public tables** after twelve empty legacy
 tables were removed from the previous 45-table production schema. They were
