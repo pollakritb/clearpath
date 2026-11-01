@@ -23,6 +23,8 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 
 ## Conventions
 
+- ทุกอุปกรณ์ใช้ UI mobile เดียวกันใน `.cp-mobile-frame` กว้างไม่เกิน 430px; responsive styles ใช้ `@container cp-mobile` ไม่เพิ่ม desktop layout หรือ device/UA detection.
+
 - Routers stay thin; logic lives in `services/`/`algorithms/`. `algorithms/` has NO network/DB — keep it pure & tested.
 - Services raise `ConfigurationError` (→503) / `UpstreamError` (→502) from `backend/core/errors.py`; never leak tracebacks.
 - IDW uses **haversine** (not Euclidean). ใช้สำหรับพื้นผิวค่าฝุ่นและ validation.
@@ -35,6 +37,7 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 - Community เข้า IDW ได้เฉพาะ approved/fresh/Trust ≥60 และ corroborated จากผู้ใช้คนละคนอย่างน้อย 2 ราย; ไม่มีทางลัดด้วยสถานะสอบเทียบเครื่อง.
 - Gap-fill ต้องมี GPS accuracy ≤200 ม., ไม่วัดติดแหล่งกำเนิดโดยตรง และไม่เป็นภาพซ้ำ.
 - Community gratitude แสดงเป็นคำขอบคุณพร้อมดาว 1–5; รับเฉพาะผู้ใช้ที่ส่ง GPS อยู่ภายใน 3 กม. รายงานอายุไม่เกิน 3 ชั่วโมง และเก็บ reason code ภายในที่สอดคล้องกับดาวเพื่อคำนวณ Trust.
+- Admin/Moderator dashboard เป็น read-only: ดูสถิติ รายงาน ภาพ OCR ประกาศ สถานะระบบ และ audit ได้เท่านั้น ห้ามเพิ่ม API/UI สำหรับแก้ไข ลบ เผยแพร่ เปลี่ยนบทบาท หรือยกเลิก XP. Cron และงานอัตโนมัติใช้สิทธิ์ server แยกจาก Admin.
 - พิกัดจริงเปิดเฉพาะ Admin; public coordinates ต้องผ่าน stable obfuscation 120–250 ม.
 - Fire alert ใช้ hotspot ในขอบเขตนครปฐมที่อายุไม่เกิน 12 ชั่วโมง และต้องเรียกว่า satellite hotspot ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว.
 - ภาพรายงานเก็บ private bucket; รายงานที่อนุมัติแล้วเปิดดูจากหมุดได้ด้วย signed URL อายุสั้น และฝั่ง browser ห้ามถือ service-role/OpenAI/admin keys.

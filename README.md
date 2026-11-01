@@ -240,11 +240,10 @@ previous map layers and viewport.
 | `GET /api/community/leaderboard`                  | อันดับ reputation                                                     |
 | `GET /api/community/me`                           | โปรไฟล์ คะแนน badge และประวัติของบัญชี                                |
 | `GET /api/admin/reports`                          | ประวัติผลตรวจอัตโนมัติ รูป และรายละเอียดสำหรับ audit (อ่านอย่างเดียว) |
-| `GET/PATCH/DELETE /api/admin/announcements/{id}`  | จัดการ lifecycle ประกาศและ soft archive                               |
+| `GET /api/admin/announcements`                    | ดูประวัติประกาศ (อ่านอย่างเดียว)                                      |
 | `GET /api/admin/sync-runs`                        | ประวัติ sync และ error ของแหล่งข้อมูล                                 |
 | `GET /api/admin/forecast-models`                  | สถานะ artifact/quality gate ของแต่ละ horizon                          |
 | `GET /api/admin/forecast-false-safe-cases`        | คิว false-safe ที่ Admin ต้องตรวจรายเหตุการณ์                         |
-| `PUT /api/admin/forecast-false-safe-cases/…`      | บันทึกสาเหตุ/หลักฐานการตรวจ false-safe                                |
 | `GET /api/admin/forecast-release-decisions`       | ประวัติ shadow/canary/promote/rollback/reject                         |
 | `GET/PUT /api/notifications/preferences`          | พื้นที่ รัศมี และเกณฑ์แจ้งเตือนของผู้ใช้                              |
 | `GET /api/notifications`                          | กล่องแจ้งเตือนในแอป                                                   |

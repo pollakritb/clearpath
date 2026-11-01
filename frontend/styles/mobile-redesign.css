@@ -636,7 +636,7 @@
   cursor: pointer;
 }
 
-@media (max-width: 430px) {
+@container cp-mobile (max-width: 430px) {
   .cp-app .cp-auth-redirect {
     grid-template-columns: 1fr;
   }
@@ -702,7 +702,7 @@
   display: none;
 }
 
-@media (max-width: 768px) {
+@container cp-mobile (max-width: 768px) {
   .cp-app .cp-context-header,
   .cp-app[data-tab="report"] .cp-context-header,
   .cp-app[data-tab="community"] .cp-context-header {
@@ -780,7 +780,7 @@
   }
 
   .cp-app .cp-map-aqi-legend b {
-    font-size: clamp(0.42rem, 1.7vw, 0.52rem);
+    font-size: clamp(0.42rem, 1.7cqw, 0.52rem);
   }
 
   .cp-app .cp-map-flyout {
@@ -842,7 +842,7 @@
   }
 }
 
-@media (max-width: 390px) {
+@container cp-mobile (max-width: 390px) {
   .cp-app .cp-forecast-reading {
     grid-template-columns: 1fr;
   }
@@ -1284,7 +1284,7 @@
   text-align: left;
 }
 
-@media (max-width: 380px) {
+@container cp-mobile (max-width: 380px) {
   .cp-app .cp-map-layers-panel {
     right: 12px;
     padding: 14px;
@@ -1327,7 +1327,7 @@
   transform: rotate(90deg);
 }
 
-@media (max-width: 767px) {
+@container cp-mobile (max-width: 767px) {
   .cp-app .cp-map-layers-panel {
     padding: 16px;
     border-radius: 20px;
@@ -1422,7 +1422,7 @@
 }
 
 /* Keep mobile map actions in one compact toolbar above the current-reading dock. */
-@media (max-width: 767px) {
+@container cp-mobile (max-width: 767px) {
   .cp-app .cp-mapctrls {
     right: 12px;
     bottom: calc(var(--cp-mobile-nav-h) + 86px);
@@ -1482,7 +1482,7 @@
     right: 0;
     bottom: calc(100% + 8px);
     left: auto;
-    width: min(260px, calc(100vw - 24px));
+    width: min(260px, calc(100cqw - 24px));
   }
 }
 

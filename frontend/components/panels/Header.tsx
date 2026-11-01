@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AccountMenu from "@/frontend/components/auth/AccountMenu";
 
 import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
 import type { DashboardTab } from "@/frontend/types/ui";
@@ -75,14 +76,7 @@ export default function Header({
               <AppIcon name="close" size={18} />
             </Link>
           ) : (
-            <Link
-              href="/settings"
-              className="cp-icon-button cp-focus"
-              aria-label="เปิดการตั้งค่า"
-              title="การตั้งค่า"
-            >
-              <AppIcon name="settings" size={18} />
-            </Link>
+            <AccountMenu />
           )}
         </div>
       </div>

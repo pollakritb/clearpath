@@ -4,11 +4,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
-import LeaderboardEntryCard from "@/frontend/components/community/LeaderboardEntryCard";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
 import { useOwnedReportIds } from "@/frontend/hooks/useOwnedReportIds";
 import { nearestHeatmapPoint } from "@/frontend/lib/nearest-surface";
-import NationalSummary from "@/frontend/components/app/NationalSummary";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import AQICard from "@/frontend/components/panels/AQICard";
 import ForecastPanel from "@/frontend/components/panels/ForecastPanel";
@@ -161,9 +159,6 @@ export default function TodayPageClient({
     >
       <div className="cp-overview-stack">
         <RequestTrackingCard userId={currentUserId} />
-        <div className="cp-desktop-summary">
-          <NationalSummary stations={serviceAreaStations} />
-        </div>
         <section
           className="cp-air-outlook"
           aria-label="ค่าฝุ่นใกล้ที่สุดและพยากรณ์"
@@ -197,7 +192,6 @@ export default function TodayPageClient({
             error={forecast.error}
           />
         </section>
-        <LeaderboardEntryCard userId={currentUserId} />
       </div>
     </UserPageShell>
   );

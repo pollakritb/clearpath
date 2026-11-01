@@ -1,86 +1,68 @@
 "use client";
 
-import { useState } from "react";
-
+import Link from "next/link";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
-import AppIcon from "@/frontend/components/ui/AppIcon";
-
+import XPDashboard from "@/frontend/components/community/XPDashboard";
 import MyContribution from "./community/MyContribution";
-import ReviewQueue from "./community/ReviewQueue";
-import Link from "next/link";
 
-export default function ProfilePanel() {
+const SECTIONS = [
+  ["overview", "ภาพรวม"],
+  ["reports", "รายงานของฉัน"],
+  ["leaderboard", "อันดับชุมชน"],
+] as const;
+
+export default function ProfilePanel({ tab = "overview" }: { tab?: string }) {
   const auth = useAuth();
   const loginPrompt = useLoginPrompt();
   const signedIn = Boolean(auth.user || auth.localDemo);
-  const [gratitudeOpen, setGratitudeOpen] = useState(false);
+  const selected = SECTIONS.some(([value]) => value === tab) ? tab : "overview";
 
   return (
-    <section className="cp-profile-page cp-section-enter">
-      {!signedIn && (
-        <aside className="cp-auth-redirect" aria-label="ต้องเข้าสู่ระบบ">
-          <span>
-            <strong>เข้าสู่ระบบเพื่อดูโปรไฟล์</strong>
-            <small>บัญชี Google จัดการจากหน้าการตั้งค่า</small>
-          </span>
+    <section className="cp-participation-page cp-section-enter">
+      <nav className="cp-participation-nav" aria-label="ผลงานและอันดับ">
+        {SECTIONS.map(([value, label]) => (
+          <Link
+            key={value}
+            href={`/profile?tab=${value}`}
+            aria-current={selected === value ? "page" : undefined}
+            className="cp-focus"
+            scroll={false}
+            replace
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+      {auth.loading ? (
+        <p role="status" className="cp-xp-note">
+          กำลังโหลดบัญชี…
+        </p>
+      ) : !signedIn && selected !== "leaderboard" ? (
+        <section className="cp-participation-empty">
+          <h2>ผลงานของคุณเริ่มที่รายงานแรก</h2>
+          <p>เข้าสู่ระบบเพื่อดูคะแนน ยศ และรายงานที่คุณส่ง</p>
           <button
             type="button"
             className="cp-focus"
             onClick={() =>
               loginPrompt.openLoginPrompt({
-                title: "เข้าสู่ระบบเพื่อดูโปรไฟล์",
-                description:
-                  "ดูรายงาน คำขอบคุณ และกิจกรรมของคุณด้วยบัญชี Google",
+                title: "เข้าสู่ระบบเพื่อดูผลงาน",
+                description: "ดูคะแนนสะสมและติดตามรายงานของคุณด้วยบัญชี Google",
               })
             }
           >
             เข้าสู่ระบบด้วย Google
           </button>
-        </aside>
-      )}
-
-      {signedIn && (
-        <div className="cp-settings-card">
-          <MyContribution />
-        </div>
-      )}
-
-      {signedIn && (
-        <details
-          className="cp-community-disclosure"
-          onToggle={(event) => setGratitudeOpen(event.currentTarget.open)}
-        >
-          <summary className="cp-focus">
-            <span className="cp-community-disclosure__icon">
-              <AppIcon name="community" size={20} />
-            </span>
-            <span>
-              <strong>ขอบคุณข้อมูลใกล้คุณ</strong>
-              <small>ให้ดาวแก่ข้อมูลที่ตรงกับสภาพพื้นที่</small>
-            </span>
-            <AppIcon name="chevron" size={18} />
-          </summary>
-          {gratitudeOpen && (
-            <div className="cp-community-disclosure__body">
-              <ReviewQueue onRefresh={() => undefined} />
-            </div>
-          )}
-        </details>
-      )}
-
-      {signedIn && (
-        <Link
-          href="/leaderboard"
-          className="cp-community-disclosure cp-xp-entry cp-focus"
-        >
-          <AppIcon name="activity" size={22} />
-          <span>
-            <strong>อันดับชุมชน</strong>
-            <small>XP สะสม ยศ และอันดับการมีส่วนร่วม</small>
-          </span>
-          <AppIcon name="chevron" size={18} />
-        </Link>
+        </section>
+      ) : selected === "reports" ? (
+        <MyContribution key={auth.user?.id ?? "local"} />
+      ) : (
+        <XPDashboard
+          key={`${auth.user?.id ?? (auth.localDemo ? "local" : "guest")}-${selected}`}
+          signedIn={signedIn}
+          section={selected === "leaderboard" ? "leaderboard" : "overview"}
+        />
       )}
     </section>
   );

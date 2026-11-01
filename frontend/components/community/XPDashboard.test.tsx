@@ -126,3 +126,19 @@ it("lets guests see public ranks without requesting private XP history", async (
   expect(screen.queryByText("ประวัติ XP ส่วนตัว")).toBeNull();
   expect(screen.queryByText("อันดับของฉัน")).toBeNull();
 });
+
+it("loads personal progress without the leaderboard in the overview", async () => {
+  render(<XPDashboard section="overview" />);
+  await screen.findByText("สายลม");
+  expect(mocks.board).not.toHaveBeenCalled();
+  expect(screen.queryByRole("region", { name: "อันดับชุมชน" })).toBeNull();
+  expect(screen.getByText("ประวัติ XP ส่วนตัว")).toBeTruthy();
+});
+
+it("keeps personal history out of the standalone leaderboard section", async () => {
+  render(<XPDashboard section="leaderboard" />);
+  await screen.findByText("ฟ้าใส");
+  expect(mocks.summary).not.toHaveBeenCalled();
+  expect(mocks.events).not.toHaveBeenCalled();
+  expect(screen.queryByRole("region", { name: "คะแนนและยศของฉัน" })).toBeNull();
+});

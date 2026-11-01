@@ -1,107 +1,131 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
-import { api } from "@/frontend/lib/api-client";
-import { T } from "@/frontend/lib/ui";
+import AppIcon from "@/frontend/components/ui/AppIcon";
+import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { CommunityProfileResponse } from "@/frontend/types";
 
 const STATUS_LABEL = {
-  pending: "รอตรวจ",
-  approved: "อนุมัติแล้ว",
+  pending: "กำลังประมวลผล",
+  approved: "เผยแพร่แล้ว",
   rejected: "ไม่ผ่าน",
 };
 
 export default function MyContribution() {
   const auth = useAuth();
-  const [loadedProfile, setProfile] = useState<{
-    ownerId: string | null;
-    data: CommunityProfileResponse;
-  } | null>(null);
-  const profile =
-    (auth.user || auth.localDemo) &&
-    loadedProfile?.ownerId === (auth.user?.id ?? null)
-      ? loadedProfile.data
-      : null;
+  const ownerId = auth.user?.id ?? (auth.localDemo ? "local" : null);
+  const [profile, setProfile] = useState<CommunityProfileResponse | null>(null);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const [visible, setVisible] = useState(5);
 
   useEffect(() => {
-    if (!auth.user && !auth.localDemo) return;
+    if (!ownerId) return;
     let cancelled = false;
     void api
       .myProfile()
       .then((result) => {
-        if (!cancelled)
-          setProfile({ ownerId: auth.user?.id ?? null, data: result });
+        if (!cancelled) setProfile(result);
       })
-      .catch(() => undefined);
+      .catch((cause) => {
+        if (!cancelled) setError(apiErrorMessage(cause, "โหลดรายงานไม่สำเร็จ"));
+      });
     return () => {
       cancelled = true;
     };
-  }, [auth.user, auth.localDemo]);
+  }, [ownerId, attempt]);
 
-  if (!profile) return null;
-  return (
-    <section style={{ borderTop: `1px solid ${T.line}`, paddingTop: ".9em" }}>
-      <h2 style={{ margin: "0 0 .5em", fontSize: ".95em" }}>ผลงานของฉัน</h2>
-      <div className="cp-profile-stats">
-        <div
-          style={{ background: T.chip, borderRadius: "9px", padding: ".6em" }}
-        >
-          <small>XP สะสม</small>
-          <strong style={{ display: "block", fontFamily: T.mono }}>
-            {profile.xp?.lifetime_xp ?? "—"}
-          </strong>
-        </div>
-        <div
-          style={{ background: T.chip, borderRadius: "9px", padding: ".6em" }}
-        >
-          <small>รายงานผ่าน</small>
-          <strong style={{ display: "block", fontFamily: T.mono }}>
-            {profile.approved_reports}
-          </strong>
-        </div>
-        <div
-          style={{ background: T.chip, borderRadius: "9px", padding: ".6em" }}
-        >
-          <small>ขอบคุณที่ช่วยชุมชน</small>
-          <strong style={{ display: "block", fontFamily: T.mono }}>
-            {profile.helpful_reviews}
-          </strong>
-        </div>
-      </div>
-      {profile.badges.length > 0 && (
-        <p style={{ fontSize: ".72em", color: T.teal }}>
-          เหรียญรางวัล: {profile.badges.join(" · ")}
-        </p>
-      )}
-      {profile.reports.slice(0, 5).map((report) => (
-        <div
-          key={report.id}
-          style={{
-            borderBottom: `1px solid ${T.line}`,
-            padding: ".5em 0",
-            fontSize: ".72em",
+  if (error)
+    return (
+      <div className="cp-participation-empty">
+        <p role="alert">{error}</p>
+        <button
+          type="button"
+          className="cp-focus"
+          onClick={() => {
+            setError("");
+            setAttempt((value) => value + 1);
           }}
         >
-          <div className="cp-contribution-row">
-            <strong>{STATUS_LABEL[report.status]}</strong>
-            <span>{new Date(report.created_at).toLocaleString("th-TH")}</span>
-          </div>
-          <div style={{ color: T.subInk }}>
-            ผู้ใช้ยืนยัน {report.user_claimed_pm25 ?? "—"} · ค่าที่ผ่านการตรวจ{" "}
-            {report.verified_pm25 ?? "—"} µg/m³ ·{" "}
-            {report.verification_method === "automatic"
-              ? "ระบบอัตโนมัติ"
-              : report.verification_method === "admin"
-                ? "Admin"
-                : "รอตรวจ"}
-            {report.rejection_reason_code
-              ? ` · เหตุผล: ${report.rejection_reason_code}`
-              : ""}
-          </div>
+          ลองใหม่
+        </button>
+      </div>
+    );
+  if (!profile)
+    return (
+      <p role="status" className="cp-xp-note">
+        กำลังโหลดรายงานของคุณ…
+      </p>
+    );
+
+  return (
+    <section className="cp-contribution" aria-label="รายงานของฉัน">
+      <div className="cp-participation-stats">
+        <div>
+          <strong>{profile.reports.length}</strong>
+          <span>รายการล่าสุด</span>
         </div>
-      ))}
+        <div>
+          <strong>{profile.approved_reports}</strong>
+          <span>เผยแพร่แล้ว</span>
+        </div>
+      </div>
+      <p className="cp-xp-note">ประวัติล่าสุดสูงสุด 50 รายงาน</p>
+      <header className="cp-contribution-heading">
+        <h2>รายงานล่าสุด</h2>
+        <Link href="/report" className="cp-focus">
+          <AppIcon name="report" size={17} />
+          ส่งรายงาน
+        </Link>
+      </header>
+      {profile.reports.length === 0 ? (
+        <div className="cp-participation-empty">
+          <AppIcon name="report" size={28} />
+          <h3>ยังไม่มีรายงาน</h3>
+          <p>ส่งภาพเครื่องวัดเพื่อช่วยให้ชุมชนเห็นค่าฝุ่นใกล้คุณ</p>
+        </div>
+      ) : (
+        <ul className="cp-contribution-list">
+          {profile.reports.slice(0, visible).map((report) => (
+            <li key={report.id}>
+              <div className="cp-contribution-heading">
+                <span
+                  className="cp-contribution-status"
+                  data-status={report.status}
+                >
+                  {STATUS_LABEL[report.status]}
+                </span>
+                <time dateTime={report.created_at}>
+                  {new Date(report.created_at).toLocaleString("th-TH", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </time>
+              </div>
+              <strong className="cp-contribution-value">
+                {report.verified_pm25 ?? "—"} <small>µg/m³</small>
+              </strong>
+              {report.status === "rejected" && (
+                <p>รายงานนี้ไม่ผ่านการตรวจ คุณสามารถส่งภาพใหม่ได้</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {profile.reports.length > visible && (
+        <button
+          type="button"
+          className="cp-contribution-more cp-focus"
+          onClick={() => setVisible((value) => value + 5)}
+        >
+          ดูรายงานเพิ่ม
+        </button>
+      )}
     </section>
   );
 }

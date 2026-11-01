@@ -44,16 +44,20 @@ export default function RootLayout({
   return (
     <html lang="th" className={`${notoThai.variable} ${plexMono.variable}`}>
       <body>
-        <AuthProvider>
-          <LoginPromptProvider>
-            <HelperPresence />
-            <Suspense fallback={null}>
-              <PersistentMapPage />
-            </Suspense>
-            {children}
-          </LoginPromptProvider>
-        </AuthProvider>
-        <PwaRegistrar />
+        <div className="cp-mobile-frame">
+          <div className="cp-mobile-content">
+            <AuthProvider>
+              <LoginPromptProvider>
+                <HelperPresence />
+                <Suspense fallback={null}>
+                  <PersistentMapPage />
+                </Suspense>
+                {children}
+              </LoginPromptProvider>
+            </AuthProvider>
+            <PwaRegistrar />
+          </div>
+        </div>
       </body>
     </html>
   );

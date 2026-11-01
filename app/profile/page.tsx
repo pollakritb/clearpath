@@ -3,10 +3,15 @@ import type { Metadata } from "next";
 import ProfilePageClient from "@/frontend/components/pages/ProfilePageClient";
 
 export const metadata: Metadata = {
-  title: "โปรไฟล์ของฉัน — ClearPath",
+  title: "ผลงานและอันดับ — ClearPath",
   description: "ดูสถานะรายงานและกิจกรรมของคุณ",
 };
 
-export default function ProfilePage() {
-  return <ProfilePageClient />;
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
+  const { tab } = await searchParams;
+  return <ProfilePageClient tab={typeof tab === "string" ? tab : undefined} />;
 }

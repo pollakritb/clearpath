@@ -74,33 +74,13 @@ def test_community_and_admin_authorization_are_enforced_by_http_boundary(monkeyp
     assert response.status_code == 403
 
 
-def test_admin_role_change_boundary_is_admin_only_and_audited_by_service(monkeypatch):
+def test_admin_role_change_endpoint_is_removed(monkeypatch):
     monkeypatch.setattr(settings, "local_demo_mode", True)
-    monkeypatch.setattr(
-        admin.roles,
-        "change_user_role",
-        lambda **values: {
-            "user_id": values["target_user_id"],
-            "previous_role": "user",
-            "role": values["new_role"],
-            "changed_at": "2026-09-16T05:00:00+00:00",
-        },
-    )
     response = TestClient(create_app()).patch(
         "/api/admin/profiles/user-2/role",
-        json={
-            "role": "moderator",
-            "reason": "Assigned to the exception review queue",
-        },
+        json={"role": "moderator", "reason": "No dashboard mutations allowed"},
     )
-
-    assert response.status_code == 200
-    assert response.json() == {
-        "user_id": "user-2",
-        "previous_role": "user",
-        "role": "moderator",
-        "changed_at": "2026-09-16T05:00:00+00:00",
-    }
+    assert response.status_code == 404
 
 
 def test_forecast_router_rejects_service_and_viewport_contract_errors(monkeypatch):

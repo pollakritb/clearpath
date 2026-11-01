@@ -7,12 +7,12 @@ import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AdminPanel from "@/frontend/components/panels/AdminPanel";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import type { CommunityReport } from "@/frontend/types";
 import type {
   AdminSyncRun,
   AuditLogRow,
   DataHealthResponse,
   DataIssueRow,
-  DataIssueUpdateRequest,
   NotificationOutboxSummary,
 } from "@/frontend/types/ui";
 
@@ -28,6 +28,7 @@ import AdminPublishingPanel from "./AdminPublishingPanel";
 
 interface OverviewData {
   reportCount: number;
+  reports: CommunityReport[];
   runs: AdminSyncRun[];
   outbox: NotificationOutboxSummary | null;
   dataIssues: DataIssueRow[];
@@ -38,6 +39,7 @@ interface OverviewData {
 
 const EMPTY_OVERVIEW: OverviewData = {
   reportCount: 0,
+  reports: [],
   runs: [],
   outbox: null,
   dataIssues: [],
@@ -81,6 +83,10 @@ export default function AdminApp() {
         results[0].status === "fulfilled"
           ? results[0].value.count
           : current.reportCount,
+      reports:
+        results[0].status === "fulfilled"
+          ? results[0].value.reports
+          : current.reports,
       runs:
         results[1].status === "fulfilled"
           ? results[1].value.runs
@@ -130,14 +136,6 @@ export default function AdminApp() {
   return (
     <div className="cp-admin-app">
       <aside className="cp-admin-sidebar">
-        <div className="cp-admin-brand">
-          <span>C</span>
-          <div>
-            <strong>ClearPath</strong>
-            <small>ADMIN CONSOLE</small>
-          </div>
-        </div>
-        <div className="cp-admin-sidebar__label">จัดการระบบ</div>
         <nav aria-label="เมนูผู้ดูแล">
           {ADMIN_NAV_ITEMS.map((item) => (
             <button
@@ -153,9 +151,6 @@ export default function AdminApp() {
               </span>
               <span>
                 <strong>
-                  <span className="cp-admin-nav-label--desktop">
-                    {item.label}
-                  </span>
                   <span className="cp-admin-nav-label--mobile">
                     {item.mobileLabel}
                   </span>
@@ -168,21 +163,6 @@ export default function AdminApp() {
             </button>
           ))}
         </nav>
-        <div className="cp-admin-sidebar__footer">
-          <Link href="/" className="cp-admin-user-link cp-focus">
-            <AppIcon name="map" size={18} />
-            <span>กลับไปหน้าแผนที่</span>
-          </Link>
-          <div className="cp-admin-role-card">
-            <span>
-              <AppIcon name="user" size={18} />
-            </span>
-            <div>
-              <strong>{auth.user?.email ?? "Local demo"}</strong>
-              <small>{auth.role}</small>
-            </div>
-          </div>
-        </div>
       </aside>
 
       <main className="cp-admin-main">
@@ -216,22 +196,17 @@ export default function AdminApp() {
           {view === "overview" && (
             <AdminOverview
               reportCount={overview.reportCount}
+              reports={overview.reports}
               loading={loading}
               error={error}
               latestRun={latestRun}
               dataHealth={overview.dataHealth}
               openIssueCount={openIssueCount}
-              isAdmin={isAdmin}
               onNavigate={setView}
             />
           )}
           {view === "reports" && <AdminPanel />}
-          {view === "publishing" && (
-            <AdminPublishingPanel
-              isAdmin={isAdmin}
-              onPublished={() => undefined}
-            />
-          )}
+          {view === "publishing" && <AdminPublishingPanel isAdmin={isAdmin} />}
           {view === "operations" && (
             <AdminOperationsPanel
               runs={overview.runs}
@@ -245,13 +220,6 @@ export default function AdminApp() {
               loading={loading}
               error={error}
               onRefresh={() => void loadOverview()}
-              onTransitionDataIssue={async (
-                issue: DataIssueRow,
-                body: DataIssueUpdateRequest,
-              ) => {
-                await api.updateAdminDataIssue(issue.id, body);
-                await loadOverview();
-              }}
               onLoadMoreAuditLogs={async () => {
                 if (!isAdmin || auditLoadingMore || !overview.auditHasMore)
                   return;

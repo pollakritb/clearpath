@@ -11,3 +11,5 @@ node_modules
 
 .community-reset-backups
 .playwright-cli
+
+output/playwright

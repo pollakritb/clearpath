@@ -396,7 +396,7 @@
   right: 0;
   bottom: 56px;
   width: max-content;
-  max-width: min(250px, calc(100vw - 24px));
+  max-width: min(250px, calc(100cqw - 24px));
   margin: 0;
   border-radius: 12px;
   padding: 9px 12px;
@@ -583,7 +583,7 @@
   display: none !important;
 }
 
-@media (max-width: 480px) {
+@container cp-mobile (max-width: 480px) {
   .cp-auth-session[data-compact="false"] {
     align-items: stretch;
     flex-direction: column;
@@ -738,12 +738,6 @@
   from {
     opacity: 0;
     transform: translateY(18px);
-  }
-}
-
-@media (min-width: 700px) {
-  .cp-login-modal {
-    place-items: center;
   }
 }
 
@@ -1448,37 +1442,7 @@
   min-height: 44px;
 }
 
-@media (max-width: 1180px) and (min-width: 769px) {
-  .cp-primary-nav {
-    width: 86px;
-    align-items: center;
-    padding-inline: 10px;
-  }
-  .cp-brand {
-    justify-content: center;
-  }
-  .cp-brand__copy,
-  .cp-primary-nav__label,
-  .cp-nav-item__copy,
-  .cp-source-card,
-  .cp-admin-entry span,
-  .cp-admin-entry svg:last-child {
-    display: none;
-  }
-  .cp-primary-nav__items {
-    width: 100%;
-  }
-  .cp-nav-item {
-    min-height: 52px;
-    justify-content: center;
-    padding: 7px;
-  }
-  .cp-admin-entry {
-    justify-content: center;
-  }
-}
-
-@media (max-width: 768px) {
+@container cp-mobile (max-width: 768px) {
   .cp-app {
     display: block;
     position: relative;
@@ -1600,7 +1564,7 @@
   }
 }
 
-@media (max-width: 390px) {
+@container cp-mobile (max-width: 390px) {
   .cp-form-grid,
   .cp-weather-grid {
     grid-template-columns: 1fr;
@@ -1631,7 +1595,7 @@
 /* ============================================================
    Mobile application shell — touch-first, full-screen task tabs
    ============================================================ */
-@media (max-width: 768px) {
+@container cp-mobile (max-width: 768px) {
   .cp-app {
     --cp-mobile-nav-h: calc(74px + env(safe-area-inset-bottom));
     min-height: 100svh;
@@ -1890,7 +1854,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@container cp-mobile (max-width: 480px) {
   .cp-aside__body {
     padding-inline: 15px;
   }
@@ -2494,7 +2458,7 @@
   color: var(--cp-teal-dark);
 }
 
-@media (max-width: 768px) {
+@container cp-mobile (max-width: 768px) {
   .cp-app {
     --cp-mobile-nav-h: calc(76px + env(safe-area-inset-bottom));
     background: #f3f6f4;
@@ -3218,7 +3182,7 @@
   line-height: 1.5;
 }
 
-@media (max-width: 390px) {
+@container cp-mobile (max-width: 390px) {
   .cp-forecast-sources__list {
     grid-template-columns: 1fr;
   }
@@ -3626,7 +3590,7 @@
   font-weight: 500;
 }
 
-@media (max-width: 768px) {
+@container cp-mobile (max-width: 768px) {
   .cp-mobile-nav,
   .cp-mobile-nav[data-has-admin="true"] {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3681,7 +3645,7 @@
   }
 }
 
-@media (max-width: 390px) {
+@container cp-mobile (max-width: 390px) {
   .cp-forecast-card__heading {
     align-items: flex-start;
   }
@@ -4289,7 +4253,7 @@
   cursor: pointer;
 }
 
-@media (max-width: 768px) {
+@container cp-mobile (max-width: 768px) {
   .cp-place-card {
     right: 12px;
     bottom: calc(var(--cp-mobile-nav-h) + 12px);
@@ -5655,7 +5619,7 @@
   flex: 1;
 }
 
-@media (max-width: 768px) {
+@container cp-mobile (max-width: 768px) {
   .cp-app[data-tab="map"] .cp-map-topbar {
     top: max(9px, env(safe-area-inset-top));
     left: 10px;
@@ -5721,7 +5685,7 @@
   .cp-mapctrls__error {
     right: auto;
     left: 0;
-    width: min(250px, calc(100vw - 24px));
+    width: min(250px, calc(100cqw - 24px));
   }
 
   .cp-map-current-dock {
@@ -5795,7 +5759,7 @@
   }
 }
 
-@media (max-width: 390px) {
+@container cp-mobile (max-width: 390px) {
   .cp-map-demo-badge {
     position: absolute;
     top: calc(100% + 4px);
@@ -6463,7 +6427,7 @@
   font: 900 0.88rem var(--font-mono);
 }
 
-@media (max-width: 768px) {
+@container cp-mobile (max-width: 768px) {
   .cp-report-stack-card {
     right: 10px;
     bottom: calc(var(--cp-mobile-nav-h) + 10px);
@@ -6604,7 +6568,7 @@
 
 .cp-map-photo-dialog {
   position: fixed;
-  width: min(720px, calc(100vw - 24px));
+  width: min(720px, calc(100cqw - 24px));
   max-width: none;
   max-height: calc(100dvh - 24px);
   margin: auto;
@@ -6819,7 +6783,7 @@
   margin-top: 10px;
 }
 
-@media (max-width: 768px) {
+@container cp-mobile (max-width: 768px) {
   .cp-context-header {
     padding-inline: 16px;
   }
@@ -6846,7 +6810,7 @@
   }
 }
 
-@media (max-width: 360px) {
+@container cp-mobile (max-width: 360px) {
   .cp-map-aqi-legend > span {
     gap: 2px;
   }
@@ -6899,6 +6863,12 @@
   outline: 2px solid var(--cp-slot-color, #087e79);
   outline-offset: -2px;
 }
+.cp-forecast-card--compact
+  .cp-forecast-timeline
+  button[data-active="true"]
+  strong {
+  color: var(--cp-ink);
+}
 .cp-forecast-details > summary {
   padding: 14px 0 2px;
   color: var(--cp-teal, #087e79);
@@ -6918,7 +6888,7 @@
 .cp-air-outlook__source a {
   color: inherit;
 }
-@media (max-width: 600px) {
+@container cp-mobile (max-width: 600px) {
   .cp-air-outlook {
     border-radius: 20px;
   }
@@ -7610,7 +7580,7 @@
   position: absolute;
   right: 0;
   bottom: 44px;
-  width: min(280px, 76vw);
+  width: min(280px, 76cqw);
   padding: 14px;
   border: 1px solid #c6deda;
   border-radius: 12px;
@@ -7726,7 +7696,7 @@
 .cp-map[data-mode="cams"] .cp-mapctrls__zoom {
   display: none !important;
 }
-@media (max-width: 768px) {
+@container cp-mobile (max-width: 768px) {
   .cp-cams-dock,
   .cp-history-timeline-host {
     bottom: calc(var(--cp-mobile-nav-h) + 10px);
@@ -7750,13 +7720,6 @@
   .cp-cams-dock {
     max-height: calc(100dvh - var(--cp-mobile-nav-h, 0px) - 80px);
     overflow: auto;
-  }
-}
-@media (max-height: 600px) and (min-width: 600px) {
-  .cp-cams-dock {
-    left: auto;
-    right: 10px;
-    width: 360px;
   }
 }
 

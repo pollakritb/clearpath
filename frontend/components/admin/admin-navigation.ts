@@ -13,7 +13,7 @@ export const ADMIN_NAV_ITEMS: Array<{
     id: "overview",
     label: "ภาพรวม",
     mobileLabel: "ภาพรวม",
-    description: "งานสำคัญวันนี้",
+    description: "สถิติและสถานะล่าสุด",
     icon: "home",
   },
   {
@@ -43,14 +43,14 @@ export const ADMIN_PAGE_COPY: Record<
   AdminView,
   { eyebrow: string; title: string }
 > = {
-  overview: { eyebrow: "ภาพรวมผู้ดูแล", title: "ศูนย์ควบคุม ClearPath" },
+  overview: { eyebrow: "ภาพรวมผู้ดูแล", title: "ภาพรวม ClearPath" },
   reports: {
     eyebrow: "Automatic review log",
     title: "ประวัติรายงานจากผู้ใช้",
   },
   publishing: {
-    eyebrow: "Community management",
-    title: "จัดการเนื้อหาชุมชน",
+    eyebrow: "Community overview",
+    title: "ประวัติเนื้อหาชุมชน",
   },
   operations: { eyebrow: "System health", title: "สถานะข้อมูลและบริการ" },
 };

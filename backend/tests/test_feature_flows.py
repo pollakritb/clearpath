@@ -559,74 +559,14 @@ def test_announcement_activity_notification_preferences_and_push_contract(
     assert client.get("/api/notifications/preferences").json() == preferences.json()
 
     become("admin")
-    draft = client.post(
-        "/api/admin/announcements",
-        json={
-            "title": f"Draft {uuid4()}",
-            "body": "ยังไม่ควรเผยแพร่",
-            "kind": "alert",
-            "area": "นครปฐม",
-            "status": "draft",
-        },
-    )
-    assert draft.status_code == 201, draft.text
-    announcement_id = draft.json()["id"]
-
-    public_before = client.get("/api/community/announcements").json()["announcements"]
-    assert all(item["id"] != announcement_id for item in public_before)
-
-    image_upload = client.post(
-        "/api/admin/announcement-images",
-        files={"image": ("announcement.png", _meter_image(31), "image/png")},
-    )
-    assert image_upload.status_code == 200
-    assert image_upload.json()["url"]
-
-    published = client.patch(
-        f"/api/admin/announcements/{announcement_id}",
-        json={
-            "status": "published",
-            "image_path": image_upload.json()["path"],
-            "expected_updated_at": draft.json()["updated_at"],
-            "reason": "ตรวจเนื้อหาและภาพเรียบร้อยแล้วจึงเผยแพร่",
-        },
-    )
-    assert published.status_code == 200
-    assert published.json()["status"] == "published"
-    assert published.json()["image_url"]
-    public_after = client.get("/api/community/announcements").json()["announcements"]
-    assert any(item["id"] == announcement_id for item in public_after)
-    stale_announcement = client.patch(
-        f"/api/admin/announcements/{announcement_id}",
-        json={
-            "status": "draft",
-            "expected_updated_at": draft.json()["updated_at"],
-            "reason": "คำสั่งจากหน้าจอเก่าต้องไม่เขียนทับข้อมูลใหม่",
-        },
-    )
-    assert stale_announcement.status_code == 409
-
-    become("user", user_id=member.id)
-    assert client.get("/api/notifications").json()["unread_count"] == 0
-
-    become("admin")
-    activity = client.post(
-        "/api/admin/activities",
-        json={
-            "title": f"Activity {uuid4()}",
-            "description": "ช่วยตรวจรายงานในพื้นที่",
-            "reward_points": 5,
-        },
-    )
-    assert activity.status_code == 201
-    activities = client.get("/api/community/activities").json()["activities"]
-    assert any(item["id"] == activity.json()["id"] for item in activities)
-
-    archived = client.delete(f"/api/admin/announcements/{announcement_id}")
-    assert archived.status_code == 200
-    assert archived.json()["status"] == "archived"
-    public_archived = client.get("/api/community/announcements").json()["announcements"]
-    assert all(item["id"] != announcement_id for item in public_archived)
+    before = client.get("/api/community/announcements").json()
+    assert client.post("/api/admin/announcements", json={}).status_code == 405
+    assert client.post("/api/admin/announcement-images").status_code == 404
+    assert client.patch("/api/admin/announcements/123", json={}).status_code == 404
+    assert client.delete("/api/admin/announcements/123").status_code == 404
+    assert client.post("/api/admin/activities", json={}).status_code == 404
+    assert client.get("/api/admin/announcements").status_code == 200
+    assert client.get("/api/community/announcements").json() == before
 
     become("user", user_id=member.id)
     assert client.get("/api/notifications/config").status_code == 404
@@ -804,8 +744,7 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
             "note": "ค่าพยากรณ์ต่ำกว่าค่าจริงและต้องตรวจโมเดลเพิ่มเติม",
         },
     )
-    assert reviewed.status_code == 200
-    assert reviewed.json()["disposition"] == "model_issue"
+    assert reviewed.status_code == 404
     issues = client.get("/api/admin/data-issues")
     assert issues.status_code == 200
     issue = next(
@@ -819,8 +758,7 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
             "expected_updated_at": issue["updated_at"],
         },
     )
-    assert transitioned.status_code == 200
-    assert transitioned.json()["status"] == "reviewing"
+    assert transitioned.status_code == 404
     stale = client.patch(
         f"/api/admin/data-issues/{issue['id']}",
         json={
@@ -829,16 +767,16 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
             "expected_updated_at": issue["updated_at"],
         },
     )
-    assert stale.status_code == 409
+    assert stale.status_code == 404
     audit = client.get("/api/admin/audit-logs")
     assert audit.status_code == 200
-    assert any(
+    assert not any(
         row["entity_id"] == issue["id"] and row["action"] == "data_issue_transitioned"
         for row in audit.json()["logs"]
     )
     exported = client.get("/api/admin/audit-logs/export")
     assert exported.status_code == 200
-    assert "data_issue_transitioned" in exported.text
+    assert "data_issue_transitioned" not in exported.text
     assert client.get("/api/admin/notification-outbox").status_code == 200
 
     become("user")
@@ -849,10 +787,10 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
             json={
                 "status": "resolved",
                 "reason": "ผู้ใช้ทั่วไปต้องแก้สถานะรายการไม่ได้",
-                "expected_updated_at": transitioned.json()["updated_at"],
+                "expected_updated_at": issue["updated_at"],
             },
         ).status_code
-        == 403
+        == 404
     )
 
 

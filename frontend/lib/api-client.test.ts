@@ -35,18 +35,19 @@ describe("api client", () => {
     mockedGetAccessToken.mockResolvedValue("access-token");
   });
 
-  it("accepts a successful 204 reversal without trying to parse a JSON body", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
-    await expect(
-      api.reverseXP("event", "confirmed manipulation"),
-    ).resolves.toBeUndefined();
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/community/xp/events/event/reverse",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ reason: "confirmed manipulation" }),
-      }),
-    );
+  it("does not expose administrator mutation commands", () => {
+    for (const method of [
+      "reverseXP",
+      "createAnnouncement",
+      "updateAnnouncement",
+      "archiveAnnouncement",
+      "uploadAnnouncementImage",
+      "createActivity",
+      "updateAdminDataIssue",
+      "reviewForecastFalseSafeCase",
+    ]) {
+      expect(api).not.toHaveProperty(method);
+    }
   });
 
   it("invalidates affected public data only after successful writes", async () => {
@@ -65,8 +66,8 @@ describe("api client", () => {
     expect(cachedPublicValue(PUBLIC_DATA_KEYS.mapPoints)).toBeNull();
     expect(cachedPublicValue(PUBLIC_DATA_KEYS.announcements)).not.toBeNull();
 
-    await api.createAnnouncement({} as never);
-    expect(cachedPublicValue(PUBLIC_DATA_KEYS.announcements)).toBeNull();
+    await api.adminAnnouncements();
+    expect(cachedPublicValue(PUBLIC_DATA_KEYS.announcements)).not.toBeNull();
 
     await loadPublicData(PUBLIC_DATA_KEYS.reports, 60_000, async () => ({
       count: 2,
@@ -143,12 +144,7 @@ describe("api client", () => {
       () => api.searchLocations("Nakhon Pathom / center"),
       () => api.myProfile(),
       () => api.adminReports(),
-      () => api.createAnnouncement({} as never),
       () => api.adminAnnouncements(),
-      () => api.updateAnnouncement("announcement-1", {} as never),
-      () => api.archiveAnnouncement("announcement-1"),
-      () => api.uploadAnnouncementImage(new Blob(["image"]) as File),
-      () => api.createActivity({} as never),
       () => api.adminSyncRuns(),
       () => api.adminDataHealth(),
       () => api.adminForecastModels(),
@@ -156,17 +152,9 @@ describe("api client", () => {
       () => api.adminForecastProviderHealth(),
       () => api.adminForecastEvaluation(),
       () => api.adminForecastFalseSafeCases(),
-      () =>
-        api.reviewForecastFalseSafeCase(
-          "run / one",
-          12,
-          "candidate / v1",
-          {} as never,
-        ),
       () => api.adminForecastReleaseDecisions(),
       () => api.adminNotificationOutbox(),
       () => api.adminDataIssues(),
-      () => api.updateAdminDataIssue("issue / one", {} as never),
       () => api.adminAuditLogs(),
     ];
 

@@ -21,11 +21,6 @@ import type {
   MeasurementHelperSettings,
   MeasurementPresenceUpdate,
   ActivitiesResponse,
-  Activity,
-  ActivityCreate,
-  Announcement,
-  AnnouncementCreate,
-  AnnouncementUpdate,
   AnnouncementsResponse,
   CaptureSessionResponse,
   PhotoMetadata,
@@ -59,13 +54,10 @@ import type {
   AdminSyncRunsResponse,
   AuditLogsResponse,
   DataHealthResponse,
-  DataIssueRow,
-  DataIssueUpdateRequest,
   DataIssuesResponse,
   ForecastDataQualityResponse,
   ForecastEvaluationResponse,
   ForecastFalseSafeCasesResponse,
-  ForecastFalseSafeReviewRequest,
   ForecastReleaseDecisionsResponse,
   ForecastModelStatusesResponse,
   ForecastProviderHealthResponse,
@@ -378,12 +370,6 @@ export const api = {
       auth: true,
       cache: "no-store",
     }),
-  reverseXP: (id: string, reason: string) =>
-    http<void>(`/api/community/xp/events/${encodeURIComponent(id)}/reverse`, {
-      method: "POST",
-      auth: true,
-      body: JSON.stringify({ reason }),
-    }),
   xpSummary: () =>
     http<XPSummary | null>("/api/community/me/xp", {
       auth: true,
@@ -483,53 +469,8 @@ export const api = {
       auth: true,
     }),
 
-  createAnnouncement: (body: AnnouncementCreate) =>
-    invalidateAfter(
-      http<Announcement>("/api/admin/announcements", {
-        method: "POST",
-        body: JSON.stringify(body),
-        auth: true,
-      }),
-      PUBLIC_DATA_KEYS.announcements,
-    ),
-
   adminAnnouncements: () =>
     http<AnnouncementsResponse>("/api/admin/announcements", { auth: true }),
-
-  updateAnnouncement: (announcementId: string, body: AnnouncementUpdate) =>
-    invalidateAfter(
-      http<Announcement>(`/api/admin/announcements/${announcementId}`, {
-        method: "PATCH",
-        body: JSON.stringify(body),
-        auth: true,
-      }),
-      PUBLIC_DATA_KEYS.announcements,
-    ),
-
-  archiveAnnouncement: (announcementId: string) =>
-    invalidateAfter(
-      http<Announcement>(`/api/admin/announcements/${announcementId}`, {
-        method: "DELETE",
-        auth: true,
-      }),
-      PUBLIC_DATA_KEYS.announcements,
-    ),
-
-  uploadAnnouncementImage: (image: File) => {
-    const form = new FormData();
-    form.set("image", image);
-    return http<{ path: string; url: string }>(
-      "/api/admin/announcement-images",
-      { method: "POST", body: form, auth: true },
-    );
-  },
-
-  createActivity: (body: ActivityCreate) =>
-    http<Activity>("/api/admin/activities", {
-      method: "POST",
-      body: JSON.stringify(body),
-      auth: true,
-    }),
 
   adminSyncRuns: (limit = 50) =>
     http<AdminSyncRunsResponse>(`/api/admin/sync-runs?limit=${limit}`, {
@@ -570,17 +511,6 @@ export const api = {
       { auth: true },
     ),
 
-  reviewForecastFalseSafeCase: (
-    runId: string,
-    horizonHours: number,
-    variant: string,
-    body: ForecastFalseSafeReviewRequest,
-  ) =>
-    http(
-      `/api/admin/forecast-false-safe-cases/${encodeURIComponent(runId)}/${horizonHours}/${encodeURIComponent(variant)}/review`,
-      { method: "PUT", body: JSON.stringify(body), auth: true },
-    ),
-
   adminForecastReleaseDecisions: (limit = 100) =>
     http<ForecastReleaseDecisionsResponse>(
       `/api/admin/forecast-release-decisions?limit=${limit}`,
@@ -596,16 +526,6 @@ export const api = {
     http<DataIssuesResponse>(`/api/admin/data-issues?limit=${limit}`, {
       auth: true,
     }),
-
-  updateAdminDataIssue: (issueId: string, body: DataIssueUpdateRequest) =>
-    http<DataIssueRow>(
-      `/api/admin/data-issues/${encodeURIComponent(issueId)}`,
-      {
-        method: "PATCH",
-        body: JSON.stringify(body),
-        auth: true,
-      },
-    ),
 
   adminAuditLogs: (limit = 100, offset = 0) =>
     http<AuditLogsResponse>(

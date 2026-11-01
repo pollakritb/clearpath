@@ -1,3 +1,4 @@
+import type { CommunityReport } from "@/frontend/types";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import type { AdminSyncRun, DataHealthResponse } from "@/frontend/types/ui";
 
@@ -5,23 +6,23 @@ import { formatRelative, type AdminView } from "./admin-navigation";
 
 interface AdminOverviewProps {
   reportCount: number;
+  reports: CommunityReport[];
   loading: boolean;
   error: string | null;
   latestRun?: AdminSyncRun;
   dataHealth: DataHealthResponse | null;
   openIssueCount: number;
-  isAdmin: boolean;
   onNavigate: (view: AdminView) => void;
 }
 
 export default function AdminOverview({
   reportCount,
+  reports,
   loading,
   error,
   latestRun,
   dataHealth,
   openIssueCount,
-  isAdmin,
   onNavigate,
 }: AdminOverviewProps) {
   return (
@@ -29,7 +30,7 @@ export default function AdminOverview({
       <div className="cp-admin-welcome">
         <div>
           <span className="cp-eyebrow">ศูนย์ตรวจสอบระบบ</span>
-          <h2>ติดตามการทำงาน ไม่ตัดสินรายงานแทนระบบ</h2>
+          <h2>ภาพรวมการใช้งานและสถานะระบบ</h2>
           <p>
             ระบบตรวจ GPS และภาพซ้ำก่อนให้ OCR อ่านตัวเลข PM2.5
             หากอ่านได้จะเผยแพร่ทันที ผู้ดูแลใช้หน้านี้ดูประวัติ ภาพ และ audit
@@ -62,7 +63,7 @@ export default function AdminOverview({
             <AppIcon name="shield" size={22} />
           </span>
           <span>
-            <small>รายงานที่บันทึกไว้</small>
+            <small>รายงานล่าสุด</small>
             <strong>{loading ? "…" : reportCount}</strong>
             <em>ดูภาพและผลตรวจอัตโนมัติย้อนหลัง</em>
           </span>
@@ -127,42 +128,30 @@ export default function AdminOverview({
         <article className="cp-admin-overview-card">
           <div className="cp-admin-card-heading">
             <div>
-              <h3>ขั้นตอนตรวจรายงานอัตโนมัติ</h3>
-              <p>ทุก submission ได้ผลสุดท้ายทันที ไม่มีคิวอนุมัติด้วยคน</p>
+              <h3>สรุปรายงานจากชุมชน</h3>
+              <p>จากรายงานล่าสุด {reportCount} รายการที่โหลดใน dashboard</p>
             </div>
           </div>
-          <ol className="cp-admin-workflow">
-            <li>
-              <span>1</span>
-              <div>
-                <strong>ตรวจข้อมูลก่อนอ่านภาพ</strong>
-                <small>ยืนยัน GPS และป้องกันภาพซ้ำแบบ exact duplicate</small>
+          <div className="cp-admin-health-grid cp-admin-health-grid--compact">
+            {(
+              [
+                ["approved", "เผยแพร่แล้ว"],
+                ["rejected", "ไม่ผ่าน"],
+                ["pending", "กำลังประมวลผล"],
+              ] as const
+            ).map(([status, label]) => (
+              <div key={status}>
+                <small>{label}</small>
+                <strong>
+                  {loading
+                    ? "…"
+                    : reports.filter((report) => report.status === status)
+                        .length}
+                </strong>
+                <span>รายงาน</span>
               </div>
-            </li>
-            <li>
-              <span>2</span>
-              <div>
-                <strong>อ่านตัวเลขด้วย OCR</strong>
-                <small>อ่านเฉพาะตัวเลข PM2.5 จากภาพเครื่องวัด</small>
-              </div>
-            </li>
-            <li>
-              <span>3</span>
-              <div>
-                <strong>เผยแพร่หรือให้ถ่ายใหม่</strong>
-                <small>
-                  อ่านเลขได้เผยแพร่ทันที อ่านไม่ได้แจ้งให้ผู้ใช้ถ่ายใหม่
-                </small>
-              </div>
-            </li>
-            <li>
-              <span>4</span>
-              <div>
-                <strong>บันทึกหลักฐานและ audit log</strong>
-                <small>ผู้ดูแลเปิดดูย้อนหลังได้ แต่ไม่มีปุ่มแก้ผลตรวจ</small>
-              </div>
-            </li>
-          </ol>
+            ))}
+          </div>
         </article>
 
         <article className="cp-admin-overview-card">
@@ -181,13 +170,9 @@ export default function AdminOverview({
               <AppIcon name="check" size={17} />
               ดูสุขภาพข้อมูล Air4Thai และ audit log
             </div>
-            <div data-allowed={isAdmin || undefined}>
-              <AppIcon name={isAdmin ? "check" : "alert"} size={17} />
-              สร้างประกาศและกิจกรรม {isAdmin ? "" : "(Admin เท่านั้น)"}
-            </div>
             <div>
               <AppIcon name="close" size={17} />
-              ไม่มีสิทธิ์อนุมัติหรือปฏิเสธรายงานด้วยคน
+              ไม่มีสิทธิ์แก้ไข ลบ เผยแพร่ เปลี่ยนบทบาท หรือยกเลิกคะแนน
             </div>
           </div>
         </article>

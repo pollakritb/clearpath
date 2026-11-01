@@ -97,9 +97,7 @@ describe("Today nearest source", () => {
     render(<TodayPageClient />);
     expect(await screen.findByText("19")).toBeTruthy();
     expect(await screen.findByText("รายงานจาก เพื่อนบ้าน")).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: /อันดับชุมชน/ }).getAttribute("href"),
-    ).toBe("/leaderboard");
+    expect(screen.queryByRole("link", { name: /อันดับชุมชน/ })).toBeNull();
     expect(state.noop).toHaveBeenCalledWith({ lat: 13.801, lon: 100.1 }, 120);
     expect(
       screen.getByRole("region", { name: "ค่าฝุ่นใกล้ที่สุดและพยากรณ์" }),

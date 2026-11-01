@@ -55,7 +55,7 @@ def test_private_settings_and_public_member_contract(client):
     assert c.get("/api/community/me/xp-events").json()["events"] == []
 
 
-def test_reversal_is_admin_only_and_idempotent(client):
+def test_dashboard_cannot_reverse_xp(client):
     c, app = client
     event_id = str(uuid4())
     xp.account("owner")
@@ -73,12 +73,12 @@ def test_reversal_is_admin_only_and_idempotent(client):
         )
     )
     path = f"/api/community/xp/events/{event_id}/reverse"
-    assert c.post(path, json={"reason": "confirmed manipulation"}).status_code == 403
+    assert c.post(path, json={"reason": "confirmed manipulation"}).status_code == 404
     assert c.get("/api/community/xp/admin").status_code == 403
     app.dependency_overrides[require_user] = lambda: AuthenticatedUser(
         id="admin", email=None, role="admin"
     )
-    assert c.post(path, json={"reason": "confirmed manipulation"}).status_code == 204
-    assert c.post(path, json={"reason": "confirmed manipulation"}).status_code == 204
-    assert xp.summary("owner")["lifetime_xp"] == 0
-    assert c.get("/api/community/xp/admin").json()["events"][1]["reversed"] is True
+    assert c.post(path, json={"reason": "confirmed manipulation"}).status_code == 404
+    assert c.post(path, json={"reason": "confirmed manipulation"}).status_code == 404
+    assert xp.summary("owner")["lifetime_xp"] == 10
+    assert len(c.get("/api/community/xp/admin").json()["events"]) == 1

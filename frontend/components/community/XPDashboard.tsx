@@ -18,9 +18,13 @@ const PERIODS: [Period, string][] = [
 
 export default function XPDashboard({
   signedIn = true,
+  section = "all",
 }: {
   signedIn?: boolean;
+  section?: "all" | "overview" | "leaderboard";
 }) {
+  const showProfile = section !== "leaderboard";
+  const showBoard = section !== "overview";
   const [period, setPeriod] = useState<Period>("all");
   const [summary, setSummary] = useState<XPSummary | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -33,7 +37,7 @@ export default function XPDashboard({
   const [loadingMore, setLoadingMore] = useState(false);
   const [notice, setNotice] = useState("");
   useEffect(() => {
-    if (!signedIn) return;
+    if (!signedIn || !showProfile) return;
     let cancelled = false;
     void Promise.all([api.xpSummary(), api.xpEvents()])
       .then(([s, e]) => {
@@ -50,8 +54,9 @@ export default function XPDashboard({
     return () => {
       cancelled = true;
     };
-  }, [signedIn]);
+  }, [signedIn, showProfile]);
   useEffect(() => {
+    if (!showBoard) return;
     let cancelled = false;
     void (signedIn ? api.myLeaderboard(period) : api.leaderboard(period))
       .then((result) => {
@@ -66,7 +71,7 @@ export default function XPDashboard({
     return () => {
       cancelled = true;
     };
-  }, [period, signedIn]);
+  }, [period, signedIn, showBoard]);
   const validAlias =
     alias.trim().length >= 3 &&
     alias.trim().length <= 40 &&
@@ -113,12 +118,17 @@ export default function XPDashboard({
   }
   return (
     <div className="cp-xp">
-      {signedIn && profileLoaded && !summary && (
+      {showProfile && signedIn && !profileLoaded && !error && (
+        <p className="cp-xp-note" role="status">
+          กำลังโหลดผลงาน…
+        </p>
+      )}
+      {showProfile && signedIn && profileLoaded && !summary && (
         <p className="cp-xp-note" role="status">
           ระบบคะแนนกำลังเตรียมเปิดใช้ คุณยังรายงานค่าฝุ่นได้ตามปกติ
         </p>
       )}
-      {summary && (
+      {showProfile && summary && (
         <section className="cp-xp-profile" aria-label="คะแนนและยศของฉัน">
           <span className="cp-xp-eyebrow">การมีส่วนร่วมของคุณ</span>
           <h2>{summary.alias}</h2>
@@ -142,6 +152,23 @@ export default function XPDashboard({
           ) : (
             <p>คุณได้รับยศสูงสุดแล้ว · ผลงาน {summary.contribution_days} วัน</p>
           )}
+          <div
+            className="cp-participation-stats"
+            aria-label="สรุปการมีส่วนร่วม"
+          >
+            <div>
+              <strong>{summary.report_count ?? 0}</strong>
+              <span>รายงานรับ XP</span>
+            </div>
+            <div>
+              <strong>{summary.help_count ?? 0}</strong>
+              <span>ช่วยคำขอ</span>
+            </div>
+            <div>
+              <strong>{summary.contribution_days}</strong>
+              <span>วันที่มีผลงาน</span>
+            </div>
+          </div>
           <div className="cp-xp-chips">
             {summary.achievements.map((a) => (
               <span key={a}>✦ {a}</span>
@@ -189,102 +216,112 @@ export default function XPDashboard({
           </details>
         </section>
       )}
-      <section aria-label="อันดับชุมชน">
-        <h2>อันดับชุมชน</h2>
-        <p className="cp-xp-note">
-          อันดับการมีส่วนร่วม ไม่ใช่อันดับความแม่นยำของข้อมูล
-        </p>
-        <div className="cp-xp-periods" role="group" aria-label="ช่วงเวลาอันดับ">
-          {PERIODS.map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={period === value}
-              onClick={() => setPeriod(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        {board?.period !== period ? (
-          <p role="status">กำลังโหลดอันดับ…</p>
-        ) : (
-          <>
-            {signedIn && (
-              <p className="cp-xp-self">
-                อันดับของฉัน <strong>{board.me?.rank ?? "—"}</strong>
-                <span>
-                  {board.me?.xp ?? 0} XP
-                  {summary?.hidden ? " · ซ่อนจากอันดับ" : ""}
-                </span>
-              </p>
-            )}
-            <ol className="cp-xp-leaders">
-              {board.users.map((user) => (
-                <li key={user.member_id}>
-                  <b>{user.rank}</b>
-                  <span className="cp-xp-avatar" aria-hidden="true">
-                    {Array.from(user.alias)[0]}
-                  </span>
-                  <Link
-                    className="cp-xp-person cp-focus"
-                    href={`/members/${user.member_id}`}
-                  >
-                    <strong>{user.alias}</strong>
-                    <ParticipationBadge rank={user.title} />
-                  </Link>
-                  <span>
-                    {user.xp.toLocaleString()}
-                    <small>XP</small>
-                  </span>
-                </li>
-              ))}
-            </ol>
-            {board.users.length === 0 && (
-              <p className="cp-xp-empty">ยังไม่มีผลงานที่ได้รับ XP ในช่วงนี้</p>
-            )}
-            {board.next_offset !== null && (
+      {showBoard && (
+        <section className="cp-xp-board" aria-label="อันดับชุมชน">
+          <h2>อันดับชุมชน</h2>
+          <p className="cp-xp-note">
+            อันดับการมีส่วนร่วม ไม่ใช่อันดับความแม่นยำของข้อมูล
+          </p>
+          <div
+            className="cp-xp-periods"
+            role="group"
+            aria-label="ช่วงเวลาอันดับ"
+          >
+            {PERIODS.map(([value, label]) => (
               <button
+                key={value}
                 type="button"
-                disabled={loadingMore}
-                onClick={() => void more()}
+                aria-pressed={period === value}
+                onClick={() => setPeriod(value)}
               >
-                {loadingMore ? "กำลังโหลด…" : "โหลดเพิ่ม"}
+                {label}
               </button>
-            )}
-          </>
-        )}
-      </section>
-      <details>
-        <summary>กติกาคะแนน</summary>
-        <p>
-          รายงานที่อนุมัติ +10 XP สูงสุด 5 ครั้งต่อวัน · ช่วยคำขอ +5 XP สูงสุด 3
-          ครั้งต่อวัน
-        </p>
-        <p>
-          รายงานที่รับคะแนนห่างกัน 30 นาที · สูงสุด 65 XP ต่อวันตามเวลาไทย · XP
-          และยศสะสมตลอดชีพ
-        </p>
-        <p>
-          โบนัสต้องเริ่มช่วยก่อนถ่าย ภาพใหม่ไม่เกิน 15 นาที GPS
-          คลาดเคลื่อนไม่เกิน 200 เมตร อยู่ใกล้จุดวัดไม่เกิน 200 เมตร
-          และจุดวัดอยู่ในรัศมีคำขอ
-        </p>
-        <p>
-          หนึ่งคนต่อคำขอและหนึ่งโบนัสต่อรายงาน คู่ผู้ขอ–ผู้ช่วยเดิมรับได้ 1
-          ครั้งต่อวัน และ 3 ครั้งใน 7 วัน ไม่มีโบนัสพิเศษสำหรับคนแรก
-        </p>
-        <p>
-          ผู้ที่เริ่มช่วยไว้ก่อนคำขอสำเร็จยังส่งได้ถึงเวลาหมดอายุเดิม หรือ 15
-          นาทีหลังสำเร็จ แล้วแต่ว่าเวลาใดถึงก่อน การไม่เข้าเกณฑ์ XP
-          ไม่ปิดกั้นรายงานที่ผ่านระบบตรวจเดิม
-        </p>
-        <p>
-          ไม่มี XP จากการให้ดาว ไลก์ หรือสร้างคำขอ · ไม่เพิ่มน้ำหนัก Trust
-          หรือค่าฝุ่น
-        </p>
-      </details>
-      {signedIn && (
+            ))}
+          </div>
+          {board?.period !== period ? (
+            <p role="status">กำลังโหลดอันดับ…</p>
+          ) : (
+            <>
+              {signedIn && (
+                <p className="cp-xp-self">
+                  อันดับของฉัน <strong>{board.me?.rank ?? "—"}</strong>
+                  <span>
+                    {board.me?.xp ?? 0} XP
+                    {summary?.hidden ? " · ซ่อนจากอันดับ" : ""}
+                  </span>
+                </p>
+              )}
+              <ol className="cp-xp-leaders">
+                {board.users.map((user) => (
+                  <li key={user.member_id}>
+                    <b>{user.rank}</b>
+                    <span className="cp-xp-avatar" aria-hidden="true">
+                      {Array.from(user.alias)[0]}
+                    </span>
+                    <Link
+                      className="cp-xp-person cp-focus"
+                      href={`/members/${user.member_id}`}
+                    >
+                      <strong>{user.alias}</strong>
+                      <ParticipationBadge rank={user.title} />
+                    </Link>
+                    <span>
+                      {user.xp.toLocaleString()}
+                      <small>XP</small>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              {board.users.length === 0 && (
+                <p className="cp-xp-empty">
+                  ยังไม่มีผลงานที่ได้รับ XP ในช่วงนี้
+                </p>
+              )}
+              {board.next_offset !== null && (
+                <button
+                  type="button"
+                  disabled={loadingMore}
+                  onClick={() => void more()}
+                >
+                  {loadingMore ? "กำลังโหลด…" : "โหลดเพิ่ม"}
+                </button>
+              )}
+            </>
+          )}
+        </section>
+      )}
+      {showProfile && (
+        <details>
+          <summary>กติกาคะแนน</summary>
+          <p>
+            รายงานที่อนุมัติ +10 XP สูงสุด 5 ครั้งต่อวัน · ช่วยคำขอ +5 XP สูงสุด
+            3 ครั้งต่อวัน
+          </p>
+          <p>
+            รายงานที่รับคะแนนห่างกัน 30 นาที · สูงสุด 65 XP ต่อวันตามเวลาไทย ·
+            XP และยศสะสมตลอดชีพ
+          </p>
+          <p>
+            โบนัสต้องเริ่มช่วยก่อนถ่าย ภาพใหม่ไม่เกิน 15 นาที GPS
+            คลาดเคลื่อนไม่เกิน 200 เมตร อยู่ใกล้จุดวัดไม่เกิน 200 เมตร
+            และจุดวัดอยู่ในรัศมีคำขอ
+          </p>
+          <p>
+            หนึ่งคนต่อคำขอและหนึ่งโบนัสต่อรายงาน คู่ผู้ขอ–ผู้ช่วยเดิมรับได้ 1
+            ครั้งต่อวัน และ 3 ครั้งใน 7 วัน ไม่มีโบนัสพิเศษสำหรับคนแรก
+          </p>
+          <p>
+            ผู้ที่เริ่มช่วยไว้ก่อนคำขอสำเร็จยังส่งได้ถึงเวลาหมดอายุเดิม หรือ 15
+            นาทีหลังสำเร็จ แล้วแต่ว่าเวลาใดถึงก่อน การไม่เข้าเกณฑ์ XP
+            ไม่ปิดกั้นรายงานที่ผ่านระบบตรวจเดิม
+          </p>
+          <p>
+            ไม่มี XP จากการให้ดาว ไลก์ หรือสร้างคำขอ · ไม่เพิ่มน้ำหนัก Trust
+            หรือค่าฝุ่น
+          </p>
+        </details>
+      )}
+      {showProfile && signedIn && (
         <details>
           <summary>ประวัติ XP ส่วนตัว</summary>
           {events?.events.map((event) => (

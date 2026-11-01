@@ -3,9 +3,6 @@
 import asyncio
 from types import SimpleNamespace
 
-import pytest
-from fastapi import HTTPException
-
 from backend.core.config import settings
 from backend.routers import admin
 from backend.services import supabase_client
@@ -32,17 +29,7 @@ def test_retired_admin_endpoints_do_not_open_database(monkeypatch):
 
     results = asyncio.run(read_retired())
     assert all(row["status"] == "retired" and row["count"] == 0 for row in results)
-    with pytest.raises(HTTPException) as exc:
-        asyncio.run(
-            admin.review_forecast_false_safe_case(
-                run_id="removed",
-                horizon_hours=1,
-                variant="served",
-                body=None,
-                user=None,
-            )
-        )
-    assert exc.value.status_code == 410
+    assert not hasattr(admin, "review_forecast_false_safe_case")
 
 
 def test_provider_health_uses_retained_cams_tables_only(monkeypatch):

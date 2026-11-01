@@ -4,7 +4,7 @@ import SettingsPageClient from "@/frontend/components/pages/SettingsPageClient";
 
 export const metadata: Metadata = {
   title: "การตั้งค่า — ClearPath",
-  description: "จัดการการแสดงผล การแจ้งเตือน บัญชี และความเป็นส่วนตัว",
+  description: "จัดการการแจ้งเตือนและสิทธิ์อุปกรณ์",
 };
 
 export default function SettingsPage() {

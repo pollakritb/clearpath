@@ -1,0 +1,32 @@
+/* One mobile interface, including on desktop and tablets. Fixed controls are
+   contained by the frame; responsive rules query its width instead of the screen. */
+body {
+  overflow: hidden;
+  background: #e3eae7;
+}
+
+.cp-mobile-frame {
+  container: cp-mobile / inline-size;
+  contain: layout paint;
+  position: relative;
+  width: min(100%, 430px);
+  height: 100dvh;
+  margin-inline: auto;
+  overflow: hidden;
+  background: var(--cp-appbg);
+  box-shadow:
+    0 0 0 1px #193b3020,
+    0 0 40px #193b3012;
+}
+
+.cp-mobile-content {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.cp-mobile-frame:has(dialog[open], .cp-login-modal) .cp-mobile-content {
+  overflow: hidden;
+}

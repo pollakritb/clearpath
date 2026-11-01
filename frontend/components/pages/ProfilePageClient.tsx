@@ -3,18 +3,18 @@
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import ProfilePanel from "@/frontend/components/panels/ProfilePanel";
 
-export default function ProfilePageClient() {
+export default function ProfilePageClient({ tab }: { tab?: string }) {
   return (
     <UserPageShell
       tab="settings"
       icon="user"
       header={{
-        title: "โปรไฟล์ของฉัน",
-        description: "รายงานและกิจกรรมที่คุณมีส่วนร่วม",
+        title: "ผลงานและอันดับ",
+        description: "คะแนน ยศ และข้อมูลที่คุณช่วยชุมชน",
         showDataStatus: false,
       }}
     >
-      <ProfilePanel />
+      <ProfilePanel tab={tab} />
     </UserPageShell>
   );
 }

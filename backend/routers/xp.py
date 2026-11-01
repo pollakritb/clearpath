@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..core.auth import AuthenticatedUser, require_admin, require_user
-from ..core.identifiers import MemberID, ReportID, RequestID, XPEventID
+from ..core.identifiers import MemberID, ReportID, RequestID
 from ..models.xp import (
     HelpClaim,
     OwnedReportIDs,
@@ -14,7 +14,6 @@ from ..models.xp import (
     XPEventsResponse,
     XPLeaderboard,
     XPResult,
-    XPReversalRequest,
     XPSettings,
     XPSummary,
 )
@@ -65,19 +64,6 @@ def claim(request_id: RequestID, user: User):
         return xp.claim(user.id, str(request_id))
     except (KeyError, ValueError) as exc:
         raise HTTPException(400, detail="คำขอนี้ไม่เปิดรับผู้ช่วยใหม่") from exc
-
-
-@router.post("/xp/events/{event_id}/reverse", status_code=204)
-def reverse(
-    event_id: XPEventID,
-    body: XPReversalRequest,
-    admin: Annotated[AuthenticatedUser, Depends(require_admin)],
-):
-    # Service-side administrative audit only; never changes report publication.
-    try:
-        xp.reverse_event(str(event_id), body.reason, admin.id)
-    except KeyError as exc:
-        raise HTTPException(404, detail="ไม่พบรายการคะแนน") from exc
 
 
 @router.get("/me/reports/{report_id}/xp", response_model=XPResult)

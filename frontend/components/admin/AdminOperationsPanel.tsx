@@ -3,7 +3,6 @@ import type {
   AuditLogRow,
   DataHealthResponse,
   DataIssueRow,
-  DataIssueUpdateRequest,
   NotificationOutboxSummary,
 } from "@/frontend/types/ui";
 
@@ -39,7 +38,6 @@ export default function AdminOperationsPanel({
   loading,
   error,
   onRefresh,
-  onTransitionDataIssue,
   onLoadMoreAuditLogs,
 }: {
   runs: AdminSyncRun[];
@@ -53,10 +51,6 @@ export default function AdminOperationsPanel({
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
-  onTransitionDataIssue: (
-    issue: DataIssueRow,
-    body: DataIssueUpdateRequest,
-  ) => Promise<void>;
   onLoadMoreAuditLogs: () => Promise<void>;
 }) {
   const newIssueCount = dataIssues.filter(
@@ -146,10 +140,7 @@ export default function AdminOperationsPanel({
             </div>
             <span>{newIssueCount} ใหม่</span>
           </div>
-          <DataIssueTriageList
-            issues={dataIssues}
-            onTransition={onTransitionDataIssue}
-          />
+          <DataIssueTriageList issues={dataIssues} />
         </article>
 
         <article className="cp-admin-table-card">

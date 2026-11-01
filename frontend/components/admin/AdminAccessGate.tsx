@@ -31,8 +31,8 @@ export default function AdminAccessGate() {
           <span className="cp-eyebrow">Restricted workspace</span>
           <h1>เข้าสู่ระบบก่อนเปิดหลังบ้าน</h1>
           <p>
-            ClearPath รวมการเข้าสู่ระบบไว้ในหน้าการตั้งค่าเพียงจุดเดียว
-            จากนั้นกลับมาที่หน้านี้ด้วยบัญชี Moderator หรือ Admin
+            เข้าสู่ระบบด้วยบัญชี Moderator หรือ Admin เพื่อดูภาพรวมการใช้งาน
+            รายงาน และสถานะระบบ
           </p>
           <button
             type="button"

@@ -76,3 +76,5 @@ __pycache__/
 
 # Encrypted community reset archives and their separate keys
 /.community-reset-backups/
+
+/output/playwright/
