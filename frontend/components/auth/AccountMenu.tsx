@@ -42,7 +42,7 @@ export default function AccountMenu() {
       <button
         ref={triggerRef}
         type="button"
-        className="cp-icon-button cp-focus"
+        className="cp-account-trigger cp-focus"
         aria-label="เปิดโปรไฟล์"
         title="โปรไฟล์"
         aria-haspopup="dialog"
@@ -160,8 +160,8 @@ function AccountAvatar({
     <img
       src={url}
       alt=""
-      width={compact ? 28 : 48}
-      height={compact ? 28 : 48}
+      width={compact ? 44 : 48}
+      height={compact ? 44 : 48}
       className="cp-account-avatar-image"
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
