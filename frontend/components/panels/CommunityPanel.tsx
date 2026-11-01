@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -42,14 +41,6 @@ export default function CommunityPanel({
       </div>
       {section === "notifications" && (
         <section className="cp-news-inbox" aria-label="การแจ้งเตือนของฉัน">
-          <Link href="/requests" className="cp-news-request-link cp-focus">
-            <AppIcon name="community" size={19} />
-            <span>
-              <strong>ติดตามคำขอค่าฝุ่น</strong>
-              <small>คำขอของฉันและคำขอให้ช่วยวัด</small>
-            </span>
-            <AppIcon name="chevron" size={17} />
-          </Link>
           {auth.user || auth.localDemo ? (
             <NotificationInbox />
           ) : (
