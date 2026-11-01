@@ -47,6 +47,12 @@ export default function PlaceAirCard({
 }: PlaceAirCardProps) {
   const [expanded, setExpanded] = useState(false);
   const classification = classifyPm25(air.value);
+  const stationCount = air.contributors.filter(
+    (point) => point.source === "station",
+  ).length;
+  const reportCount = air.contributors.filter(
+    (point) => point.source === "report",
+  ).length;
 
   const readingStyle = {
     "--place-color": air.value == null ? "#476b69" : classification.color,
@@ -78,12 +84,12 @@ export default function PlaceAirCard({
           <h1>{place.name}</h1>
         </div>
         <div className="cp-place-card__compact-reading" aria-live="polite">
-          {loading && air.stations.length === 0 ? (
+          {loading && air.stations.length === 0 && air.reports.length === 0 ? (
             <strong>กำลังโหลดค่าฝุ่น…</strong>
           ) : air.value == null ? (
             <>
               <strong>ยังไม่มีค่าฝุ่นที่ประเมินได้</strong>
-              <span>ไม่มีสถานีข้อมูลสดในวง</span>
+              <span>ไม่มีสถานีหรือรายงานข้อมูลสดในวง</span>
             </>
           ) : (
             <>
@@ -149,18 +155,20 @@ export default function PlaceAirCard({
       </div>
 
       <div className="cp-place-card__reading" aria-live="polite">
-        {loading && air.stations.length === 0 ? (
+        {loading && air.stations.length === 0 && air.reports.length === 0 ? (
           <strong>กำลังโหลดข้อมูลค่าฝุ่น…</strong>
         ) : air.value == null ? (
           <>
             <strong>ยังไม่มีค่าฝุ่นที่ประเมินได้</strong>
             <span>
-              ไม่มีสถานี Air4Thai ที่ข้อมูลสดภายใน {PLACE_RADIUS_KM} กม.
+              ไม่มีสถานีหรือรายงานที่ใช้ประเมินได้ภายใน {PLACE_RADIUS_KM} กม.
             </span>
           </>
         ) : (
           <>
-            <small>ค่าฝุ่นโดยประมาณ · {air.contributors.length} สถานี</small>
+            <small>
+              ค่าฝุ่นโดยประมาณ · {stationCount} สถานี · {reportCount} รายงาน
+            </small>
             <strong>
               {air.value.toFixed(1)} <span>µg/m³</span>
             </strong>
@@ -219,7 +227,13 @@ export default function PlaceAirCard({
                   <small>
                     {distance(distanceKm)} · {age(ageMinutes)} ·{" "}
                     {usable
-                      ? "ใช้ประเมิน"
+                      ? air.contributors.some(
+                          (point) =>
+                            point.source === "station" &&
+                            point.id === station.id,
+                        )
+                        ? "ใช้ประเมิน"
+                        : "ผ่านเกณฑ์ · ใช้ข้อมูลที่ตรงจุดแทน"
                       : station.pm25 == null
                         ? "ไม่มีค่าฝุ่น"
                         : "ข้อมูลไม่สด"}
@@ -241,10 +255,11 @@ export default function PlaceAirCard({
             รายงานจากบุคคล <small>{air.reports.length} รายงานในวง</small>
           </h2>
           <p className="cp-place-card__note">
-            ข้อมูลประกอบ ไม่ได้นำมาคำนวณค่าหลัก · ระยะจากพิกัดสาธารณะโดยประมาณ
+            รายงานที่อนุมัติและวัดไม่เกิน 3 ชั่วโมง ใช้ IDW สูตรเดียวกับสถานี ·
+            ระยะจากพิกัดสาธารณะโดยประมาณ
           </p>
           {air.reports.length ? (
-            air.reports.map(({ report, distanceKm, ageMinutes }) => (
+            air.reports.map(({ report, distanceKm, ageMinutes, usable }) => (
               <button
                 key={report.id}
                 type="button"
@@ -264,7 +279,15 @@ export default function PlaceAirCard({
                     )}
                   <small>
                     {distance(distanceKm, true)} · {age(ageMinutes)} ·
-                    ดูภาพและรายละเอียด
+                    {usable
+                      ? air.contributors.some(
+                          (point) =>
+                            point.source === "report" && point.id === report.id,
+                        )
+                        ? "ใช้ประเมิน"
+                        : "ผ่านเกณฑ์ · ใช้ข้อมูลที่ตรงจุดแทน"
+                      : "ไม่ใช้ประเมิน · ข้อมูลไม่สดหรือไม่มีเวลาวัด"}
+                    {" · "}ดูภาพและรายละเอียด
                   </small>
                 </span>
                 <b>{report.pm25?.toFixed(1)}</b>

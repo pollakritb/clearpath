@@ -15,13 +15,15 @@ export interface NearbyReport {
   report: CommunityReport;
   distanceKm: number;
   ageMinutes: number | null;
+  usable: boolean;
 }
 
 export interface PlaceAir {
   value: number | null;
   method: "idw" | "unavailable";
   contributors: {
-    stationId: string;
+    source: "station" | "report";
+    id: string;
     distanceKm: number;
     pm25: number;
     weight: number;
@@ -65,23 +67,6 @@ export function assessPlaceAir(
   const nearby = allStations.filter(
     (item) => item.distanceKm <= PLACE_RADIUS_KM,
   );
-  const usable = nearby.filter((item) => item.usable);
-  // Haversine distance in km, inverse-square weights (p=2).
-  // An exact match takes the observed value instead of dividing by zero.
-  const exact = usable.find((item) => item.distanceKm < 1e-9);
-  const selected = exact ? [exact] : usable;
-  const nearestDistance = selected[0]?.distanceKm ?? 0;
-  // Scaling every weight by the same distance² preserves IDW and avoids overflow.
-  const weights = selected.map((item) =>
-    exact ? 1 : (nearestDistance / item.distanceKm) ** 2,
-  );
-  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
-  const contributors = selected.map((item, index) => ({
-    stationId: item.station.id,
-    distanceKm: item.distanceKm,
-    pm25: item.station.pm25!,
-    weight: weights[index] / weightSum,
-  }));
   const nearbyReports = reports
     .filter(
       (report) =>
@@ -98,10 +83,45 @@ export function assessPlaceAir(
         ageMinutes: Number.isFinite(ageMinutes)
           ? ageMinutes
           : report.age_minutes,
+        usable:
+          Number.isFinite(ageMinutes) && ageMinutes >= -5 && ageMinutes <= 180,
       };
     })
     .filter((item) => item.distanceKm <= PLACE_RADIUS_KM)
     .sort((a, b) => a.distanceKm - b.distanceKm);
+
+  // Both sources use the same distance-only IDW. No Trust, XP or stability multiplier.
+  const usable = [
+    ...nearby
+      .filter((item) => item.usable)
+      .map((item) => ({
+        source: "station" as const,
+        id: item.station.id,
+        distanceKm: item.distanceKm,
+        pm25: item.station.pm25!,
+      })),
+    ...nearbyReports
+      .filter((item) => item.usable)
+      .map((item) => ({
+        source: "report" as const,
+        id: item.report.id,
+        distanceKm: item.distanceKm,
+        pm25: item.report.pm25!,
+      })),
+  ].sort((left, right) => left.distanceKm - right.distanceKm);
+  // Preserve exact-point handling to avoid division by zero.
+  const exact = usable.find((item) => item.distanceKm < 1e-9);
+  const selected = exact ? [exact] : usable;
+  const nearestDistance = selected[0]?.distanceKm ?? 0;
+  // Same inverse-square formula; common scaling cancels during normalization.
+  const weights = selected.map((item) =>
+    exact ? 1 : (nearestDistance / item.distanceKm) ** 2,
+  );
+  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+  const contributors = selected.map((item, index) => ({
+    ...item,
+    weight: weights[index] / weightSum,
+  }));
 
   const value = contributors.length
     ? contributors.reduce((sum, item) => sum + item.weight * item.pm25, 0)

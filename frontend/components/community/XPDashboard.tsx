@@ -15,6 +15,7 @@ import type {
 import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
 import RankEmblem from "./RankEmblem";
 import ParticipationBadge from "./ParticipationBadge";
+import RankDetails from "./RankDetails";
 
 type Period = "all" | "7d" | "30d";
 const PERIODS: [Period, string][] = [
@@ -177,7 +178,11 @@ export default function XPDashboard({
                   ? (google?.displayName ?? summary.alias)
                   : summary.alias}
               </h2>
-              <ParticipationBadge rank={summary.rank} />
+              <RankDetails
+                rank={summary.rank}
+                xp={summary.lifetime_xp}
+                active={active}
+              />
             </div>
           </div>
           <p className="cp-xp-total">
@@ -192,13 +197,15 @@ export default function XPDashboard({
               />
               <p className="cp-xp-note">
                 ยศถัดไป {summary.rank.next_label} · {summary.lifetime_xp}/
-                {summary.rank.next_xp} XP · ผลงาน {summary.contribution_days}/
-                {summary.rank.next_days} วัน
+                {summary.rank.next_xp} XP
               </p>
             </>
           ) : (
-            <p>คุณได้รับยศสูงสุดแล้ว · ผลงาน {summary.contribution_days} วัน</p>
+            <p>คุณได้รับยศสูงสุดแล้ว</p>
           )}
+          <p className="cp-xp-note">
+            เลื่อนยศตาม XP สะสมเท่านั้น ไม่กำหนดจำนวนวัน
+          </p>
           <div
             className="cp-participation-stats"
             aria-label="สรุปการมีส่วนร่วม"

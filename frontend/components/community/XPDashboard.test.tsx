@@ -32,10 +32,10 @@ const rank = {
   code: "reporter",
   label: "ผู้รายงานชุมชน",
   minimum_xp: 100,
-  minimum_days: 3,
+  minimum_days: 0,
   next_label: "ผู้ร่วมดูแลอากาศ",
   next_xp: 500,
-  next_days: 7,
+  next_days: 0,
 };
 const summary = {
   member_id: "public-id",
@@ -186,4 +186,14 @@ it("lets the member explicitly choose Google for leaderboard identity", async ()
       identity_mode: "google",
     }),
   );
+});
+
+it("shows XP-only rank progress even for a member with no contribution days", async () => {
+  mocks.summary.mockResolvedValue({ ...summary, contribution_days: 0 });
+  render(<XPDashboard section="overview" />);
+  await screen.findByText(/180\/500 XP/);
+  expect(
+    screen.getByText("เลื่อนยศตาม XP สะสมเท่านั้น ไม่กำหนดจำนวนวัน"),
+  ).toBeTruthy();
+  expect(screen.queryByText(/ผลงาน 0\//)).toBeNull();
 });

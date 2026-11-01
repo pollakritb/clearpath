@@ -616,3 +616,68 @@
   border: 2px solid #fff;
   border-radius: 10px;
 }
+.cp-xp .cp-xp-rank-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+}
+.cp-xp-rank-dialog {
+  width: min(398px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid #c5dcd7;
+  border-radius: 22px;
+  color: #173a37;
+  background: #fff;
+  overscroll-behavior: contain;
+}
+.cp-xp-rank-dialog::backdrop {
+  background: rgb(15 40 38 / 45%);
+}
+.cp-xp-rank-content {
+  padding: 18px;
+}
+.cp-xp-rank-content header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cp-xp-rank-content header button {
+  min-width: 44px;
+  flex-shrink: 0;
+}
+.cp-xp-rank-levels {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.cp-xp-rank-levels li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #e0ebe8;
+  border-radius: 12px;
+}
+.cp-xp-rank-levels li[aria-current] {
+  border-color: #087f79;
+  background: #eff9f6;
+}
+.cp-xp-rank-levels li > div {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+}
+.cp-xp-rank-levels li > strong {
+  color: #08776e;
+  font-size: 12px;
+}

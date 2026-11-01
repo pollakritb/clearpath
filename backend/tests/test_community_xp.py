@@ -58,9 +58,9 @@ def request(**values):
 
 def test_fixed_policy_and_rank_thresholds():
     assert (REPORT_XP, HELP_XP, DAILY_XP_LIMIT) == (10, 5, 65)
-    assert rank_progress(10000, 2)["code"] == "explorer"
+    assert rank_progress(10000, 2)["code"] == "champion"
     assert rank_progress(100, 3)["code"] == "reporter"
-    assert rank_progress(1500, 19)["code"] == "caretaker"
+    assert rank_progress(1500, 19)["code"] == "guardian"
     assert rank_progress(5000, 60)["code"] == "champion"
     assert achievements(1, 50) == [
         "รายงานแรก",
@@ -288,3 +288,26 @@ def test_leaderboard_identity_is_chosen_independently_from_report_identity(
     )
     assert xp.leaderboard_names([a["member_id"]])[a["member_id"]] == "Google Member"
     assert xp.public_identity("helper")["member_id"] == a["member_id"]
+
+
+@pytest.mark.parametrize(
+    "points,expected",
+    [
+        (0, "explorer"),
+        (99, "explorer"),
+        (100, "reporter"),
+        (499, "reporter"),
+        (500, "caretaker"),
+        (1499, "caretaker"),
+        (1500, "guardian"),
+        (4999, "guardian"),
+        (5000, "champion"),
+    ],
+)
+def test_rank_depends_only_on_lifetime_xp(points, expected):
+    zero_days = rank_progress(points, 0)
+    assert zero_days["code"] == expected
+    assert rank_progress(points, 1) == zero_days
+    assert rank_progress(points, 1000) == zero_days
+    assert zero_days["minimum_days"] == 0
+    assert zero_days["next_days"] in (0, None)

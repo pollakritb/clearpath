@@ -10,11 +10,11 @@ REPORT_LIMIT = 5
 HELP_LIMIT = 3
 DAILY_XP_LIMIT = 65
 RANKS = (
-    ("explorer", "นักสำรวจอากาศ", 0, 0),
-    ("reporter", "ผู้รายงานชุมชน", 100, 3),
-    ("caretaker", "ผู้ร่วมดูแลอากาศ", 500, 7),
-    ("guardian", "ผู้พิทักษ์อากาศ", 1500, 20),
-    ("champion", "แกนนำอากาศสะอาด", 5000, 60),
+    ("explorer", "นักสำรวจอากาศ", 0),
+    ("reporter", "ผู้รายงานชุมชน", 100),
+    ("caretaker", "ผู้ร่วมดูแลอากาศ", 500),
+    ("guardian", "ผู้พิทักษ์อากาศ", 1500),
+    ("champion", "แกนนำอากาศสะอาด", 5000),
 )
 REASONS = {
     "granted": "บันทึกคะแนนแล้ว",
@@ -47,18 +47,19 @@ def thai_day(value: str | datetime) -> str:
     return stamp(value).astimezone(ZoneInfo("Asia/Bangkok")).date().isoformat()
 
 
-def rank_progress(xp: int, days: int) -> dict:
-    eligible = [r for r in RANKS if xp >= r[2] and days >= r[3]]
+def rank_progress(xp: int, _days: int = 0) -> dict:
+    """Lifetime XP alone determines rank; accept legacy day arguments for callers."""
+    eligible = [r for r in RANKS if xp >= r[2]]
     current = eligible[-1]
     next_rank = next((r for r in RANKS if r[2] > current[2]), None)
     return {
         "code": current[0],
         "label": current[1],
         "minimum_xp": current[2],
-        "minimum_days": current[3],
+        "minimum_days": 0,
         "next_label": next_rank[1] if next_rank else None,
         "next_xp": next_rank[2] if next_rank else None,
-        "next_days": next_rank[3] if next_rank else None,
+        "next_days": 0 if next_rank else None,
     }
 
 
