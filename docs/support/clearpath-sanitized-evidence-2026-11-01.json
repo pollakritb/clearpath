@@ -1,0 +1,144 @@
+{
+  "prepared_at_utc": "2026-11-01T02:10:52.145481+00:00",
+  "project_ref": "qnrtryspglioqhdxglzu",
+  "region": "ap-southeast-1",
+  "owner_decision": "No paid changes; prepare support handoff only; not sent",
+  "application_release": "0a24be6c89ccd3b795d1e5edf8be5ab93433b18c",
+  "last_confirmed_database_state": {
+    "version": 1,
+    "maintenance": true
+  },
+  "production_cutover_confirmed": false,
+  "backup_verification": {
+    "public_tables": 44,
+    "application_rows": 586792,
+    "storage_objects": 21,
+    "sample_images_opened": 3,
+    "original_columns_preserved_in_rehearsal": true,
+    "foreign_key_orphans_in_rehearsal": 0,
+    "auth_scope": "Auth user IDs for FK verification only; not credentials, identities, or sessions"
+  },
+  "database_health": "UNHEALTHY",
+  "error": "PostgreSQL 57P03 / Hot standby mode is disabled; pg_wal No space left on device",
+  "migration_files": [
+    {
+      "file": "20261101002656_readable_identifiers_expand.sql",
+      "sha256": "f6a64e76b6d32e3e2ffdc82c677399f8737d0247123f1897ecda683bcdb82ad1"
+    },
+    {
+      "file": "20261101005121_numeric_identifier_cutover.sql",
+      "sha256": "8065b8bbd9a857d6796c20edccf5b67a0cac013b2018c17c6bace2424f298a4d"
+    }
+  ],
+  "postgres_logs": [
+    {
+      "timestamp": "2026-11-01T01:55:32.702000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:55:07.573000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:55:07.573000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:55:03.770000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:55:03.343000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:55:00.403000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:46.302000",
+      "event_message": "database system was not properly shut down; automatic recovery in progress"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:46.261000",
+      "event_message": "database system was interrupted while in recovery at 2026-11-01 01:52:51 UTC"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:39.658000",
+      "event_message": "database system is shut down"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:39.392000",
+      "event_message": "could not write to file \"pg_wal/xlogtemp.433327\": No space left on device"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:28.139000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:08.158000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:08.158000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:07.395000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:05.614000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:02.968000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:54:01.121000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:53:55.852000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:53:23.584000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:53:19.954000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:53:07.538000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:53:07.308000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:52:58.965000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:52:54.739000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:52:54.272000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:52:52.677000",
+      "event_message": "the database system is not accepting connections"
+    },
+    {
+      "timestamp": "2026-11-01T01:52:51.073000",
+      "event_message": "could not write to file \"pg_wal/xlogtemp.432452\": No space left on device"
+    }
+  ],
+  "excluded": "No application/user rows, coordinates, photos, tokens, passwords, API keys or encryption keys"
+}

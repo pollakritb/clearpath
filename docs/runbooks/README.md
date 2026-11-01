@@ -6,6 +6,7 @@
   project identity, non-secret feature inventory and repeatable evidence record.
 - [Production backlog and dependency map](production-backlog.md) — canonical
   task ordering, completion authority and human-owned blockers.
+- [Identifier cutover recovery](identifier-cutover-recovery-2026-11-01.md) — WAL disk exhaustion, verified backup evidence and required recovery checks.
 - [Readable identifiers](readable-identifiers.md) — expansion rehearsal, readable review views and remaining PK/API cutover work.
 - [Legacy table retirement](legacy-table-retirement-2026-10-30.md) — removal of
   twelve empty legacy tables, backup evidence and production verification.

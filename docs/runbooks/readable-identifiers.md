@@ -4,7 +4,7 @@ Baseline: production `422013d`, 44 public tables, XP migration `20261030213750`.
 
 ## Implementation state
 
-The repository contains the expand migration, numeric cutover, dual-schema application bridge, encrypted backup utility and SQL/authorization/privacy rehearsals. The rollout control has been applied with version 1 and maintenance off. Production remains on UUID keys until the restored-data rehearsal and atomic cutover below complete.
+The code, dual-schema bridge and restored-data rehearsal are complete, but the production cutover is **not confirmed**. The migration exhausted WAL disk on 2026-11-01 and the database entered recovery. The last confirmed control state was version 1 with maintenance on. See the [recovery runbook](identifier-cutover-recovery-2026-11-01.md) before taking any further action.
 
 The migration adds 19 UUID-entity numeric identities plus readable codes for 23 entity tables (four already have numeric primary keys), 50 numeric relationship columns, a separate MBR identity, private legacy aliases and 44 restricted review views. Existing business values, RLS ownership policies and UUID PK/FKs remain intact.
 

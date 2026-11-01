@@ -1,206 +1,212 @@
 erDiagram
+    %% Numeric target schema; production verification required
+    auth_users {
+        uuid id PK
+    }
     activities {
-        uuid id
+        bigint id PK
         text code
     }
     alert_events {
-        uuid id
+        bigint id PK
         text code
     }
     announcements {
-        uuid id
-        uuid created_by
-        uuid updated_by
+        bigint id PK
         text code
+        bigint created_by FK
+        bigint updated_by FK
     }
     audit_logs {
-        int8 id
-        uuid actor_id
+        bigint id PK
         text code
+        bigint actor_id FK
     }
     cams_grid_active {
-        int4 id
-        uuid generation_id
+        integer id PK
+        bigint generation_id FK
     }
     cams_grid_chunks {
-        uuid job_id
-        int4 batch_index
+        integer batch_index PK
+        bigint job_id PK
     }
     cams_grid_definitions {
-        text id
+        text id PK
     }
     cams_grid_frames {
-        uuid generation_id
-        timestamptz valid_at
+        timestamptz valid_at PK
+        bigint generation_id PK
     }
     cams_grid_generations {
-        uuid id
+        text grid_id FK
+        bigint id PK
         text code
     }
     cams_grid_jobs {
-        uuid id
-        uuid generation_id
+        bigint id PK
         text code
+        bigint generation_id FK
     }
     capture_sessions {
-        uuid id
-        uuid user_id
+        bigint id PK
         text code
+        bigint user_id FK
     }
     community_help_claims {
-        uuid request_id
-        uuid user_id
+        bigint request_id PK
+        bigint user_id PK
     }
     community_reports {
-        uuid id
-        uuid user_id
-        uuid capture_session_id
-        uuid duplicate_of_report_id
-        uuid moderated_by
+        bigint id PK
         text code
+        bigint capture_session_id FK
+        bigint duplicate_of_report_id FK
+        bigint moderated_by FK
+        bigint user_id FK
     }
     community_xp_accounts {
-        uuid user_id
+        bigint member_id
+        text member_code
+        bigint user_id PK
     }
     community_xp_control {
-        bool singleton
+        boolean singleton PK
     }
     community_xp_events {
-        uuid id
-        uuid user_id
-        uuid report_id
-        uuid request_id
-        uuid requester_id
-        uuid reverses
+        bigint id PK
         text code
+        bigint reverses FK
+        bigint user_id FK
     }
     community_xp_jobs {
-        uuid report_id
-        uuid user_id
+        bigint report_id PK
+        bigint user_id FK
     }
     data_issue_reports {
-        uuid id
-        uuid user_id
+        bigint id PK
         text code
+        bigint user_id FK
     }
     fire_feature_snapshots {
-        text station_id
-        timestamptz recorded_at
+        text station_id PK
+        timestamptz recorded_at PK
     }
     forecast_data_quality_daily {
-        date quality_date
-        text source_name
-        text station_id
+        date quality_date PK
+        text source_name PK
+        text station_id PK
     }
     forecast_provider_snapshots {
-        uuid id
-        uuid sync_run_id
+        text station_id FK
+        bigint id PK
         text code
+        bigint sync_run_id FK
     }
     forecast_provider_sync_runs {
-        uuid id
+        bigint id PK
         text code
     }
     line_notification_links {
-        uuid user_id
+        bigint user_id PK
     }
     line_webhook_events {
-        text event_id
+        text event_id PK
     }
     measurement_delivery_leases {
-        uuid event_id
+        bigint event_id PK
     }
     measurement_helper_presence {
-        uuid user_id
+        bigint user_id PK
     }
     measurement_request_recipients {
-        uuid request_id
-        uuid user_id
+        bigint request_id PK
+        bigint user_id PK
     }
     measurement_requests {
-        uuid id
-        uuid user_id
-        uuid dispatch_cursor
-        uuid result_report_id
+        bigint id PK
         text code
+        bigint result_report_id FK
+        bigint user_id FK
     }
     notification_outbox {
-        uuid id
-        uuid user_id
-        uuid notification_id
+        bigint id PK
         text code
+        bigint notification_id FK
+        bigint user_id FK
     }
     notification_preferences {
-        uuid user_id
+        bigint user_id PK
     }
     pm25_readings {
-        int8 id
+        bigint id PK
+        text station_id FK
         text code
     }
     profiles {
-        uuid id
+        bigint id PK
         text code
+        uuid auth_user_id FK
     }
     public_map_events {
-        uuid id
-        uuid entity_id
+        bigint id PK
         text code
     }
     rate_limit_windows {
-        text actor_key
-        text action
-        timestamptz window_started_at
+        text actor_key PK
+        text action PK
+        timestamptz window_started_at PK
     }
     report_comments {
-        uuid id
-        uuid report_id
-        uuid user_id
+        bigint id PK
         text code
+        bigint report_id FK
+        bigint user_id FK
     }
     report_drafts {
-        uuid id
-        uuid user_id
-        uuid capture_session_id
-        uuid duplicate_of_report_id
+        bigint id PK
         text code
+        bigint capture_session_id FK
+        bigint duplicate_of_report_id FK
+        bigint user_id FK
     }
     report_evidence {
-        uuid report_id
-        uuid capture_session_id
+        bigint capture_session_id FK
+        bigint report_id PK
     }
     report_reactions {
-        uuid report_id
-        uuid user_id
+        bigint report_id PK
+        bigint user_id PK
     }
     report_reviews {
-        int8 id
-        uuid report_id
-        uuid reviewer_id
+        bigint id PK
         text code
+        bigint report_id FK
+        bigint reviewer_id FK
     }
     reputation_events {
-        int8 id
-        uuid user_id
-        uuid report_id
+        bigint id PK
         text code
+        bigint report_id FK
+        bigint user_id FK
     }
     stations {
-        text id
+        text id PK
     }
     sync_runs {
-        uuid id
+        bigint id PK
         text code
     }
     user_notifications {
-        uuid id
-        uuid user_id
+        bigint id PK
         text code
+        bigint user_id FK
     }
     weather_observations {
-        text station_id
-        timestamptz recorded_at
+        text station_id PK
+        timestamptz recorded_at PK
     }
     stations ||--o{ pm25_readings : "station_id"
+    auth_users ||--o{ profiles : "auth_user_id"
     profiles ||--o{ capture_sessions : "user_id"
     profiles ||--o{ community_reports : "moderated_by"
     profiles ||--o{ community_reports : "user_id"

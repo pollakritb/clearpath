@@ -1,6 +1,6 @@
 # ClearPath — แนวตรวจฐานข้อมูลสำหรับสอบ
 
-สถานะงาน: เตรียม identifier expansion และ rehearsal ใน repository. ยังไม่ได้สลับ PK/FK หรือเปลี่ยน API ให้ใช้ code. ต้องแยกสถานะนี้จาก production ที่กำลังใช้ UUID ให้ชัดในการนำเสนอ.
+สถานะงาน: โค้ดรองรับ numeric keys และ code พร้อม และ restore/migration rehearsal ด้วยข้อมูลจริงผ่านแล้ว แต่ production cutover ยังยืนยันไม่ได้ เพราะ WAL disk เต็มและฐานข้อมูลอยู่ระหว่าง recovery. ดู [สถานะและขั้นตอนกู้](../runbooks/identifier-cutover-recovery-2026-11-01.md). ห้ามนำเสนอว่าย้าย production สำเร็จแล้ว.
 
 ใช้ [data dictionary](data-dictionary.md) ควบคู่ [ERD](erd.mmd). Schema baseline มี 44 ตาราง: ข้อมูลสถานี/อากาศ, CAMS, ชุมชน, คำขอวัด, การแจ้งเตือน และ XP.
 
@@ -18,9 +18,12 @@
 
 ```sh
 npm run test:identifiers:db
+npm run test:identifiers:cutover
 ```
 
 Fixture สร้างเฉพาะ schema ของระบบและข้อมูล dummy ภายใน PGlite. ไม่มีชื่อผู้ใช้จริง พิกัดจริง รูป หรือ LINE ID. ชุดตรวจพิสูจน์ chronological backfill, การคงค่าทุกคอลัมน์เดิม, การ sync FK, การเก็บ alias หลังลบ, รหัสเกินหกหลัก และการปฏิเสธสิทธิ์ anon/authenticated.
+
+ชุด cutover ตรวจ numeric PK/FK, legacy aliases, retry/deduplication, RPC, RLS และการรักษา opaque tokens เพิ่มเติม. การทดสอบ local ไม่ยืนยันสถานะ production.
 
 ## ดูความสัมพันธ์หลัง apply expansion
 
