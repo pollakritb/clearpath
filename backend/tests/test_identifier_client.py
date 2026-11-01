@@ -282,3 +282,50 @@ def test_rollout_pause_blocks_writes_and_get_cron_but_keeps_public_reads(monkeyp
         assert client.get("/api/health").status_code == 200
         assert client.post("/api/community/capture-session").status_code == 503
         assert client.get("/api/cron/sync").status_code == 503
+
+
+def test_polymorphic_notice_reference_is_readable_without_rewriting_audit_payload():
+    report = str(uuid4())
+    raw = Raw(
+        [
+            {
+                "id": 1,
+                "user_id": 2,
+                "entity_type": "community_report",
+                "entity_id": report,
+                "payload": {"report_id": report},
+            }
+        ]
+    )
+    raw.aliases[("community_reports", report)] = {
+        "numeric_id": 3,
+        "legacy_id": report,
+        "code": "RPT-000003",
+    }
+    data = (
+        IdentifierClient(raw).table("user_notifications").select("*").execute().data[0]
+    )
+    assert data["entity_id"] == "RPT-000003"
+    assert data["payload"]["report_id"] == report
+
+
+def test_inflight_read_crossing_cutover_is_rebuilt_with_numeric_filters():
+    old = str(uuid4())
+    raw = Raw([{"id": 1}], version=1)
+    original_table = raw.table
+
+    def table(name):
+        raw.version = 2
+        return original_table(name)
+
+    raw.table = table
+    data = (
+        IdentifierClient(raw)
+        .table("community_reports")
+        .select("*")
+        .eq("id", old)
+        .execute()
+        .data
+    )
+    assert data[0]["id"] == "RPT-000001"
+    assert ("eq", ("legacy_id", old), {}) in raw.calls

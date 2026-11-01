@@ -127,6 +127,8 @@ POLYMORPHIC = {
     "activity": "activities",
     "profile": "profiles",
     "community_xp_event": "community_xp_events",
+    "report_draft": "report_drafts",
+    "alert_event": "alert_events",
 }
 FILTERS = {"eq", "neq", "gt", "gte", "lt", "lte", "in_"}
 
@@ -240,7 +242,14 @@ class IdentifierClient:
                 and item
             ):
                 target = POLYMORPHIC[value["entity_type"]]
-                if not legacy_uuid(item):
+                if legacy_uuid(item):
+                    try:
+                        result[field] = self.identity(target, item)["code"]
+                    except ValueError:
+                        # A historical reference may predate a deleted entity.
+                        # Keep that evidence; never invent a new record/number.
+                        result[field] = item
+                else:
                     result[field] = code(target, item)
             elif field in {"row", "rows", "me"}:
                 result[field] = self.decode(table, item)
@@ -351,7 +360,28 @@ class IdentifierQuery:
                 if name == "not_"
                 else getattr(query, name)(*args, **kwargs)
             )
-        response = query.execute()
+        read_only = not any(
+            name in {"insert", "upsert", "update", "delete"}
+            for name, _, _ in self.calls
+        ) and (
+            self.rpc_name is None
+            or self.rpc_name
+            in {
+                "community_xp_totals",
+                "community_xp_board",
+                "community_xp_admin_overview",
+            }
+        )
+        try:
+            response = query.execute()
+        except Exception:
+            # An in-flight read may have crossed the atomic schema commit.
+            # Never replay a mutation on a transport/database exception.
+            if read_only and not numeric and self.client.numeric():
+                return self.execute()
+            raise
+        if read_only and not numeric and self.client.numeric():
+            return self.execute()
         if numeric:
             response.data = self.client.decode(table, response.data)
         return response

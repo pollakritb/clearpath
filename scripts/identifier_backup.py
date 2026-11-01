@@ -79,7 +79,7 @@ def capture(project: str, directory: Path, key_path: Path, token: str):
          'storage_buckets',(select coalesce(jsonb_agg(to_jsonb(b)),'[]') from storage.buckets b),
          'cron_jobs',(select coalesce(jsonb_agg(to_jsonb(j)),'[]') from cron.job j)
         ) as metadata""")[0]["metadata"]
-        keys = query("""select t.relname as table_name,array_agg(a.attname order by k.n) as columns
+        keys = query("""select t.relname as table_name,array_agg(a.attname::text order by k.n) as columns
         from pg_constraint c join pg_class t on t.oid=c.conrelid join pg_namespace ns on ns.oid=t.relnamespace
         cross join lateral unnest(c.conkey) with ordinality k(attnum,n)
         join pg_attribute a on a.attrelid=t.oid and a.attnum=k.attnum

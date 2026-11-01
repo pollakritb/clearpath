@@ -91,6 +91,8 @@ def main() -> int:
             "from information_schema.columns where table_schema='public'"
         )
         catalog = {(c["table_name"], c["column_name"]): c for c in columns}
+        state = query("select public.identifier_schema_state() as state")[0]["state"]
+        converted = state["version"] >= 2
         results = []
         for table, (prefix, _) in ENTITIES.items():
             numeric = "numeric_id" if (table, "numeric_id") in catalog else "id"
@@ -129,35 +131,48 @@ def main() -> int:
             for r in relations
             if r["parent"] in ENTITIES
             and r["parent_column"] == "id"
-            and catalog[(r["table"], r["column"])]["data_type"] == "uuid"
+            and catalog[(r["table"], r["column"])]["data_type"]
+            == ("bigint" if converted else "uuid")
         }
         references.update(HISTORICAL_REFERENCES)
         relationship_results = []
         for (table, column), parent in sorted(references.items()):
-            shadow = numeric_column(column)
-            available = (table, shadow) in catalog and (parent, "numeric_id") in catalog
+            shadow = column if converted else numeric_column(column)
+            parent_id = "id" if converted else "numeric_id"
+            available = (table, shadow) in catalog and (parent, parent_id) in catalog
             mismatches = None
             if available:
-                mismatches = query(
-                    "select count(*) as mismatches "
-                    f"from public.{table} t left join public.{parent} p "
-                    f"on p.id=t.{column} "
-                    f"where t.{shadow} is distinct from p.numeric_id"
-                )[0]["mismatches"]
+                if converted:
+                    mismatches = query(
+                        "select count(*) as mismatches "
+                        f"from public.{table} t left join private.identifier_aliases a "
+                        f"on a.entity='{parent}' and a.legacy_id=t.legacy_{column} "
+                        f"where t.{column} is distinct from a.numeric_id"
+                    )[0]["mismatches"]
+                else:
+                    mismatches = query(
+                        "select count(*) as mismatches "
+                        f"from public.{table} t left join public.{parent} p "
+                        f"on p.id=t.{column} "
+                        f"where t.{shadow} is distinct from p.numeric_id"
+                    )[0]["mismatches"]
             relationship_results.append(
                 {"table": table, "column": column, "valid": mismatches == 0}
             )
         member_valid = False
         if ("community_xp_accounts", "member_code") in catalog:
-            member_expression = code_expression("MBR", "member_numeric_id")
+            member_column = "member_id" if converted else "member_numeric_id"
+            member_expression = code_expression("MBR", member_column)
             member_valid = query(
                 "select count(*) filter(where member_code is distinct from ("
                 + member_expression
-                + "))=0 and count(distinct member_numeric_id)=count(*) as valid "
+                + f"))=0 and count(distinct {member_column})=count(*) as valid "
                 "from public.community_xp_accounts"
             )[0]["valid"]
         report = {
             "project_ref": args.project_ref,
+            "schema_version": state["version"],
+            "maintenance": state["maintenance"],
             "public_tables": len({c["table_name"] for c in columns}),
             "entities": results,
             "expanded": all(r["expanded"] for r in results),
@@ -168,7 +183,9 @@ def main() -> int:
                 and all(r["valid"] for r in relationship_results)
                 and member_valid
             ),
-            "note": "Expansion does not mean numeric PK/API cutover is complete.",
+            "note": "Version 2 uses numeric PK/FKs; legacy UUIDs remain private compatibility aliases."
+            if converted
+            else "Expansion does not mean numeric PK/API cutover is complete.",
         }
         print(json.dumps(report, indent=2))
         return int(args.require_expanded and not report["valid"])

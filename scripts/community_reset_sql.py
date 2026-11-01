@@ -17,7 +17,6 @@ TABLES = (
     "reputation_events",
     "community_reports",
     "capture_sessions",
-    "community_forecast_feature_snapshots",
     "public_map_events",
 )
 FILTERS = {
@@ -37,7 +36,12 @@ ALL_TABLES = (
 
 def scope(table: str) -> str:
     if table == "profiles":
-        return "select id,reputation_score,approved_reports,helpful_reviews from public.profiles"
+        return (
+            "select id,reputation_score,approved_reports,helpful_reviews,"
+            "coalesce(to_jsonb(p)->>'auth_user_id',id::text) as auth_user_id,"
+            "coalesce(to_jsonb(p)->>'legacy_id',id::text) as legacy_id "
+            "from public.profiles p"
+        )
     return f"select * from public.{table}" + (
         f" where {FILTERS[table]}" if table in FILTERS else ""
     )

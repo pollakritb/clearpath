@@ -249,11 +249,51 @@ def restore_staging(
     def literal(value):
         return "'" + canonical(value).decode().replace("'", "''") + "'::jsonb"
 
+    columns = query(
+        project,
+        "select table_name,column_name,data_type,is_generated,is_identity from information_schema.columns where table_schema='public' order by ordinal_position",
+    )
+    writable = {}
+    for column in columns:
+        if column["is_generated"] == "NEVER":
+            writable.setdefault(column["table_name"], []).append(column["column_name"])
+    numeric = (
+        next(
+            c
+            for c in columns
+            if c["table_name"] == "profiles" and c["column_name"] == "id"
+        )["data_type"]
+        == "bigint"
+    )
+    if snapshot["profiles"] and numeric != isinstance(
+        snapshot["profiles"][0]["id"], int
+    ):
+        raise ValueError(
+            "restore requires the same identifier schema version as the backup"
+        )
+    # A numeric collision must never attach restored data to another Auth user.
+    existing = query(
+        project,
+        "select id,coalesce(to_jsonb(p)->>'auth_user_id',id::text) as auth_user_id from public.profiles p",
+    )
+    auth_by_id = {str(p["id"]): p["auth_user_id"] for p in existing}
+    for profile in snapshot["profiles"]:
+        auth_id = str(profile.get("auth_user_id") or profile["id"])
+        if (
+            str(profile["id"]) in auth_by_id
+            and auth_by_id[str(profile["id"])] != auth_id
+        ):
+            raise ValueError("staging profile identity conflicts with the backup")
     profiles = literal(snapshot["profiles"])
+    profile_columns = ["id", "reputation_score", "approved_reports", "helpful_reviews"]
+    profile_columns += [
+        c for c in ("auth_user_id", "legacy_id") if c in writable["profiles"]
+    ]
+    pc = ",".join(profile_columns)
     statements = [
-        "begin; set local clearpath.community_reset='approved';",
-        f"insert into auth.users(id,aud,role,created_at,updated_at) select (r->>'id')::uuid,'authenticated','authenticated',now(),now() from jsonb_array_elements({profiles}) r on conflict(id) do nothing;",
-        f"insert into public.profiles(id,reputation_score,approved_reports,helpful_reviews) select (r->>'id')::uuid,(r->>'reputation_score')::int,(r->>'approved_reports')::int,(r->>'helpful_reviews')::int from jsonb_array_elements({profiles}) r on conflict(id) do update set reputation_score=excluded.reputation_score,approved_reports=excluded.approved_reports,helpful_reviews=excluded.helpful_reviews;",
+        "begin; set local clearpath.community_reset='approved'; set local clearpath.identifier_migration='approved';",
+        f"insert into auth.users(id,aud,role,created_at,updated_at) select coalesce(r->>'auth_user_id',r->>'id')::uuid,'authenticated','authenticated',now(),now() from jsonb_array_elements({profiles}) r on conflict(id) do nothing;",
+        f"insert into public.profiles({pc}) overriding system value select {pc} from jsonb_populate_recordset(null::public.profiles,{profiles}) on conflict(id) do update set reputation_score=excluded.reputation_score,approved_reports=excluded.approved_reports,helpful_reviews=excluded.helpful_reviews;",
     ]
     order = (
         "capture_sessions",
@@ -264,24 +304,30 @@ def restore_staging(
         "report_reviews",
         "report_reactions",
         "report_comments",
-        "community_forecast_feature_snapshots",
         "public_map_events",
         "measurement_requests",
         "measurement_request_recipients",
         "measurement_helper_presence",
-        "measurement_delivery_leases",
         "community_xp_accounts",
         "community_help_claims",
         "community_xp_jobs",
         "community_xp_events",
         "user_notifications",
         "notification_outbox",
+        "measurement_delivery_leases",
         "audit_logs",
     )
     for table in order:
         if snapshot[table]:
+            cols = ",".join(writable[table])
             statements.append(
-                f"insert into public.{table} select * from jsonb_populate_recordset(null::public.{table},{literal(snapshot[table])});"
+                f"insert into public.{table}({cols}) overriding system value select {cols} from jsonb_populate_recordset(null::public.{table},{literal(snapshot[table])});"
+            )
+    for column in columns:
+        table, name = column["table_name"], column["column_name"]
+        if column["is_identity"] == "YES" and table in snapshot:
+            statements.append(
+                f"select setval(pg_get_serial_sequence('public.{table}','{name}'), greatest(coalesce(max({name}),1), coalesce((select last_value from pg_sequences where schemaname='public' and sequencename=split_part(pg_get_serial_sequence('public.{table}','{name}'),'.',2)),1)),true) from public.{table};"
             )
     statements.append("commit;")
     query(project, "\n".join(statements))

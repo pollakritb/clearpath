@@ -65,6 +65,14 @@ for (const p of meta.policies) {
     `create policy ${ident(p.policyname)} on public.${ident(p.tablename)} as ${p.permissive} for ${p.cmd} to ${p.roles.map(ident).join(",")}${p.qual ? " using (" + p.qual + ")" : ""}${p.with_check ? " with check (" + p.with_check + ")" : ""}`,
   );
 }
+const existingRoles = new Set(
+  (await pg.query("select rolname from pg_roles")).rows.map((r) => r.rolname),
+);
+for (const role of new Set(meta.grants.map((g) => g.grantee)))
+  if (!existingRoles.has(role)) {
+    await pg.exec(`create role ${ident(role)}`);
+    existingRoles.add(role);
+  }
 for (const g of meta.grants)
   await pg.exec(
     `grant ${g.privilege_type} on public.${ident(g.table_name)} to ${ident(g.grantee)}`,
@@ -73,6 +81,31 @@ for (const t of meta.table_security ?? [])
   if (t.rls)
     await pg.exec(
       `alter table public.${ident(t.table)} enable row level security`,
+    );
+for (const f of meta.functions)
+  if (f.acl != null) {
+    const match = f.definition.match(/FUNCTION public\.([^\(]+)\((.*?)\)\n/s);
+    const signature = `public.${match[1]}(${match[2].replace(/\s+DEFAULT\s+[^,]+/gi, "")})`;
+    await pg.exec(
+      `revoke all on function ${signature} from public,anon,authenticated,service_role`,
+    );
+    for (const entry of f.acl.slice(1, -1).split(",")) {
+      const a = entry.match(/^([^=]*)=([^/]*)\//);
+      if (!a || !a[2].includes("X")) continue;
+      const role = a[1].replaceAll('"', "");
+      if (role && !existingRoles.has(role)) {
+        await pg.exec(`create role ${ident(role)}`);
+        existingRoles.add(role);
+      }
+      await pg.exec(
+        `grant execute on function ${signature} to ${role ? ident(role) : "public"}${a[2].includes("X*") ? " with grant option" : ""}`,
+      );
+    }
+  }
+for (const t of meta.table_security ?? [])
+  if (t.force)
+    await pg.exec(
+      `alter table public.${ident(t.table)} force row level security`,
     );
 for (const id of meta.auth_user_ids)
   await pg.query("insert into auth.users values($1)", [id]);
@@ -119,7 +152,7 @@ for (const t of meta.triggers) {
     O: "enable",
     A: "enable always",
     R: "enable replica",
-  }[t.enabled];
+  }[t.enabled ?? "O"];
   await pg.exec(
     `alter table public.${ident(t.table)} ${mode} trigger ${ident(name)}`,
   );
