@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
+import { safeGoogleAvatarUrl } from "@/frontend/lib/reporter-profile";
 import AuthControl from "./AuthControl";
 import { useAuth } from "./AuthProvider";
 
@@ -16,6 +17,9 @@ export default function AccountMenu() {
   const [error, setError] = useState("");
   const titleId = useId();
   const metadata = auth.user?.user_metadata;
+  const avatarUrl =
+    safeGoogleAvatarUrl(metadata?.avatar_url) ??
+    safeGoogleAvatarUrl(metadata?.picture);
   const name =
     (typeof metadata?.full_name === "string" && metadata.full_name) ||
     (typeof metadata?.name === "string" && metadata.name) ||
@@ -48,7 +52,11 @@ export default function AccountMenu() {
           setOpen(true);
         }}
       >
-        <AppIcon name="user" size={20} />
+        <AccountAvatar
+          key={`${auth.user?.id}:${avatarUrl}`}
+          url={avatarUrl}
+          compact
+        />
       </button>
       <dialog
         ref={dialogRef}
@@ -78,7 +86,10 @@ export default function AccountMenu() {
           {signedIn ? (
             <div className="cp-account-dialog__identity">
               <span className="cp-account-dialog__avatar" aria-hidden="true">
-                <AppIcon name="user" size={23} />
+                <AccountAvatar
+                  key={`${auth.user?.id}:${avatarUrl}`}
+                  url={avatarUrl}
+                />
               </span>
               <div>
                 <strong>{name}</strong>
@@ -131,5 +142,29 @@ export default function AccountMenu() {
         </div>
       </dialog>
     </>
+  );
+}
+
+function AccountAvatar({
+  url,
+  compact = false,
+}: {
+  url: string | null;
+  compact?: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (!url || failed) return <AppIcon name="user" size={compact ? 20 : 23} />;
+  return (
+    // Google supplies a small remote avatar; load it directly without an image proxy.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt=""
+      width={compact ? 28 : 48}
+      height={compact ? 28 : 48}
+      className="cp-account-avatar-image"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
   );
 }
