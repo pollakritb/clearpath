@@ -162,6 +162,7 @@ class IdentifierClient:
             "report_drafts",
             "community_reports",
             "report_comments",
+            "measurement_requests",
         }:
             return
         rows = data if isinstance(data, list) else [data]
@@ -287,6 +288,7 @@ class IdentifierClient:
                 "report_drafts",
                 "community_reports",
                 "report_comments",
+                "measurement_requests",
             }
             and value.get("id") is not None
         ):

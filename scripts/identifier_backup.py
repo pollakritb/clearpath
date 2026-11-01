@@ -29,7 +29,13 @@ def canonical(value) -> bytes:
 
 
 def capture(
-    project: str, directory: Path, key_path: Path, token: str, *, numeric: bool = False
+    project: str,
+    directory: Path,
+    key_path: Path,
+    token: str,
+    *,
+    numeric: bool = False,
+    include_auth: bool = False,
 ):
     with httpx.Client(
         base_url="https://api.supabase.com",
@@ -50,7 +56,11 @@ def capture(
             raise ValueError(
                 "capture requires the expected schema and global write pause"
             )
-        if numeric and query("select count(*) n from auth.users")[0]["n"]:
+        if (
+            numeric
+            and not include_auth
+            and query("select count(*) n from auth.users")[0]["n"]
+        ):
             raise ValueError(
                 "numeric bootstrap capture requires no Auth users; use a full Auth-aware backup otherwise"
             )
@@ -100,6 +110,20 @@ def capture(
             meta["private_control"] = state
             meta["private_functions"] = query(
                 "select pg_get_functiondef(p.oid) definition from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.prokind='f'"
+            )
+        if include_auth:
+            meta["auth_tables"] = (
+                query("""do $backup$ declare r record; rows jsonb; result jsonb:='{}'; begin
+             for r in select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
+              where n.nspname='auth' and c.relkind='r' order by c.relname loop
+               execute format('select coalesce(jsonb_agg(to_jsonb(t)),''[]''::jsonb) from auth.%I t',r.relname) into rows;
+               result:=result||jsonb_build_object(r.relname,rows);
+             end loop;
+             perform set_config('clearpath.auth_backup',result::text,true);
+            end $backup$;
+            select current_setting('clearpath.auth_backup')::jsonb auth_tables""")[0][
+                    "auth_tables"
+                ]
             )
         keys = query("""select t.relname as table_name,array_agg(a.attname::text order by k.n) as columns
         from pg_constraint c join pg_class t on t.oid=c.conrelid join pg_namespace ns on ns.oid=t.relnamespace
@@ -174,8 +198,12 @@ def capture(
         final = query("select public.identifier_schema_state() as state")[0]["state"]
         if final != state:
             raise ValueError("write pause changed during capture")
-        if numeric and query("select count(*) n from auth.users")[0]["n"]:
-            raise ValueError("Auth state changed during capture")
+        if numeric:
+            final_users = query(
+                "select coalesce(jsonb_agg(id),'[]') ids from auth.users"
+            )[0]["ids"]
+            if sorted(final_users) != sorted(meta["auth_user_ids"]):
+                raise ValueError("Auth users changed during capture")
         manifest["archive_sha256"] = hashlib.sha256(archive.read_bytes()).hexdigest()
         manifest["complete"] = True
         target = directory / "manifest.json"
@@ -274,6 +302,7 @@ def main():
     cap.add_argument("--directory", type=Path, required=True)
     cap.add_argument("--key-path", type=Path, required=True)
     cap.add_argument("--numeric-bootstrap", action="store_true")
+    cap.add_argument("--include-auth", action="store_true")
     un = sub.add_parser("unpack")
     un.add_argument("directory", type=Path)
     un.add_argument("destination", type=Path)
@@ -292,6 +321,7 @@ def main():
             args.key_path,
             token,
             numeric=args.numeric_bootstrap,
+            include_auth=args.include_auth,
         )
 
 
