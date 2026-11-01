@@ -426,3 +426,29 @@ def test_different_simultaneous_requests_only_one_open_slot(env):
         results = list(pool.map(attempt, range(8)))
     assert sum(row is not None for row in results) == 1
     assert len(store.REQUESTS) == 1
+
+
+def test_open_slot_is_per_requester_and_not_a_global_limit(env):
+    owner, helper, other = env
+    first = create(owner)
+    second = create(helper)
+    third = create(other, needed_by=datetime.now(UTC) + timedelta(hours=2))
+    assert len({first["id"], second["id"], third["id"]}) == 3
+    for uid in (owner, helper, other):
+        with pytest.raises(ValueError, match="มีคำขอที่เปิดอยู่แล้ว"):
+            create(uid, radius_km=1)
+    assert len(store.visible(owner)) == 3
+
+
+def test_requester_name_uses_chosen_alias_and_never_returns_account_id(env):
+    owner, helper, _ = env
+    from backend.services.community import xp
+
+    xp.update_settings(owner, dict(alias="ลมเย็น", hidden=False, identity_mode="alias"))
+    req = create(owner)
+    shown = service.view(store.get(req["id"]), helper)
+    assert shown["requester_name"] == "ลมเย็น"
+    assert "user_id" not in shown
+    assert "email" not in shown
+    xp.update_settings(owner, dict(alias="ลมเย็น", hidden=False, identity_mode="google"))
+    assert service.view(store.get(req["id"]), helper)["requester_name"] == "tester"

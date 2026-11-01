@@ -38,6 +38,7 @@ class MeasurementPresenceUpdate(BaseModel):
 
 
 class MeasurementRequestView(BaseModel):
+    requester_name: str | None = None
     help_claim: HelpClaim | None = None
     xp_enabled: bool = False
     id: str

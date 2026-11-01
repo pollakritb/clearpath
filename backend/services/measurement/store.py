@@ -97,9 +97,9 @@ def create(row: dict) -> dict:
                 result = {"row": deepcopy(row)}
     if result.get("error"):
         raise ValueError(
-            "ขอได้ไม่เกิน 3 ครั้งต่อวัน"
+            "บัญชีของคุณขอได้ไม่เกิน 3 ครั้งต่อวัน"
             if result["error"] == "daily_limit"
-            else "มีคำขอที่เปิดอยู่แล้ว กรุณารอให้สำเร็จ ยกเลิก หรือหมดอายุก่อนสร้างใหม่"
+            else "บัญชีของคุณมีคำขอที่เปิดอยู่แล้ว กรุณารอให้สำเร็จ ยกเลิก หรือหมดอายุก่อนสร้างใหม่"
         )
     return result["row"]
 

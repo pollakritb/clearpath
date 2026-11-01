@@ -302,3 +302,25 @@ it("records the claim before navigating into camera reporting", async () => {
     expect(mocks.push).toHaveBeenCalledWith("/report?request=request"),
   );
 });
+
+it("shows the requester and counts down scheduled start in hours", () => {
+  const now = Date.now();
+  const clock = vi.spyOn(Date, "now").mockReturnValue(now);
+  render(
+    <RequestSummary
+      row={{
+        ...row,
+        requester_name: "ลมเย็น",
+        is_owner: false,
+        status: "scheduled",
+        starts_at: new Date(now + 120 * 60000).toISOString(),
+        expires_at: new Date(now + 150 * 60000).toISOString(),
+      }}
+      actions
+    />,
+  );
+  expect(screen.getByText("ผู้ขอ: ลมเย็น")).toBeTruthy();
+  expect(screen.getByText("เริ่มรับรายงานใน 2 ชั่วโมง")).toBeTruthy();
+  expect(screen.queryByText(/เหลือเวลารับรายงาน/)).toBeNull();
+  clock.mockRestore();
+});

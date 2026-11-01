@@ -64,6 +64,10 @@ export default function RequestMapCard({
           <span style={{ color: state.color }}>{state.label}</span>
         </span>
         <h2>{place.title}</h2>
+        <p>
+          ผู้ขอ: {request.requester_name ?? "สมาชิก ClearPath"}
+          {request.is_owner ? " (คุณ)" : ""}
+        </p>
         {place.address && <p>{place.address}</p>}
         {place.title === UNKNOWN_REQUEST_PLACE && (
           <p>

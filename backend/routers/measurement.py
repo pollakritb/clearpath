@@ -52,11 +52,7 @@ def create(body: MeasurementRequestCreate, user: User):
 
 @router.get("", response_model=MeasurementRequestsResponse)
 def listing(user: User):
-    return call(
-        lambda: {
-            "requests": [service.view(row, user.id) for row in store.visible(user.id)]
-        }
-    )
+    return call(lambda: service.listing(user.id))
 
 
 @router.get("/{request_id}", response_model=MeasurementRequestView)

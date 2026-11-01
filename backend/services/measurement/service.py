@@ -37,7 +37,64 @@ def require_enabled():
         raise ConfigurationError("ระบบขอค่าฝุ่นยังไม่เปิดใช้งาน")
 
 
-def view(row: dict, viewer_id: str) -> dict:
+def requester_names(rows: list[dict]) -> dict[str, str]:
+    """Resolve chosen public names once per list; never serialize owner IDs/emails."""
+    ids = list({str(row["user_id"]) for row in rows})
+    if not ids:
+        return {}
+    try:
+        if settings.local_demo_mode:
+            from .. import local_store
+            from ..community import xp
+
+            profiles = [local_store.get_existing_profile(uid) for uid in ids]
+            accounts = (
+                [dict(xp.account(uid), user_id=uid) for uid in ids]
+                if xp.enabled()
+                else []
+            )
+        else:
+            client = db.get_client()
+            profiles = (
+                client.table("profiles")
+                .select("id,display_name")
+                .in_("id", ids)
+                .execute()
+                .data
+                or []
+            )
+            accounts = (
+                client.table("community_xp_accounts")
+                .select("user_id,alias,identity_mode")
+                .in_("user_id", ids)
+                .execute()
+                .data
+                or []
+            )
+        preferences = {str(account["user_id"]): account for account in accounts}
+        names = {}
+        for profile in profiles:
+            uid = str(profile["id"])
+            preference = preferences.get(uid, {})
+            names[uid] = (
+                preference.get("alias")
+                if preference.get("identity_mode") == "alias"
+                else profile.get("display_name")
+            ) or "สมาชิก ClearPath"
+        return names
+    except Exception:
+        # An unavailable privacy preference must not expose a Google name.
+        logger.warning("measurement_requester_names_unavailable")
+        return {}
+
+
+def listing(user_id: str) -> dict:
+    rows = store.visible(user_id)
+    names = requester_names(rows)
+    return {"requests": [view(row, user_id, names=names) for row in rows]}
+
+
+def view(row: dict, viewer_id: str, *, names: dict[str, str] | None = None) -> dict:
     owner = row["user_id"] == viewer_id
     invitation = store.recipient(row["id"], viewer_id)
     from ..community import xp
@@ -69,6 +126,9 @@ def view(row: dict, viewer_id: str) -> dict:
             "status",
         )
     } | {
+        "requester_name": (names if names is not None else requester_names([row])).get(
+            str(row["user_id"]), "สมาชิก ClearPath"
+        ),
         "help_claim": claim,
         "xp_enabled": xp.enabled(),
         "is_owner": owner,

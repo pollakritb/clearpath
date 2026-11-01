@@ -7,6 +7,7 @@ import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import { formatRequestDuration } from "@/frontend/lib/request-time";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { announceRequestUpdate } from "@/frontend/lib/measurement-events";
 import {
@@ -76,6 +77,10 @@ export function RequestSummary({
         <small>{row.is_owner ? "คำขอของฉัน" : "คำขอให้ช่วยวัด"}</small>
       </div>
       <h2>{place.title}</h2>
+      <p>
+        ผู้ขอ: {row.requester_name ?? "สมาชิก ClearPath"}
+        {row.is_owner ? " (คุณ)" : ""}
+      </p>
       {place.address && <p>{place.address}</p>}
       {place.title === UNKNOWN_REQUEST_PLACE && (
         <p>
@@ -99,9 +104,11 @@ export function RequestSummary({
       )}
       {active && (
         <p>
-          {minutesLeft > 0
-            ? `เหลือเวลารับรายงาน ${minutesLeft} นาที`
-            : "หมดเวลารับรายงานแล้ว กำลังสรุปผล"}
+          {Date.parse(row.starts_at) > now
+            ? `เริ่มรับรายงานใน ${formatRequestDuration((Date.parse(row.starts_at) - now) / 60000)}`
+            : minutesLeft > 0
+              ? `เหลือเวลารับรายงาน ${formatRequestDuration(minutesLeft)}`
+              : "หมดเวลารับรายงานแล้ว กำลังสรุปผล"}
         </p>
       )}
       {row.is_owner && active && (

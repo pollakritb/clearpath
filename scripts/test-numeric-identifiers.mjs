@@ -489,4 +489,23 @@ assert.equal(
 console.log(
   "Identity migration: existing aliases preserved, new Google default, anonymous reports not backfilled passed.",
 );
+// Simultaneous open requests belong to different accounts, never a global slot.
+const independentOwner = (
+  await pg.query("select id from profiles where auth_user_id=$1", [uid(900)])
+).rows[0].id;
+assert((await makeRequest(requestRow(920, independentOwner))).row);
+assert.equal(
+  (await makeRequest(requestRow(922, independentOwner))).error,
+  "active_limit",
+);
+assert(
+  (
+    await pg.query(
+      "select count(distinct user_id) n from measurement_requests where status in ('active','scheduled') and expires_at>now()",
+    )
+  ).rows[0].n >= 3,
+);
+console.log(
+  "Per-account active slots: multiple requesters coexist and only their own second request is blocked.",
+);
 await pg.close();

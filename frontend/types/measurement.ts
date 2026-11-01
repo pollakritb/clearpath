@@ -24,6 +24,7 @@ export interface MeasurementPresenceUpdate {
   observed_at: string;
 }
 export interface MeasurementRequestView {
+  requester_name: string | null;
   help_claim?: HelpClaim | null;
   xp_enabled?: boolean;
   id: string;

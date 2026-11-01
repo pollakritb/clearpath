@@ -181,17 +181,19 @@ export default function CreateRequest({
             · ใช้เวลาไทย
           </p>
           <p>
-            เปิดได้ครั้งละ 1 คำขอ เมื่อสำเร็จ ยกเลิก หรือหมดอายุแล้วสร้างใหม่ได้
+            แต่ละบัญชีเปิดได้ครั้งละ 1 คำขอ สูงสุด 3 ครั้งต่อวัน เมื่อสำเร็จ
+            ยกเลิก หรือหมดอายุแล้วสร้างใหม่ได้ภายในโควตาวันนี้
           </p>
           <details className="cp-request-form-help">
             <summary>รายละเอียดการส่งคำขอ</summary>
             <small>
               ผู้ใช้ที่เข้าสู่ระบบเห็นคำขอที่เปิดอยู่ได้
               และแจ้งผู้ที่ยินยอมช่วยวัดใกล้พื้นที่
-              ไม่มีการรับประกันว่าจะมีผู้ตอบ
-              ไม่เปิดเผยชื่อหรือแผนการเดินทางของคุณ
+              ไม่มีการรับประกันว่าจะมีผู้ตอบ แสดงชื่อ Google
+              หรือชื่อเล่นตามที่เลือกในโปรไฟล์ชุมชน
             </small>
           </details>
+          {error && <p role="alert">{error}</p>}
           <button
             type="button"
             className="cp-measure-primary"
@@ -206,7 +208,6 @@ export default function CreateRequest({
           </button>
         </div>
       )}
-      {error && <p role="alert">{error}</p>}
     </div>
   );
 }
