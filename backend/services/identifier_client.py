@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from threading import RLock
+from time import monotonic
 
 from ..core.identifiers import PREFIXES, UUID_ENTITIES, code, legacy_uuid, number
 
@@ -137,17 +138,62 @@ class IdentifierClient:
     def __init__(self, raw):
         self.raw = raw
         self._numeric = False
+        self._version = 1
+        self._checked_at = 0.0
         self._aliases = {}
         self._lock = RLock()
 
     def __getattr__(self, name):
         return getattr(self.raw, name)
 
-    def numeric(self) -> bool:
-        if not self._numeric:
+    def numeric(self, *, force: bool = False) -> bool:
+        if force or not self._numeric or monotonic() - self._checked_at > 5:
             state = self.raw.rpc("identifier_schema_state", {}).execute().data
-            self._numeric = int(state["version"]) >= 2
+            self._version = int(state["version"])
+            self._numeric = self._version >= 2
+            self._checked_at = monotonic()
         return self._numeric
+
+    def prime_private_aliases(self, table: str | None, data):
+        """Fetch privacy/retry metadata in a batch, without public UUID columns."""
+        if table not in {
+            "profiles",
+            "capture_sessions",
+            "report_drafts",
+            "community_reports",
+            "report_comments",
+        }:
+            return
+        rows = data if isinstance(data, list) else [data]
+        rows = [r.get("row", r) for r in rows if isinstance(r, dict)]
+        values = list(
+            {
+                str(r["id"])
+                for r in rows
+                if r.get("id") is not None
+                and (table, str(r["id"])) not in self._aliases
+            }
+        )
+        for start in range(0, len(values), 500):
+            aliases = (
+                self.raw.rpc(
+                    "identifier_resolve_many",
+                    {"p_entity": table, "p_values": values[start : start + 500]},
+                )
+                .execute()
+                .data
+                or []
+            )
+            with self._lock:
+                for row in aliases:
+                    for alias in (
+                        str(row["numeric_id"]),
+                        row["legacy_id"],
+                        row["code"],
+                    ):
+                        if len(self._aliases) >= 8192:
+                            self._aliases.clear()
+                        self._aliases[(table, alias)] = row
 
     def resolve(self, entity: str, value):
         if value is None:
@@ -232,6 +278,23 @@ class IdentifierClient:
         if not isinstance(value, dict):
             return value
         result = dict(value)
+        if (
+            self._version >= 3
+            and table
+            in {
+                "profiles",
+                "capture_sessions",
+                "report_drafts",
+                "community_reports",
+                "report_comments",
+            }
+            and value.get("id") is not None
+        ):
+            alias = self._aliases.get((table, str(value["id"])))
+            if alias:
+                # Backend-only decoration. Public response models/presenters do
+                # not serialize this compatibility metadata.
+                result["legacy_id"] = alias["legacy_id"]
         for field, item in value.items():
             entity = self.field_entity(table, field)
             if entity and item is not None:
@@ -289,6 +352,8 @@ class IdentifierQuery:
 
     def execute(self):
         numeric = self.client.numeric()
+        version = self.client._version
+        clean = version >= 3
         table = self.table_name or RPC_RESULTS.get(self.rpc_name)
         if self.rpc_name:
             params = deepcopy(self.params)
@@ -329,10 +394,32 @@ class IdentifierQuery:
                     if isinstance(rows, list)
                     else encode(rows)
                 )
+                encoded_rows = args[0] if isinstance(args[0], list) else [args[0]]
+                if (
+                    clean
+                    and name in {"insert", "upsert"}
+                    and any(r.get("legacy_id") for r in encoded_rows)
+                ):
+                    query = self.client.raw.rpc(
+                        "identifier_insert",
+                        {
+                            "p_table": table,
+                            "p_rows": [
+                                {k: v for k, v in r.items() if k != "legacy_id"}
+                                for r in encoded_rows
+                            ],
+                            "p_keys": [r.get("legacy_id") for r in encoded_rows],
+                            "p_conflict": kwargs.get("on_conflict") or "id",
+                            "p_upsert": name == "upsert",
+                            "p_ignore": kwargs.get("ignore_duplicates", False),
+                        },
+                    )
+                    continue
                 conflict = kwargs.get("on_conflict", "")
                 # Existing UUID creation keys continue making retries idempotent.
                 if (
-                    table in UUID_ENTITIES
+                    not clean
+                    and table in UUID_ENTITIES
                     and "id" in conflict.split(",")
                     and (
                         (isinstance(rows, dict) and legacy_uuid(rows.get("id")))
@@ -350,7 +437,17 @@ class IdentifierQuery:
                 entity = self.client.field_entity(table, args[0])
                 if entity:
                     if name != "in_" and legacy_uuid(args[1]):
-                        args[0] = "legacy_" + args[0]
+                        if clean:
+                            try:
+                                args[1] = self.client.resolve(entity, args[1])
+                            except ValueError as exc:
+                                if str(exc) != "identifier_not_found":
+                                    raise
+                                args[
+                                    1
+                                ] = -1  # Read/update/delete a missing alias matches no positive PK.
+                        else:
+                            args[0] = "legacy_" + args[0]
                     elif name == "in_":
                         args[1] = [self.client.resolve(entity, v) for v in args[1]]
                     else:
@@ -377,11 +474,17 @@ class IdentifierQuery:
         except Exception:
             # An in-flight read may have crossed the atomic schema commit.
             # Never replay a mutation on a transport/database exception.
-            if read_only and not numeric and self.client.numeric():
+            if (
+                read_only
+                and self.client.numeric(force=True)
+                and version != self.client._version
+            ):
                 return self.execute()
             raise
         if read_only and not numeric and self.client.numeric():
             return self.execute()
         if numeric:
+            if clean:
+                self.client.prime_private_aliases(table, response.data)
             response.data = self.client.decode(table, response.data)
         return response

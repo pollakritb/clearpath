@@ -28,7 +28,9 @@ def canonical(value) -> bytes:
     ).encode()
 
 
-def capture(project: str, directory: Path, key_path: Path, token: str):
+def capture(
+    project: str, directory: Path, key_path: Path, token: str, *, numeric: bool = False
+):
     with httpx.Client(
         base_url="https://api.supabase.com",
         headers={"Authorization": f"Bearer {token}"},
@@ -44,8 +46,14 @@ def capture(project: str, directory: Path, key_path: Path, token: str):
             return r.json()
 
         state = query("select public.identifier_schema_state() as state")[0]["state"]
-        if not state["maintenance"] or state["version"] != 1:
-            raise ValueError("capture requires the pre-cutover global write pause")
+        if not state["maintenance"] or state["version"] != (2 if numeric else 1):
+            raise ValueError(
+                "capture requires the expected schema and global write pause"
+            )
+        if numeric and query("select count(*) n from auth.users")[0]["n"]:
+            raise ValueError(
+                "numeric bootstrap capture requires no Auth users; use a full Auth-aware backup otherwise"
+            )
         directory.mkdir(parents=True, mode=0o700, exist_ok=False)
         os.chmod(directory, 0o700)
         key_path.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
@@ -58,7 +66,7 @@ def capture(project: str, directory: Path, key_path: Path, token: str):
         manifest = {
             "project": project,
             "captured_at": datetime.now(UTC).isoformat(),
-            "version": 1,
+            "version": state["version"],
             "tables": {},
             "objects": [],
             "key_path": str(key_path),
@@ -74,11 +82,25 @@ def capture(project: str, directory: Path, key_path: Path, token: str):
          'sequences',(select jsonb_agg(to_jsonb(s)) from pg_sequences s where schemaname='public'),
          'triggers',(select jsonb_agg(jsonb_build_object('table',c.relname,'definition',pg_get_triggerdef(t.oid),'enabled',t.tgenabled)) from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and not t.tgisinternal),
          'auth_user_ids',(select coalesce(jsonb_agg(id),'[]') from auth.users),
-         'migration_history',(select jsonb_agg(to_jsonb(m)) from supabase_migrations.schema_migrations m),
+         'migration_history','[]'::jsonb,
          'storage_objects',(select coalesce(jsonb_agg(to_jsonb(o)),'[]') from storage.objects o),
          'storage_buckets',(select coalesce(jsonb_agg(to_jsonb(b)),'[]') from storage.buckets b),
          'cron_jobs',(select coalesce(jsonb_agg(to_jsonb(j)),'[]') from cron.job j)
         ) as metadata""")[0]["metadata"]
+        if query(
+            "select to_regclass('supabase_migrations.schema_migrations') is not null present"
+        )[0]["present"]:
+            meta["migration_history"] = query(
+                "select coalesce(jsonb_agg(to_jsonb(m)),'[]') history from supabase_migrations.schema_migrations m"
+            )[0]["history"]
+        if numeric:
+            meta["private_aliases"] = query(
+                "select coalesce(jsonb_agg(to_jsonb(a) order by entity,numeric_id),'[]') aliases from private.identifier_aliases a"
+            )[0]["aliases"]
+            meta["private_control"] = state
+            meta["private_functions"] = query(
+                "select pg_get_functiondef(p.oid) definition from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.prokind='f'"
+            )
         keys = query("""select t.relname as table_name,array_agg(a.attname::text order by k.n) as columns
         from pg_constraint c join pg_class t on t.oid=c.conrelid join pg_namespace ns on ns.oid=t.relnamespace
         cross join lateral unnest(c.conkey) with ordinality k(attnum,n)
@@ -123,7 +145,7 @@ def capture(project: str, directory: Path, key_path: Path, token: str):
                 }
                 print(json.dumps({"backed_up": table, "rows": total}), flush=True)
         # Download object bodies using a server-only key, never persisting/logging it.
-        r = api.get(f"/v1/projects/{project}/api-keys")
+        r = api.get(f"/v1/projects/{project}/api-keys", params={"reveal": "true"})
         r.raise_for_status()
         service = next(k["api_key"] for k in r.json() if k["name"] == "service_role")
         with httpx.Client(
@@ -152,6 +174,8 @@ def capture(project: str, directory: Path, key_path: Path, token: str):
         final = query("select public.identifier_schema_state() as state")[0]["state"]
         if final != state:
             raise ValueError("write pause changed during capture")
+        if numeric and query("select count(*) n from auth.users")[0]["n"]:
+            raise ValueError("Auth state changed during capture")
         manifest["archive_sha256"] = hashlib.sha256(archive.read_bytes()).hexdigest()
         manifest["complete"] = True
         target = directory / "manifest.json"
@@ -249,6 +273,7 @@ def main():
     cap.add_argument("--project-ref", default=PROJECT)
     cap.add_argument("--directory", type=Path, required=True)
     cap.add_argument("--key-path", type=Path, required=True)
+    cap.add_argument("--numeric-bootstrap", action="store_true")
     un = sub.add_parser("unpack")
     un.add_argument("directory", type=Path)
     un.add_argument("destination", type=Path)
@@ -261,7 +286,13 @@ def main():
         ).get("SUPABASE_ACCESS_TOKEN")
         if not token:
             parser.error("SUPABASE_ACCESS_TOKEN is required")
-        capture(args.project_ref, args.directory, args.key_path, token)
+        capture(
+            args.project_ref,
+            args.directory,
+            args.key_path,
+            token,
+            numeric=args.numeric_bootstrap,
+        )
 
 
 if __name__ == "__main__":

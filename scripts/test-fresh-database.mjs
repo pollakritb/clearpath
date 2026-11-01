@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 const root = resolve(process.argv[2] ?? "");
 assert(process.argv[2] && !root.startsWith(resolve(".") + "/"));
 const pg = new PGlite();
+const clean = process.argv.includes("--clean");
 await pg.exec(
   readFileSync("backend/tests/fixtures/identifiers_baseline.sql", "utf8")
     .split("\n")
@@ -55,8 +56,30 @@ for (const [table, detail] of Object.entries(manifest.tables)) {
   ).rows[0];
 }
 await pg.exec(readFileSync(join(root, "sequences.sql"), "utf8") + "commit;");
-writeFileSync(join(root, "verification-digests.json"), JSON.stringify(digests));
-chmodSync(join(root, "verification-digests.json"), 0o600);
+if (!clean)
+  writeFileSync(
+    join(root, "verification-digests.json"),
+    JSON.stringify(digests),
+  );
+if (!clean) chmodSync(join(root, "verification-digests.json"), 0o600);
+if (clean) {
+  await pg.exec(
+    "begin;" +
+      readFileSync(
+        "supabase/migrations/20261101043458_private_identifier_aliases.sql",
+        "utf8",
+      ) +
+      "commit;",
+  );
+  assert.equal(
+    (
+      await pg.query(
+        "select count(*) n from information_schema.columns where table_schema='public' and left(column_name,7)='legacy_' ",
+      )
+    ).rows[0].n,
+    0,
+  );
+}
 await pg.exec(
   readFileSync("supabase/bootstrap/recent_history_retention.sql", "utf8"),
 );
@@ -68,7 +91,9 @@ await pg.exec("update private.identifier_control set maintenance=false;");
 // A fresh write receives a DB-allocated code and the seeded sequence never resets.
 const n = (
   await pg.query(
-    "insert into sync_runs(legacy_id,source,status) values(gen_random_uuid(),'fresh_seed_smoke','success') returning id,code",
+    clean
+      ? "insert into sync_runs(source,status) values('fresh_seed_smoke','success') returning id,code"
+      : "insert into sync_runs(legacy_id,source,status) values(gen_random_uuid(),'fresh_seed_smoke','success') returning id,code",
   )
 ).rows[0];
 assert(n.id > manifest.tables.sync_runs.rows);
@@ -78,7 +103,9 @@ await pg.exec(
 );
 const users = (
   await pg.query(
-    "insert into profiles(legacy_id,auth_user_id,display_name) select id,id,'Local test user' from auth.users returning id,code",
+    clean
+      ? "insert into profiles(auth_user_id,display_name) select id,'Local test user' from auth.users returning id,code"
+      : "insert into profiles(legacy_id,auth_user_id,display_name) select id,id,'Local test user' from auth.users returning id,code",
   )
 ).rows;
 assert.equal(users.length, 2);
@@ -117,4 +144,18 @@ assert.equal(
 console.log(
   "Passed: exact seed values, FK enforcement, fresh generated IDs, sequence continuity, user isolation, retention limits, active CAMS protection.",
 );
+if (clean) {
+  await pg.exec(
+    readFileSync("backend/tests/fixtures/clean_identifiers_checks.sql", "utf8"),
+  );
+  await pg.exec("set role anon;");
+  await assert.rejects(
+    pg.query("select identifier_insert('sync_runs','[]','[]')"),
+    /permission denied/,
+  );
+  await pg.exec("reset role;");
+  console.log(
+    "Clean schema: retry resurrection, moderation deduplication, request/notification atomic RPCs and service-only permissions passed.",
+  );
+}
 await pg.close();

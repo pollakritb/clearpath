@@ -329,3 +329,67 @@ def test_inflight_read_crossing_cutover_is_rebuilt_with_numeric_filters():
     )
     assert data[0]["id"] == "RPT-000001"
     assert ("eq", ("legacy_id", old), {}) in raw.calls
+
+
+class CleanRaw(Raw):
+    def __init__(self, data=None):
+        super().__init__(data, version=3)
+
+    def rpc(self, name, params=None):
+        if name == "identifier_resolve_many":
+            self.calls.append((name, params))
+            unique = {}
+            for (entity, _), alias in self.aliases.items():
+                if (
+                    entity == params["p_entity"]
+                    and str(alias["numeric_id"]) in params["p_values"]
+                ):
+                    unique[alias["numeric_id"]] = alias
+            return Query(self, list(unique.values()))
+        return super().rpc(name, params)
+
+
+def test_clean_schema_creations_use_atomic_private_alias_rpc():
+    retry = str(uuid4())
+    raw = CleanRaw([{"id": 41, "source": "test"}])
+    result = (
+        IdentifierClient(raw)
+        .table("sync_runs")
+        .upsert({"id": retry, "source": "test", "status": "success"}, on_conflict="id")
+        .execute()
+        .data
+    )
+    assert result[0]["id"] == "SYN-000041"
+    call = next(c for c in raw.calls if c[0] == "identifier_insert")[1]
+    assert call["p_rows"] == [{"source": "test", "status": "success"}]
+    assert call["p_keys"] == [retry]
+    assert call["p_conflict"] == "id"
+    assert call["p_upsert"] is True
+    assert not any(c[0] in {"insert", "upsert"} for c in raw.calls)
+
+
+def test_clean_schema_unknown_uuid_matches_no_public_numeric_key():
+    raw = CleanRaw([])
+    IdentifierClient(raw).table("profiles").select("*").eq("id", str(uuid4())).execute()
+    assert ("eq", ("id", -1), {}) in raw.calls
+    assert not any(c[0] == "eq" and c[1][0].startswith("legacy_") for c in raw.calls)
+
+
+def test_clean_schema_uses_private_batch_mapping_for_stable_privacy_seed():
+    report_key = str(uuid4())
+    raw = CleanRaw([{"id": 42, "user_id": 7}, {"id": 43, "user_id": 7}])
+    for n in (42, 43):
+        alias = {
+            "numeric_id": n,
+            "code": f"RPT-{n:06d}",
+            "legacy_id": report_key if n == 42 else str(uuid4()),
+        }
+        raw.aliases[("community_reports", str(n))] = alias
+    client = IdentifierClient(raw)
+    result = client.table("community_reports").select("*").execute().data
+    assert result[0]["id"] == "RPT-000042"
+    assert result[0]["legacy_id"] == report_key
+    assert client.identity("community_reports", report_key)["numeric_id"] == 42
+    assert len([c for c in raw.calls if c[0] == "identifier_resolve_many"]) == 1
+    client.table("community_reports").select("*").execute()
+    assert len([c for c in raw.calls if c[0] == "identifier_resolve_many"]) == 1
