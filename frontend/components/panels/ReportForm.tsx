@@ -8,7 +8,6 @@ import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { T } from "@/frontend/lib/ui";
 import type { ReportLocation } from "@/frontend/types/ui";
 import type {
@@ -312,42 +311,28 @@ export default function ReportForm({
       className="cp-report-flow"
       data-step={activeStep}
     >
-      <div className="cp-report-intro">
-        <span className="cp-report-intro__eyebrow">
-          <AppIcon name="camera" size={16} />
-          ใช้เวลาประมาณ 2 นาที
-        </span>
-        <h2>
-          {draft
-            ? "ตรวจข้อมูลก่อนส่ง"
-            : evidence
-              ? "กำลังอ่านข้อมูลอัตโนมัติ"
-              : "เพิ่มภาพเครื่องวัด"}
-        </h2>
-        <p>
-          {draft
-            ? "ตรวจข้อมูลที่ระบบอ่านได้แล้วกดส่งรายงาน"
-            : evidence
-              ? "เปิด GPS เพื่อบันทึกตำแหน่งขณะส่ง แยกจากตำแหน่งที่วัด"
-              : "เตรียมเครื่องวัดให้นิ่งและให้ตัวเลขอยู่กลางภาพ"}
-        </p>
-      </div>
-      <details className="cp-report-source-help">
-        <summary className="cp-focus">
-          <SourceBadge kind="individual" />
-          <span>รายงานนี้จะแสดงบนแผนที่อย่างไร</span>
-          <AppIcon name="chevron" size={17} />
-        </summary>
-        <div
-          className="cp-report-source-guide"
-          aria-label="ประเภทข้อมูลที่จะเผยแพร่"
-        >
-          <div data-source="individual">
-            <SourceBadge kind="individual" />
-            <small>ข้อมูลจากหน้านี้เผยแพร่เป็นรายงานของบุคคลเสมอ</small>
-          </div>
+      {(evidence || draft) && (
+        <div className="cp-report-intro">
+          <span className="cp-report-intro__eyebrow">
+            <AppIcon name="camera" size={16} />
+            ใช้เวลาประมาณ 2 นาที
+          </span>
+          <h2>
+            {draft
+              ? "ตรวจข้อมูลก่อนส่ง"
+              : evidence
+                ? "กำลังอ่านข้อมูลอัตโนมัติ"
+                : "เพิ่มภาพเครื่องวัด"}
+          </h2>
+          <p>
+            {draft
+              ? "ตรวจข้อมูลที่ระบบอ่านได้แล้วกดส่งรายงาน"
+              : evidence
+                ? "เปิด GPS เพื่อบันทึกตำแหน่งขณะส่ง แยกจากตำแหน่งที่วัด"
+                : "เตรียมเครื่องวัดให้นิ่งและให้ตัวเลขอยู่กลางภาพ"}
+          </p>
         </div>
-      </details>
+      )}
       <ol className="cp-report-progress" aria-label="ขั้นตอนส่งข้อมูล">
         <li data-complete={Boolean(evidence)}>
           <b>
@@ -359,7 +344,7 @@ export default function ReportForm({
           <b>
             <AppIcon name="location" size={17} />
           </b>
-          <span>อ่านข้อมูลอัตโนมัติ</span>
+          <span>อ่านข้อมูล</span>
         </li>
         <li data-complete={Boolean(draft)}>
           <b>
@@ -372,7 +357,7 @@ export default function ReportForm({
         <aside className="cp-auth-redirect" aria-label="ต้องเข้าสู่ระบบ">
           <span>
             <strong>เข้าสู่ระบบก่อนส่งข้อมูล</strong>
-            <small>จัดการบัญชี Google ได้จากหน้าการตั้งค่าเพียงจุดเดียว</small>
+            <small>ใช้บัญชี Google เพื่อบันทึกและติดตามรายงานของคุณ</small>
           </span>
           <button
             type="button"
@@ -568,16 +553,6 @@ export default function ReportForm({
           {error}
         </p>
       )}
-      <details className="cp-privacy-note">
-        <summary>ข้อมูลของฉันถูกเก็บอย่างไร</summary>
-        <p>
-          ระบบเก็บภาพต้นฉบับ ข้อมูลเวลาและไฟล์ ตำแหน่งที่วัด และ GPS
-          ขณะส่งไว้เป็นหลักฐานส่วนตัวสำหรับผู้ดูแล ตำแหน่งสาธารณะจะเลื่อนประมาณ
-          120–250 เมตรเพื่อปกป้องความเป็นส่วนตัว
-          ภาพของรายงานที่ผ่านจะแสดงผ่านลิงก์ชั่วคราว
-          โดยลบข้อมูลเวลาและพิกัดที่ฝังอยู่ในไฟล์ออกก่อน
-        </p>
-      </details>
     </section>
   );
 }

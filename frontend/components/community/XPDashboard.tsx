@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
+import { useAccountData } from "@/frontend/hooks/useAccountData";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type {
   XPEventsResponse,
@@ -19,59 +21,57 @@ const PERIODS: [Period, string][] = [
 export default function XPDashboard({
   signedIn = true,
   section = "all",
+  active = true,
 }: {
   signedIn?: boolean;
+  active?: boolean;
   section?: "all" | "overview" | "leaderboard";
 }) {
   const showProfile = section !== "leaderboard";
   const showBoard = section !== "overview";
   const [period, setPeriod] = useState<Period>("all");
-  const [summary, setSummary] = useState<XPSummary | null>(null);
-  const [profileLoaded, setProfileLoaded] = useState(false);
-  const [board, setBoard] = useState<XPLeaderboard | null>(null);
-  const [events, setEvents] = useState<XPEventsResponse | null>(null);
-  const [alias, setAlias] = useState("");
-  const [hidden, setHidden] = useState(false);
+  const currentUserId = useCurrentUserId();
+  const owner = signedIn ? currentUserId : "guest";
+  const summaryQuery = useAccountData<XPSummary | null>(
+    owner,
+    "xp-summary",
+    api.xpSummary,
+    active && signedIn && showProfile,
+  );
+  const eventsLoader = useCallback(() => api.xpEvents(), []);
+  const eventsQuery = useAccountData<XPEventsResponse>(
+    owner,
+    "xp-events",
+    eventsLoader,
+    active && signedIn && showProfile,
+  );
+  const boardLoader = useCallback(
+    () => (signedIn ? api.myLeaderboard(period) : api.leaderboard(period)),
+    [signedIn, period],
+  );
+  const boardQuery = useAccountData<XPLeaderboard>(
+    owner,
+    `xp-board:${period}`,
+    boardLoader,
+    active && showBoard,
+  );
+  const summary = summaryQuery.data;
+  const profileLoaded = summary !== undefined;
+  const board = boardQuery.data;
+  const events = eventsQuery.data;
+  const setSummary = summaryQuery.setData;
+  const setBoard = boardQuery.setData;
+  const setEvents = eventsQuery.setData;
+  const [draftSettings, setDraftSettings] = useState<{
+    alias: string;
+    hidden: boolean;
+  } | null>(null);
+  const alias = draftSettings?.alias ?? summary?.alias ?? "";
+  const hidden = draftSettings?.hidden ?? summary?.hidden ?? false;
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [notice, setNotice] = useState("");
-  useEffect(() => {
-    if (!signedIn || !showProfile) return;
-    let cancelled = false;
-    void Promise.all([api.xpSummary(), api.xpEvents()])
-      .then(([s, e]) => {
-        if (cancelled) return;
-        setSummary(s);
-        setProfileLoaded(true);
-        setEvents(e);
-        setAlias(s?.alias ?? "");
-        setHidden(s?.hidden ?? false);
-      })
-      .catch((e) => {
-        if (!cancelled) setError(apiErrorMessage(e, "โหลดคะแนนไม่สำเร็จ"));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [signedIn, showProfile]);
-  useEffect(() => {
-    if (!showBoard) return;
-    let cancelled = false;
-    void (signedIn ? api.myLeaderboard(period) : api.leaderboard(period))
-      .then((result) => {
-        if (!cancelled) {
-          setBoard(result);
-          setError("");
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) setError(apiErrorMessage(e, "โหลดอันดับไม่สำเร็จ"));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [period, signedIn, showBoard]);
   const validAlias =
     alias.trim().length >= 3 &&
     alias.trim().length <= 40 &&
@@ -84,7 +84,7 @@ export default function XPDashboard({
     try {
       const s = await api.xpSettings({ alias, hidden });
       setSummary(s);
-      setAlias(s.alias);
+      setDraftSettings(null);
       const refreshed = await api.myLeaderboard(period);
       setBoard((previous) =>
         previous?.period === refreshed.period ? refreshed : previous,
@@ -118,11 +118,15 @@ export default function XPDashboard({
   }
   return (
     <div className="cp-xp">
-      {showProfile && signedIn && !profileLoaded && !error && (
-        <p className="cp-xp-note" role="status">
-          กำลังโหลดผลงาน…
-        </p>
-      )}
+      {showProfile &&
+        signedIn &&
+        !profileLoaded &&
+        !error &&
+        !summaryQuery.error && (
+          <p className="cp-xp-note" role="status">
+            กำลังโหลดผลงาน…
+          </p>
+        )}
       {showProfile && signedIn && profileLoaded && !summary && (
         <p className="cp-xp-note" role="status">
           ระบบคะแนนกำลังเตรียมเปิดใช้ คุณยังรายงานค่าฝุ่นได้ตามปกติ
@@ -186,7 +190,9 @@ export default function XPDashboard({
                 maxLength={40}
                 minLength={3}
                 value={alias}
-                onChange={(e) => setAlias(e.target.value)}
+                onChange={(e) =>
+                  setDraftSettings({ alias: e.target.value, hidden })
+                }
                 autoComplete="nickname"
                 aria-describedby="xp-alias-help"
                 aria-invalid={!validAlias}
@@ -199,7 +205,9 @@ export default function XPDashboard({
               <input
                 type="checkbox"
                 checked={hidden}
-                onChange={(e) => setHidden(e.target.checked)}
+                onChange={(e) =>
+                  setDraftSettings({ alias, hidden: e.target.checked })
+                }
               />
               ซ่อนฉันจากตารางอันดับ
             </label>
@@ -239,7 +247,16 @@ export default function XPDashboard({
             ))}
           </div>
           {board?.period !== period ? (
-            <p role="status">กำลังโหลดอันดับ…</p>
+            boardQuery.error ? (
+              <div role="alert">
+                <p>โหลดอันดับไม่สำเร็จ</p>
+                <button type="button" onClick={() => boardQuery.refresh()}>
+                  ลองใหม่
+                </button>
+              </div>
+            ) : (
+              <p role="status">กำลังโหลดอันดับ…</p>
+            )
           ) : (
             <>
               {signedIn && (
@@ -368,6 +385,22 @@ export default function XPDashboard({
         </details>
       )}
 
+      {summaryQuery.error && showProfile && (
+        <div role="alert">
+          <p>โหลดคะแนนไม่สำเร็จ</p>
+          <button type="button" onClick={() => summaryQuery.refresh()}>
+            ลองใหม่
+          </button>
+        </div>
+      )}
+      {eventsQuery.error && showProfile && (
+        <div role="alert">
+          <p>โหลดประวัติคะแนนไม่สำเร็จ</p>
+          <button type="button" onClick={() => eventsQuery.refresh()}>
+            ลองใหม่
+          </button>
+        </div>
+      )}
       {notice && <p role="status">{notice}</p>}
       {error && <p role="alert">{error}</p>}
     </div>

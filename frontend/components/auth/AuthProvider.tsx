@@ -11,6 +11,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import { clearAccountData } from "@/frontend/lib/account-data-cache";
 import { authenticatedFetch } from "@/frontend/lib/auth-request";
 import { getSupabaseBrowserClient } from "@/frontend/lib/supabase";
 
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let lastUserId: string | null = null;
     const applySession = (session: Session | null) => {
       if (!active) return;
+      if (lastUserId !== (session?.user.id ?? null)) clearAccountData();
       setUser(session?.user ?? null);
       lastUserId = session?.user.id ?? null;
       const token = session?.access_token ?? null;
@@ -133,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (client) await client.auth.signOut();
+    clearAccountData();
   }, [client]);
 
   const value = useMemo<AuthState>(

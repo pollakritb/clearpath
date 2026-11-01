@@ -1,118 +1,103 @@
 "use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-import { useAuth } from "@/frontend/components/auth/AuthProvider";
+import { useState } from "react";
+import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
+import { useAccountData } from "@/frontend/hooks/useAccountData";
 import { api } from "@/frontend/lib/api-client";
-import { T } from "@/frontend/lib/ui";
-import type { UserNotification } from "@/frontend/types";
-
+import type { NotificationsResponse } from "@/frontend/types";
 export default function NotificationInbox() {
-  const auth = useAuth();
-  const [items, setItems] = useState<UserNotification[]>([]);
-
-  useEffect(() => {
-    if (!auth.user && !auth.localDemo) return;
-    let cancelled = false;
-    const load = () => {
-      if (document.visibilityState === "hidden") return;
-      void api
-        .notifications()
-        .then((result) => {
-          if (!cancelled) setItems(result.notifications);
-        })
-        .catch(() => undefined);
-    };
-    load();
-    const timer = window.setInterval(load, 5 * 60_000);
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") load();
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
-  }, [auth.user, auth.localDemo]);
-
-  if (!auth.user && !auth.localDemo) return null;
-  if (items.length === 0) {
-    return (
-      <section className="cp-notification-empty" aria-label="กล่องแจ้งเตือน">
-        <strong>ยังไม่มีการแจ้งเตือนใหม่</strong>
-        <span>เหตุสำคัญในพื้นที่และสถานะรายงานจะแสดงที่นี่</span>
-      </section>
-    );
-  }
+  const owner = useCurrentUserId();
+  const query = useAccountData<NotificationsResponse>(
+    owner,
+    "notifications",
+    api.notifications,
+  );
+  const [error, setError] = useState("");
+  const items = query.data?.notifications ?? [];
   const unread = items.filter((item) => !item.read_at).length;
-  return (
-    <section style={{ borderTop: `1px solid ${T.line}`, paddingTop: ".9em" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: ".95em" }}>
-          กล่องแจ้งเตือน {unread ? `(${unread})` : ""}
-        </h2>
-        {unread > 0 && (
-          <button
-            type="button"
-            className="cp-focus"
-            onClick={() =>
-              void api.markAllNotificationsRead().then(() =>
-                setItems((current) =>
-                  current.map((item) => ({
-                    ...item,
-                    read_at: item.read_at ?? new Date().toISOString(),
-                  })),
+  const read = (id?: string) => {
+    setError("");
+    void (id ? api.markNotificationRead(id) : api.markAllNotificationsRead())
+      .then(() =>
+        query.setData((previous) =>
+          previous
+            ? {
+                ...previous,
+                unread_count: id ? Math.max(0, previous.unread_count - 1) : 0,
+                notifications: previous.notifications.map((item) =>
+                  !id || item.id === id
+                    ? {
+                        ...item,
+                        read_at: item.read_at ?? new Date().toISOString(),
+                      }
+                    : item,
                 ),
-              )
-            }
-          >
+              }
+            : previous,
+        ),
+      )
+      .catch(() => setError("บันทึกสถานะการอ่านไม่สำเร็จ กรุณาลองอีกครั้ง"));
+  };
+  if (!owner) return null;
+  return (
+    <section className="cp-notifications-mobile" aria-label="กล่องแจ้งเตือน">
+      <header>
+        <h2>การแจ้งเตือน {unread > 0 && <span>{unread}</span>}</h2>
+        {unread > 0 && (
+          <button type="button" className="cp-focus" onClick={() => read()}>
             อ่านทั้งหมด
           </button>
         )}
-      </div>
-      <div style={{ display: "grid", gap: ".45em", marginTop: ".55em" }}>
-        {items.slice(0, 10).map((item) => (
-          <Link
-            key={item.id}
-            href={item.url}
-            onClick={() => {
-              if (!item.read_at) {
-                void api.markNotificationRead(item.id);
-                setItems((current) =>
-                  current.map((row) =>
-                    row.id === item.id
-                      ? { ...row, read_at: new Date().toISOString() }
-                      : row,
-                  ),
-                );
-              }
-            }}
+      </header>
+      {query.loading && !query.data ? (
+        <p role="status" className="cp-news-empty">
+          กำลังโหลดการแจ้งเตือน…
+        </p>
+      ) : query.error && !query.data ? (
+        <div role="alert" className="cp-news-empty">
+          <p>โหลดการแจ้งเตือนไม่สำเร็จ</p>
+          <button
+            type="button"
             className="cp-focus"
-            style={{
-              display: "block",
-              border: `1px solid ${T.line}`,
-              borderRadius: "9px",
-              padding: ".6em",
-              color: T.ink,
-              textDecoration: "none",
-              background: item.read_at ? "transparent" : T.chip,
-            }}
+            onClick={() => query.refresh()}
           >
-            <strong style={{ fontSize: ".76em" }}>{item.title}</strong>
-            <div style={{ fontSize: ".68em", color: T.subInk }}>
-              {item.body}
-            </div>
-          </Link>
-        ))}
-      </div>
+            ลองใหม่
+          </button>
+        </div>
+      ) : items.length === 0 ? (
+        <p className="cp-news-empty">
+          ยังไม่มีการแจ้งเตือนใหม่
+          <br />
+          <small>สถานะรายงานและคำขอค่าฝุ่นจะแสดงที่นี่</small>
+        </p>
+      ) : (
+        <ul>
+          {items.slice(0, 10).map((item) => (
+            <li key={item.id}>
+              <Link
+                href={item.url}
+                className="cp-focus"
+                data-unread={!item.read_at}
+                onClick={() => {
+                  if (!item.read_at) read(item.id);
+                }}
+              >
+                <strong>{item.title}</strong>
+                <span>{item.body}</span>
+                <time dateTime={item.created_at}>
+                  {new Date(item.created_at).toLocaleString("th-TH", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </time>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <p role="alert">{error}</p>}
     </section>
   );
 }

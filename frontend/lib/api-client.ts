@@ -1,3 +1,4 @@
+import { clearAccountData } from "@/frontend/lib/account-data-cache";
 import type { OwnedReportIDs } from "@/frontend/types/xp";
 import type { XPAdminOverview } from "@/frontend/types/xp";
 import type { PublicMember } from "@/frontend/types/xp";
@@ -108,7 +109,14 @@ async function http<T>(url: string, init?: HttpOptions): Promise<T> {
     throw new ApiError(detail, res.status);
   }
   if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  const result = (await res.json()) as T;
+  if (
+    init?.auth &&
+    (init.method ?? "GET") !== "GET" &&
+    (url.endsWith("/submit") || url === "/api/community/me/xp")
+  )
+    clearAccountData();
+  return result;
 }
 
 async function invalidateAfter<T>(request: Promise<T>, ...keys: string[]) {

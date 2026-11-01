@@ -374,8 +374,12 @@
   border-radius: 14px;
   background: #edf4f1;
 }
-.cp-participation-nav a {
+.cp-participation-nav button {
   display: grid;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
   flex: 1;
   place-items: center;
   min-height: 44px;
@@ -387,7 +391,7 @@
   font-weight: 650;
   text-align: center;
 }
-.cp-participation-nav a[aria-current="page"] {
+.cp-participation-nav button[aria-pressed="true"] {
   background: #fff;
   color: #08776e;
   box-shadow: 0 2px 6px #25483e0c;

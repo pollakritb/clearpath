@@ -343,13 +343,15 @@ export default function CameraCapture({
   };
 
   return (
-    <div>
+    <div className="cp-camera-capture">
       <div
+        className="cp-camera-preview"
+        data-state={cameraOpen ? "live" : preview ? "preview" : "empty"}
         style={{
-          minHeight: "190px",
+          minHeight: cameraOpen || preview ? "190px" : "136px",
           overflow: "hidden",
           borderRadius: "12px",
-          background: "#111",
+          background: cameraOpen || preview ? "#111" : "#f0f8f5",
           display: "grid",
           placeItems: "center",
           position: "relative",
@@ -391,9 +393,9 @@ export default function CameraCapture({
         {!cameraOpen && !preview && (
           <div
             style={{
-              color: "#d7dddc",
+              color: "#536f66",
               textAlign: "center",
-              padding: "2em 1em",
+              padding: "1.2em 1em",
               fontSize: ".75em",
             }}
           >
@@ -404,7 +406,7 @@ export default function CameraCapture({
               <AppIcon name="camera" size={34} />
             </div>
             <strong
-              style={{ display: "block", marginTop: ".65em", color: "#fff" }}
+              style={{ display: "block", marginTop: ".65em", color: "#214d43" }}
             >
               เพิ่มภาพเครื่องวัด PM2.5
             </strong>

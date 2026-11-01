@@ -1,3 +1,5 @@
+"use client";
+import { useState } from "react";
 import Image from "next/image";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -23,23 +25,44 @@ export default function AnnouncementsSection({
 }: {
   announcements: Announcement[];
 }) {
-  const visible = announcements.slice(0, 6);
+  const [filter, setFilter] = useState<"all" | "announcements" | "news">("all");
+  const [limit, setLimit] = useState(6);
+  const filtered = announcements.filter(
+    (item) =>
+      filter === "all" || (filter === "news" ? item.external : !item.external),
+  );
+  const visible = filtered.slice(0, limit);
 
   return (
     <section
       className="cp-community-announcements"
       aria-labelledby="community-announcements-title"
     >
-      <header className="cp-community-announcements__heading">
-        <span aria-hidden="true">
-          <AppIcon name="alert" size={21} />
-        </span>
-        <span>
-          <small>ประกาศ ClearPath และข่าวคุณภาพอากาศ</small>
-          <h2 id="community-announcements-title">ข่าวสารล่าสุด</h2>
-        </span>
-        {visible.length > 0 && <b>{visible.length}</b>}
-      </header>
+      <div className="cp-news-filters" role="group" aria-label="ประเภทข่าว">
+        {(
+          [
+            ["all", "ทั้งหมด"],
+            ["announcements", "ประกาศ"],
+            ["news", "ข่าว"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            className="cp-focus"
+            aria-pressed={filter === value}
+            onClick={() => {
+              setFilter(value);
+              setLimit(6);
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <h2 id="community-announcements-title" className="cp-news-list-title">
+        ข่าวสารล่าสุด <span>{filtered.length}</span>
+      </h2>
 
       {visible.length === 0 ? (
         <div className="cp-community-announcements__empty">
@@ -87,6 +110,15 @@ export default function AnnouncementsSection({
             </article>
           ))}
         </div>
+      )}
+      {filtered.length > limit && (
+        <button
+          type="button"
+          className="cp-news-more cp-focus"
+          onClick={() => setLimit((value) => value + 6)}
+        >
+          ดูข่าวเพิ่มเติม
+        </button>
       )}
     </section>
   );

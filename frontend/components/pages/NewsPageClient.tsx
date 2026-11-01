@@ -12,6 +12,8 @@ export default function NewsPageClient() {
       tab="community"
       icon="megaphone"
       header={{
+        title: "ข่าวสาร",
+        description: "ข่าวคุณภาพอากาศและการแจ้งเตือนของคุณ",
         loading: news.loading,
         error: news.error,
         onRefresh: news.refresh,

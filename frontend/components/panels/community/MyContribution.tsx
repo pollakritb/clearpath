@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import { useAccountData } from "@/frontend/hooks/useAccountData";
+import { api } from "@/frontend/lib/api-client";
 import type { CommunityProfileResponse } from "@/frontend/types";
 
 const STATUS_LABEL = {
@@ -14,41 +15,31 @@ const STATUS_LABEL = {
   rejected: "ไม่ผ่าน",
 };
 
-export default function MyContribution() {
+export default function MyContribution({
+  active = true,
+}: {
+  active?: boolean;
+}) {
   const auth = useAuth();
   const ownerId = auth.user?.id ?? (auth.localDemo ? "local" : null);
-  const [profile, setProfile] = useState<CommunityProfileResponse | null>(null);
-  const [error, setError] = useState("");
-  const [attempt, setAttempt] = useState(0);
+  const query = useAccountData<CommunityProfileResponse>(
+    ownerId,
+    "my-reports",
+    api.myProfile,
+    active,
+  );
+  const profile = query.data;
+  const error = query.error;
   const [visible, setVisible] = useState(5);
 
-  useEffect(() => {
-    if (!ownerId) return;
-    let cancelled = false;
-    void api
-      .myProfile()
-      .then((result) => {
-        if (!cancelled) setProfile(result);
-      })
-      .catch((cause) => {
-        if (!cancelled) setError(apiErrorMessage(cause, "โหลดรายงานไม่สำเร็จ"));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [ownerId, attempt]);
-
-  if (error)
+  if (error && !profile)
     return (
       <div className="cp-participation-empty">
-        <p role="alert">{error}</p>
+        <p role="alert">โหลดรายงานไม่สำเร็จ กรุณาลองอีกครั้ง</p>
         <button
           type="button"
           className="cp-focus"
-          onClick={() => {
-            setError("");
-            setAttempt((value) => value + 1);
-          }}
+          onClick={() => query.refresh()}
         >
           ลองใหม่
         </button>
@@ -63,6 +54,14 @@ export default function MyContribution() {
 
   return (
     <section className="cp-contribution" aria-label="รายงานของฉัน">
+      {error && (
+        <p role="alert">
+          เชื่อมต่อไม่ได้ กำลังแสดงรายงานที่โหลดไว้{" "}
+          <button type="button" onClick={() => query.refresh()}>
+            ลองใหม่
+          </button>
+        </p>
+      )}
       <div className="cp-participation-stats">
         <div>
           <strong>{profile.reports.length}</strong>

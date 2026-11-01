@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import ReportPageClient from "@/frontend/components/pages/ReportPageClient";
 
 export const metadata: Metadata = {
-  title: "ส่งข้อมูล — ClearPath",
+  title: "ส่งรายงานค่าฝุ่น — ClearPath",
   description: "ส่งภาพเครื่องวัด PM2.5 พร้อม GPS ให้ระบบตรวจหลักฐานอัตโนมัติ",
 };
 

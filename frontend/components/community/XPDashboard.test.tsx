@@ -6,12 +6,16 @@ import {
   cleanup,
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { clearAccountData } from "@/frontend/lib/account-data-cache";
 import XPDashboard from "./XPDashboard";
 const mocks = vi.hoisted(() => ({
   summary: vi.fn(),
   events: vi.fn(),
   board: vi.fn(),
   settings: vi.fn(),
+}));
+vi.mock("@/frontend/components/auth/AuthProvider", () => ({
+  useCurrentUserId: () => "test-owner",
 }));
 vi.mock("@/frontend/lib/api-client", () => ({
   api: {
@@ -44,6 +48,7 @@ const summary = {
   today_help: 1,
 };
 beforeEach(() => {
+  clearAccountData();
   vi.clearAllMocks();
   mocks.summary.mockResolvedValue(summary);
   mocks.events.mockResolvedValue({ events: [], next_offset: null });
@@ -141,4 +146,23 @@ it("keeps personal history out of the standalone leaderboard section", async () 
   expect(mocks.summary).not.toHaveBeenCalled();
   expect(mocks.events).not.toHaveBeenCalled();
   expect(screen.queryByRole("region", { name: "คะแนนและยศของฉัน" })).toBeNull();
+});
+
+it("reuses the overview immediately after leaving and reopening the page", async () => {
+  const page = render(<XPDashboard section="overview" />);
+  await screen.findByText("สายลม");
+  page.unmount();
+  render(<XPDashboard section="overview" />);
+  expect(screen.getByText("สายลม")).toBeTruthy();
+  expect(screen.queryByText("กำลังโหลดผลงาน…")).toBeNull();
+  await waitFor(() => expect(mocks.summary).toHaveBeenCalledTimes(1));
+});
+
+it("offers retry instead of leaving a failed leaderboard stuck loading", async () => {
+  mocks.board.mockRejectedValueOnce(new Error("offline"));
+  render(<XPDashboard section="leaderboard" />);
+  await screen.findByText("โหลดอันดับไม่สำเร็จ");
+  expect(screen.queryByText("กำลังโหลดอันดับ…")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "ลองใหม่" }));
+  await screen.findByText("ฟ้าใส");
 });

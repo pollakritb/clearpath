@@ -52,7 +52,11 @@ export default function ReportPageClient({
     <UserPageShell
       tab="report"
       icon="camera"
-      header={{ showDataStatus: false }}
+      header={{
+        title: "ส่งรายงานค่าฝุ่น",
+        description: "ถ่ายหรือเลือกรูปเครื่องวัด ระบบอ่านค่าให้อัตโนมัติ",
+        showDataStatus: false,
+      }}
     >
       {requestId && <RequestContext requestId={requestId} />}
       <ReportForm

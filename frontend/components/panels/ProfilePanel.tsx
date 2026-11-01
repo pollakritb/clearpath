@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import XPDashboard from "@/frontend/components/community/XPDashboard";
@@ -16,22 +17,30 @@ export default function ProfilePanel({ tab = "overview" }: { tab?: string }) {
   const auth = useAuth();
   const loginPrompt = useLoginPrompt();
   const signedIn = Boolean(auth.user || auth.localDemo);
-  const selected = SECTIONS.some(([value]) => value === tab) ? tab : "overview";
+  const searchParams = useSearchParams();
+  const requested = searchParams.get("tab") ?? tab;
+  const selected = SECTIONS.some(([value]) => value === requested)
+    ? requested
+    : "overview";
+  const [visited, setVisited] = useState(() => new Set([selected]));
+  const owner = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
 
   return (
     <section className="cp-participation-page cp-section-enter">
       <nav className="cp-participation-nav" aria-label="ผลงานและอันดับ">
         {SECTIONS.map(([value, label]) => (
-          <Link
+          <button
             key={value}
-            href={`/profile?tab=${value}`}
-            aria-current={selected === value ? "page" : undefined}
+            type="button"
+            onClick={() => {
+              setVisited((previous) => new Set([...previous, value]));
+              window.history.replaceState(null, "", `/profile?tab=${value}`);
+            }}
+            aria-pressed={selected === value}
             className="cp-focus"
-            scroll={false}
-            replace
           >
             {label}
-          </Link>
+          </button>
         ))}
       </nav>
       {auth.loading ? (
@@ -55,14 +64,31 @@ export default function ProfilePanel({ tab = "overview" }: { tab?: string }) {
             เข้าสู่ระบบด้วย Google
           </button>
         </section>
-      ) : selected === "reports" ? (
-        <MyContribution key={auth.user?.id ?? "local"} />
       ) : (
-        <XPDashboard
-          key={`${auth.user?.id ?? (auth.localDemo ? "local" : "guest")}-${selected}`}
-          signedIn={signedIn}
-          section={selected === "leaderboard" ? "leaderboard" : "overview"}
-        />
+        <>
+          {SECTIONS.map(
+            ([value]) =>
+              (visited.has(value) || selected === value) && (
+                <div
+                  key={`${owner}-${value}`}
+                  hidden={selected !== value}
+                  inert={selected !== value}
+                >
+                  {value === "reports" ? (
+                    <MyContribution active={selected === value} />
+                  ) : (
+                    <XPDashboard
+                      signedIn={signedIn}
+                      active={selected === value}
+                      section={
+                        value === "leaderboard" ? "leaderboard" : "overview"
+                      }
+                    />
+                  )}
+                </div>
+              ),
+          )}
+        </>
       )}
     </section>
   );
