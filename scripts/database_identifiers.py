@@ -93,6 +93,7 @@ def main() -> int:
         catalog = {(c["table_name"], c["column_name"]): c for c in columns}
         state = query("select public.identifier_schema_state() as state")[0]["state"]
         converted = state["version"] >= 2
+        clean = state["version"] >= 3
         results = []
         for table, (prefix, _) in ENTITIES.items():
             numeric = "numeric_id" if (table, "numeric_id") in catalog else "id"
@@ -142,7 +143,14 @@ def main() -> int:
             available = (table, shadow) in catalog and (parent, parent_id) in catalog
             mismatches = None
             if available:
-                if converted:
+                if clean:
+                    mismatches = query(
+                        "select count(*) as mismatches "
+                        f"from public.{table} t where t.{column} is not null "
+                        f"and not exists(select 1 from private.identifier_aliases a "
+                        f"where a.entity='{parent}' and a.numeric_id=t.{column})"
+                    )[0]["mismatches"]
+                elif converted:
                     mismatches = query(
                         "select count(*) as mismatches "
                         f"from public.{table} t left join private.identifier_aliases a "
@@ -174,6 +182,9 @@ def main() -> int:
             "schema_version": state["version"],
             "maintenance": state["maintenance"],
             "public_tables": len({c["table_name"] for c in columns}),
+            "public_legacy_columns": sum(
+                c["column_name"].startswith("legacy_") for c in columns
+            ),
             "entities": results,
             "expanded": all(r["expanded"] for r in results),
             "relationships": relationship_results,
@@ -182,8 +193,14 @@ def main() -> int:
                 all(r.get("valid", False) for r in results)
                 and all(r["valid"] for r in relationship_results)
                 and member_valid
+                and (
+                    not clean
+                    or not any(c["column_name"].startswith("legacy_") for c in columns)
+                )
             ),
-            "note": "Version 2 uses numeric PK/FKs; legacy UUIDs remain private compatibility aliases."
+            "note": "Version 3 has no public compatibility columns; retry/privacy mappings are in private.identifier_aliases."
+            if clean
+            else "Version 2 uses numeric PK/FKs with public legacy columns."
             if converted
             else "Expansion does not mean numeric PK/API cutover is complete.",
         }

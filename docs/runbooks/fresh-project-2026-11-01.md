@@ -127,3 +127,37 @@ ready and a primary sync succeeds. Check station freshness, public APIs,
 Google OAuth callback and job execution after switching. A Google redirect
 smoke test is not a complete interactive login test; the owner must finish a
 real Google login before confirming end-to-end account access.
+
+## Public compatibility-column removal (schema version 3)
+
+On 2026-11-01, migration `20261101043458_private_identifier_aliases.sql`
+removed **all 70 `legacy_id` / `legacy_*` columns** from the 44 public tables.
+Public PK/FK columns remain numeric and readable `code` columns remain
+DB-generated. The private alias registry is retained for retry idempotency,
+stable privacy seeds and old links; it is not exposed through the Data API.
+
+Before this operation the project already had a real user. Signup, application
+writes and all four cron jobs were paused; a new encrypted snapshot captured
+all application tables, 27 Auth tables and current Storage metadata/bodies.
+The snapshot is outside Git at `Backups/before-clean-v3-20261101/`, with its
+key stored separately. The restore rehearsal used Auth ID stubs for application
+FK checks, retained the encrypted full Auth snapshot, compared every retained
+business column before and after, and verified all 17,501 private alias rows.
+It did not exercise full Supabase Auth-service recovery locally.
+
+The live migration compared per-table value fingerprints, alias fingerprints
+and Auth user IDs inside the same transaction. Any difference would have
+aborted the DDL. The operation committed with zero public compatibility
+columns, the existing user retained and maintenance still on. Rollback-only
+live RPC checks passed before restoring the original signup/cron states.
+Real Auth JWT → profile/MBR → capture-session and ownership RLS were then
+verified using a temporary account that was deleted afterwards. Production
+Air4Thai sync returned a readable `SYN` code and readiness returned 200.
+
+Schema version 3 routes retry-key inserts through service-only
+`identifier_insert`, with explicit writable-column validation and per-key
+advisory locking. Retry keys remain in the private registry and are never
+numeric PK allocation by the caller. Existing read-only requests that cross
+the schema commit may be rebuilt once; mutations are never replayed after an
+uncertain network exception. The backend resolves private privacy metadata in
+batches and does not expose it through public response models.

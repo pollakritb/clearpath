@@ -337,4 +337,21 @@ assert(!keys.some((k) => k.typname === "uuid"));
 console.log(
   "Numeric cutover: pause/rollback guards, bigint PK/FK, old aliases, stable pins/dedup, retry resurrection, moderation, request/outbox RPCs and ownership RLS passed.",
 );
+await pg.exec("update private.identifier_control set maintenance=true;begin;");
+await pg.exec(migration("private_identifier_aliases"));
+await pg.exec(
+  "commit;update private.identifier_control set maintenance=false;",
+);
+assert.equal(
+  (
+    await pg.query(
+      "select count(*) n from information_schema.columns where table_schema='public' and left(column_name,7)='legacy_' ",
+    )
+  ).rows[0].n,
+  0,
+);
+await pg.exec(sql("../backend/tests/fixtures/clean_identifiers_checks.sql"));
+console.log(
+  "Clean schema: public legacy columns removed; retry resurrection, moderation and request/outbox RPCs passed.",
+);
 await pg.close();

@@ -4,7 +4,7 @@ Baseline: production `422013d`, 44 public tables, XP migration `20261030213750`.
 
 ## Implementation state
 
-The replacement database `ClearPath_Final` (`kmvxwfrmmictzuxbsncr`) has verified numeric PK/FKs, generated codes and all 50 relationships. See the [replacement rollout](fresh-project-2026-11-01.md). The original-project incident below is historical and must not be used as the replacement schema state.
+The replacement database `ClearPath_Final` (`kmvxwfrmmictzuxbsncr`) has verified numeric PK/FKs, generated codes and all 50 relationships. Schema version 3 removes all 70 public compatibility columns; UUID retry/privacy mapping exists only in the private schema. See the [replacement rollout](fresh-project-2026-11-01.md). The original-project incident below is historical and must not be used as the replacement schema state.
 
 The code, dual-schema bridge and restored-data rehearsal are complete, but the production cutover is **not confirmed**. The migration exhausted WAL disk on 2026-11-01 and the database entered recovery. The last confirmed control state was version 1 with maintenance on. See the [recovery runbook](identifier-cutover-recovery-2026-11-01.md) before taking any further action.
 
