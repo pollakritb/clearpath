@@ -1,6 +1,11 @@
 import type { SVGProps } from "react";
 
 export type AppIconName =
+  | "compass"
+  | "wind"
+  | "sprout"
+  | "rank-shield"
+  | "crown"
   | "activity"
   | "admin"
   | "alert"
@@ -63,6 +68,30 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
       {...props}
       {...common}
     >
+      {name === "compass" && (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="m16 8-2.5 5.5L8 16l2.5-5.5Z" />
+        </>
+      )}
+      {name === "wind" && (
+        <>
+          <path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h6a3 3 0 1 1-3 3" />
+        </>
+      )}
+      {name === "sprout" && (
+        <>
+          <path d="M12 21v-9M7 21h10M12 16C5 16 3 12 3 8c6 0 9 3 9 8ZM12 12c0-6 3-9 9-9 0 6-3 9-9 9Z" />
+        </>
+      )}
+      {name === "rank-shield" && (
+        <path d="M12 3 5 6v5c0 4.2 2.8 7.5 7 9 4.2-1.5 7-4.8 7-9V6Z" />
+      )}
+      {name === "crown" && (
+        <>
+          <path d="m3 5 5 5 4-7 4 7 5-5-2 13H5ZM6 21h12" />
+        </>
+      )}
       {name === "home" && (
         <>
           <path d="m3 10 9-7 9 7" />

@@ -1,11 +1,5 @@
 import type { ParticipationRank } from "@/frontend/types/xp";
-const SYMBOL: Record<string, string> = {
-  explorer: "◇",
-  reporter: "✦",
-  caretaker: "❖",
-  guardian: "✧",
-  champion: "★",
-};
+import RankEmblem from "./RankEmblem";
 export default function ParticipationBadge({
   rank,
 }: {
@@ -13,7 +7,7 @@ export default function ParticipationBadge({
 }) {
   return (
     <span className="cp-xp-badge" data-rank={rank.code}>
-      <span aria-hidden="true">{SYMBOL[rank.code] ?? "◇"}</span> {rank.label}
+      <RankEmblem rank={rank} decorative /> {rank.label}
     </span>
   );
 }

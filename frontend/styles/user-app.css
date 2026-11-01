@@ -7764,3 +7764,27 @@
   color: var(--cp-text);
   font: inherit;
 }
+
+.cp-map-reporter-avatar {
+  position: relative;
+  overflow: visible;
+}
+.cp-map-reporter-avatar > img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.cp-map-reporter-avatar > .cp-rank-emblem {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 21px;
+  height: 21px;
+  border: 2px solid #fff;
+  border-radius: 7px;
+}
+.cp-map-reporter-avatar > .cp-rank-emblem svg {
+  width: 12px;
+  height: 12px;
+}

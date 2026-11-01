@@ -13,6 +13,7 @@ import type {
   XPSummary,
 } from "@/frontend/types/xp";
 import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
+import RankEmblem from "./RankEmblem";
 import ParticipationBadge from "./ParticipationBadge";
 
 type Period = "all" | "7d" | "30d";
@@ -148,12 +149,37 @@ export default function XPDashboard({
       {showProfile && summary && (
         <section className="cp-xp-profile" aria-label="คะแนนและยศของฉัน">
           <span className="cp-xp-eyebrow">การมีส่วนร่วมของคุณ</span>
-          <h2>
-            {summary.identity_mode === "google"
-              ? (google?.displayName ?? summary.alias)
-              : summary.alias}
-          </h2>
-          <ParticipationBadge rank={summary.rank} />
+          <div className="cp-xp-profile-heading">
+            <span className="cp-xp-profile-avatar" aria-hidden="true">
+              {summary.identity_mode === "google" && google?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={google.avatarUrl}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span>
+                  {
+                    Array.from(
+                      summary.identity_mode === "google"
+                        ? (google?.displayName ?? summary.alias)
+                        : summary.alias,
+                    )[0]
+                  }
+                </span>
+              )}
+              <RankEmblem rank={summary.rank} decorative />
+            </span>
+            <div>
+              <h2>
+                {summary.identity_mode === "google"
+                  ? (google?.displayName ?? summary.alias)
+                  : summary.alias}
+              </h2>
+              <ParticipationBadge rank={summary.rank} />
+            </div>
+          </div>
           <p className="cp-xp-total">
             {summary.lifetime_xp.toLocaleString()} <small>XP สะสม</small>
           </p>
@@ -316,6 +342,7 @@ export default function XPDashboard({
                     <b>{user.rank}</b>
                     <span className="cp-xp-avatar" aria-hidden="true">
                       {Array.from(user.alias)[0]}
+                      <RankEmblem rank={user.title} decorative />
                     </span>
                     <Link
                       className="cp-xp-person cp-focus"

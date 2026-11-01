@@ -5,11 +5,24 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { safeGoogleAvatarUrl } from "@/frontend/lib/reporter-profile";
+import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
+import RankEmblem from "@/frontend/components/community/RankEmblem";
+import { useAccountData } from "@/frontend/hooks/useAccountData";
+import { api } from "@/frontend/lib/api-client";
+import { useCurrentUserId } from "./AuthProvider";
 import AuthControl from "./AuthControl";
 import { useAuth } from "./AuthProvider";
 
 export default function AccountMenu() {
   const auth = useAuth();
+  const account = useCurrentUserId();
+  const summary = useAccountData(
+    account,
+    "xp-summary",
+    api.xpSummary,
+    Boolean(account) && !auth.loading,
+  );
+  const rank = summary.data?.rank;
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -44,7 +57,7 @@ export default function AccountMenu() {
         type="button"
         className="cp-account-trigger cp-focus"
         aria-label="เปิดโปรไฟล์"
-        title="โปรไฟล์"
+        title={rank ? `โปรไฟล์ · ${rank.label}` : "โปรไฟล์"}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => {
@@ -57,6 +70,7 @@ export default function AccountMenu() {
           url={avatarUrl}
           compact
         />
+        {rank && <RankEmblem rank={rank} />}
       </button>
       <dialog
         ref={dialogRef}
@@ -90,10 +104,12 @@ export default function AccountMenu() {
                   key={`${auth.user?.id}:${avatarUrl}`}
                   url={avatarUrl}
                 />
+                {rank && <RankEmblem rank={rank} decorative />}
               </span>
               <div>
                 <strong>{name}</strong>
                 {auth.user?.email && <span>{auth.user.email}</span>}
+                {rank && <ParticipationBadge rank={rank} />}
               </div>
             </div>
           ) : (

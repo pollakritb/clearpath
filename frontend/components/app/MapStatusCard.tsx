@@ -1,5 +1,6 @@
 "use client";
 
+import RankEmblem from "@/frontend/components/community/RankEmblem";
 import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
 import { useRef, useState } from "react";
 
@@ -469,21 +470,24 @@ export default function MapStatusCard({
             className="cp-map-reporter-profile"
             data-hidden={!showReporterProfile}
           >
-            {reporterAvatar ? (
-              // The backend and frontend both restrict this to Google HTTPS avatars.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={reporterAvatar}
-                alt=""
-                width={46}
-                height={46}
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <span aria-hidden>
+            <span className="cp-map-reporter-avatar" aria-hidden="true">
+              {reporterAvatar ? (
+                // The backend and frontend both restrict this to Google HTTPS avatars.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={reporterAvatar}
+                  alt=""
+                  width={46}
+                  height={46}
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
                 <AppIcon name="user" size={22} />
-              </span>
-            )}
+              )}
+              {showReporterProfile && report.participation_rank && (
+                <RankEmblem rank={report.participation_rank} decorative />
+              )}
+            </span>
             <div>
               <small>
                 {showReporterProfile

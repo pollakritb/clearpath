@@ -146,3 +146,45 @@ describe("MapStatusCard", () => {
     expect(screen.getByText(/Air4Thai · กรมควบคุมมลพิษ/)).not.toBeNull();
   });
 });
+
+it.each([true, false])(
+  "shows the report avatar rank only when identity is public: %s",
+  (visible) => {
+    const report = {
+      id: "rank-report",
+      source_type: "individual",
+      show_reporter_profile: visible,
+      display_name: visible ? "Google Member" : "สายลม",
+      reporter_avatar_url: visible
+        ? "https://lh3.googleusercontent.com/a/member"
+        : null,
+      pm25: 28,
+      participation_rank: {
+        code: "guardian",
+        label: "ผู้พิทักษ์อากาศ",
+        minimum_xp: 1500,
+        minimum_days: 20,
+        next_label: null,
+        next_xp: null,
+        next_days: null,
+      },
+    } as CommunityReport;
+    const { container } = render(
+      <MapStatusCard
+        station={null}
+        report={report}
+        updatedAt="2026-11-01T12:00:00Z"
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "ดูรายละเอียดรายงานและผู้รายงาน" }),
+    );
+    expect(
+      Boolean(
+        container.querySelector(".cp-map-reporter-avatar .cp-rank-emblem"),
+      ),
+    ).toBe(visible);
+    cleanup();
+  },
+);

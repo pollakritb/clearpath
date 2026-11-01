@@ -103,7 +103,7 @@
 }
 
 .cp-account-dialog__identity strong,
-.cp-account-dialog__identity div > span {
+.cp-account-dialog__identity div > span:not(.cp-xp-badge) {
   display: block;
   overflow-wrap: anywhere;
 }
@@ -112,7 +112,7 @@
   font-size: 16px;
 }
 
-.cp-account-dialog__identity div > span {
+.cp-account-dialog__identity div > span:not(.cp-xp-badge) {
   margin-top: 3px;
   color: #5b706b;
   font-size: 13px;
@@ -158,4 +158,32 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.cp-app .cp-account-trigger {
+  position: relative;
+  overflow: visible;
+}
+.cp-account-trigger > .cp-rank-emblem,
+.cp-account-dialog__avatar > .cp-rank-emblem {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  width: 23px;
+  height: 23px;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: 0 2px 5px #16362a20;
+}
+.cp-account-trigger > .cp-rank-emblem svg,
+.cp-account-dialog__avatar > .cp-rank-emblem svg {
+  width: 13px;
+  height: 13px;
+}
+.cp-account-dialog__avatar {
+  position: relative;
+}
+.cp-account-dialog__identity .cp-xp-badge {
+  margin-top: 6px;
 }
