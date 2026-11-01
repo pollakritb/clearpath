@@ -9,6 +9,7 @@ from starlette.concurrency import run_in_threadpool
 from ..core.auth import AuthenticatedUser, require_user
 from ..core.config import settings
 from ..models.schemas import (
+    AccountAccessResponse,
     ActivitiesResponse,
     Activity,
     Announcement,
@@ -475,6 +476,12 @@ async def remove_report_comment(
     if not deleted:
         raise HTTPException(404, detail="ไม่พบความคิดเห็นของคุณ")
     return OperationResponse(ok=True, message="ลบความคิดเห็นแล้ว")
+
+
+@router.get("/community/me/access", response_model=AccountAccessResponse)
+def account_access(user: AuthenticatedUser = Depends(require_user)):
+    """Read the verified server role without loading report history or XP."""
+    return AccountAccessResponse(role=user.role)
 
 
 @router.get("/community/me", response_model=CommunityProfileResponse)

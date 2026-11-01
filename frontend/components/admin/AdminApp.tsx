@@ -131,7 +131,8 @@ export default function AdminApp() {
   );
   const copy = ADMIN_PAGE_COPY[view];
 
-  if (auth.loading || !canModerate) return <AdminAccessGate />;
+  if (auth.loading || auth.roleError || !canModerate)
+    return <AdminAccessGate />;
 
   return (
     <div className="cp-admin-app">

@@ -356,3 +356,7 @@ class PhotoMetadata(BaseModel):
     exif_gps: dict[str, float] | None = None
     camera_make: str | None = None
     camera_model: str | None = None
+
+
+class AccountAccessResponse(BaseModel):
+    role: Literal["user", "moderator", "admin"]

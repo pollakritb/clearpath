@@ -103,7 +103,7 @@ describe("AuthProvider", () => {
       role: "admin",
       configured: true,
     });
-    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/community/me");
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/community/me/access");
     expect(
       new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).get(
         "Authorization",
@@ -130,7 +130,7 @@ describe("AuthProvider", () => {
     expect(unsubscribe).toHaveBeenCalledOnce();
   });
 
-  it("falls back to user when role lookup or sign-in fails", async () => {
+  it("shows an unresolved role error when lookup fails instead of reporting a verified user role", async () => {
     const oauthError = new Error("oauth failed");
     const otpError = new Error("otp failed");
     const client = {
@@ -157,7 +157,7 @@ describe("AuthProvider", () => {
       </AuthProvider>,
     );
     await waitFor(() => expect(latestAuth?.loading).toBe(false));
-    expect(latestAuth?.role).toBe("user");
+    expect(latestAuth?.roleError).toBeTruthy();
     await expect(latestAuth?.signInWithGoogle()).rejects.toBe(oauthError);
     await expect(latestAuth?.signInWithOtp("user@example.com")).rejects.toBe(
       otpError,
@@ -200,6 +200,69 @@ describe("AuthProvider", () => {
       role: "user",
       loading: false,
     });
+  });
+
+  it("recovers an Admin role after a temporary access lookup failure", async () => {
+    const session = { access_token: "token", user: { id: "admin-account" } };
+    supabaseMocks.getClient.mockReturnValue({
+      auth: {
+        getSession: vi.fn(async () => ({ data: { session } })),
+        onAuthStateChange: () => ({
+          data: { subscription: { unsubscribe: vi.fn() } },
+        }),
+      },
+    });
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response("unavailable", { status: 503 }))
+      .mockResolvedValue(
+        new Response(JSON.stringify({ role: "admin" }), { status: 200 }),
+      );
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(latestAuth?.roleError).toBeTruthy());
+    await act(async () => latestAuth?.refreshRole());
+    await waitFor(() =>
+      expect(latestAuth).toMatchObject({
+        role: "admin",
+        roleError: null,
+        loading: false,
+      }),
+    );
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.every(([url]) => url === "/api/community/me/access"),
+    ).toBe(true);
+  });
+
+  it("checks the server role again when the browser regains focus", async () => {
+    const session = { access_token: "token", user: { id: "admin-account" } };
+    supabaseMocks.getClient.mockReturnValue({
+      auth: {
+        getSession: vi.fn(async () => ({ data: { session } })),
+        onAuthStateChange: () => ({
+          data: { subscription: { unsubscribe: vi.fn() } },
+        }),
+      },
+    });
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ role: "user" }), { status: 200 }),
+      )
+      .mockResolvedValue(
+        new Response(JSON.stringify({ role: "admin" }), { status: 200 }),
+      );
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(latestAuth?.loading).toBe(false));
+    act(() => window.dispatchEvent(new Event("focus")));
+    await waitFor(() => expect(latestAuth?.role).toBe("admin"));
   });
 
   it("requires consumers to be nested inside the provider", () => {

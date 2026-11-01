@@ -353,3 +353,7 @@ export interface PhotoMetadata {
   camera_make: string | null;
   camera_model: string | null;
 }
+
+export interface AccountAccessResponse {
+  role: "user" | "moderator" | "admin";
+}

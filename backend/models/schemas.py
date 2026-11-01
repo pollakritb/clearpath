@@ -12,6 +12,7 @@ from .air_quality import (
     StationsResponse,
 )
 from .community import (
+    AccountAccessResponse,
     ActivitiesResponse,
     Activity,
     ActivityCreate,
@@ -82,6 +83,7 @@ from .notifications import (
 )
 
 __all__ = [
+    "AccountAccessResponse",
     "BonusGPS",
     "HelpClaim",
     "OwnedReportIDs",

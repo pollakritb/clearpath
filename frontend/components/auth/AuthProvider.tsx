@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -21,6 +22,8 @@ interface AuthState {
   user: User | null;
   role: UserRole;
   loading: boolean;
+  roleError: string | null;
+  refreshRole: () => void;
   configured: boolean;
   localDemo: boolean;
   signInWithGoogle: () => Promise<void>;
@@ -33,18 +36,16 @@ const subscribeToHydration = () => () => undefined;
 
 async function fetchRole(session: Session | null): Promise<UserRole> {
   if (!session) return "user";
-  try {
-    const response = await authenticatedFetch(
-      "/api/community/me",
-      {},
-      session.access_token,
-    );
-    if (!response.ok) return "user";
-    const profile = (await response.json()) as { role?: UserRole };
-    return profile.role ?? "user";
-  } catch {
-    return "user";
-  }
+  const response = await authenticatedFetch(
+    "/api/community/me/access",
+    { cache: "no-store", signal: AbortSignal.timeout(15_000) },
+    session.access_token,
+  );
+  if (!response.ok) throw new Error("ตรวจสอบสิทธิ์ไม่สำเร็จ กรุณาลองอีกครั้ง");
+  const profile = (await response.json()) as { role?: UserRole };
+  if (!["user", "moderator", "admin"].includes(profile.role ?? ""))
+    throw new Error("ข้อมูลสิทธิ์ไม่ถูกต้อง กรุณาลองอีกครั้ง");
+  return profile.role!;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -56,8 +57,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => false,
   );
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<UserRole>("user");
+  const [roleError, setRoleError] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(client));
+  const accountRef = useRef<string | null>(null);
+  const [roleRevision, setRoleRevision] = useState(0);
+  const refreshRole = useCallback(() => {
+    setLoading(true);
+    setRoleRevision((value) => value + 1);
+  }, []);
+  const [role, setRole] = useState<UserRole>("user");
 
   useEffect(() => {
     // Local demo bypasses configured Supabase auth; its role is exposed only
@@ -67,22 +75,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let active = true;
     let revision = 0;
     let lastToken: string | null | undefined;
-    let lastUserId: string | null = null;
+    let lastUserId: string | null = accountRef.current;
     const applySession = (session: Session | null) => {
       if (!active) return;
       if (lastUserId !== (session?.user.id ?? null)) clearAccountData();
       setUser(session?.user ?? null);
       lastUserId = session?.user.id ?? null;
+      accountRef.current = lastUserId;
       const token = session?.access_token ?? null;
       if (lastToken === token) return;
       lastToken = token;
       const requestRevision = ++revision;
       setRole("user");
-      void fetchRole(session).then((nextRole) => {
-        if (!active || revision !== requestRevision) return;
-        setRole(nextRole);
-        setLoading(false);
-      });
+      setRoleError(null);
+      void fetchRole(session)
+        .then((nextRole) => {
+          if (!active || revision !== requestRevision) return;
+          setRole(nextRole);
+          setLoading(false);
+        })
+        .catch(() => {
+          if (!active || revision !== requestRevision) return;
+          setRoleError("ตรวจสอบสิทธิ์ไม่สำเร็จ กรุณาลองอีกครั้ง");
+          setLoading(false);
+        });
     };
     void client.auth
       .getSession()
@@ -90,7 +106,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (revision === 0) applySession(data.session);
       })
       .catch(() => {
-        if (active && revision === 0) setLoading(false);
+        if (active && revision === 0) {
+          setRoleError("ตรวจสอบบัญชีไม่สำเร็จ กรุณาลองอีกครั้ง");
+          setLoading(false);
+        }
       });
     const { data } = client.auth.onAuthStateChange((event, session) => {
       // A recovery refresh must not start another profile recovery loop.
@@ -110,7 +129,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       active = false;
       data.subscription.unsubscribe();
     };
-  }, [client, localDemo]);
+  }, [client, localDemo, roleRevision]);
+
+  useEffect(() => {
+    const retry = () => {
+      if (client && !localDemo && document.visibilityState !== "hidden")
+        refreshRole();
+    };
+    window.addEventListener("focus", retry);
+    return () => window.removeEventListener("focus", retry);
+  }, [refreshRole, client, localDemo]);
 
   const signInWithOtp = useCallback(
     async (email: string) => {
@@ -141,6 +169,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthState>(
     () => ({
       user,
+      roleError,
+      refreshRole,
       role: localDemo && hydrated ? "admin" : role,
       loading: localDemo && hydrated ? false : loading,
       configured: Boolean(client),
@@ -151,6 +181,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       user,
+      roleError,
+      refreshRole,
       role,
       loading,
       hydrated,

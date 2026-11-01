@@ -21,6 +21,27 @@ export default function AdminAccessGate() {
     );
   }
 
+  if (auth.roleError) {
+    return (
+      <main className="cp-admin-gate">
+        <div className="cp-admin-gate__card">
+          <h1>ยังตรวจสอบสิทธิ์ไม่ได้</h1>
+          <p>{auth.roleError}</p>
+          <button
+            type="button"
+            className="cp-admin-primary-link cp-focus"
+            onClick={auth.refreshRole}
+          >
+            ตรวจสอบสิทธิ์อีกครั้ง
+          </button>
+          <Link href="/air" className="cp-admin-back-link cp-focus">
+            กลับหน้าวันนี้
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   if (!auth.user && !auth.localDemo) {
     return (
       <main className="cp-admin-gate">

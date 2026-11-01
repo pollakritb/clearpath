@@ -390,3 +390,23 @@ def test_forecast_maintenance_keeps_air4thai_sync_and_skips_forecast_writes(
         assert response.status_code == 200
         assert response.json()["status"] == "paused"
         assert response.json()["reason"] == "forecast_system_under_improvement"
+
+
+def test_access_check_does_not_load_reports_or_xp(monkeypatch):
+    from backend.core.auth import AuthenticatedUser, require_user
+    from backend.services import supabase_client
+    from backend.services.community import xp
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Role checks must not depend on report history or XP")
+
+    monkeypatch.setattr(supabase_client, "get_profile", forbidden)
+    monkeypatch.setattr(supabase_client, "list_user_reports", forbidden)
+    monkeypatch.setattr(xp, "summary", forbidden)
+    app = create_app()
+    app.dependency_overrides[require_user] = lambda: AuthenticatedUser(
+        id="admin-test", email="admin@example.invalid", role="admin"
+    )
+    response = TestClient(app).get("/api/community/me/access")
+    assert response.status_code == 200
+    assert response.json() == {"role": "admin"}
