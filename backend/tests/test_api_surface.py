@@ -6,6 +6,10 @@ from backend.main import create_app
 def test_new_product_api_surface_and_no_navigation_api():
     openapi = create_app().openapi()
     paths = set(openapi["paths"])
+    assert "/api/validate" not in paths
+    schemas = openapi.get("components", {}).get("schemas", {})
+    assert "ValidationResponse" not in schemas
+    assert "LoocvMetrics" not in schemas
     assert "/api/forecast" in paths
     assert "/api/forecast/surface" in paths
     assert "/api/forecast/stations" not in paths

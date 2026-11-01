@@ -706,9 +706,7 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
     assert search.json()["locations"]
 
     validation = client.get("/api/validate", params={"method": "idw"})
-    assert validation.status_code == 200
-    assert validation.json()["station_count"] > 0
-    assert validation.json()["idw"] is not None
+    assert validation.status_code == 404
 
     weather = client.get("/api/weather", params={"lat": 13.8199, "lon": 100.0622})
     assert weather.status_code == 200

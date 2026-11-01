@@ -252,7 +252,6 @@ previous map layers and viewport.
 | `POST /api/notifications/line/webhook`            | รับ signed webhook จาก LINE Messaging API                             |
 | `GET /api/locations/search?q=`                    | ค้นหาตำบล/อำเภอจาก gazetteer ในระบบ                                   |
 | `GET /api/history`                                | ประวัติรายสถานี                                                       |
-| `GET /api/validate`                               | LOOCV ของ interpolation                                               |
 | `GET /api/cron/sync`                              | Air4Thai → Supabase                                                   |
 | `GET /api/cron/alerts`                            | ตรวจ PM2.5/FIRMS และส่ง LINE แบบ deduplicate                          |
 | `GET /api/cron/forecast-evaluation`               | Settle prediction, aggregate metrics และ drift                        |

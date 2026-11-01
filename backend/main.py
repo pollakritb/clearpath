@@ -40,7 +40,6 @@ from .routers import (
     measurement,
     notifications,
     pm25,
-    validate,
     weather,
 )
 from .services import readiness
@@ -180,7 +179,6 @@ def create_app() -> FastAPI:
     api.include_router(measurement.router, tags=["measurement-requests"])
     api.include_router(notifications.router, tags=["notifications"])
     api.include_router(admin.router, tags=["admin"])
-    api.include_router(validate.router, tags=["validate"])
     api.include_router(cron.router, tags=["cron"])
 
     @api.get("/health", tags=["meta"])

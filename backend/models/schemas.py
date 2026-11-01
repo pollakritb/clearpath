@@ -80,7 +80,6 @@ from .notifications import (
     OperationResponse,
     UserNotification,
 )
-from .validation import LoocvMetrics, ValidationResponse
 
 __all__ = [
     "BonusGPS",
@@ -143,7 +142,6 @@ __all__ = [
     "MapHistoryResponse",
     "LeaderboardEntry",
     "LeaderboardResponse",
-    "LoocvMetrics",
     "LocationSearchResponse",
     "LocationLabelResponse",
     "LocationSuggestion",
@@ -169,7 +167,6 @@ __all__ = [
     "StationsResponse",
     "UserReputation",
     "VerificationMethod",
-    "ValidationResponse",
     "Weather",
 ]
 
