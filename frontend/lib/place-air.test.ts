@@ -31,11 +31,11 @@ const report = {
 } as CommunityReport;
 
 describe("place air assessment", () => {
-  it("uses a 3 km search radius", () => {
-    expect(PLACE_RADIUS_KM).toBe(3);
+  it("uses a 2 km search radius", () => {
+    expect(PLACE_RADIUS_KM).toBe(2);
   });
 
-  it("uses a fresh official station within 3 km and keeps reports supplementary", () => {
+  it("uses a fresh official station within 2 km and keeps reports supplementary", () => {
     const result = assessPlaceAir(
       13.8,
       100.1,
@@ -62,16 +62,16 @@ describe("place air assessment", () => {
     expect(result.stations[0].usable).toBe(false);
   });
 
-  it("excludes outside pins, including a station just beyond the radius", () => {
+  it("excludes stations and reports 2.5 km away that were inside the previous 3 km radius", () => {
     const outside = {
       ...baseStation,
-      lat: 13.8 + (PLACE_RADIUS_KM + 0.1) / 111,
+      lat: 13.8 + 2.5 / 111,
     };
     const result = assessPlaceAir(
       13.8,
       100.1,
       [outside],
-      [{ ...report, lat: 15 }],
+      [{ ...report, lat: outside.lat }],
       new Date("2026-10-05T10:10:00Z"),
     );
     expect(result.value).toBeNull();

@@ -2,7 +2,7 @@ import type { CommunityReport, Station } from "@/frontend/types";
 
 import { haversineKm } from "./distance";
 
-export const PLACE_RADIUS_KM = 3;
+export const PLACE_RADIUS_KM = 2;
 
 export interface NearbyStation {
   station: Station;

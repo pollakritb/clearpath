@@ -93,17 +93,15 @@ it("hides expired and cancelled requests even when selected, and keeps live requ
       status: "fulfilled",
     } as MeasurementRequestView,
   ];
-  expect(visibleMapRequests(rows, now).map((r) => r.id)).toEqual([
-    "r",
-    "completed",
-  ]);
-  expect(visibleMapRequests(rows, now, "old").map((r) => r.id)).toEqual([
-    "r",
-    "completed",
-  ]);
-  expect(
-    visibleMapRequests(rows, now, "cancelled").map((r) => r.id),
-  ).not.toContain("cancelled");
+  expect(visibleMapRequests(rows, now).map((r) => r.id)).toEqual(["r"]);
+  const { rerender } = render(
+    <RequestMarkers requests={rows} now={now} selectedId="completed" />,
+  );
+  expect(screen.getAllByRole("button")).toHaveLength(1);
+  expect(screen.queryByTestId("request-circle")).toBeNull();
+  rerender(<RequestMarkers requests={rows} now={now} selectedId="cancelled" />);
+  expect(screen.getAllByRole("button")).toHaveLength(1);
+  expect(screen.queryByTestId("request-circle")).toBeNull();
   expect(
     requestMapStatus({ ...request, expires_at: "2026-10-29T23:00:00Z" }, now),
   ).toBe("expired");
@@ -111,7 +109,7 @@ it("hides expired and cancelled requests even when selected, and keeps live requ
 
 it("hides a past deadline before the server status changes and activates a due scheduled request", () => {
   const stale = { ...request, expires_at: new Date(now - 1).toISOString() };
-  expect(visibleMapRequests([stale], now, stale.id)).toEqual([]);
+  expect(visibleMapRequests([stale], now)).toEqual([]);
   expect(
     visibleMapRequests([{ ...request, expires_at: "invalid" }], now),
   ).toEqual([]);
@@ -125,7 +123,27 @@ it("hides a past deadline before the server status changes and activates a due s
       now,
     ),
   ).toBe("active");
-  expect(
-    visibleMapRequests([{ ...request, status: "expired" }], now, request.id),
-  ).toEqual([]);
+  expect(visibleMapRequests([{ ...request, status: "expired" }], now)).toEqual(
+    [],
+  );
 });
+
+it.each(["fulfilled", "cancelled", "expired"] as const)(
+  "removes a selected marker and radius as soon as status becomes %s",
+  (status) => {
+    const { rerender } = render(
+      <RequestMarkers requests={[request]} now={now} selectedId={request.id} />,
+    );
+    expect(screen.getByRole("button")).toBeTruthy();
+    expect(screen.getByTestId("request-circle")).toBeTruthy();
+    rerender(
+      <RequestMarkers
+        requests={[{ ...request, status }]}
+        now={now}
+        selectedId={request.id}
+      />,
+    );
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByTestId("request-circle")).toBeNull();
+  },
+);

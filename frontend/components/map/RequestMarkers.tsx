@@ -11,6 +11,7 @@ import type { MeasurementRequestView, RequestStatus } from "@/frontend/types";
 import {
   REQUEST_MARKER_STATES,
   requestMapStatus,
+  visibleMapRequests,
 } from "@/frontend/lib/request-map";
 
 function requestIcon(status: RequestStatus, name: string) {
@@ -37,7 +38,7 @@ export default function RequestMarkers({
 }) {
   return (
     <>
-      {requests.map((row) => {
+      {visibleMapRequests(requests, now).map((row) => {
         const state = requestMapStatus(row, now);
         const selected = selectedId === row.id;
         const place = requestPlaceParts(row.place_name);

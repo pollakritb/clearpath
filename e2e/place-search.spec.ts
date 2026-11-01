@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("place focus shows a compact three-kilometre evidence area and restores the map", async ({
+test("place focus shows a compact two-kilometre evidence area and restores the map", async ({
   page,
 }) => {
   await page.route("**/api/locations/search?*", async (route) => {
@@ -38,7 +38,7 @@ test("place focus shows a compact three-kilometre evidence area and restores the
   await expect(card).toHaveAttribute("data-expanded", "false");
   await expect(card.getByText("สถานที่ทดสอบ")).toBeVisible();
   await expect(card.locator(".cp-place-card__eyebrow")).toContainText(
-    "วง 3 กม.",
+    "วง 2 กม.",
   );
   await expect(page.locator(".cp-place-marker")).toHaveCount(1);
   await expect(
@@ -56,7 +56,7 @@ test("place focus shows a compact three-kilometre evidence area and restores the
     .click();
   await expect(card).toHaveAttribute("data-expanded", "true");
   await expect(card.locator(".cp-place-card__radius")).toContainText(
-    "วง 3 กม.",
+    "วง 2 กม.",
   );
   await expect(
     card.getByRole("link", { name: /ดูพยากรณ์ PM2.5 สำหรับบริเวณนี้/ }),

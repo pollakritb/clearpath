@@ -26,7 +26,6 @@ export function requestMapStatus(
 export function visibleMapRequests(
   rows: MeasurementRequestView[],
   now: number,
-  selectedId?: string | null,
 ) {
   return rows.filter((row) => {
     if (!Number.isFinite(row.lat) || !Number.isFinite(row.lon)) return false;
@@ -39,7 +38,7 @@ export function visibleMapRequests(
       state === "cancelled"
     )
       return false;
-    if (row.id === selectedId) return true;
-    return state === "active" || state === "scheduled" || state === "fulfilled";
+    // Selection and deep links must never keep a completed request on the map.
+    return state === "active" || state === "scheduled";
   });
 }

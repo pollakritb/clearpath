@@ -74,11 +74,7 @@ export default function MapPageClient({
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
     null,
   );
-  const requestRows = visibleMapRequests(
-    requestData.rows,
-    requestData.now,
-    selectedRequestId ?? initialRequestId,
-  );
+  const requestRows = visibleMapRequests(requestData.rows, requestData.now);
   const selectedRequest =
     requestRows.find((row) => row.id === selectedRequestId) ?? null;
   const pm25 = usePm25();
