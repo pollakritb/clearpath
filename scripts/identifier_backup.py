@@ -52,7 +52,9 @@ def capture(
             return r.json()
 
         state = query("select public.identifier_schema_state() as state")[0]["state"]
-        if not state["maintenance"] or state["version"] != (2 if numeric else 1):
+        if not state["maintenance"] or state["version"] not in (
+            (2, 3) if numeric else (1,)
+        ):
             raise ValueError(
                 "capture requires the expected schema and global write pause"
             )
@@ -130,7 +132,7 @@ def capture(
         cross join lateral unnest(c.conkey) with ordinality k(attnum,n)
         join pg_attribute a on a.attrelid=t.oid and a.attnum=k.attnum
         where ns.nspname='public' and c.contype='p' group by t.relname order by t.relname""")
-        if len(keys) != 44:
+        if len(keys) not in (41, 44):
             raise ValueError("unreviewed table inventory")
         with archive.open("xb") as out:
             os.chmod(archive, 0o600)

@@ -30,9 +30,6 @@ begin
   -- Tables/columns are a static allowlist; no caller-supplied SQL identifiers.
   for r in select * from (values
     ('pm25_readings','recorded_at'),
-    ('weather_observations','recorded_at'),
-    ('fire_feature_snapshots','recorded_at'),
-    ('forecast_data_quality_daily','quality_date'),
     ('forecast_provider_snapshots','issued_at'),
     ('sync_runs','started_at'),
     ('rate_limit_windows','window_started_at')

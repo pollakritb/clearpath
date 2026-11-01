@@ -26,7 +26,6 @@ REQUIRED_TABLES = (
     "data_issue_reports",
     "notification_preferences",
     "notification_outbox",
-    "forecast_data_quality_daily",
     "forecast_provider_sync_runs",
     "forecast_provider_snapshots",
 )

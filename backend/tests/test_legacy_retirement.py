@@ -24,6 +24,7 @@ def test_retired_admin_endpoints_do_not_open_database(monkeypatch):
     async def read_retired():
         return [
             await admin.forecast_models(_user=None),
+            await admin.forecast_data_quality(days=7, _user=None),
             await admin.forecast_evaluation(days=14, _user=None),
             await admin.forecast_false_safe_cases(days=30, limit=100, _user=None),
             await admin.forecast_release_decisions(limit=100, _user=None),
@@ -76,7 +77,7 @@ def test_provider_health_uses_retained_cams_tables_only(monkeypatch):
 def test_production_preflight_requires_current_storage():
     assert "forecast_provider_snapshots" in REQUIRED_TABLES
     assert "forecast_provider_sync_runs" in REQUIRED_TABLES
-    assert "forecast_data_quality_daily" in REQUIRED_TABLES
+    assert "forecast_data_quality_daily" not in REQUIRED_TABLES
     assert not {
         "push_subscriptions",
         "forecast_consensus_latest",
@@ -91,3 +92,38 @@ def test_production_preflight_requires_current_storage():
         "forecast_release_decisions",
         "weather_forecasts",
     }.intersection(REQUIRED_TABLES)
+
+
+def test_satellite_hotspot_layer_survives_feature_table_retirement(monkeypatch):
+    from datetime import UTC, datetime
+
+    from backend.routers import firms as firms_router
+    from backend.services import firms
+
+    def forbidden():
+        raise AssertionError("public hotspot layer must not open model feature storage")
+
+    now = datetime.now(UTC).isoformat()
+
+    async def provider(days):
+        assert days == 1
+        return [
+            {
+                "id": "satellite-test",
+                "lat": 13.82,
+                "lon": 100.06,
+                "acquired_at": now,
+                "frp": 5,
+            }
+        ]
+
+    monkeypatch.setattr(supabase_client, "get_client", forbidden)
+    monkeypatch.setattr(firms, "get_fires", provider)
+    response = asyncio.run(firms_router.firms(days=1))
+    assert response.available is True
+    assert response.count == 1
+    assert response.fires[0].id.startswith("firms-")
+    assert response.fires[0].lat == 13.82
+    assert response.fires[0].frp == 5
+    assert response.max_age_hours == 12
+    assert response.source == "nasa_firms"

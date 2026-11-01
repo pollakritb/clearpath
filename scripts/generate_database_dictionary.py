@@ -73,11 +73,11 @@ def generate(
     for c in catalog["columns"]:
         tables.setdefault(c["table_name"], []).append(c)
     if (
-        len(tables) != 44
+        len(tables) not in (41, 44)
         or next(c for c in tables["profiles"] if c["column_name"] == "id")["udt_name"]
         != "int8"
     ):
-        raise ValueError("a verified 44-table numeric catalog is required")
+        raise ValueError("a verified 41/44-table numeric catalog is required")
     constraints = catalog["constraints"]
     clean = not any(c["column_name"].startswith("legacy_") for c in catalog["columns"])
     primary = {
@@ -90,9 +90,9 @@ def generate(
         "",
         f"Schema รุ่น {3 if clean else 2}: PK/FK ของข้อมูลภายในใช้ BIGINT; API ส่ง code เป็น string เช่น `RPT-000001`. "
         + (
-            f"สร้างจาก catalog โปรเจกต์ `{verified_project_ref}` ที่ตรวจสอบแล้ว 44 ตาราง. ดู [การย้ายไปโปรเจกต์ใหม่](../runbooks/fresh-project-2026-11-01.md)."
+            f"สร้างจาก catalog โปรเจกต์ `{verified_project_ref}` ที่ตรวจสอบแล้ว {len(tables)} ตาราง. ดู [การย้ายไปโปรเจกต์ใหม่](../runbooks/fresh-project-2026-11-01.md)."
             if verified_project_ref
-            else "สร้างจาก production catalog ที่ตรวจสอบแล้ว 44 ตาราง."
+            else f"สร้างจาก production catalog ที่ตรวจสอบแล้ว {len(tables)} ตาราง."
             if production_verified
             else "นี่คือ schema เป้าหมายจาก migration ที่ทดสอบแล้ว 44 ตาราง; **ยังไม่ยืนยัน production cutover**. ดู [สถานะ recovery](../runbooks/identifier-cutover-recovery-2026-11-01.md)."
         ),

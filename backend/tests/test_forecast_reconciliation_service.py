@@ -1,83 +1,21 @@
-from __future__ import annotations
+"""Retired quality reconciliation and export must not query removed tables."""
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import date
+from pathlib import Path
 
-from backend.services import forecast_reconciliation
+import pytest
 
-
-def test_reconciliation_deduplicates_issue_hours_and_persists_every_slice(
-    monkeypatch,
-):
-    target = date(2026, 9, 14)
-    recorded_at = datetime(2026, 9, 14, 1, tzinfo=UTC).isoformat()
-    rows = [
-        {
-            "station_id": "station-1",
-            "recorded_at": recorded_at,
-            "source_status": "invalid",
-        },
-        {
-            "station_id": "station-1",
-            "recorded_at": recorded_at,
-            "source_status": "observed",
-        },
-        {"station_id": "station-1", "recorded_at": "invalid"},
-    ]
-    persisted: list[dict] = []
-    monkeypatch.setattr(
-        forecast_reconciliation.supabase_client,
-        "get_stations",
-        lambda: [{"id": "station-1"}, {"id": "station-2"}],
-    )
-    monkeypatch.setattr(
-        forecast_reconciliation.supabase_client,
-        "list_source_quality_rows",
-        lambda _source, _start, _end: rows,
-    )
-    monkeypatch.setattr(
-        forecast_reconciliation.supabase_client,
-        "upsert_forecast_data_quality",
-        lambda output: persisted.extend(output),
-    )
-
-    result = forecast_reconciliation.reconcile_day(target)
-
-    assert result["sources"] == 4
-    assert result["stations"] == 2
-    assert result["rows"] == 8
-    assert result["expected_hours"] == 192
-    assert result["observed_hours"] == 4
-    assert result["invalid_rows"] == 4
-    assert len(persisted) == 8
-    station_two = next(
-        row
-        for row in persisted
-        if row["source_name"] == "pm25" and row["station_id"] == "station-2"
-    )
-    assert station_two["observed_hours"] == 0
-    assert station_two["newest_source_at"] is None
-    assert result["alert_codes"]
+from backend.services import forecast_reconciliation, supabase_client
+from scripts import export_forecast_training
 
 
-def test_future_reconciliation_date_has_zero_expected_hours(monkeypatch):
-    future = datetime.now(UTC).date() + timedelta(days=1)
-    persisted: list[dict] = []
-    monkeypatch.setattr(
-        forecast_reconciliation.supabase_client,
-        "get_stations",
-        lambda: [{"id": "station-1"}],
-    )
-    monkeypatch.setattr(
-        forecast_reconciliation.supabase_client,
-        "list_source_quality_rows",
-        lambda *_args: [],
-    )
-    monkeypatch.setattr(
-        forecast_reconciliation.supabase_client,
-        "upsert_forecast_data_quality",
-        lambda output: persisted.extend(output),
-    )
+def test_retired_quality_and_feature_reads_do_not_open_database(monkeypatch):
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("retired feature storage must not be queried")
 
-    result = forecast_reconciliation.reconcile_day(future)
-    assert result["expected_hours"] == 0
-    assert all(row["missing_hours"] == 0 for row in persisted)
+    monkeypatch.setattr(supabase_client, "get_client", forbidden)
+    result = forecast_reconciliation.reconcile_day(date(2026, 11, 1))
+    assert result == {"status": "retired", "rows": 0, "alert_codes": []}
+    assert supabase_client.get_latest_forecast_features("02t") == {}
+    with pytest.raises(ValueError, match="live_export_retired"):
+        export_forecast_training.export("2026-11-01T00:00:00Z", Path("unused.csv"))

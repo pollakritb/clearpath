@@ -354,4 +354,40 @@ await pg.exec(sql("../backend/tests/fixtures/clean_identifiers_checks.sql"));
 console.log(
   "Clean schema: public legacy columns removed; retry resurrection, moderation and request/outbox RPCs passed.",
 );
+// Retirement must refuse unexpected data and leave unrelated features intact.
+await pg.exec(sql("../supabase/bootstrap/recent_history_retention.sql"));
+await pg.exec(
+  "begin;insert into stations(id,lat,lon) values('retire-test',14,100);insert into weather_observations(station_id,recorded_at,source_at) values('retire-test',now(),now());",
+);
+await assert.rejects(
+  pg.exec(migration("retire_model_feature_storage")),
+  /must_be_empty/,
+);
+await pg.exec("rollback;begin;");
+await pg.exec(migration("retire_model_feature_storage"));
+await pg.exec("commit;");
+assert.equal(
+  (
+    await pg.query(
+      "select count(*) n from information_schema.tables where table_schema='public' and table_type='BASE TABLE'",
+    )
+  ).rows[0].n,
+  41,
+);
+assert(
+  (
+    await pg.query(
+      "select to_regclass('public.cams_grid_frames') is not null and to_regclass('public.forecast_provider_snapshots') is not null and to_regclass('public.community_reports') is not null retained",
+    )
+  ).rows[0].retained,
+);
+assert.equal(
+  (await pg.query("select count(*) n from pg_views where schemaname='review'"))
+    .rows[0].n,
+  41,
+);
+await pg.query("select private.prune_recent_history(1)");
+console.log(
+  "Retired model feature tables: nonempty guard, 41-table inventory, retained CAMS/community and working cleanup passed.",
+);
 await pg.close();

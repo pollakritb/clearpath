@@ -438,10 +438,7 @@ async def forecast_data_quality(
     days: int = Query(7, ge=1, le=31),
     _user: AuthenticatedUser = Depends(require_admin),
 ):
-    rows = await run_in_threadpool(
-        supabase_client.get_forecast_data_quality_summary, days
-    )
-    return {"rows": rows, "count": len(rows), "days": days}
+    return {"rows": [], "count": 0, "days": days, "status": "retired"}
 
 
 @router.get("/admin/forecast-provider-health")
