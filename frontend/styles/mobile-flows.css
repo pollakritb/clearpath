@@ -312,3 +312,86 @@
   > button:last-child {
   grid-column: 1 / -1;
 }
+
+/* Camera mode owns the available viewport so capture controls never scroll away. */
+.cp-app[data-tab="report"]:has(.cp-camera-capture[data-open="true"]) .cp-aside {
+  transform: none;
+  overflow: visible;
+}
+.cp-app[data-tab="report"]:has(.cp-camera-capture[data-open="true"])
+  .cp-aside__body {
+  overflow: visible;
+}
+.cp-app[data-tab="report"]:has(.cp-camera-capture[data-open="true"])
+  .cp-report-flow {
+  animation: none;
+  transform: none;
+}
+.cp-app[data-tab="report"]:has(.cp-camera-capture[data-open="true"]) .cp-header,
+.cp-app[data-tab="report"]:has(.cp-camera-capture[data-open="true"])
+  .cp-mobile-nav {
+  visibility: hidden;
+}
+.cp-app[data-tab="report"] .cp-camera-capture[data-open="true"] {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 10px;
+  padding: max(12px, env(safe-area-inset-top)) 12px
+    max(14px, env(safe-area-inset-bottom));
+  background: #101816;
+  color: white;
+  overflow: hidden;
+}
+.cp-camera-fullscreen-title {
+  padding: 4px 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 650;
+}
+.cp-app
+  .cp-camera-capture[data-open="true"]
+  .cp-camera-preview[data-state="live"] {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  min-height: 0 !important;
+  border-radius: 12px;
+  background: #101816 !important;
+}
+.cp-app .cp-camera-capture[data-open="true"] .cp-camera-preview video {
+  object-fit: contain;
+}
+.cp-app .cp-camera-capture[data-open="true"] .cp-camera-guide {
+  inset: auto;
+  box-shadow: none;
+}
+.cp-app[data-tab="report"]
+  .cp-camera-capture[data-open="true"]
+  .cp-camera-actions {
+  margin: 0;
+  gap: 8px;
+}
+.cp-app[data-tab="report"]
+  .cp-camera-capture[data-open="true"]
+  .cp-camera-actions
+  button {
+  min-height: 48px;
+}
+.cp-app .cp-camera-capture[data-open="true"] .cp-camera-status {
+  margin: 0;
+  color: #d1dfd9;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.cp-mobile-frame:has(.cp-camera-capture[data-open="true"]) .cp-mobile-content {
+  overflow: hidden;
+}
+.cp-app[data-tab="report"]:has(.cp-camera-capture[data-open="true"])
+  .cp-report-step-card {
+  animation: none;
+  transform: none;
+}

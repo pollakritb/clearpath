@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, ApiError } from "@/frontend/lib/api-client";
@@ -42,6 +42,9 @@ export default function CameraCapture({
     selectedAt: string;
   } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [videoSize, setVideoSize] = useState({ width: 3, height: 4 });
+  const [guideStyle, setGuideStyle] = useState<React.CSSProperties>({});
   const streamRef = useRef<MediaStream | null>(null);
   const sessionRef = useRef<{ token: string; issuedAt: string } | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -53,16 +56,16 @@ export default function CameraCapture({
   const [readingGallery, setReadingGallery] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function releaseStream() {
+  const releaseStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
-  }
+  }, []);
 
-  function stopStream() {
+  const stopStream = useCallback(() => {
     releaseStream();
     setCameraOpen(false);
     setCameraReady(false);
-  }
+  }, [releaseStream]);
 
   async function requestCamera(facing: CameraFacing, exact = false) {
     return navigator.mediaDevices.getUserMedia({
@@ -102,6 +105,36 @@ export default function CameraCapture({
       if (preview) URL.revokeObjectURL(preview);
     };
   }, [preview]);
+
+  useEffect(() => {
+    if (!cameraOpen || !stageRef.current) return;
+    const stage = stageRef.current;
+    const fitGuide = () => {
+      const scale = Math.min(
+        stage.clientWidth / videoSize.width,
+        stage.clientHeight / videoSize.height,
+      );
+      const width = videoSize.width * scale;
+      const height = videoSize.height * scale;
+      setGuideStyle({
+        left: (stage.clientWidth - width) / 2 + width * 0.08,
+        top: (stage.clientHeight - height) / 2 + height * 0.25,
+        width: width * 0.84,
+        height: height * 0.5,
+      });
+    };
+    const observer = new ResizeObserver(fitGuide);
+    observer.observe(stage);
+    fitGuide();
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") stopStream();
+    };
+    document.addEventListener("keydown", escape);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("keydown", escape);
+    };
+  }, [cameraOpen, videoSize, stopStream]);
 
   async function startCamera() {
     if (onLoginRequired?.()) return;
@@ -343,8 +376,12 @@ export default function CameraCapture({
   };
 
   return (
-    <div className="cp-camera-capture">
+    <div className="cp-camera-capture" data-open={cameraOpen}>
+      {cameraOpen && (
+        <div className="cp-camera-fullscreen-title">ถ่ายภาพเครื่องวัด</div>
+      )}
       <div
+        ref={stageRef}
         className="cp-camera-preview"
         data-state={cameraOpen ? "live" : preview ? "preview" : "empty"}
         style={{
@@ -362,17 +399,25 @@ export default function CameraCapture({
           autoPlay
           playsInline
           muted
-          onLoadedMetadata={() => setCameraReady(true)}
+          onLoadedMetadata={(event) => {
+            setCameraReady(true);
+            const video = event.currentTarget;
+            if (video.videoWidth && video.videoHeight)
+              setVideoSize({
+                width: video.videoWidth,
+                height: video.videoHeight,
+              });
+          }}
           aria-label="ภาพจากกล้องสำหรับถ่ายหน้าจอเครื่องวัด"
           style={{
             width: "100%",
             height: "100%",
-            objectFit: "cover",
+            objectFit: "contain",
             display: cameraOpen ? "block" : "none",
           }}
         />
         {cameraOpen && (
-          <div className="cp-camera-guide" aria-hidden>
+          <div className="cp-camera-guide" style={guideStyle} aria-hidden>
             <span>วางตัวเลข PM2.5 ให้อยู่ในกรอบ</span>
           </div>
         )}
