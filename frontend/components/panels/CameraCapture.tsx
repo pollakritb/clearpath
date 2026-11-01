@@ -366,7 +366,8 @@ export default function CameraCapture({
           aria-label="ภาพจากกล้องสำหรับถ่ายหน้าจอเครื่องวัด"
           style={{
             width: "100%",
-            maxHeight: "280px",
+            height: "100%",
+            objectFit: "cover",
             display: cameraOpen ? "block" : "none",
           }}
         />
