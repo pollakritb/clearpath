@@ -6,6 +6,7 @@
   project identity, non-secret feature inventory and repeatable evidence record.
 - [Production backlog and dependency map](production-backlog.md) — canonical
   task ordering, completion authority and human-owned blockers.
+- [Readable identifiers](readable-identifiers.md) — expansion rehearsal, readable review views and remaining PK/API cutover work.
 - [Legacy table retirement](legacy-table-retirement-2026-10-30.md) — removal of
   twelve empty legacy tables, backup evidence and production verification.
 - [Backup and restore](backup-restore.md) — mandatory rehearsal before the
