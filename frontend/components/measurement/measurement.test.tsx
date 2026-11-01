@@ -99,11 +99,14 @@ it("lists own and invited requests without location search or creation controls"
   fireEvent.click(screen.getByRole("button", { name: "กลับ" }));
   expect(mocks.back).toHaveBeenCalledOnce();
   await screen.findByText("บริเวณสถานที่ B");
-  expect(screen.getByRole("heading", { name: "คำขอของฉัน" })).toBeTruthy();
   expect(
-    screen.getByRole("heading", { name: "คำขอจากคนอื่นให้ช่วยวัด" }),
-  ).toBeTruthy();
-  expect(screen.getAllByRole("link", { name: "ติดตามคำขอ" })).toHaveLength(2);
+    screen
+      .getByRole("button", { name: "คำขอที่เปิดอยู่" })
+      .getAttribute("aria-pressed"),
+  ).toBe("true");
+  expect(screen.getAllByRole("link", { name: "รายละเอียดคำขอ" })).toHaveLength(
+    2,
+  );
   expect(screen.queryByRole("searchbox")).toBeNull();
   expect(screen.queryByRole("button", { name: "ส่งคำขอ" })).toBeNull();
   expect(mocks.search).not.toHaveBeenCalled();
@@ -120,6 +123,7 @@ it("moves a cancelled request into history and removes its map link", async () =
   mocks.cancel.mockResolvedValue(cancelled);
   render(<RequestsPage />);
   fireEvent.click(await screen.findByRole("button", { name: "ยกเลิกคำขอ" }));
+  fireEvent.click(screen.getByRole("button", { name: "ประวัติคำขอ" }));
   const history = screen.getByRole("region", { name: "ประวัติคำขอ" });
   await waitFor(() =>
     expect(within(history).getByText("ยกเลิกแล้ว")).toBeTruthy(),
@@ -249,7 +253,7 @@ it("allows a helper to decline and links reporting without manual measurement in
     />,
   );
   expect(
-    screen.getByRole("button", { name: "ช่วยวัดคำขอนี้ · +5 XP" }),
+    screen.getByRole("button", { name: "ช่วยรายงานค่าฝุ่น" }),
   ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "ไม่สะดวก" }));
   await waitFor(() => expect(onChanged).toHaveBeenCalled());
@@ -257,16 +261,18 @@ it("allows a helper to decline and links reporting without manual measurement in
   expect(screen.queryByRole("button", { name: "ยกเลิกคำขอ" })).toBeNull();
 });
 
-it("keeps normal help reporting available before XP is activated", () => {
+it("keeps normal help reporting available before XP is activated", async () => {
   render(
     <RequestSummary
       row={{ ...row, is_owner: false, xp_enabled: false }}
       actions
     />,
   );
-  expect(
-    screen.getByRole("link", { name: "ช่วยรายงาน" }).getAttribute("href"),
-  ).toBe("/report?request=request");
+  fireEvent.click(screen.getByRole("button", { name: "ช่วยรายงานค่าฝุ่น" }));
+  await waitFor(() =>
+    expect(mocks.push).toHaveBeenCalledWith("/report?request=request"),
+  );
+  expect(mocks.claim).not.toHaveBeenCalled();
   expect(screen.queryByRole("button", { name: /\+5 XP/ })).toBeNull();
 });
 
@@ -283,9 +289,7 @@ it("records the claim before navigating into camera reporting", async () => {
       actions
     />,
   );
-  fireEvent.click(
-    screen.getByRole("button", { name: "ช่วยวัดคำขอนี้ · +5 XP" }),
-  );
+  fireEvent.click(screen.getByRole("button", { name: "ช่วยรายงานค่าฝุ่น" }));
   expect(mocks.claim).toHaveBeenCalledWith("request");
   expect(mocks.push).not.toHaveBeenCalled();
   finish({

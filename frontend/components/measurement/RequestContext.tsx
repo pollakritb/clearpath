@@ -49,7 +49,7 @@ export default function RequestContext({ requestId }: { requestId: string }) {
             {new Date(row.expires_at).toLocaleString("th-TH")}
           </p>
           {row.xp_enabled && !row.help_claim && row.status === "active" && (
-            <p>โบนัส +5 XP ต้องกด “ช่วยวัดคำขอนี้” ในหน้าคำขอก่อนถ่ายภาพ</p>
+            <p>โบนัส +5 XP ต้องเริ่มจากปุ่ม “ช่วยรายงานค่าฝุ่น” ก่อนถ่ายภาพ</p>
           )}
           {row.help_claim && (
             <p>

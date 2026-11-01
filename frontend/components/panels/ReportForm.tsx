@@ -9,6 +9,7 @@ import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { T } from "@/frontend/lib/ui";
+import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
 import type { ReportLocation } from "@/frontend/types/ui";
 import type {
   ReportCreateResponse,
@@ -55,6 +56,7 @@ export default function ReportForm({
   const [completed, setCompleted] = useState<ReportCreateResponse | null>(null);
   const [hideIdentity, setHideIdentity] = useState(false);
   const auth = useAuth();
+  const googleProfile = googleReporterProfile(auth.user);
   const [participation, setParticipation] = useState<{
     owner: string;
     alias: string;
@@ -482,18 +484,28 @@ export default function ReportForm({
                 >
                   <div className="cp-report-identity-choice__preview">
                     <span aria-hidden>
-                      <AppIcon name="user" size={21} />
+                      {!hideIdentity && googleProfile?.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={googleProfile.avatarUrl}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <AppIcon name="user" size={21} />
+                      )}
                     </span>
                     <div>
                       <strong>
                         {hideIdentity
-                          ? "ไม่เปิดเผยตัวตน"
-                          : (publicAlias ?? "สมาชิก ClearPath")}
+                          ? (publicAlias ?? "นามแฝง ClearPath")
+                          : (googleProfile?.displayName ??
+                            "ชื่อ Google ของคุณ")}
                       </strong>
                       <small>
                         {hideIdentity
-                          ? "ไม่แสดงนามแฝง ยศ หรือลิงก์สมาชิกในรายงานนี้"
-                          : "แสดงเฉพาะนามแฝงและยศ ClearPath ไม่แสดงชื่อ Google"}
+                          ? "แสดงชื่อเล่น โดยไม่เผยชื่อหรือรูป Google และไม่ลิงก์ไปอันดับ"
+                          : "แสดงชื่อและรูป Google บนรายงานและหมุดแผนที่"}
                       </small>
                     </div>
                   </div>
@@ -506,7 +518,7 @@ export default function ReportForm({
                         setHideIdentity(event.target.checked)
                       }
                     />
-                    <span>ปิดบังตัวตนในรายงานนี้</span>
+                    <span>ปิดบังตัวตนในรายงานนี้ · ใช้ชื่อเล่น</span>
                   </label>
                 </div>
               </div>

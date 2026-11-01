@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from threading import RLock
 from time import monotonic
@@ -51,6 +52,7 @@ def rpc(name: str, params: dict):
         if getattr(exc, "message", "") in {
             "request_closed",
             "not_invited",
+            "not_eligible",
             "xp_disabled",
         }:
             raise ValueError("คำขอนี้ไม่เปิดรับผู้ช่วยใหม่") from exc
@@ -69,6 +71,7 @@ def account(user_id: str) -> dict:
                     member_id=member_id,
                     alias=f"สมาชิก CP-{member_id[:8].upper()}",
                     hidden=False,
+                    identity_mode="google",
                 )
             return dict(_ACCOUNTS[user_id])
     try:
@@ -165,6 +168,7 @@ def summary(user_id: str) -> dict | None:
     a = account(user_id)
     t = totals(user_id)
     return {key: a[key] for key in ("member_id", "alias", "hidden")} | dict(
+        identity_mode=a.get("identity_mode", "google"),
         lifetime_xp=t.get("lifetime_xp", 0),
         contribution_days=t.get("days", 0),
         report_count=t.get("reports", 0),
@@ -177,8 +181,13 @@ def summary(user_id: str) -> dict | None:
 
 
 def update_settings(user_id: str, values: dict) -> dict:
-    account(user_id)
-    values = {"alias": values["alias"].strip(), "hidden": values["hidden"]}
+    previous = account(user_id)
+    values = {
+        "alias": values["alias"].strip(),
+        "hidden": values["hidden"],
+        "identity_mode": values.get("identity_mode")
+        or previous.get("identity_mode", "google"),
+    }
     if len(values["alias"]) < 3:
         raise ValueError("นามแฝงต้องมีอย่างน้อย 3 ตัวอักษร")
     if settings.local_demo_mode:
@@ -247,10 +256,17 @@ def board(period: str, offset: int, user_id: str | None = None) -> dict:
             days=t.get("days", 0),
         )
 
+    identities = leaderboard_names(
+        [r["member_id"] for r in rows] + ([me["member_id"]] if me else [])
+    )
+
     def present(r):
         return {
             k: r[k] for k in ("member_id", "alias", "rank", "xp", "lifetime_xp")
-        } | {"title": rank_progress(r["lifetime_xp"], r["days"])}
+        } | {
+            "alias": identities.get(r["member_id"], r["alias"]),
+            "title": rank_progress(r["lifetime_xp"], r["days"]),
+        }
 
     return dict(
         period=period,
@@ -258,6 +274,61 @@ def board(period: str, offset: int, user_id: str | None = None) -> dict:
         me=present(me) if me else None,
         next_offset=offset + 50 if len(rows) > 50 else None,
     )
+
+
+def leaderboard_names(member_ids: list[str]) -> dict[str, str]:
+    """Only the chosen public name; never return Auth IDs or emails."""
+    try:
+        return _leaderboard_names(member_ids)
+    except Exception as exc:
+        raise UpstreamError("โหลดชื่อที่แสดงในอันดับไม่สำเร็จ") from exc
+
+
+def _leaderboard_names(member_ids: list[str]) -> dict[str, str]:
+    if not member_ids:
+        return {}
+    if settings.local_demo_mode:
+        accounts = [a for a in _ACCOUNTS.values() if a["member_id"] in member_ids]
+        profiles = {}
+        for a in accounts:
+            if a.get("identity_mode", "google") == "google":
+                with suppress(KeyError):
+                    profiles[a["user_id"]] = db.get_existing_profile(a["user_id"])
+    else:
+        client = db.get_client()
+        accounts = (
+            client.table("community_xp_accounts")
+            .select("user_id,member_id,alias,identity_mode")
+            .in_("member_id", list(set(member_ids)))
+            .execute()
+            .data
+            or []
+        )
+        ids = [a["user_id"] for a in accounts if a["identity_mode"] == "google"]
+        profiles = (
+            {
+                p["id"]: p
+                for p in (
+                    client.table("profiles")
+                    .select("id,display_name")
+                    .in_("id", ids)
+                    .execute()
+                    .data
+                    or []
+                )
+            }
+            if ids
+            else {}
+        )
+    return {
+        a["member_id"]: (
+            profiles.get(a["user_id"], {}).get("display_name")
+            if a.get("identity_mode", "google") == "google"
+            else None
+        )
+        or a["alias"]
+        for a in accounts
+    }
 
 
 def claim(user_id: str, request_id: str) -> dict:
@@ -467,7 +538,11 @@ def public_identity(user_id: str) -> dict:
         a = account(user_id)
         t = totals(user_id)
         return dict(
-            member_id=None if a["hidden"] else a["member_id"],
+            member_id=(
+                a["member_id"]
+                if not a["hidden"] and a.get("identity_mode", "alias") == "google"
+                else None
+            ),
             alias=a["alias"],
             rank=rank_progress(t.get("lifetime_xp", 0), t.get("days", 0)),
         )
@@ -506,6 +581,7 @@ def public_member(member_id: str) -> dict:
     if not a:
         raise KeyError()
     s = summary(a["user_id"])
+    s["alias"] = leaderboard_names([member_id]).get(member_id, s["alias"])
     return {
         key: s[key]
         for key in (
@@ -603,7 +679,7 @@ def public_identities(rows: list[dict]) -> dict[str, dict]:
         client = db.get_client()
         accounts = (
             client.table("community_xp_accounts")
-            .select("user_id,member_id,alias,hidden")
+            .select("user_id,member_id,alias,hidden,identity_mode")
             .in_("user_id", ids)
             .execute()
             .data
@@ -615,7 +691,11 @@ def public_identities(rows: list[dict]) -> dict[str, dict]:
         by_id = {r["user_id"]: r for r in total_rows}
         return {
             str(a["user_id"]): dict(
-                member_id=None if a["hidden"] else a["member_id"],
+                member_id=(
+                    a["member_id"]
+                    if not a["hidden"] and a.get("identity_mode", "alias") == "google"
+                    else None
+                ),
                 alias=a["alias"],
                 rank=rank_progress(
                     by_id.get(a["user_id"], {}).get("lifetime_xp", 0),

@@ -100,11 +100,7 @@ export default function ReportStackCard({
                 onClick={() => onSelectReport(report)}
               >
                 <span>
-                  <strong>
-                    {report.show_reporter_profile
-                      ? (report.display_name ?? "ผู้รายงาน")
-                      : "ไม่เปิดเผยตัวตน"}
-                  </strong>
+                  <strong>{report.display_name ?? "ไม่เปิดเผยตัวตน"}</strong>
                   {report.show_reporter_profile &&
                     report.participation_rank && (
                       <ParticipationBadge rank={report.participation_rank} />

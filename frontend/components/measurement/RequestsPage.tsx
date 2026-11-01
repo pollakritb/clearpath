@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
+import HelpRequestButton from "./HelpRequestButton";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
@@ -14,10 +14,6 @@ import {
   UNKNOWN_REQUEST_PLACE,
 } from "@/frontend/lib/request-place";
 import type { MeasurementRequestView, RequestStatus } from "@/frontend/types";
-
-const RequestAreaMap = dynamic(() => import("./RequestAreaMap"), {
-  ssr: false,
-});
 
 export const REQUEST_LABELS: Record<RequestStatus, string> = {
   scheduled: "รอถึงเวลาเริ่มขอ",
@@ -43,8 +39,6 @@ export function RequestSummary({
   actions?: boolean;
   onChanged?: (request: MeasurementRequestView) => void;
 }) {
-  const router = useRouter();
-  const [claimDeadline, setClaimDeadline] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => Date.now());
@@ -103,9 +97,6 @@ export function RequestSummary({
       {row.status === "cancelled" && (
         <p>ยกเลิกแล้ว · เก็บไว้ในประวัติและไม่แสดงหมุดบนแผนที่</p>
       )}
-      {actions && active && (
-        <RequestAreaMap lat={row.lat} lon={row.lon} radius={row.radius_km} />
-      )}
       {active && (
         <p>
           {minutesLeft > 0
@@ -147,16 +138,11 @@ export function RequestSummary({
       {row.status === "fulfilled" && !row.result && (
         <p>รายงานที่ตอบคำขอนี้ไม่เปิดเผยแล้ว</p>
       )}
-      {row.status === "active" && (
-        <small>
-          รับเฉพาะรายงานใหม่ที่ผ่านตรวจอัตโนมัติในพื้นที่และช่วงเวลานี้
-          ไม่รับประกันว่าจะมีผู้ตอบ
-        </small>
-      )}
+      <HelpRequestButton request={row} now={now} />
       {!actions ? (
         <div className="cp-measure-actions">
           <Link href={`/requests/${row.id}`} className="cp-measure-link">
-            {active ? "ติดตามคำขอ" : "ดูประวัติคำขอ"}
+            {active ? "รายละเอียดคำขอ" : "ดูประวัติคำขอ"}
           </Link>
           {row.is_owner && active && (
             <button
@@ -171,42 +157,6 @@ export function RequestSummary({
         </div>
       ) : (
         <div className="cp-measure-actions">
-          {!row.is_owner &&
-            (row.status === "active" ||
-              (row.help_claim && Date.parse(row.help_claim.deadline) > now)) &&
-            minutesLeft > 0 &&
-            !row.declined &&
-            (row.xp_enabled ? (
-              <button
-                type="button"
-                className="cp-measure-primary"
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  setError("");
-                  try {
-                    const claim = await api.claimMeasurementHelp(row.id);
-                    setClaimDeadline(claim.deadline);
-                    router.push(`/report?request=${row.id}`);
-                  } catch (e) {
-                    setError(apiErrorMessage(e, "เริ่มช่วยวัดไม่สำเร็จ"));
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                {row.help_claim
-                  ? "วัดต่อจากภารกิจเดิม · +5 XP"
-                  : "ช่วยวัดคำขอนี้ · +5 XP"}
-              </button>
-            ) : (
-              <Link
-                href={`/report?request=${row.id}`}
-                className="cp-measure-primary"
-              >
-                ช่วยรายงาน
-              </Link>
-            ))}
           {!row.is_owner &&
             active &&
             row.matched_location_at &&
@@ -232,12 +182,6 @@ export function RequestSummary({
           {row.declined && <p>คุณเลือกไม่สะดวกช่วยวัดคำขอนี้แล้ว</p>}
         </div>
       )}
-      {claimDeadline && (
-        <p role="status">
-          เริ่มช่วยวัดแล้ว · ส่งก่อน {date(claimDeadline)} ·
-          โบนัสขึ้นกับเงื่อนไข GPS และโควตา
-        </p>
-      )}
       {error && <p role="alert">{error}</p>}
     </article>
   );
@@ -258,29 +202,16 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
     loaded?.account === account && loaded.requestId === requestId
       ? loaded.rows
       : [];
+  const [listTab, setListTab] = useState<"open" | "history">("open");
   const groups = requestId
-    ? [{ label: null, items: rows }]
+    ? [{ label: "รายละเอียดคำขอ", items: rows }]
     : [
         {
-          label: "คำขอของฉัน",
-          items: rows.filter(
-            (row) =>
-              row.is_owner &&
-              (row.status === "active" || row.status === "scheduled"),
-          ),
-        },
-        {
-          label: "คำขอจากคนอื่นให้ช่วยวัด",
-          items: rows.filter(
-            (row) =>
-              !row.is_owner &&
-              (row.status === "active" || row.status === "scheduled"),
-          ),
-        },
-        {
-          label: "ประวัติคำขอ",
-          items: rows.filter(
-            (row) => row.status !== "active" && row.status !== "scheduled",
+          label: listTab === "open" ? "คำขอที่เปิดอยู่" : "ประวัติคำขอ",
+          items: rows.filter((row) =>
+            listTab === "open"
+              ? row.status === "active" || row.status === "scheduled"
+              : row.status !== "active" && row.status !== "scheduled",
           ),
         },
       ];
@@ -343,6 +274,28 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
           </button>
         ) : (
           <>
+            {!requestId && (
+              <div
+                className="cp-xp-periods"
+                role="group"
+                aria-label="รายการคำขอ"
+              >
+                <button
+                  type="button"
+                  aria-pressed={listTab === "open"}
+                  onClick={() => setListTab("open")}
+                >
+                  คำขอที่เปิดอยู่
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={listTab === "history"}
+                  onClick={() => setListTab("history")}
+                >
+                  ประวัติคำขอ
+                </button>
+              </div>
+            )}
             {loading && <p role="status">กำลังโหลดคำขอ…</p>}
             {error && <p role="alert">{error}</p>}
             {groups.map((group) => (
@@ -351,7 +304,6 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
                 className="cp-measure-stack"
                 aria-label={group.label ?? "รายละเอียดคำขอ"}
               >
-                {group.label && <h2>{group.label}</h2>}
                 {group.items.map((row) => (
                   <RequestSummary
                     key={row.id}
@@ -375,13 +327,11 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
                 {!loading && !group.items.length && !error && (
                   <div className="cp-measure-card">
                     <p>
-                      {group.label === "คำขอของฉัน"
-                        ? "ยังไม่มีคำขอของคุณ"
-                        : group.label === "ประวัติคำขอ"
+                      {requestId
+                        ? "ไม่พบคำขอ"
+                        : listTab === "history"
                           ? "ยังไม่มีประวัติคำขอ"
-                          : group.label
-                            ? "ยังไม่มีคำขอที่ยังเปิดอยู่จากคนอื่น"
-                            : "ไม่พบคำขอ"}
+                          : "ยังไม่มีคำขอที่เปิดอยู่"}
                     </p>
                   </div>
                 )}
@@ -389,9 +339,6 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
             ))}
           </>
         )}
-        <Link href="/settings/notifications" className="cp-measure-link">
-          ตั้งค่าการรับคำขอและ LINE
-        </Link>
       </div>
     </UserPageShell>
   );

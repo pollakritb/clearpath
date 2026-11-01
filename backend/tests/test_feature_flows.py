@@ -304,8 +304,8 @@ def test_complete_automatic_review_rating_reward_and_privacy_flow(
     assert public["gps_accuracy_m"] is None
     assert public["ocr_pm25"] is None
     assert public["user_claimed_pm25"] is None
-    assert public["show_reporter_profile"] is True
-    assert public["display_name"].startswith("สมาชิก CP-")
+    assert public["show_reporter_profile"] is False
+    assert public["display_name"] is None
     assert public["user_id"] != reporter.id
     assert public["reporter_avatar_url"] is None
     assert (public["lat"], public["lon"]) != (13.8199, 100.0622)

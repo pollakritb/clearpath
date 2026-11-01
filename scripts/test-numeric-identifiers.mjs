@@ -453,4 +453,40 @@ assert.equal(
 console.log(
   "Single active slot, retries, cancellation/success/expiry release, and uninvited volunteering passed.",
 );
+// Identity defaults preserve existing aliases while new members start with Google.
+await pg.exec(migration("community_identity_preferences"));
+assert.equal(
+  (
+    await pg.query(
+      "select identity_mode from community_xp_accounts where user_id=1",
+    )
+  ).rows[0].identity_mode,
+  "alias",
+);
+await pg.query("insert into auth.users values($1)", [uid(900)]);
+await pg.query("insert into profiles(auth_user_id) values($1)", [uid(900)]);
+await pg.query(
+  "insert into community_xp_accounts(user_id) select id from profiles where auth_user_id=$1",
+  [uid(900)],
+);
+assert.equal(
+  (
+    await pg.query(
+      "select identity_mode from community_xp_accounts where user_id=(select id from profiles where auth_user_id=$1)",
+      [uid(900)],
+    )
+  ).rows[0].identity_mode,
+  "google",
+);
+assert.equal(
+  (
+    await pg.query(
+      "select count(*) n from community_reports where anonymous_alias is not null",
+    )
+  ).rows[0].n,
+  0,
+);
+console.log(
+  "Identity migration: existing aliases preserved, new Google default, anonymous reports not backfilled passed.",
+);
 await pg.close();

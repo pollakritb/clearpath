@@ -500,7 +500,7 @@ export default function MapStatusCard({
                     (report.display_name ?? "สมาชิกชุมชน")
                   )
                 ) : (
-                  "ไม่เปิดเผยตัวตน"
+                  (report.display_name ?? "ไม่เปิดเผยตัวตน")
                 )}
               </strong>
               {showReporterProfile && report.participation_rank && (

@@ -134,7 +134,7 @@ def present_report(
             )
         except Exception:
             # Decoration outages must not roll back an automatic publication or
-            # expose the Google identity as a fallback.
+            # expose any identity beyond the report publication choice.
             identity = {}
     public_token = hmac.new(
         settings.effective_capture_secret.encode(),
@@ -149,18 +149,12 @@ def present_report(
         if include_private_metadata or include_exact_location
         else identity.get("member_id") or public_token,
         "display_name": (
-            identity.get("alias")
-            or (
-                row.get("display_name")
-                if include_private_metadata or include_exact_location
-                else None
-            )
-        )
-        if expose_reporter_identity
-        else None,
+            row.get("display_name")
+            if expose_reporter_identity
+            else row.get("anonymous_alias")
+        ),
         "reporter_avatar_url": row.get("reporter_avatar_url")
         if expose_reporter_identity
-        and (include_private_metadata or include_exact_location)
         else None,
         "show_reporter_profile": show_reporter_profile,
         "lat": lat,

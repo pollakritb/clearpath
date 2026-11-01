@@ -8,9 +8,17 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import RequestMapCard from "./RequestMapCard";
 import type { MeasurementRequestView } from "@/frontend/types";
-const mocks = vi.hoisted(() => ({ cancel: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  cancel: vi.fn(),
+  push: vi.fn(),
+  claim: vi.fn(),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock("@/frontend/lib/api-client", () => ({
-  api: { cancelMeasurementRequest: mocks.cancel },
+  api: {
+    cancelMeasurementRequest: mocks.cancel,
+    claimMeasurementHelp: mocks.claim,
+  },
   apiErrorMessage: (_e: unknown, fallback: string) => fallback,
 }));
 beforeEach(() => vi.clearAllMocks());
@@ -19,6 +27,7 @@ const request = {
   id: "own",
   is_owner: true,
   status: "active",
+  starts_at: "2026-01-01T00:00:00Z",
   place_name: "สถานที่ A",
   radius_km: 3,
   expires_at: "2099-10-30T01:00:00Z",
@@ -69,4 +78,20 @@ it("does not offer to cancel someone else's request", () => {
     />,
   );
   expect(screen.queryByRole("button", { name: "ยกเลิกคำขอ" })).toBeNull();
+});
+
+it("starts help straight from the map and opens reporting once the claim succeeds", async () => {
+  mocks.claim.mockResolvedValue({});
+  render(
+    <RequestMapCard
+      request={{ ...request, is_owner: false, xp_enabled: true }}
+      now={Date.now()}
+      onClose={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "ช่วยรายงานค่าฝุ่น" }));
+  await waitFor(() =>
+    expect(mocks.push).toHaveBeenCalledWith("/report?request=own"),
+  );
+  expect(mocks.claim).toHaveBeenCalledOnce();
 });

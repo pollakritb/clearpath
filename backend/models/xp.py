@@ -19,6 +19,7 @@ class XPSummary(BaseModel):
     member_id: str
     alias: str
     hidden: bool = False
+    identity_mode: Literal["google", "alias"] = "google"
     lifetime_xp: int = 0
     contribution_days: int = 0
     report_count: int = 0
@@ -32,6 +33,7 @@ class XPSummary(BaseModel):
 class XPSettings(BaseModel):
     alias: str = Field(min_length=3, max_length=40, pattern=r"^[\w\u0E00-\u0E7F .-]+$")
     hidden: bool
+    identity_mode: Literal["google", "alias"] | None = None
 
 
 class XPResult(BaseModel):

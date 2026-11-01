@@ -99,7 +99,7 @@ it.each([
       container.querySelector('input:not([type="checkbox"]), textarea, select'),
     ).toBeNull();
     const checkbox = screen.getByRole("checkbox", {
-      name: "ปิดบังตัวตนในรายงานนี้",
+      name: "ปิดบังตัวตนในรายงานนี้ · ใช้ชื่อเล่น",
     }) as HTMLInputElement;
     expect(checkbox.checked).toBe(false);
     for (let click = 0; click < Number(clicks); click += 1)

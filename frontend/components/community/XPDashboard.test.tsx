@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/frontend/components/auth/AuthProvider", () => ({
   useCurrentUserId: () => "test-owner",
+  useAuth: () => ({ user: null }),
 }));
 vi.mock("@/frontend/lib/api-client", () => ({
   api: {
@@ -40,6 +41,7 @@ const summary = {
   member_id: "public-id",
   alias: "สายลม",
   hidden: false,
+  identity_mode: "alias",
   lifetime_xp: 180,
   contribution_days: 4,
   rank,
@@ -86,7 +88,7 @@ it("saves the ClearPath alias and leaderboard opt-out without erasing XP", async
   });
   render(<XPDashboard />);
   await screen.findByText("สายลม");
-  fireEvent.click(screen.getByText("ชื่อและความเป็นส่วนตัว"));
+  fireEvent.click(screen.getByText("ชื่อที่แสดงในอันดับ"));
   fireEvent.change(screen.getByLabelText("นามแฝง ClearPath"), {
     target: { value: "ฟ้าใหม่" },
   });
@@ -98,6 +100,7 @@ it("saves the ClearPath alias and leaderboard opt-out without erasing XP", async
   expect(mocks.settings).toHaveBeenCalledWith({
     alias: "ฟ้าใหม่",
     hidden: true,
+    identity_mode: "alias",
   });
   expect(screen.getByText(/180\/500 XP/)).toBeTruthy();
 });
@@ -165,4 +168,22 @@ it("offers retry instead of leaving a failed leaderboard stuck loading", async (
   expect(screen.queryByText("กำลังโหลดอันดับ…")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "ลองใหม่" }));
   await screen.findByText("ฟ้าใส");
+});
+
+it("lets the member explicitly choose Google for leaderboard identity", async () => {
+  mocks.settings.mockResolvedValue({ ...summary, identity_mode: "google" });
+  render(<XPDashboard />);
+  await screen.findByText("สายลม");
+  fireEvent.click(screen.getByText("ชื่อที่แสดงในอันดับ"));
+  fireEvent.change(screen.getByLabelText("แสดงตัวตนในอันดับและโปรไฟล์ชุมชน"), {
+    target: { value: "google" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "บันทึก" }));
+  await waitFor(() =>
+    expect(mocks.settings).toHaveBeenCalledWith({
+      alias: "สายลม",
+      hidden: false,
+      identity_mode: "google",
+    }),
+  );
 });

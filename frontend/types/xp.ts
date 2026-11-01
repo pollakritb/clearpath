@@ -11,6 +11,7 @@ export interface XPSummary {
   member_id: string;
   alias: string;
   hidden: boolean;
+  identity_mode: "google" | "alias";
   lifetime_xp: number;
   contribution_days: number;
   report_count: number;
@@ -23,6 +24,7 @@ export interface XPSummary {
 export interface XPSettings {
   alias: string;
   hidden: boolean;
+  identity_mode?: "google" | "alias" | null;
 }
 export interface XPResult {
   status: "pending" | "granted" | "not_eligible" | "disabled";

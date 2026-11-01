@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from uuid import NAMESPACE_URL, uuid5
 
@@ -344,14 +345,20 @@ async def submit_draft(
     )
     from . import xp
 
-    if xp.enabled():
-        show_reporter_profile = not bool(values.get("hide_identity", False))
+    anonymous_alias = None
+    if values.get("hide_identity"):
+        anonymous_alias = "สมาชิก ClearPath"
+        if xp.enabled():
+            # Identity/XP decoration must never block an otherwise valid report.
+            with suppress(Exception):
+                anonymous_alias = xp.account(user_id)["alias"]
     report_row = {
         "id": report_id,
         "user_id": user_id,
         "display_name": verified_identity.get("display_name"),
         "reporter_avatar_url": verified_identity.get("avatar_url"),
         "show_reporter_profile": show_reporter_profile,
+        "anonymous_alias": anonymous_alias,
         "lat": draft["exact_lat"],
         "lon": draft["exact_lon"],
         "public_lat": public_lat,

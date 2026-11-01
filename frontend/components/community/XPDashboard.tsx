@@ -1,7 +1,10 @@
 "use client";
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
+import {
+  useAuth,
+  useCurrentUserId,
+} from "@/frontend/components/auth/AuthProvider";
 import { useAccountData } from "@/frontend/hooks/useAccountData";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type {
@@ -9,6 +12,7 @@ import type {
   XPLeaderboard,
   XPSummary,
 } from "@/frontend/types/xp";
+import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
 import ParticipationBadge from "./ParticipationBadge";
 
 type Period = "all" | "7d" | "30d";
@@ -31,6 +35,8 @@ export default function XPDashboard({
   const showBoard = section !== "overview";
   const [period, setPeriod] = useState<Period>("all");
   const currentUserId = useCurrentUserId();
+  const auth = useAuth();
+  const google = googleReporterProfile(auth.user);
   const owner = signedIn ? currentUserId : "guest";
   const summaryQuery = useAccountData<XPSummary | null>(
     owner,
@@ -65,9 +71,12 @@ export default function XPDashboard({
   const [draftSettings, setDraftSettings] = useState<{
     alias: string;
     hidden: boolean;
+    identity_mode: "google" | "alias";
   } | null>(null);
   const alias = draftSettings?.alias ?? summary?.alias ?? "";
   const hidden = draftSettings?.hidden ?? summary?.hidden ?? false;
+  const identityMode =
+    draftSettings?.identity_mode ?? summary?.identity_mode ?? "google";
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -82,7 +91,11 @@ export default function XPDashboard({
     setNotice("");
     setError("");
     try {
-      const s = await api.xpSettings({ alias, hidden });
+      const s = await api.xpSettings({
+        alias,
+        hidden,
+        identity_mode: identityMode,
+      });
       setSummary(s);
       setDraftSettings(null);
       const refreshed = await api.myLeaderboard(period);
@@ -135,7 +148,11 @@ export default function XPDashboard({
       {showProfile && summary && (
         <section className="cp-xp-profile" aria-label="คะแนนและยศของฉัน">
           <span className="cp-xp-eyebrow">การมีส่วนร่วมของคุณ</span>
-          <h2>{summary.alias}</h2>
+          <h2>
+            {summary.identity_mode === "google"
+              ? (google?.displayName ?? summary.alias)
+              : summary.alias}
+          </h2>
           <ParticipationBadge rank={summary.rank} />
           <p className="cp-xp-total">
             {summary.lifetime_xp.toLocaleString()} <small>XP สะสม</small>
@@ -183,7 +200,23 @@ export default function XPDashboard({
             {summary.today_help}/3
           </p>
           <details>
-            <summary>ชื่อและความเป็นส่วนตัว</summary>
+            <summary>ชื่อที่แสดงในอันดับ</summary>
+            <label>
+              แสดงตัวตนในอันดับและโปรไฟล์ชุมชน
+              <select
+                value={identityMode}
+                onChange={(event) =>
+                  setDraftSettings({
+                    alias,
+                    hidden,
+                    identity_mode: event.target.value as "google" | "alias",
+                  })
+                }
+              >
+                <option value="google">ชื่อ Google (ค่าเริ่มต้น)</option>
+                <option value="alias">ปิดบังตัวตน · ใช้ชื่อเล่น</option>
+              </select>
+            </label>
             <label>
               นามแฝง ClearPath
               <input
@@ -191,7 +224,11 @@ export default function XPDashboard({
                 minLength={3}
                 value={alias}
                 onChange={(e) =>
-                  setDraftSettings({ alias: e.target.value, hidden })
+                  setDraftSettings({
+                    alias: e.target.value,
+                    hidden,
+                    identity_mode: identityMode,
+                  })
                 }
                 autoComplete="nickname"
                 aria-describedby="xp-alias-help"
@@ -206,7 +243,11 @@ export default function XPDashboard({
                 type="checkbox"
                 checked={hidden}
                 onChange={(e) =>
-                  setDraftSettings({ alias, hidden: e.target.checked })
+                  setDraftSettings({
+                    alias,
+                    hidden: e.target.checked,
+                    identity_mode: identityMode,
+                  })
                 }
               />
               ซ่อนฉันจากตารางอันดับ
@@ -219,7 +260,8 @@ export default function XPDashboard({
               {saving ? "กำลังบันทึก…" : "บันทึก"}
             </button>
             <p className="cp-xp-note">
-              รายงานนิรนามจะไม่แสดงชื่อ ยศ หรือลิงก์บัญชี แต่ยังได้รับ XP
+              ใช้ชื่อเล่นแล้วจะไม่แสดงชื่อ Google ในอันดับ
+              การปิดบังในแต่ละรายงานเลือกแยกได้ และได้รับ XP เท่าเดิม
             </p>
           </details>
         </section>

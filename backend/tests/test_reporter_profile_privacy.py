@@ -41,7 +41,7 @@ def test_report_submission_defaults_to_visible_identity():
     assert body.hide_identity is False
 
 
-def test_public_report_exposes_opted_in_clearpath_alias(monkeypatch):
+def test_public_report_restores_explicit_google_name_and_avatar(monkeypatch):
     monkeypatch.setattr(xp, "enabled", lambda: True)
     report = present_report(
         _report(show_reporter_profile=True),
@@ -56,8 +56,10 @@ def test_public_report_exposes_opted_in_clearpath_alias(monkeypatch):
     )
 
     assert report["show_reporter_profile"] is True
-    assert report["display_name"].startswith("สมาชิก CP-")
-    assert report["reporter_avatar_url"] is None
+    assert report["display_name"] == "Google Reporter"
+    assert (
+        report["reporter_avatar_url"] == "https://lh3.googleusercontent.com/a/reporter"
+    )
     assert report["user_id"] != "user-1"
     assert report["member_id"]
     assert report["participation_rank"]["label"] == "นักสำรวจอากาศ"
@@ -108,3 +110,16 @@ def test_gap_fill_stops_when_a_fresh_official_station_returns():
     assert with_official["data_role"] == "supplementary"
     assert with_official["eligible_for_gap_fill"] is False
     assert "Air4Thai" in with_official["eligibility_reason"]
+
+
+def test_nickname_report_keeps_google_and_member_link_private(monkeypatch):
+    monkeypatch.setattr(xp, "enabled", lambda: True)
+    row = _report(anonymous_alias="สายลม", show_reporter_profile=False)
+    public = present_report(row, include_image=False)
+    assert public["display_name"] == "สายลม"
+    assert public["reporter_avatar_url"] is None
+    assert public["member_id"] is None
+    assert public["participation_rank"] is None
+    assert public["user_id"] != row["user_id"]
+    assert "Google Reporter" not in str(public)
+    assert "googleusercontent" not in str(public)

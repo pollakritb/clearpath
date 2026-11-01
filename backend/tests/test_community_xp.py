@@ -227,7 +227,7 @@ def test_claim_after_fulfilled_reuses_existing_only(monkeypatch, demo):
         xp.claim("new-helper", "req")
 
 
-def test_xp_outage_keeps_publication_decoration_private(monkeypatch, demo):
+def test_xp_outage_keeps_explicit_google_publication_choice(monkeypatch, demo):
     from backend.core.errors import UpstreamError
     from backend.services.community.presenter import present_report
 
@@ -240,12 +240,12 @@ def test_xp_outage_keeps_publication_decoration_private(monkeypatch, demo):
     )
     presented = present_report(row, include_image=False)
     assert presented["status"] == "approved"
-    assert presented["display_name"] is None
+    assert presented["display_name"] == "Private Google Name"
     assert presented["reporter_avatar_url"] is None
     assert presented["user_id"] != row["user_id"]
 
 
-def test_rollout_control_disables_awards_without_exposing_google(monkeypatch):
+def test_rollout_control_does_not_change_report_identity_choice(monkeypatch):
     from backend.services.community.presenter import present_report
 
     monkeypatch.setattr(xp.settings, "local_demo_mode", False)
@@ -261,5 +261,30 @@ def test_rollout_control_disables_awards_without_exposing_google(monkeypatch):
         report(show_reporter_profile=True, display_name="Private Google Name", pm25=25),
         include_image=False,
     )
-    assert presented["display_name"] is None
+    assert presented["display_name"] == "Private Google Name"
     assert presented["user_id"] != "helper"
+
+
+def test_leaderboard_identity_is_chosen_independently_from_report_identity(
+    monkeypatch, demo
+):
+    a = xp.account("helper")
+    monkeypatch.setattr(
+        xp.db, "get_existing_profile", lambda uid: {"display_name": "Google Member"}
+    )
+    assert xp.leaderboard_names([a["member_id"]])[a["member_id"]] == "Google Member"
+    assert xp.public_identity("helper")["member_id"] == a["member_id"]
+    xp.update_settings(
+        "helper", dict(alias="สายลม", hidden=False, identity_mode="alias")
+    )
+    assert xp.leaderboard_names([a["member_id"]])[a["member_id"]] == "สายลม"
+    assert xp.summary("helper")["identity_mode"] == "alias"
+    assert xp.public_identity("helper")["member_id"] is None
+    # A web page opened before the release must not switch identity implicitly.
+    xp.update_settings("helper", dict(alias="สายลม", hidden=False))
+    assert xp.summary("helper")["identity_mode"] == "alias"
+    xp.update_settings(
+        "helper", dict(alias="สายลม", hidden=False, identity_mode="google")
+    )
+    assert xp.leaderboard_names([a["member_id"]])[a["member_id"]] == "Google Member"
+    assert xp.public_identity("helper")["member_id"] == a["member_id"]

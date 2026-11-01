@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import HelpRequestButton from "./HelpRequestButton";
 import { useState } from "react";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { announceRequestUpdate } from "@/frontend/lib/measurement-events";
@@ -76,11 +77,12 @@ export default function RequestMapCard({
           <strong>{request.result.pm25} µg/m³</strong> · ได้รับรายงานแล้ว
         </p>
       )}
+      <HelpRequestButton request={request} now={now} />
       <Link
         href={`/requests/${request.id}`}
         className="cp-measure-link cp-focus"
       >
-        ดูรายละเอียดและติดตามคำขอ →
+        รายละเอียดคำขอ →
       </Link>
       {request.is_owner &&
         (request.status === "active" || request.status === "scheduled") && (

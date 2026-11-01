@@ -256,9 +256,7 @@ export default function PlaceAirCard({
                 </span>
                 <span className="cp-place-card__source-copy">
                   <strong>
-                    {report.show_reporter_profile
-                      ? (report.display_name ?? "ผู้รายงาน")
-                      : "ผู้รายงานไม่เปิดเผยตัวตน"}
+                    {report.display_name ?? "ผู้รายงานไม่เปิดเผยตัวตน"}
                   </strong>
                   {report.show_reporter_profile &&
                     report.participation_rank && (
