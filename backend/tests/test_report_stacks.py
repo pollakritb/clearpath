@@ -31,7 +31,7 @@ def test_two_nearby_users_get_one_average():
     assert "lat" not in groups[0] and "lon" not in groups[0]
 
 
-def test_repeat_reporter_only_contributes_latest_reading():
+def test_each_eligible_report_contributes_even_from_the_same_account():
     rows = [
         report(
             "old", "alice", 18, captured_at=(NOW - timedelta(minutes=40)).isoformat()
@@ -43,9 +43,9 @@ def test_repeat_reporter_only_contributes_latest_reading():
     assert group["report_count"] == 3
     assert group["reporter_count"] == 2
     assert group["report_ids"][0] in {"new", "bob"}
-    assert group["pm25"] == 23
-    assert group["contributing_count"] == 2
-    assert set(group["contributing_report_ids"]) == {"new", "bob"}
+    assert group["pm25"] == 21.3
+    assert group["contributing_count"] == 3
+    assert set(group["contributing_report_ids"]) == {"old", "new", "bob"}
 
 
 def test_distance_accounts_for_both_gps_accuracy_radii():
@@ -67,7 +67,7 @@ def test_no_chained_groups_beyond_pairwise_limit():
     assert groups[0]["report_count"] == 2
 
 
-def test_older_reports_remain_listed_but_not_averaged():
+def test_map_visible_reports_older_than_sixty_minutes_are_averaged():
     rows = [
         report(
             "a", "alice", 20, captured_at=(NOW - timedelta(minutes=120)).isoformat()
@@ -75,17 +75,17 @@ def test_older_reports_remain_listed_but_not_averaged():
         report("b", "bob", 24, captured_at=(NOW - timedelta(minutes=130)).isoformat()),
     ]
     group = group_report_stacks(rows, now=NOW)[0]
-    assert group["value_status"] == "older"
-    assert group["pm25"] is None
+    assert group["value_status"] == "average"
+    assert group["pm25"] == 22
     assert group["report_count"] == 2
 
 
-def test_disagreeing_readings_have_no_misleading_average():
+def test_different_readings_are_included_without_a_compatibility_gate():
     group = group_report_stacks(
         [report("a", "alice", 20), report("b", "bob", 70)], now=NOW
     )[0]
-    assert group["value_status"] == "mixed"
-    assert group["pm25"] is None
+    assert group["value_status"] == "average"
+    assert group["pm25"] == 45
 
 
 def test_poor_accuracy_can_stack_visually_but_not_affect_average():
@@ -100,15 +100,16 @@ def test_poor_accuracy_can_stack_visually_but_not_affect_average():
     assert group["value_status"] == "older"
 
 
-def test_one_user_never_claims_area_average():
+def test_repeat_reports_are_labelled_as_a_report_average_not_an_area_average():
     rows = [
         report("a", "alice", 20, captured_at=(NOW - timedelta(minutes=25)).isoformat()),
         report("b", "alice", 22),
     ]
     group = group_report_stacks(rows, now=NOW)[0]
-    assert group["value_status"] == "single"
-    assert group["pm25"] == 22
+    assert group["value_status"] == "average"
+    assert group["pm25"] == 21
     assert group["reporter_count"] == 1
+    assert group["contributing_count"] == 2
 
 
 def test_public_stack_uses_only_obfuscated_report_coordinates(monkeypatch):
@@ -134,3 +135,48 @@ def test_public_stack_uses_only_obfuscated_report_coordinates(monkeypatch):
     assert len(stacks) == 1
     assert round(stacks[0]["lat"], 3) == 13.822
     assert round(stacks[0]["lon"], 3) == 100.062
+
+
+def test_audit_metadata_does_not_gate_the_group_mean():
+    rows = [
+        report(
+            "a",
+            "alice",
+            10,
+            measurement_stable=False,
+            measurement_environment="indoor",
+            near_emission_source=True,
+            duplicate_of_report_id="audit-reference",
+        ),
+        report("b", "bob", 34, measurement_stable=False),
+    ]
+    group = group_report_stacks(rows, now=NOW)[0]
+    assert group["pm25"] == 22
+    assert group["value_status"] == "average"
+    assert set(group["contributing_report_ids"]) == {"a", "b"}
+
+
+def test_gps_threshold_is_inclusive_and_excludes_only_the_inaccurate_reading():
+    rows = [
+        report("a", "alice", 10, gps_accuracy_m=50),
+        report("b", "bob", 34, gps_accuracy_m=50.01),
+    ]
+    group = group_report_stacks(rows, now=NOW)[0]
+    assert group["value_status"] == "single"
+    assert group["pm25"] == 10
+    assert group["contributing_report_ids"] == ["a"]
+    assert group["report_count"] == 2
+
+
+def test_map_publication_and_three_hour_lifetime_still_apply():
+    rows = [
+        report("a", "alice", 10),
+        report("b", "bob", 34),
+        report(
+            "old", "other", 500, captured_at=(NOW - timedelta(minutes=181)).isoformat()
+        ),
+        report("rejected", "rejected", 800, status="rejected"),
+    ]
+    group = group_report_stacks(rows, now=NOW)[0]
+    assert group["report_count"] == 2
+    assert group["pm25"] == 22

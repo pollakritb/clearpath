@@ -5,12 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from .community_quality import pm25_values_compatible
 from .distance import haversine_km
 
 STACK_MAX_DISTANCE_M = 300.0
 STACK_MAX_AGE_MINUTES = 180.0
-AVERAGE_MAX_AGE_MINUTES = 60.0
 AVERAGE_MAX_GPS_ACCURACY_M = 50.0
 
 
@@ -49,48 +47,25 @@ def _can_stack(first: dict, second: dict) -> bool:
     )
 
 
-def _reading_status(
-    members: list[dict], now: datetime
-) -> tuple[str, float | None, list[str]]:
-    latest_by_user: dict[str, dict] = {}
-    for row in members:
-        captured = _captured_at(row)
-        accuracy = _accuracy(row)
-        if (
-            captured is None
-            or accuracy is None
-            or accuracy > AVERAGE_MAX_GPS_ACCURACY_M
-        ):
-            continue
-        age_minutes = (now - captured).total_seconds() / 60
-        if not -5 <= age_minutes <= AVERAGE_MAX_AGE_MINUTES:
-            continue
-        if (
-            row.get("measurement_environment", "outdoor") != "outdoor"
-            or not row.get("measurement_stable", True)
-            or row.get("near_emission_source")
-            or row.get("duplicate_of_report_id")
-        ):
-            continue
-        user_id = str(row["user_id"])
-        if user_id not in latest_by_user or captured > _captured_at(
-            latest_by_user[user_id]
-        ):
-            latest_by_user[user_id] = row
+def _reading_status(members: list[dict]) -> tuple[str, float | None, list[str]]:
+    """Among already published/map-visible reports, only GPS gates the mean.
 
-    selected = list(latest_by_user.values())
+    Each eligible report contributes equally, including repeat reports from the
+    same account. Audit flags and differences between readings do not exclude it.
+    """
+    selected = [
+        row
+        for row in members
+        if (accuracy := _accuracy(row)) is not None
+        and accuracy <= AVERAGE_MAX_GPS_ACCURACY_M
+    ]
     selected_ids = [str(row["id"]) for row in selected]
     values = [float(row["pm25"]) for row in selected]
     if not values:
+        # Keep the existing wire status for older clients; the UI explains GPS.
         return "older", None, []
     if len(values) == 1:
         return "single", values[0], selected_ids
-    if any(
-        not pm25_values_compatible(left, right)
-        for index, left in enumerate(values)
-        for right in values[index + 1 :]
-    ):
-        return "mixed", None, selected_ids
     return "average", round(sum(values) / len(values), 1), selected_ids
 
 
@@ -137,7 +112,7 @@ def group_report_stacks(
     for group in groups:
         if len(group) < 2:
             continue
-        status, value, contributing_report_ids = _reading_status(group, checked_at)
+        status, value, contributing_report_ids = _reading_status(group)
         stacks.append(
             {
                 "id": f"stack:{group[0]['id']}",

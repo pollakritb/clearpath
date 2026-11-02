@@ -33,10 +33,10 @@ export default function ReportStackCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const statusText = {
-    average: `ค่าเฉลี่ยจาก ${stack.contributing_count} คนใน 60 นาทีล่าสุด`,
-    single: "ค่าล่าสุดจาก 1 ผู้รายงาน ยังไม่ใช่ค่าเฉลี่ยพื้นที่",
+    average: `ค่าเฉลี่ยจาก ${stack.contributing_count} รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม.`,
+    single: "ค่าจาก 1 รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม.",
     mixed: "ค่ารายงานแตกต่างกัน จึงไม่แสดงค่าเฉลี่ย",
-    older: "ไม่มีค่าที่เข้าเกณฑ์ใน 60 นาทีล่าสุด",
+    older: "ไม่มีรายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม.",
   }[stack.value_status];
   const color = stack.pm25 == null ? "#58716d" : classifyPm25(stack.pm25).color;
   const contributingIds = new Set(stack.contributing_report_ids);
@@ -87,9 +87,9 @@ export default function ReportStackCard({
       {expanded && (
         <>
           <p className="cp-report-stack-card__note">
-            เรียงตามเวลาล่าสุด · ค่าเฉลี่ยใช้ค่าล่าสุดคนละ 1 รายงานที่เข้าเกณฑ์
-            · ข้อมูลจากผู้ใช้เป็นข้อมูลเสริม
-            และหมุดถูกเลื่อนเพื่อความเป็นส่วนตัว
+            เรียงตามเวลาล่าสุด · เฉลี่ยทุกรายงานในกลุ่มที่ GPS
+            คลาดเคลื่อนไม่เกิน 50 ม. รวมรายงานจากคนเดียวกัน ·
+            ข้อมูลจากผู้ใช้เป็นข้อมูลเสริม และหมุดถูกเลื่อนเพื่อความเป็นส่วนตัว
           </p>
           <div className="cp-report-stack-card__list">
             {reports.map((report) => (
