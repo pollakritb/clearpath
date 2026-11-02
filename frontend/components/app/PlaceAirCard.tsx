@@ -2,7 +2,7 @@
 
 import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
 
-import Link from "next/link";
+import MapStationForecast from "./MapStationForecast";
 import { useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -188,6 +188,8 @@ export default function PlaceAirCard({
         คือระยะค้นหาข้อมูล ไม่ใช่พื้นที่ที่ฝุ่นมีค่าเท่ากัน
       </p>
 
+      <MapStationForecast area={{ lat: place.lat, lon: place.lon }} />
+
       <div className="cp-place-card__details">
         <h2 className="cp-place-card__details-title">
           แหล่งข้อมูลในวง {PLACE_RADIUS_KM} กม.
@@ -196,13 +198,6 @@ export default function PlaceAirCard({
           </small>
         </h2>
         <div className="cp-place-card__sources">
-          <Link
-            className="cp-place-card__reset cp-place-card__forecast-link cp-focus"
-            href={`/air?lat=${place.lat.toFixed(2)}&lon=${place.lon.toFixed(2)}&place=${encodeURIComponent(place.name)}`}
-          >
-            ดูพยากรณ์ PM2.5 สำหรับบริเวณนี้
-            <AppIcon name="chevron" size={18} />
-          </Link>
           <h2>
             สถานีตรวจวัด <small>{air.stations.length} แห่งในวง</small>
           </h2>

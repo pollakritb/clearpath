@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 
 import Link from "next/link";
 
+import MapStationHistory from "@/frontend/components/app/MapStationHistory";
 import MapStationForecast from "@/frontend/components/app/MapStationForecast";
 import ReportEngagement from "@/frontend/components/community/ReportEngagement";
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -128,9 +129,6 @@ export default function MapStatusCard({
     ? (station.name_th ?? station.name_en ?? station.id)
     : "";
   const communityArea = report ? formatCommunityArea(report) : "";
-  const href = station
-    ? `/air?station=${encodeURIComponent(station.id)}`
-    : "/community";
   const isDemo = report?.policy_version === "demo-v1";
   const selectionLabel =
     source === "sensor"
@@ -288,7 +286,10 @@ export default function MapStatusCard({
             กลับสู่เวลาปัจจุบันเพื่อดูพยากรณ์ของสถานีนี้
           </p>
         ) : (
-          <MapStationForecast stationId={station.id} />
+          <>
+            <MapStationForecast stationId={station.id} />
+            <MapStationHistory stationId={station.id} />
+          </>
         ))}
 
       {source === "individual" && report && (
@@ -536,16 +537,19 @@ export default function MapStatusCard({
         <ReportEngagement key={report.id} report={report} />
       )}
 
-      <Link href={href} className="cp-map-selection-card__action cp-focus">
-        <span>
-          {source === "official"
-            ? "ดูกราฟย้อนหลังและข้อมูลเพิ่มเติม"
-            : source === "sensor"
+      {!station && (
+        <Link
+          href="/community"
+          className="cp-map-selection-card__action cp-focus"
+        >
+          <span>
+            {source === "sensor"
               ? "ดูสถานีชุมชนในเครือข่าย"
               : "ดูรายงานนี้ในชุมชน"}
-        </span>
-        <AppIcon name="chevron" size={19} />
-      </Link>
+          </span>
+          <AppIcon name="chevron" size={19} />
+        </Link>
+      )}
     </section>
   );
 }

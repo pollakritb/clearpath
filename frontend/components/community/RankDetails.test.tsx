@@ -37,9 +37,9 @@ it("opens the five levels, marks the current rank and restores focus on close", 
   expect(modal.querySelector('[aria-current="step"]')?.textContent).toContain(
     "ผู้รายงานชุมชน",
   );
-  expect(within(modal).getByText("180 XP สะสม")).toBeTruthy();
+  expect(within(modal).getByText("180 คะแนนสะสม")).toBeTruthy();
   expect(
-    within(modal).getByText("อีก 320 XP ถึงยศผู้ร่วมดูแลอากาศ"),
+    within(modal).getByText("อีก 320 คะแนน ถึงยศผู้ร่วมดูแลอากาศ"),
   ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "ปิดรายละเอียดระดับ" }));
   expect(screen.queryByRole("dialog")).toBeNull();

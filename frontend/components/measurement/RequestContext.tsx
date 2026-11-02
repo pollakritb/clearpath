@@ -49,11 +49,13 @@ export default function RequestContext({ requestId }: { requestId: string }) {
             {new Date(row.expires_at).toLocaleString("th-TH")}
           </p>
           {row.xp_enabled && !row.help_claim && row.status === "active" && (
-            <p>โบนัส +5 XP ต้องเริ่มจากปุ่ม “ช่วยรายงานค่าฝุ่น” ก่อนถ่ายภาพ</p>
+            <p>
+              โบนัส +5 คะแนน ต้องเริ่มจากปุ่ม “ช่วยรายงานค่าฝุ่น” ก่อนถ่ายภาพ
+            </p>
           )}
           {row.help_claim && (
             <p>
-              โบนัสช่วยคำขอ +5 XP · ส่งก่อน{" "}
+              โบนัสช่วยคำขอ +5 คะแนน · ส่งก่อน{" "}
               {new Date(row.help_claim.deadline).toLocaleTimeString("th-TH", {
                 hour: "2-digit",
                 minute: "2-digit",

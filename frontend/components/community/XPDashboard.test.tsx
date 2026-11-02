@@ -77,7 +77,7 @@ it("separates lifetime progress from rolling leaderboard filters", async () => {
   expect(await screen.findByText("ฟ้าใส")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "7 วัน" }));
   await waitFor(() => expect(mocks.board).toHaveBeenLastCalledWith("7d"));
-  expect(screen.getByText(/180\/500 XP/)).toBeTruthy();
+  expect(screen.getByText(/180\/500 คะแนน/)).toBeTruthy();
   expect(screen.getByText(/อันดับการมีส่วนร่วม/)).toBeTruthy();
 });
 it("saves the ClearPath alias and leaderboard opt-out without erasing XP", async () => {
@@ -102,7 +102,7 @@ it("saves the ClearPath alias and leaderboard opt-out without erasing XP", async
     hidden: true,
     identity_mode: "alias",
   });
-  expect(screen.getByText(/180\/500 XP/)).toBeTruthy();
+  expect(screen.getByText(/180\/500 คะแนน/)).toBeTruthy();
 });
 it("does not let an older period response replace the currently selected period", async () => {
   let resolveOld: (value: unknown) => void = () => undefined;
@@ -116,7 +116,7 @@ it("does not let an older period response replace the currently selected period"
   render(<XPDashboard />);
   await screen.findByText("สายลม");
   fireEvent.click(screen.getByRole("button", { name: "30 วัน" }));
-  await screen.findByText("ยังไม่มีผลงานที่ได้รับ XP ในช่วงนี้");
+  await screen.findByText("ยังไม่มีผลงานที่ได้รับคะแนน ในช่วงนี้");
   resolveOld({
     period: "all",
     users: [{ member_id: "old", alias: "OLD RESPONSE", xp: 99, title: rank }],
@@ -131,7 +131,7 @@ it("lets guests see public ranks without requesting private XP history", async (
   await screen.findByText("ฟ้าใส");
   expect(mocks.summary).not.toHaveBeenCalled();
   expect(mocks.events).not.toHaveBeenCalled();
-  expect(screen.queryByText("ประวัติ XP ส่วนตัว")).toBeNull();
+  expect(screen.queryByText("ประวัติคะแนนส่วนตัว")).toBeNull();
   expect(screen.queryByText("อันดับของฉัน")).toBeNull();
 });
 
@@ -140,7 +140,7 @@ it("loads personal progress without the leaderboard in the overview", async () =
   await screen.findByText("สายลม");
   expect(mocks.board).not.toHaveBeenCalled();
   expect(screen.queryByRole("region", { name: "อันดับชุมชน" })).toBeNull();
-  expect(screen.getByText("ประวัติ XP ส่วนตัว")).toBeTruthy();
+  expect(screen.getByText("ประวัติคะแนนส่วนตัว")).toBeTruthy();
 });
 
 it("keeps personal history out of the standalone leaderboard section", async () => {
@@ -191,9 +191,9 @@ it("lets the member explicitly choose Google for leaderboard identity", async ()
 it("shows XP-only rank progress even for a member with no contribution days", async () => {
   mocks.summary.mockResolvedValue({ ...summary, contribution_days: 0 });
   render(<XPDashboard section="overview" />);
-  await screen.findByText(/180\/500 XP/);
+  await screen.findByText(/180\/500 คะแนน/);
   expect(
-    screen.getByText("เลื่อนยศตาม XP สะสมเท่านั้น ไม่กำหนดจำนวนวัน"),
+    screen.getByText("เลื่อนยศตามคะแนนสะสมเท่านั้น ไม่กำหนดจำนวนวัน"),
   ).toBeTruthy();
   expect(screen.queryByText(/ผลงาน 0\//)).toBeNull();
 });

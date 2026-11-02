@@ -7788,3 +7788,61 @@
   width: 12px;
   height: 12px;
 }
+
+.cp-map-station-history {
+  min-width: 0;
+  border: 1px solid var(--cp-line);
+  border-radius: 18px;
+  padding: 14px;
+  background: #fff;
+}
+.cp-map-station-history h2 {
+  margin: 0;
+  font-size: 0.84rem;
+}
+.cp-map-station-history [role="alert"] button,
+.cp-map-station-forecast__empty button {
+  min-height: 44px;
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--cp-teal);
+}
+.cp-map-forecast-range {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  min-width: 0;
+}
+.cp-map-forecast-range p {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--cp-ink);
+}
+.cp-map-forecast-range label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.75rem;
+}
+.cp-map-forecast-range select {
+  max-width: 60%;
+  min-height: 44px;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  padding: 8px;
+  background: #fff;
+  color: var(--cp-ink);
+  font: inherit;
+  font-size: 16px;
+}
+.cp-map-forecast-range small {
+  font-size: 0.67rem;
+  color: var(--cp-subink);
+}
+.cp-map-station-forecast__hours {
+  position: relative;
+}

@@ -59,8 +59,9 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
     "วง 2 กม.",
   );
   await expect(
-    card.getByRole("link", { name: /ดูพยากรณ์ PM2.5 สำหรับบริเวณนี้/ }),
-  ).toHaveAttribute("href", /\/air\?lat=13\.82&lon=100\.06/);
+    card.getByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
+  ).toBeVisible();
+  await expect(card.locator('a[href^="/air"]')).toHaveCount(0);
   await expect(
     card.getByRole("heading", { name: "สถานีตรวจวัด" }),
   ).toBeVisible();
@@ -88,14 +89,15 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   const navBounds = await page.locator(".cp-mobile-nav").boundingBox();
   expect(compactBounds).not.toBeNull();
   expect(navBounds).not.toBeNull();
-  expect(compactBounds!.width).toBeGreaterThan(600);
+  expect(compactBounds!.width).toBeGreaterThan(300);
+  expect(compactBounds!.width).toBeLessThanOrEqual(430);
   expect(compactBounds!.y + compactBounds!.height).toBeLessThan(navBounds!.y);
   await page.screenshot({ path: "test-results/place-focus-compact-680.png" });
   await card
     .getByRole("button", { name: /ดูรายละเอียดค่าฝุ่นและแหล่งข้อมูล/ })
     .click();
   await expect(
-    card.getByRole("link", { name: /ดูพยากรณ์ PM2.5/ }),
+    card.getByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
   ).toBeVisible();
 
   await card.getByRole("button", { name: "กลับสู่แผนที่รวม" }).last().click();

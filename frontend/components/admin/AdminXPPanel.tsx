@@ -22,7 +22,7 @@ export default function AdminXPPanel() {
   return (
     <section className="cp-xp">
       <h2>ตรวจสอบคะแนนการมีส่วนร่วม</h2>
-      <p>ดูคะแนน งานค้าง และประวัติการให้ XP</p>
+      <p>ดูคะแนน งานค้าง และประวัติการให้ คะแนน</p>
       {data && (
         <>
           <p>
@@ -30,7 +30,7 @@ export default function AdminXPPanel() {
             คู่ช่วยซ้ำถึงเพดาน {data.repeated_pairs}
           </p>
           <details>
-            <summary>เหตุผลที่ไม่ได้ XP ใน 7 วัน</summary>
+            <summary>เหตุผลที่ไม่ได้คะแนน ใน 7 วัน</summary>
             {Object.entries(data.zero_reasons).map(([key, n]) => (
               <p key={key}>
                 {key}: {n}
@@ -41,7 +41,7 @@ export default function AdminXPPanel() {
             <div key={e.id} className="cp-xp-event">
               <span>
                 <strong>
-                  {e.kind} · {e.points} XP
+                  {e.kind} · {e.points} คะแนน
                 </strong>
                 <small>
                   {e.user_id} · {e.reason} ·{" "}

@@ -38,7 +38,7 @@ export default function MemberProfile({ memberId }: { memberId: string }) {
             <h2>{member.alias}</h2>
             <ParticipationBadge rank={member.rank} />
             <p className="cp-xp-total">
-              {member.lifetime_xp} <small>XP</small>
+              {member.lifetime_xp} <small>คะแนน</small>
             </p>
             <p>มีผลงาน {member.contribution_days} วัน</p>
             <div className="cp-xp-chips">

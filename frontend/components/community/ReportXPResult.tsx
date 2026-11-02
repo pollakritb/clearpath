@@ -67,8 +67,8 @@ export default function ReportXPResult({
         <>
           <strong>
             {result.status === "granted"
-              ? `ได้รับ +${result.report_xp + result.help_xp} XP`
-              : "รายงานบันทึกแล้ว · ไม่ได้รับ XP"}
+              ? `ได้รับ +${result.report_xp + result.help_xp} คะแนน`
+              : "รายงานบันทึกแล้ว · ไม่ได้รับคะแนน"}
           </strong>
           <small>
             {result.report_xp > 0
@@ -86,7 +86,7 @@ export default function ReportXPResult({
         <small>
           {rankUp ? "เลื่อนยศเป็น " : ""}
           {summary.rank.label} · {summary.lifetime_xp}
-          {summary.rank.next_xp ? `/${summary.rank.next_xp}` : ""} XP · ผลงาน{" "}
+          {summary.rank.next_xp ? `/${summary.rank.next_xp}` : ""} คะแนน · ผลงาน{" "}
           {summary.contribution_days} วัน
         </small>
       )}

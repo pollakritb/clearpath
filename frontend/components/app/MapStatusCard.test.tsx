@@ -142,6 +142,12 @@ describe("MapStatusCard", () => {
     expect(
       screen.getByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
     ).not.toBeNull();
+    expect(
+      screen.getByRole("region", {
+        name: "ค่าตรวจวัดสถานีย้อนหลัง 24 ชั่วโมง",
+      }),
+    ).toBeTruthy();
+    expect(document.querySelector('a[href^="/air"]')).toBeNull();
     expect(screen.queryByRole("region", { name: "ผู้รายงาน" })).toBeNull();
     expect(screen.getByText(/Air4Thai · กรมควบคุมมลพิษ/)).not.toBeNull();
   });

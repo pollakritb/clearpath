@@ -273,7 +273,7 @@ it("keeps normal help reporting available before XP is activated", async () => {
     expect(mocks.push).toHaveBeenCalledWith("/report?request=request"),
   );
   expect(mocks.claim).not.toHaveBeenCalled();
-  expect(screen.queryByRole("button", { name: /\+5 XP/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /\+5 คะแนน/ })).toBeNull();
 });
 
 it("records the claim before navigating into camera reporting", async () => {

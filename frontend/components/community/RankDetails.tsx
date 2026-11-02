@@ -82,10 +82,10 @@ export default function RankDetails({
           </header>
           <p>ยศปัจจุบัน: {rank.label}</p>
           <p>
-            <strong>{xp.toLocaleString()} XP สะสม</strong>
+            <strong>{xp.toLocaleString()} คะแนนสะสม</strong>
           </p>
           <p className="cp-xp-note">
-            เลื่อนยศตาม XP สะสมตลอดชีพ ไม่กำหนดจำนวนวัน
+            เลื่อนยศตามคะแนนสะสมตลอดอายุบัญชี ไม่กำหนดจำนวนวัน
           </p>
           <ol className="cp-xp-rank-levels" aria-label="ยศทั้ง 5 ระดับ">
             {LEVELS.map(([code, label, minimum], index) => (
@@ -98,7 +98,7 @@ export default function RankDetails({
                   <ParticipationBadge
                     rank={{ ...rank, code, label, minimum_xp: minimum }}
                   />
-                  <span>{minimum.toLocaleString()} XP</span>
+                  <span>{minimum.toLocaleString()} คะแนน</span>
                 </div>
                 {code === rank.code && <strong>ปัจจุบัน</strong>}
               </li>
@@ -106,7 +106,7 @@ export default function RankDetails({
           </ol>
           <p className="cp-xp-note">
             {rank.next_xp !== null
-              ? `อีก ${Math.max(0, rank.next_xp - xp).toLocaleString()} XP ถึงยศ${rank.next_label}`
+              ? `อีก ${Math.max(0, rank.next_xp - xp).toLocaleString()} คะแนน ถึงยศ${rank.next_label}`
               : "คุณได้รับยศสูงสุดแล้ว"}
           </p>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { useForecast } from "@/frontend/hooks/useForecast";
@@ -11,6 +11,7 @@ import {
   formatForecastTimelineTime,
   formatProviderTime,
 } from "@/frontend/lib/forecast-presentation";
+
 import {
   FORECAST_PAUSED_MESSAGE,
   FORECAST_SYSTEM_PAUSED,
@@ -18,18 +19,28 @@ import {
 
 export default function MapStationForecast({
   stationId,
-}: {
-  stationId: string;
-}) {
+  area,
+}:
+  | { stationId: string; area?: never }
+  | { stationId?: never; area: { lat: number; lon: number } }) {
   const { data, loading, error, load } = useForecast();
   const [selectedAt, setSelectedAt] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
-
+  const timeline = useRef<HTMLDivElement>(null);
+  const areaLat = area?.lat;
+  const areaLon = area?.lon;
+  const target = useMemo(
+    () => stationId ?? { lat: areaLat!, lon: areaLon! },
+    [stationId, areaLat, areaLon],
+  );
   useEffect(() => {
-    if (!FORECAST_SYSTEM_PAUSED) void load(stationId, 120);
-  }, [load, stationId]);
-
-  const current = data?.station_id === stationId ? data : null;
+    if (!FORECAST_SYSTEM_PAUSED) void load(target, 120);
+  }, [load, target]);
+  const matchesTarget = stationId
+    ? data?.station_id === stationId
+    : data?.target_kind === "area" &&
+      data.requested_lat?.toFixed(2) === areaLat?.toFixed(2) &&
+      data.requested_lon?.toFixed(2) === areaLon?.toFixed(2);
+  const current = matchesTarget ? data : null;
   const points = useMemo(
     () =>
       (current?.points ?? [])
@@ -45,6 +56,27 @@ export default function MapStationForecast({
         ),
     [current],
   );
+  const days = useMemo(() => {
+    const unique = new Map<
+      string,
+      { key: string; label: string; first: string }
+    >();
+    for (const point of points) {
+      const at = point.valid_at ?? point.forecast_at;
+      const key = forecastDay(at);
+      if (!unique.has(key))
+        unique.set(key, {
+          key,
+          first: at,
+          label: new Date(at).toLocaleDateString("th-TH", {
+            timeZone: "Asia/Bangkok",
+            day: "numeric",
+            month: "short",
+          }),
+        });
+    }
+    return [...unique.values()];
+  }, [points]);
   const selected =
     points.find(
       (point) => (point.valid_at ?? point.forecast_at) === selectedAt,
@@ -64,7 +96,10 @@ export default function MapStationForecast({
         </span>
         <div>
           <h2>พยากรณ์ PM2.5 รายชั่วโมง</h2>
-          <p>บริเวณสถานี · ไม่ใช่ค่าตรวจวัดจริง</p>
+          <p>
+            {stationId ? "บริเวณสถานี" : "บริเวณที่เลือก"} ·
+            ไม่ใช่ค่าตรวจวัดจริง
+          </p>
         </div>
       </div>
 
@@ -79,10 +114,17 @@ export default function MapStationForecast({
       ) : error ? (
         <p className="cp-map-station-forecast__empty" role="status">
           ยังโหลดพยากรณ์ไม่ได้ · {error}
+          <button
+            type="button"
+            className="cp-focus"
+            onClick={() => void load(target, 120, true)}
+          >
+            ลองใหม่
+          </button>
         </p>
       ) : unavailable ? (
         <p className="cp-map-station-forecast__empty" role="status">
-          ยังไม่มีพยากรณ์สำหรับสถานีนี้
+          ยังไม่มีพยากรณ์สำหรับบริเวณนี้
         </p>
       ) : (
         <>
@@ -109,17 +151,62 @@ export default function MapStationForecast({
               {FORECAST_SOURCE_LABELS[selected.source]}
             </span>
           </div>
+          <div className="cp-map-forecast-range">
+            <p>
+              ข้อมูลครบ {points.length} ช่วงเวลา · ถึง{" "}
+              {formatProviderTime(
+                points[points.length - 1].valid_at ??
+                  points[points.length - 1].forecast_at,
+              )}
+            </p>
+            <label>
+              เลือกวันพยากรณ์
+              <select
+                value={forecastDay(selected.valid_at ?? selected.forecast_at)}
+                onChange={(event) => {
+                  const day = days.find(
+                    (day) => day.key === event.target.value,
+                  );
+                  if (!day) return;
+                  setSelectedAt(day.first);
+                  const button = timeline.current?.querySelector<HTMLElement>(
+                    `[data-day="${day.key}"]`,
+                  );
+                  if (button)
+                    timeline.current?.scrollTo?.({
+                      left: button.offsetLeft,
+                      behavior: window.matchMedia?.(
+                        "(prefers-reduced-motion: reduce)",
+                      ).matches
+                        ? "auto"
+                        : "smooth",
+                    });
+                }}
+              >
+                {days.map((day) => (
+                  <option key={day.key} value={day.key}>
+                    {day.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <small>
+              เลื่อนแถบเพื่อดูทุกชั่วโมง หรือเลือกวันเพื่อข้ามไปช่วงที่ต้องการ
+            </small>
+          </div>
           <div
             className="cp-map-station-forecast__hours"
+            ref={timeline}
             role="group"
             aria-label="เลือกชั่วโมงพยากรณ์"
           >
-            {(showAll ? points : points.slice(0, 6)).map((point) => {
+            {points.map((point) => {
               const validAt = point.valid_at ?? point.forecast_at;
               const slot = formatForecastTimelineTime(validAt);
               return (
                 <button
                   key={validAt}
+                  data-day={forecastDay(validAt)}
                   type="button"
                   className="cp-focus"
                   aria-label={`พยากรณ์ ${formatForecastTime(validAt)} PM2.5 ${point.pm25} ไมโครกรัมต่อลูกบาศก์เมตร`}
@@ -136,20 +223,13 @@ export default function MapStationForecast({
               );
             })}
           </div>
-          {points.length > 6 && (
-            <button
-              type="button"
-              className="cp-map-station-forecast__toggle cp-focus"
-              onClick={() => setShowAll((value) => !value)}
-            >
-              {showAll ? "แสดง 6 ชั่วโมงแรก" : `ดูครบ ${points.length} ชั่วโมง`}
-            </button>
-          )}
           <p className="cp-map-station-forecast__note">
             แหล่งพยากรณ์: {FORECAST_SOURCE_LABELS[selected.source]}
             {current?.fetched_at
               ? ` · ดึงข้อมูล ${formatProviderTime(current.fetched_at)}`
               : ""}
+            <br />
+            ขอพยากรณ์สูงสุด 5 วัน · แสดงถึงเวลาสุดท้ายที่มีในชุดข้อมูล
             <br />
             {selected.source === "openmeteo_cams"
               ? "CAMS เป็นแบบจำลองระดับพื้นที่ ไม่ใช่ค่าที่สถานีจะวัดได้แน่นอน"
@@ -159,4 +239,10 @@ export default function MapStationForecast({
       )}
     </section>
   );
+}
+
+function forecastDay(at: string) {
+  return new Date(Date.parse(at) + 7 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
 }

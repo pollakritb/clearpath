@@ -19,7 +19,7 @@ import RankDetails from "./RankDetails";
 
 type Period = "all" | "7d" | "30d";
 const PERIODS: [Period, string][] = [
-  ["all", "ตลอดชีพ"],
+  ["all", "ทั้งหมด"],
   ["7d", "7 วัน"],
   ["30d", "30 วัน"],
 ];
@@ -186,25 +186,25 @@ export default function XPDashboard({
             </div>
           </div>
           <p className="cp-xp-total">
-            {summary.lifetime_xp.toLocaleString()} <small>XP สะสม</small>
+            {summary.lifetime_xp.toLocaleString()} <small>คะแนนสะสม</small>
           </p>
           {summary.rank.next_xp ? (
             <>
               <progress
-                aria-label="ความคืบหน้า XP ยศถัดไป"
+                aria-label="ความคืบหน้าคะแนนสำหรับยศถัดไป"
                 value={Math.min(summary.lifetime_xp, summary.rank.next_xp)}
                 max={summary.rank.next_xp}
               />
               <p className="cp-xp-note">
                 ยศถัดไป {summary.rank.next_label} · {summary.lifetime_xp}/
-                {summary.rank.next_xp} XP
+                {summary.rank.next_xp} คะแนน
               </p>
             </>
           ) : (
             <p>คุณได้รับยศสูงสุดแล้ว</p>
           )}
           <p className="cp-xp-note">
-            เลื่อนยศตาม XP สะสมเท่านั้น ไม่กำหนดจำนวนวัน
+            เลื่อนยศตามคะแนนสะสมเท่านั้น ไม่กำหนดจำนวนวัน
           </p>
           <div
             className="cp-participation-stats"
@@ -212,7 +212,7 @@ export default function XPDashboard({
           >
             <div>
               <strong>{summary.report_count ?? 0}</strong>
-              <span>รายงานรับ XP</span>
+              <span>รายงานรับคะแนน</span>
             </div>
             <div>
               <strong>{summary.help_count ?? 0}</strong>
@@ -294,7 +294,7 @@ export default function XPDashboard({
             </button>
             <p className="cp-xp-note">
               ใช้ชื่อเล่นแล้วจะไม่แสดงชื่อ Google ในอันดับ
-              การปิดบังในแต่ละรายงานเลือกแยกได้ และได้รับ XP เท่าเดิม
+              การปิดบังในแต่ละรายงานเลือกแยกได้ และได้รับคะแนน เท่าเดิม
             </p>
           </details>
         </section>
@@ -338,7 +338,7 @@ export default function XPDashboard({
                 <p className="cp-xp-self">
                   อันดับของฉัน <strong>{board.me?.rank ?? "—"}</strong>
                   <span>
-                    {board.me?.xp ?? 0} XP
+                    {board.me?.xp ?? 0} คะแนน
                     {summary?.hidden ? " · ซ่อนจากอันดับ" : ""}
                   </span>
                 </p>
@@ -360,14 +360,14 @@ export default function XPDashboard({
                     </Link>
                     <span>
                       {user.xp.toLocaleString()}
-                      <small>XP</small>
+                      <small>คะแนน</small>
                     </span>
                   </li>
                 ))}
               </ol>
               {board.users.length === 0 && (
                 <p className="cp-xp-empty">
-                  ยังไม่มีผลงานที่ได้รับ XP ในช่วงนี้
+                  ยังไม่มีผลงานที่ได้รับคะแนน ในช่วงนี้
                 </p>
               )}
               {board.next_offset !== null && (
@@ -387,12 +387,12 @@ export default function XPDashboard({
         <details>
           <summary>กติกาคะแนน</summary>
           <p>
-            รายงานที่อนุมัติ +10 XP สูงสุด 5 ครั้งต่อวัน · ช่วยคำขอ +5 XP สูงสุด
-            3 ครั้งต่อวัน
+            รายงานที่อนุมัติ +10 คะแนน สูงสุด 5 ครั้งต่อวัน · ช่วยคำขอ +5 คะแนน
+            สูงสุด 3 ครั้งต่อวัน
           </p>
           <p>
-            รายงานที่รับคะแนนห่างกัน 30 นาที · สูงสุด 65 XP ต่อวันตามเวลาไทย ·
-            XP และยศสะสมตลอดชีพ
+            รายงานที่รับคะแนนห่างกัน 30 นาที · สูงสุด 65 คะแนน ต่อวันตามเวลาไทย
+            · คะแนนและยศสะสมตลอดอายุบัญชี
           </p>
           <p>
             โบนัสต้องเริ่มช่วยก่อนถ่าย ภาพใหม่ไม่เกิน 15 นาที GPS
@@ -405,18 +405,18 @@ export default function XPDashboard({
           </p>
           <p>
             ผู้ที่เริ่มช่วยไว้ก่อนคำขอสำเร็จยังส่งได้ถึงเวลาหมดอายุเดิม หรือ 15
-            นาทีหลังสำเร็จ แล้วแต่ว่าเวลาใดถึงก่อน การไม่เข้าเกณฑ์ XP
+            นาทีหลังสำเร็จ แล้วแต่ว่าเวลาใดถึงก่อน การไม่เข้าเกณฑ์คะแนน
             ไม่ปิดกั้นรายงานที่ผ่านระบบตรวจเดิม
           </p>
           <p>
-            ไม่มี XP จากการให้ดาว ไลก์ หรือสร้างคำขอ · ไม่เพิ่มน้ำหนัก Trust
+            ไม่มีคะแนน จากการให้ดาว ไลก์ หรือสร้างคำขอ · ไม่เพิ่มน้ำหนัก Trust
             หรือค่าฝุ่น
           </p>
         </details>
       )}
       {showProfile && signedIn && (
         <details>
-          <summary>ประวัติ XP ส่วนตัว</summary>
+          <summary>ประวัติคะแนนส่วนตัว</summary>
           {events?.events.map((event) => (
             <div className="cp-xp-event" key={event.id}>
               <span>
@@ -434,7 +434,7 @@ export default function XPDashboard({
               </span>
               <b>
                 {event.points > 0 ? "+" : ""}
-                {event.points} XP
+                {event.points} คะแนน
               </b>
             </div>
           ))}
