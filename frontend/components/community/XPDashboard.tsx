@@ -203,9 +203,6 @@ export default function XPDashboard({
           ) : (
             <p>คุณได้รับยศสูงสุดแล้ว</p>
           )}
-          <p className="cp-xp-note">
-            เลื่อนยศตามคะแนนสะสมเท่านั้น ไม่กำหนดจำนวนวัน
-          </p>
           <div
             className="cp-participation-stats"
             aria-label="สรุปการมีส่วนร่วม"

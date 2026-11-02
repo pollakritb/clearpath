@@ -192,8 +192,5 @@ it("shows XP-only rank progress even for a member with no contribution days", as
   mocks.summary.mockResolvedValue({ ...summary, contribution_days: 0 });
   render(<XPDashboard section="overview" />);
   await screen.findByText(/180\/500 คะแนน/);
-  expect(
-    screen.getByText("เลื่อนยศตามคะแนนสะสมเท่านั้น ไม่กำหนดจำนวนวัน"),
-  ).toBeTruthy();
   expect(screen.queryByText(/ผลงาน 0\//)).toBeNull();
 });
