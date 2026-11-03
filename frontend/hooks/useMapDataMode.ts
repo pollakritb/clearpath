@@ -24,6 +24,10 @@ export function useMapDataMode(initialCams = false) {
       setState({ mode: enabled ? "history" : "current", previous: "current" }),
     [],
   );
+  const setMode = useCallback(
+    (mode: MapDataMode) => setState({ mode, previous: "current" }),
+    [],
+  );
   const toggleCams = useCallback(
     () =>
       setState((s) =>
@@ -35,6 +39,7 @@ export function useMapDataMode(initialCams = false) {
   );
   return {
     mode: state.mode,
+    setMode,
     camsEnabled: state.mode === "cams",
     historyEnabled: state.mode === "history",
     setHistoryEnabled,

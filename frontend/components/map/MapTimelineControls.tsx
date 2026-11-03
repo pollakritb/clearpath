@@ -22,6 +22,7 @@ export default function MapTimelineControls({
   extra,
   info,
   endAction,
+  detail,
 }: {
   title: string;
   time: string;
@@ -41,6 +42,7 @@ export default function MapTimelineControls({
   extra?: ReactNode;
   info?: ReactNode;
   endAction?: ReactNode;
+  detail?: ReactNode;
 }) {
   return (
     <section
@@ -73,6 +75,7 @@ export default function MapTimelineControls({
         {extra}
         {info}
       </div>
+      {detail}
       <div className="cp-map-timeline__slider">
         <button
           type="button"

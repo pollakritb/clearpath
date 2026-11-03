@@ -15,6 +15,9 @@ import { useMapDataMode } from "@/frontend/hooks/useMapDataMode";
 import { useCamsPresentation } from "@/frontend/hooks/useCamsPresentation";
 import { useForecastGrid } from "@/frontend/hooks/useForecastGrid";
 import type { ViewportBounds } from "@/frontend/types/ui";
+import StationTimelineControls from "@/frontend/components/map/StationTimelineControls";
+import { gridValue, nearestTime } from "@/frontend/lib/forecast-grid";
+import type { StationTime } from "@/frontend/lib/station-timeline";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import MapRequestPanel from "@/frontend/components/measurement/MapRequestPanel";
 import RequestMapCard from "@/frontend/components/measurement/RequestMapCard";
@@ -107,8 +110,14 @@ export default function MapPageClient({
   const [showIndividualReports, setShowIndividualReports] = useState(true);
   const [showFires, setShowFires] = useState(showFiresInitially);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
-  const { mode, camsEnabled, historyEnabled, setHistoryEnabled, toggleCams } =
-    useMapDataMode(initialCams);
+  const {
+    mode,
+    camsEnabled,
+    historyEnabled,
+    setHistoryEnabled,
+    toggleCams,
+    setMode: setDataMode,
+  } = useMapDataMode(initialCams);
   const [viewport, setViewport] = useState<ViewportBounds | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [camsPoint, setCamsPoint] = useState<{
@@ -414,13 +423,106 @@ export default function MapPageClient({
     selectRequest,
   ]);
 
+  const [historyStation, setHistoryStation] = useState<{
+    id: string;
+    name: string;
+    lat: number;
+    lon: number;
+  } | null>(null);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineAnchor, setTimelineAnchor] = useState(
+    () => Math.floor(Date.now() / 3600000) * 3600000,
+  );
+  const [timelineTime, setTimelineTime] = useState<StationTime>({
+    kind: "current",
+  });
+  const selectStationTime = useCallback(
+    (next: StationTime) => {
+      setTimelineTime(next);
+      if (next.kind === "history") setHistoryOffsetHours(next.hours);
+      setDataMode(
+        next.kind === "forecast"
+          ? "cams"
+          : next.kind === "history"
+            ? "history"
+            : "current",
+      );
+    },
+    [setHistoryOffsetHours, setDataMode],
+  );
+  const {
+    times: camsTimes,
+    requestedAt: camsRequestedAt,
+    select: selectCamsTime,
+  } = cams;
+  useEffect(() => {
+    if (!timelineOpen || timelineTime.kind !== "forecast" || !camsTimes.length)
+      return;
+    const at = nearestTime(camsTimes, timelineTime.at);
+    const frame = requestAnimationFrame(() => {
+      if (at && at !== timelineTime.at)
+        setTimelineTime({ kind: "forecast", at });
+      else if (camsRequestedAt !== timelineTime.at)
+        selectCamsTime(timelineTime.at);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [timelineOpen, timelineTime, camsTimes, camsRequestedAt, selectCamsTime]);
+  const forecastTimeError =
+    cams.error ??
+    (cams.noFrame || cams.unavailable
+      ? "ไม่มีข้อมูลพยากรณ์ในเวลาที่เลือก"
+      : null);
+  const timelineLoading =
+    timelineTime.kind === "history"
+      ? mapHistory.loading
+      : timelineTime.kind === "forecast"
+        ? !forecastTimeError &&
+          (cams.loading ||
+            !!cams.pendingAt ||
+            cams.surface?.validAt !== timelineTime.at)
+        : pm25.loading;
+  const timelineError =
+    timelineTime.kind === "history"
+      ? mapHistory.error
+      : timelineTime.kind === "forecast"
+        ? forecastTimeError
+        : pm25.error;
+  const timelineStation = historyStation
+    ? {
+        ...historyStation,
+        pm25:
+          timelineTime.kind === "forecast"
+            ? cams.surface?.validAt === timelineTime.at
+              ? gridValue(cams.surface, historyStation.lat, historyStation.lon)
+              : null
+            : ((timelineTime.kind === "history"
+                ? mapHistory.stations
+                : pm25.stations
+              ).find((station) => station.id === historyStation.id)?.pm25 ??
+              null),
+      }
+    : null;
+  const closeStationTime = () => {
+    setTimelineOpen(false);
+    setHistoryStation(null);
+    setTimelineTime({ kind: "current" });
+    setDataMode("current");
+    pauseCams();
+  };
+
   const map = (
     <main className="cp-map" data-mode={mode}>
       <MapView
         dataMode={mode}
         camsSurface={camsEnabled ? cams.surface : null}
         camsPreload={camsEnabled ? cams.preloadSurfaces : undefined}
-        camsPoint={camsEnabled && requestStep === "idle" ? camsPoint : null}
+        camsPoint={
+          camsEnabled && requestStep === "idle"
+            ? timelineOpen && historyStation
+              ? historyStation
+              : camsPoint
+            : null
+        }
         onViewportChange={setViewport}
         stations={mapStations}
         heatmapPoint={heatmapPoint}
@@ -531,7 +633,9 @@ export default function MapPageClient({
         onSelectStation={selectStation}
         onSelectReport={selectReport}
         onSelectReportStack={selectStack}
-        selectedStationId={selectedStation?.id}
+        selectedStationId={
+          selectedStation?.id ?? (timelineOpen ? historyStation?.id : undefined)
+        }
         selectedReportId={selectedReport?.id}
         selectedReportStackId={selectedStack?.id}
         onLocate={(lat, lon, accuracy = 0) => {
@@ -565,7 +669,11 @@ export default function MapPageClient({
       )}
       <MapChrome
         camsEnabled={camsEnabled}
-        onToggleCams={changeCams}
+        onToggleCams={() => {
+          setTimelineOpen(false);
+          setHistoryStation(null);
+          changeCams();
+        }}
         onPanelChange={onPanelChange}
         viewMode={viewMode}
         stationCount={visibleStations.length}
@@ -685,6 +793,22 @@ export default function MapPageClient({
           onReselect={() => setRequestStep("pick")}
           onClose={() => setRequestStep("idle")}
         />
+      ) : timelineOpen &&
+        !selectedStation &&
+        !selectedReport &&
+        !selectedRequest ? (
+        <StationTimelineControls
+          time={timelineTime}
+          observedAt={mapHistory.targetAt}
+          anchor={timelineAnchor}
+          futureTimes={cams.times}
+          station={timelineStation}
+          loading={timelineLoading}
+          error={timelineError}
+          paused={!active || panelOpen}
+          onSelect={selectStationTime}
+          onClose={closeStationTime}
+        />
       ) : selectedRequest && !camsEnabled ? (
         <RequestMapCard
           request={selectedRequest}
@@ -789,14 +913,32 @@ export default function MapPageClient({
           updatedAt={pm25.updatedAt}
           historicalAt={historyEnabled ? mapHistory.targetAt : null}
           onOpenHistory={
-            historyEnabled || selectedPlace
-              ? undefined
-              : () => {
-                  setHistoryAnchor(Date.now());
-                  setHistoryEnabled(true);
+            selectedStation || (!historyEnabled && !selectedPlace)
+              ? () => {
+                  setHistoryStation(
+                    selectedStation
+                      ? {
+                          id: selectedStation.id,
+                          name:
+                            selectedStation.name_th ??
+                            selectedStation.name_en ??
+                            selectedStation.id,
+                          lat: selectedStation.lat,
+                          lon: selectedStation.lon,
+                        }
+                      : null,
+                  );
+                  const anchor = Math.floor(Date.now() / 3600000) * 3600000;
+                  setTimelineAnchor(anchor);
+                  setHistoryAnchor(anchor);
+                  setTimelineOpen(true);
+                  selectStationTime({ kind: "current" });
                   setSelectedStation(null);
                   setSelectedReport(null);
+                  setSelectedPlace(null);
+                  setSelectedStackId(null);
                 }
+              : undefined
           }
           onClose={() => {
             setSelectedStation(null);

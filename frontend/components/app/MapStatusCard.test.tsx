@@ -8,9 +8,9 @@ vi.mock("@/frontend/components/community/ReportEngagement", () => ({
   default: () => null,
 }));
 
-describe("MapStatusCard", () => {
-  afterEach(cleanup);
+afterEach(cleanup);
 
+describe("MapStatusCard", () => {
   it("shows a compact current-data dock on the map", () => {
     render(
       <MapStatusCard
@@ -115,50 +115,33 @@ describe("MapStatusCard", () => {
     expect(screen.queryByRole("region", { name: "ผู้รายงาน" })).toBeNull();
   });
 
-  it("keeps station attribution separate from user reports", () => {
-    const station = {
-      id: "103t",
-      name_th: "สถานีตัวอย่าง",
-      pm25: 24,
-      recorded_at: "2026-09-20T01:00:00Z",
-      data_status: "fresh",
-    } as Station;
-
+  it("shows complete station identity on the pin without an expanded details screen", () => {
     render(
       <MapStatusCard
-        station={station}
+        station={
+          {
+            id: "85t",
+            name_th: "สนามกีฬากลางจังหวัดสุพรรณบุรี",
+            province: "ต.ดอนกำยาน อ.เมือง สุพรรณบุรี",
+            pm25: 17.6,
+          } as Station
+        }
         report={null}
-        updatedAt="2026-09-20T01:00:00Z"
+        updatedAt={null}
         onClose={vi.fn()}
       />,
     );
-
-    expect(screen.queryByText("ค่าตรวจวัดของสถานี")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "ดูรายละเอียดสถานี" }));
-    expect(screen.getByText("ค่าตรวจวัดของสถานี")).not.toBeNull();
+    expect(screen.getByText("สนามกีฬากลางจังหวัดสุพรรณบุรี")).toBeTruthy();
     expect(
-      screen.getByRole("region", { name: "ที่มาข้อมูลสถานี" }),
-    ).not.toBeNull();
-    expect(
-      screen.getByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
-    ).not.toBeNull();
-    expect(
-      screen.queryByRole("region", {
-        name: "ค่าตรวจวัดสถานีย้อนหลัง 24 ชั่วโมง",
-      }),
-    ).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "ย้อนหลัง 24 ชม." }));
-    expect(
-      screen.getByRole("region", {
-        name: "ค่าตรวจวัดสถานีย้อนหลัง 24 ชั่วโมง",
-      }),
+      screen.getByText(/ต.ดอนกำยาน อ.เมือง สุพรรณบุรี · รหัสสถานี 85t/),
     ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "ดูรายละเอียดสถานี" }),
+    ).toBeNull();
     expect(
       screen.queryByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
     ).toBeNull();
     expect(document.querySelector('a[href^="/air"]')).toBeNull();
-    expect(screen.queryByRole("region", { name: "ผู้รายงาน" })).toBeNull();
-    expect(screen.getByText(/Air4Thai · กรมควบคุมมลพิษ/)).not.toBeNull();
   });
 });
 
@@ -204,47 +187,26 @@ it.each([true, false])(
   },
 );
 
-it("keeps history inside station details instead of the compact pin", () => {
-  const openMapHistory = vi.fn();
+it("opens the existing map timeline from the top corner of a station pin", () => {
+  const open = vi.fn();
   render(
     <MapStatusCard
       station={
-        {
-          id: "81t",
-          name_th: "สถานีตัวอย่าง",
-          pm25: 22.5,
-          recorded_at: "2026-11-03T07:00:00Z",
-        } as Station
+        { id: "81t", name_th: "อ่างเก็บน้ำประปา", pm25: 22.5 } as Station
       }
       report={null}
       updatedAt={null}
       onClose={vi.fn()}
-      onOpenHistory={openMapHistory}
+      onOpenHistory={open}
     />,
   );
-  expect(screen.queryByRole("button", { name: "ย้อนหลัง 24 ชม." })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "ดูรายละเอียดสถานี" }));
-  fireEvent.click(screen.getByRole("button", { name: "ย้อนหลัง 24 ชม." }));
-  expect(
-    screen.getByRole("region", { name: "ค่าตรวจวัดสถานีย้อนหลัง 24 ชั่วโมง" }),
-  ).toBeTruthy();
-  expect(
-    screen.queryByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
-  ).toBeNull();
-  expect(openMapHistory).not.toHaveBeenCalled();
-  expect(document.querySelector('a[href^="/air"]')).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "ภาพรวม" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "ดูย้อนหลังและพยากรณ์ของสถานีนี้" }),
+  );
+  expect(open).toHaveBeenCalledOnce();
   expect(
     screen.queryByRole("region", {
       name: "ค่าตรวจวัดสถานีย้อนหลัง 24 ชั่วโมง",
     }),
   ).toBeNull();
-  expect(
-    screen.getByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
-  ).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: /กลับไปแผนที่/ }));
-  expect(screen.queryByRole("button", { name: "ย้อนหลัง 24 ชม." })).toBeNull();
-  expect(
-    screen.getByRole("button", { name: "ดูรายละเอียดสถานี" }),
-  ).toBeTruthy();
 });

@@ -1,52 +1,116 @@
 import { expect, test } from "@playwright/test";
 
-test("historical map timeline is usable on mobile", async ({ page }) => {
+test("station time slider switches measured history, now and CAMS forecast on mobile", async ({
+  page,
+}) => {
+  const anchor = Math.floor(Date.now() / 3600000) * 3600000;
+  const times = Array.from({ length: 120 }, (_, i) =>
+    new Date(anchor + i * 3600000).toISOString(),
+  );
+  await page.route("**/api/forecast-grid/metadata", (route) =>
+    route.fulfill({
+      json: {
+        status: "ready",
+        generation_id: "CGN-000001",
+        grid_version: "cams-global-0.4-th-v1",
+        latitudes: Array.from({ length: 44 }, (_, i) => 4.4 + i * 0.4),
+        longitudes: Array.from({ length: 26 }, (_, i) => 96.4 + i * 0.4),
+        valid_times: times,
+        retrieved_at: new Date(anchor).toISOString(),
+        stale: false,
+      },
+    }),
+  );
+  await page.route("**/api/forecast-grid/frames?*", (route) => {
+    const q = new URL(route.request().url()).searchParams;
+    const start = Date.parse(q.get("start")!),
+      end = Date.parse(q.get("end")!);
+    return route.fulfill({
+      json: {
+        generation_id: "CGN-000001",
+        grid_version: "cams-global-0.4-th-v1",
+        row_start: 0,
+        column_start: 0,
+        rows: 44,
+        columns: 26,
+        frames: times
+          .filter((at) => Date.parse(at) >= start && Date.parse(at) <= end)
+          .map((at) => ({ valid_at: at, values: Array(1144).fill(31) })),
+      },
+    });
+  });
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "ย้อนหลัง" })).toBeVisible();
-
-  await page.getByRole("button", { name: "ย้อนหลัง" }).click();
-  const historyDock = page.getByRole("region", {
-    name: "ดูค่าฝุ่นย้อนหลัง",
+  await page.getByRole("button", { name: "ย้อนหลัง", exact: true }).click();
+  const timeline = page.getByRole("region", {
+    name: "ย้อนหลัง / พยากรณ์",
+    exact: true,
   });
-  const timeline = historyDock.getByRole("slider", {
-    name: "เลือกชั่วโมงย้อนหลัง",
+  const slider = timeline.getByRole("slider", {
+    name: "เลือกเวลาตรวจวัดและพยากรณ์",
   });
-  await expect(timeline).toBeVisible();
-  await expect(
-    historyDock.getByText(/Air4Thai · ย้อนหลัง 1 ชม\./),
-  ).toBeVisible();
-  await expect(historyDock.getByText(/\d+ สถานี/)).toBeVisible();
-
-  await timeline.fill("18");
-  await expect(
-    historyDock.getByText(/Air4Thai · ย้อนหลัง 6 ชม\./),
-  ).toBeVisible();
-
-  const dimensions = await page.evaluate(() => ({
-    viewport: window.innerWidth,
-    document: document.documentElement.scrollWidth,
-  }));
-  expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
-
+  await expect(slider).toHaveAttribute("aria-valuetext", "ตอนนี้ · Air4Thai");
+  await expect(slider).toHaveAttribute("max", "238");
+  await slider.press("ArrowLeft");
+  await expect(slider).toHaveAttribute(
+    "aria-valuetext",
+    "ย้อนหลัง 1 ชั่วโมง · Air4Thai",
+  );
+  await expect(page.locator("main.cp-map")).toHaveAttribute(
+    "data-mode",
+    "history",
+  );
   const markers = page.locator(".cp-marker--station");
   await expect(markers.first()).toBeVisible();
   const markerIndex = await markers.evaluateAll((elements) =>
     elements.findIndex((element) => {
       const bounds = element.getBoundingClientRect();
-      const x = bounds.left + bounds.width / 2;
-      const y = bounds.top + bounds.height / 2;
-      const top = document.elementFromPoint(x, y);
-      return top === element || element.contains(top);
+      const top = document.elementFromPoint(
+        bounds.left + bounds.width / 2,
+        bounds.top + bounds.height / 2,
+      );
+      return top === element || (top !== null && element.contains(top));
     }),
   );
   expect(markerIndex).toBeGreaterThanOrEqual(0);
-  const station = markers.nth(markerIndex);
-  await expect(station).toBeVisible();
-  await station.click();
-  await page.getByRole("button", { name: "ดูรายละเอียดสถานี" }).click();
-  await expect(page.getByText("ค่าตรวจวัดย้อนหลัง").last()).toBeVisible();
-
-  await page.getByRole("button", { name: "ปิดรายละเอียดจุดบนแผนที่" }).click();
-  await page.getByRole("button", { name: "ตอนนี้" }).click();
+  await markers.nth(markerIndex).click();
+  const pin = page.getByRole("region", {
+    name: "รายละเอียดสถานีตรวจวัดทางการ",
+    exact: true,
+  });
+  await expect(pin.locator(".cp-pin-station-meta")).toContainText("รหัสสถานี");
+  await expect(
+    pin.getByRole("button", { name: "ดูรายละเอียดสถานี" }),
+  ).toHaveCount(0);
+  await pin
+    .getByRole("button", { name: "ดูย้อนหลังและพยากรณ์ของสถานีนี้" })
+    .click();
+  await expect(slider).toHaveAttribute("aria-valuetext", "ตอนนี้ · Air4Thai");
+  await expect(
+    timeline.getByRole("region", { name: "สถานีที่ติดตามตามเวลา" }),
+  ).toBeVisible();
+  await slider.press("ArrowRight");
+  await expect(page.locator("main.cp-map")).toHaveAttribute(
+    "data-mode",
+    "cams",
+  );
+  await expect(timeline.getByRole("status")).toHaveText("CAMS · ค่าพยากรณ์");
+  await expect(timeline.locator(".cp-history-station b")).toHaveText("31");
+  await slider.press("ArrowLeft");
+  await expect(page.locator("main.cp-map")).toHaveAttribute(
+    "data-mode",
+    "current",
+  );
+  await expect(slider).toHaveAttribute("aria-valuetext", "ตอนนี้ · Air4Thai");
+  await slider.fill("0");
+  await expect(slider).toHaveAttribute(
+    "aria-valuetext",
+    "ย้อนหลัง 24 ชั่วโมง · Air4Thai",
+  );
+  const dimensions = await page.evaluate(() => ({
+    viewport: innerWidth,
+    document: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
+  await timeline.getByRole("button", { name: "ปิดแถบเวลา" }).click();
   await expect(page.getByText("ค่าฝุ่นปัจจุบัน")).toBeVisible();
 });

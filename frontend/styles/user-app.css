@@ -7885,3 +7885,114 @@
 .cp-request-location-marker.leaflet-marker-draggable:active {
   cursor: grabbing;
 }
+
+.cp-pin-history-shortcut {
+  position: absolute;
+  top: 11px;
+  right: 59px;
+  min-height: 44px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #c4dfda;
+  border-radius: 11px;
+  background: #f0f8f6;
+  color: var(--cp-teal);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.cp-history-station {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 13px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--cp-line);
+  border-radius: 13px;
+  background: var(--cp-history-tint);
+}
+.cp-history-station > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.cp-history-station small {
+  color: var(--cp-subink);
+  font-size: 0.65rem;
+}
+.cp-history-station strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+.cp-history-station p {
+  display: grid;
+  justify-items: end;
+  flex: none;
+  margin: 0;
+}
+.cp-history-station b {
+  color: var(--cp-history-color);
+  font: 800 1.5rem/1.2 var(--font-mono);
+}
+
+.cp-map-selection-card[data-source="official"] .cp-map-compact-heading h1 {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  padding-right: 0;
+}
+.cp-pin-station-meta {
+  margin: 4px 0 0;
+  color: var(--cp-subink);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+.cp-pin-history-shortcut {
+  font-size: 0.65rem;
+  gap: 4px;
+  padding: 7px;
+}
+.cp-station-time-close {
+  min-width: 36px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--cp-subink);
+}
+.cp-station-time-now {
+  margin: -3px 13px -6px 65px;
+  display: flex;
+  justify-content: center;
+}
+.cp-station-time-now span {
+  min-height: 28px;
+  padding: 3px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--cp-teal);
+  font: inherit;
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+.cp-station-time-panel .cp-map-timeline__ends span {
+  max-width: 48%;
+  line-height: 1.35;
+}
+.cp-station-time-panel .cp-map-timeline__ends span:last-child {
+  text-align: right;
+}
+
+.cp-station-time-panel .cp-map-history-dock__heading {
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  gap: 6px;
+}
