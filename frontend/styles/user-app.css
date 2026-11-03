@@ -7877,3 +7877,11 @@
   border-color: #b7d6d0;
   color: var(--cp-teal);
 }
+
+.cp-request-location-marker.leaflet-marker-draggable {
+  cursor: grab;
+  touch-action: none;
+}
+.cp-request-location-marker.leaflet-marker-draggable:active {
+  cursor: grabbing;
+}

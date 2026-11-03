@@ -2,6 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { useState } from "react";
 import {
   Circle,
   CircleMarker,
@@ -28,6 +29,7 @@ import type {
 import type { MapFocusPoint, ViewportBounds } from "@/frontend/types/ui";
 
 import CamsCanvasLayer from "./CamsCanvasLayer";
+import RequestLocationMarker from "./RequestLocationMarker";
 import type { GridSurface } from "@/frontend/types/ui";
 import AutoResize from "./AutoResize";
 import ClickHandler from "./ClickHandler";
@@ -61,6 +63,8 @@ export interface MapViewProps {
   locationUnavailable?: boolean;
   focusPoint?: MapFocusPoint | null;
   placePoint?: { lat: number; lon: number; radiusKm: number } | null;
+  requestLocation?: boolean;
+  onMoveRequestPoint?: (lat: number, lon: number) => void;
   resetViewSignal?: number;
   showHeatmap: boolean;
   showStations: boolean;
@@ -97,6 +101,8 @@ export default function MapView({
   locationUnavailable = false,
   focusPoint = null,
   placePoint = null,
+  requestLocation = false,
+  onMoveRequestPoint,
   resetViewSignal = 0,
   showHeatmap,
   showStations,
@@ -112,6 +118,16 @@ export default function MapView({
   onResetView,
   onViewportChange,
 }: MapViewProps) {
+  const [draggedPoint, setDraggedPoint] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
+  const keepDraggedView =
+    requestLocation &&
+    draggedPoint &&
+    focusPoint &&
+    draggedPoint.lat === focusPoint.lat &&
+    draggedPoint.lon === focusPoint.lon;
   return (
     <MapContainer
       center={THAILAND_CENTER}
@@ -152,18 +168,32 @@ export default function MapView({
               fillOpacity: 0.13,
             }}
           />
-          <Marker
-            position={[placePoint.lat, placePoint.lon]}
-            icon={L.divIcon({
-              className: "cp-place-marker",
-              html: '<span class="cp-place-marker__symbol" aria-hidden="true"><svg viewBox="0 0 48 56" width="48" height="56" fill="none"><path d="M24 2C11.85 2 3 11.15 3 22.75c0 15.5 21 30.5 21 30.5s21-15 21-30.5C45 11.15 36.15 2 24 2Z" fill="#195D58" stroke="white" stroke-width="3"/><circle cx="24" cy="23" r="8" fill="white"/><circle cx="24" cy="23" r="3.5" fill="#195D58"/></svg></span>',
-              iconSize: [48, 56],
-              iconAnchor: [24, 53],
-            })}
-            title="สถานที่ที่เลือก"
-            alt="สถานที่ที่เลือก"
-            zIndexOffset={1200}
-          />
+          {requestLocation ? (
+            <RequestLocationMarker
+              position={placePoint}
+              onMove={
+                onMoveRequestPoint
+                  ? (lat, lon) => {
+                      setDraggedPoint({ lat, lon });
+                      onMoveRequestPoint(lat, lon);
+                    }
+                  : undefined
+              }
+            />
+          ) : (
+            <Marker
+              position={[placePoint.lat, placePoint.lon]}
+              icon={L.divIcon({
+                className: "cp-place-marker",
+                html: '<span class="cp-place-marker__symbol" aria-hidden="true"><svg viewBox="0 0 48 56" width="48" height="56" fill="none"><path d="M24 2C11.85 2 3 11.15 3 22.75c0 15.5 21 30.5 21 30.5s21-15 21-30.5C45 11.15 36.15 2 24 2Z" fill="#195D58" stroke="white" stroke-width="3"/><circle cx="24" cy="23" r="8" fill="white"/><circle cx="24" cy="23" r="3.5" fill="#195D58"/></svg></span>',
+                iconSize: [48, 56],
+                iconAnchor: [24, 53],
+              })}
+              title="สถานที่ที่เลือก"
+              alt="สถานที่ที่เลือก"
+              zIndexOffset={1200}
+            />
+          )}
         </>
       )}
 
@@ -212,7 +242,7 @@ export default function MapView({
       <AutoResize />
       <ViewportController
         dataMode={dataMode}
-        target={focusPoint}
+        target={keepDraggedView ? null : focusPoint}
         radiusKm={placePoint?.radiusKm ?? requestRadiusKm}
         resetViewSignal={resetViewSignal}
       />

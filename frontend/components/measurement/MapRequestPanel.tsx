@@ -96,7 +96,9 @@ export default function MapRequestPanel({
         </>
       ) : (
         <>
-          {point && <p>แตะจุดอื่นได้จนกว่าจะยืนยัน ยังไม่ได้ส่งคำขอ</p>}
+          {point && (
+            <p>ลากหมุดหรือแตะจุดอื่นเพื่อปรับตำแหน่ง ยังไม่ได้ส่งคำขอ</p>
+          )}
           <button
             className="cp-measure-primary cp-focus"
             type="button"

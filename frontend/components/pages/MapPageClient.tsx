@@ -469,6 +469,22 @@ export default function MapPageClient({
                 }
               : null
         }
+        requestLocation={requestStep !== "idle"}
+        onMoveRequestPoint={
+          requestStep === "pick"
+            ? (lat, lon) => {
+                setRequestPoint({
+                  id: `point:${lat}:${lon}`,
+                  name: "จุดที่เลือกบนแผนที่",
+                  address: "",
+                  kind: "point",
+                  source: "local",
+                  lat,
+                  lon,
+                });
+              }
+            : undefined
+        }
         resetViewSignal={resetViewSignal}
         showHeatmap={
           requestStep === "idle" &&
