@@ -124,10 +124,11 @@ describe("MapStatusCard", () => {
             name_th: "สนามกีฬากลางจังหวัดสุพรรณบุรี",
             province: "ต.ดอนกำยาน อ.เมือง สุพรรณบุรี",
             pm25: 17.6,
+            recorded_at: "2026-11-03T13:00:00Z",
           } as Station
         }
         report={null}
-        updatedAt={null}
+        updatedAt="2026-11-03T14:00:00Z"
         onClose={vi.fn()}
       />,
     );
@@ -142,6 +143,10 @@ describe("MapStatusCard", () => {
       screen.queryByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
     ).toBeNull();
     expect(document.querySelector('a[href^="/air"]')).toBeNull();
+    const measuredTime = screen.getByText(/3 พ.ย. 2569.*20:00/);
+    expect(measuredTime.tagName).toBe("TIME");
+    expect(measuredTime.getAttribute("datetime")).toBe("2026-11-03T13:00:00Z");
+    expect(screen.getByText(/ตรวจวัดล่าสุด/)).toBeTruthy();
   });
 });
 

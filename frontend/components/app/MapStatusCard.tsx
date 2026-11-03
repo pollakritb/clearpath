@@ -196,9 +196,17 @@ export default function MapStatusCard({
           {isDemo && <span className="cp-map-demo-label">ข้อมูลตัวอย่าง</span>}
           <h1>{isCommunity ? communityArea : stationName}</h1>
           {station && (
-            <p className="cp-pin-station-meta">
-              {station.province ?? "ประเทศไทย"} · รหัสสถานี {station.id}
-            </p>
+            <>
+              <p className="cp-pin-station-meta">
+                {station.province ?? "ประเทศไทย"} · รหัสสถานี {station.id}
+              </p>
+              <p className="cp-pin-station-meta">
+                {historicalAt ? "เวลาตรวจวัด" : "ตรวจวัดล่าสุด"} ·{" "}
+                <time dateTime={station.recorded_at ?? undefined}>
+                  {formatReportDate(station.recorded_at)}
+                </time>
+              </p>
+            </>
           )}
         </div>
         <div className="cp-map-compact-reading">
