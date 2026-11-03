@@ -40,7 +40,7 @@ function* rasterRows(
       if (!colours.has(value)) colours.set(value, forecastColorPacked(value));
       const boundary =
         (x > 0 && xs[x - 1] !== col) || (y > 0 && ys[y - 1] !== row);
-      const colour = boundary ? 0x1b3130 : colours.get(value)!;
+      const colour = boundary ? 0x64748b : colours.get(value)!;
       const offset = (y * width + x) * 4;
       pixels[offset] = colour >> 16;
       pixels[offset + 1] = (colour >> 8) & 255;

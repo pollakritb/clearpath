@@ -51,7 +51,7 @@ describe("native CAMS grid presentation", () => {
           (forecastColorPacked(40) >> 8) & 255,
           forecastColorPacked(40) & 255,
         ].join(","),
-        "27,49,48",
+        "100,116,139",
       ]),
     );
   });
