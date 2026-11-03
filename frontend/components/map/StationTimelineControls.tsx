@@ -71,7 +71,8 @@ export default function StationTimelineControls({
         .sort((a, b) => Date.parse(a) - Date.parse(b)),
     [suppliedTimes, available, anchor],
   );
-  const steps = Math.max(24, futureTimes.length);
+  // Keep the track stable while the asynchronously loaded forecast horizon changes.
+  const steps = 120;
   const select = (next: StationTime) => {
     setPosition(stationTimePosition(next, futureTimes));
     onSelect(next);

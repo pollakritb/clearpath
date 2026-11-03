@@ -49,7 +49,7 @@ test("station time slider switches measured history, now and CAMS forecast on mo
     name: "เลือกเวลาตรวจวัดและพยากรณ์",
   });
   await expect(slider).toHaveAttribute("aria-valuetext", "ตอนนี้ · Air4Thai");
-  await expect(slider).toHaveAttribute("max", "238");
+  await expect(slider).toHaveAttribute("max", "240");
   await slider.press("ArrowLeft");
   await expect(slider).toHaveAttribute(
     "aria-valuetext",

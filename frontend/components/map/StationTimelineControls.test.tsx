@@ -33,12 +33,12 @@ it("opens centered and selects measured history, current readings and forecast u
     name: "เลือกเวลาตรวจวัดและพยากรณ์",
   });
   expect(slider.getAttribute("aria-valuetext")).toBe("ตอนนี้ · Air4Thai");
-  expect((slider as HTMLInputElement).value).toBe("24");
+  expect((slider as HTMLInputElement).value).toBe("120");
   fireEvent.change(slider, { target: { value: "0" } });
   expect(select).toHaveBeenLastCalledWith({ kind: "history", hours: 24 });
   fireEvent.click(screen.getByRole("button", { name: "ตอนนี้" }));
   expect(select).toHaveBeenLastCalledWith({ kind: "current" });
-  fireEvent.change(slider, { target: { value: "48" } });
+  fireEvent.change(slider, { target: { value: "240" } });
   expect(select).toHaveBeenLastCalledWith({ kind: "forecast", at: times[1] });
   await waitFor(() => expect(screen.getByText("สถานีทดสอบ")).toBeTruthy());
 });
