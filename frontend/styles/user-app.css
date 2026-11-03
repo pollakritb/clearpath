@@ -7846,3 +7846,34 @@
 .cp-map-station-forecast__hours {
   position: relative;
 }
+
+/* Station details switch inline between the overview and history. */
+.cp-station-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: #eaf3f1;
+}
+.cp-station-sections button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 8px;
+  background: transparent;
+  color: var(--cp-subink);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cp-station-sections button[aria-pressed="true"] {
+  background: #fff;
+  border-color: #b7d6d0;
+  color: var(--cp-teal);
+}

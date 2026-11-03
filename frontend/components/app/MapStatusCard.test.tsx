@@ -143,10 +143,19 @@ describe("MapStatusCard", () => {
       screen.getByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
     ).not.toBeNull();
     expect(
+      screen.queryByRole("region", {
+        name: "ค่าตรวจวัดสถานีย้อนหลัง 24 ชั่วโมง",
+      }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "ย้อนหลัง 24 ชม." }));
+    expect(
       screen.getByRole("region", {
         name: "ค่าตรวจวัดสถานีย้อนหลัง 24 ชั่วโมง",
       }),
     ).toBeTruthy();
+    expect(
+      screen.queryByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
+    ).toBeNull();
     expect(document.querySelector('a[href^="/air"]')).toBeNull();
     expect(screen.queryByRole("region", { name: "ผู้รายงาน" })).toBeNull();
     expect(screen.getByText(/Air4Thai · กรมควบคุมมลพิษ/)).not.toBeNull();
@@ -194,3 +203,48 @@ it.each([true, false])(
     cleanup();
   },
 );
+
+it("keeps history inside station details instead of the compact pin", () => {
+  const openMapHistory = vi.fn();
+  render(
+    <MapStatusCard
+      station={
+        {
+          id: "81t",
+          name_th: "สถานีตัวอย่าง",
+          pm25: 22.5,
+          recorded_at: "2026-11-03T07:00:00Z",
+        } as Station
+      }
+      report={null}
+      updatedAt={null}
+      onClose={vi.fn()}
+      onOpenHistory={openMapHistory}
+    />,
+  );
+  expect(screen.queryByRole("button", { name: "ย้อนหลัง 24 ชม." })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "ดูรายละเอียดสถานี" }));
+  fireEvent.click(screen.getByRole("button", { name: "ย้อนหลัง 24 ชม." }));
+  expect(
+    screen.getByRole("region", { name: "ค่าตรวจวัดสถานีย้อนหลัง 24 ชั่วโมง" }),
+  ).toBeTruthy();
+  expect(
+    screen.queryByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
+  ).toBeNull();
+  expect(openMapHistory).not.toHaveBeenCalled();
+  expect(document.querySelector('a[href^="/air"]')).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "ภาพรวม" }));
+  expect(
+    screen.queryByRole("region", {
+      name: "ค่าตรวจวัดสถานีย้อนหลัง 24 ชั่วโมง",
+    }),
+  ).toBeNull();
+  expect(
+    screen.getByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
+  ).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /กลับไปแผนที่/ }));
+  expect(screen.queryByRole("button", { name: "ย้อนหลัง 24 ชม." })).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "ดูรายละเอียดสถานี" }),
+  ).toBeTruthy();
+});

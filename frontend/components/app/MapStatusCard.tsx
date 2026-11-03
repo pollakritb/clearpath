@@ -77,6 +77,9 @@ export default function MapStatusCard({
   historicalAt = null,
 }: MapStatusCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [stationSection, setStationSection] = useState<"overview" | "history">(
+    "overview",
+  );
   const photoDialogRef = useRef<HTMLDialogElement>(null);
   const photoButtonRef = useRef<HTMLButtonElement>(null);
   const selection = report ?? station;
@@ -191,14 +194,15 @@ export default function MapStatusCard({
         <button
           type="button"
           className="cp-map-compact-open cp-focus"
-          onClick={() => setExpanded(true)}
+          onClick={() => {
+            setStationSection("overview");
+            setExpanded(true);
+          }}
           aria-label={
             isCommunity ? "ดูรายละเอียดรายงานและผู้รายงาน" : "ดูรายละเอียดสถานี"
           }
         >
-          <span>
-            {isCommunity ? "ดูรายงานและผู้รายงาน" : "ดูรายละเอียดสถานี"}
-          </span>
+          <span>{isCommunity ? "ดูรายงานและผู้รายงาน" : "รายละเอียด"}</span>
           <AppIcon name="chevron" size={18} />
         </button>
       </section>
@@ -256,22 +260,49 @@ export default function MapStatusCard({
         </p>
       </header>
 
-      <div className="cp-map-selection-reading">
-        <div>
-          <span className="cp-map-selection-reading__caption">
-            {isCommunity ? "ค่าจากรายงานนี้" : "ค่าตรวจวัดของสถานี"}
-          </span>
-          <strong>{value ?? "—"}</strong>
-          <span>µg/m³</span>
-          <small>PM2.5</small>
-        </div>
-        <span className="cp-map-selection-reading__level">
-          <i aria-hidden>{classification.glyph}</i>
-          <strong>{classification.level}</strong>
-        </span>
-      </div>
-
       {station && (
+        <div
+          className="cp-station-sections"
+          role="group"
+          aria-label="ข้อมูลสถานี"
+        >
+          <button
+            type="button"
+            className="cp-focus"
+            aria-pressed={stationSection === "overview"}
+            onClick={() => setStationSection("overview")}
+          >
+            ภาพรวม
+          </button>
+          <button
+            type="button"
+            className="cp-focus"
+            aria-pressed={stationSection === "history"}
+            onClick={() => setStationSection("history")}
+          >
+            <AppIcon name="clock" size={16} />
+            ย้อนหลัง 24 ชม.
+          </button>
+        </div>
+      )}
+      {(!station || stationSection === "overview") && (
+        <div className="cp-map-selection-reading">
+          <div>
+            <span className="cp-map-selection-reading__caption">
+              {isCommunity ? "ค่าจากรายงานนี้" : "ค่าตรวจวัดของสถานี"}
+            </span>
+            <strong>{value ?? "—"}</strong>
+            <span>µg/m³</span>
+            <small>PM2.5</small>
+          </div>
+          <span className="cp-map-selection-reading__level">
+            <i aria-hidden>{classification.glyph}</i>
+            <strong>{classification.level}</strong>
+          </span>
+        </div>
+      )}
+
+      {station && stationSection === "overview" && (
         <p className="cp-map-station-advice">
           <AppIcon name="activity" size={17} />
           {value == null
@@ -281,15 +312,14 @@ export default function MapStatusCard({
       )}
 
       {station &&
-        (historicalAt ? (
+        (stationSection === "history" ? (
+          <MapStationHistory stationId={station.id} />
+        ) : historicalAt ? (
           <p className="cp-map-station-forecast__empty">
             กลับสู่เวลาปัจจุบันเพื่อดูพยากรณ์ของสถานีนี้
           </p>
         ) : (
-          <>
-            <MapStationForecast stationId={station.id} />
-            <MapStationHistory stationId={station.id} />
-          </>
+          <MapStationForecast stationId={station.id} />
         ))}
 
       {source === "individual" && report && (
