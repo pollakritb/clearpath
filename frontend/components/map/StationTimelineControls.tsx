@@ -26,6 +26,7 @@ export default function StationTimelineControls({
   paused,
   onSelect,
   onClose,
+  onBack,
 }: {
   time: StationTime;
   mode: StationTimeMode;
@@ -38,6 +39,7 @@ export default function StationTimelineControls({
   paused: boolean;
   onSelect: (time: StationTime) => void;
   onClose: () => void;
+  onBack?: () => void;
 }) {
   const [available, setAvailable] = useState<string[]>([]);
   const [position, setPosition] = useState(mode === "history" ? 1 : 0);
@@ -200,6 +202,15 @@ export default function StationTimelineControls({
         }
         detail={
           <>
+            {onBack && (
+              <button
+                type="button"
+                className="cp-station-time-back cp-focus"
+                onClick={onBack}
+              >
+                ← กลับไปที่หมุดสถานี
+              </button>
+            )}
             {station && (
               <section
                 className="cp-history-station"

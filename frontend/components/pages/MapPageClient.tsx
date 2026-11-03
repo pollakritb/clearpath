@@ -22,6 +22,7 @@ import type {
   StationTimeMode,
 } from "@/frontend/lib/station-timeline";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
+import RequestPlaceSearch from "@/frontend/components/measurement/RequestPlaceSearch";
 import MapRequestPanel from "@/frontend/components/measurement/MapRequestPanel";
 import RequestMapCard from "@/frontend/components/measurement/RequestMapCard";
 import { useMeasurementRequests } from "@/frontend/hooks/useMeasurementRequests";
@@ -89,9 +90,9 @@ export default function MapPageClient({
   const currentLocation = useCurrentLocation(true);
   const mapHistory = useMapHistory();
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
-  const [requestStep, setRequestStep] = useState<"idle" | "pick" | "form">(
-    "idle",
-  );
+  const [requestStep, setRequestStep] = useState<
+    "idle" | "search" | "pick" | "form"
+  >("idle");
   const [requestPoint, setRequestPoint] = useState<LocationSuggestion | null>(
     null,
   );
@@ -166,7 +167,7 @@ export default function MapPageClient({
 
   const startRequest = useCallback(() => {
     setSelectedRequestId(null);
-    setRequestStep("pick");
+    setRequestStep("search");
     setRequestPoint(null);
     setRequestRadius(3);
     setSelectedPlace(null);
@@ -514,6 +515,12 @@ export default function MapPageClient({
     pauseCams();
   };
 
+  const backToStation = () => {
+    const station = pm25.stations.find((row) => row.id === historyStation?.id);
+    closeStationTime();
+    if (station) selectStation(station);
+  };
+
   const openStationTime = (nextMode: StationTimeMode) => {
     setHistoryStation(
       selectedStation
@@ -548,8 +555,14 @@ export default function MapPageClient({
     <main className="cp-map" data-mode={mode}>
       <MapView
         dataMode={mode}
-        camsSurface={camsEnabled ? cams.surface : null}
-        camsPreload={camsEnabled ? cams.preloadSurfaces : undefined}
+        camsSurface={
+          camsEnabled && !(timelineOpen && historyStation) ? cams.surface : null
+        }
+        camsPreload={
+          camsEnabled && !(timelineOpen && historyStation)
+            ? cams.preloadSurfaces
+            : undefined
+        }
         camsPoint={
           camsEnabled && requestStep === "idle"
             ? timelineOpen && historyStation
@@ -578,7 +591,9 @@ export default function MapPageClient({
         selectedRequestId={selectedRequestId}
         requestsNow={requestData.now}
         onSelectRequest={selectRequest}
-        requestRadiusKm={selectedRequest?.radius_km}
+        requestRadiusKm={
+          requestStep !== "idle" ? requestRadius : selectedRequest?.radius_km
+        }
         userLocation={userLocation}
         locationUnavailable={
           !userLocation &&
@@ -639,19 +654,7 @@ export default function MapPageClient({
           (Boolean(selectedPlace) || showIndividualReports)
         }
         onMapClick={(lat, lon) => {
-          if (requestStep === "pick") {
-            setRequestPoint({
-              id: `point:${lat}:${lon}`,
-              name: "จุดที่เลือกบนแผนที่",
-              address: "",
-              kind: "point",
-              source: "local",
-              lat,
-              lon,
-            });
-            return;
-          }
-          if (requestStep === "form") return;
+          if (requestStep !== "idle") return;
           if (camsEnabled) {
             pauseCams();
             setSelectedRequestId(null);
@@ -701,107 +704,109 @@ export default function MapPageClient({
           <AppIcon name="community" size={18} /> ขอค่าฝุ่น
         </button>
       )}
-      <MapChrome
-        camsEnabled={camsEnabled}
-        onToggleCams={() => {
-          setTimelineOpen(false);
-          setHistoryStation(null);
-          changeCams();
-        }}
-        onPanelChange={onPanelChange}
-        viewMode={viewMode}
-        stationCount={visibleStations.length}
-        individualReportCount={
-          historyEnabled
-            ? countCommunitySources(mapHistory.reports).individual
-            : communitySourceCounts.individual
-        }
-        fireCount={historyEnabled ? 0 : firms.fires.length}
-        fireStatus={firms.status}
-        demoMode={community.demoMode}
-        stations={historyEnabled ? visibleStations : serviceAreaStations}
-        showHeatmap={showHeatmap}
-        heatmapDistanceKm={heatmapDistanceKm}
-        heatmapStatus={
-          userLocation
-            ? heatmapPoint
-              ? "ready"
-              : "no_data"
-            : currentLocation.status === "denied"
-              ? "location_denied"
-              : currentLocation.status === "unavailable"
-                ? "location_unavailable"
-                : "no_location"
-        }
-        showStations={showStations}
-        showIndividualReports={showIndividualReports}
-        showFires={historyEnabled ? false : showFires}
-        onViewModeChange={setViewMode}
-        onToggleHeatmap={() => setShowHeatmap((value) => !value)}
-        onToggleStations={() => setShowStations((value) => !value)}
-        onToggleIndividualReports={() =>
-          setShowIndividualReports((value) => !value)
-        }
-        onToggleFires={() => setShowFires((value) => !value)}
-        onLocationSelect={(location: LocationSuggestion) => {
-          setSelectedRequestId(null);
-          if (requestStep !== "idle") {
-            setRequestPoint(location);
-            setRequestStep("pick");
-            setFocusPoint({ lat: location.lat, lon: location.lon });
-            return;
+      {requestStep !== "search" && (
+        <MapChrome
+          camsEnabled={camsEnabled}
+          onToggleCams={() => {
+            setTimelineOpen(false);
+            setHistoryStation(null);
+            changeCams();
+          }}
+          onPanelChange={onPanelChange}
+          viewMode={viewMode}
+          stationCount={visibleStations.length}
+          individualReportCount={
+            historyEnabled
+              ? countCommunitySources(mapHistory.reports).individual
+              : communitySourceCounts.individual
           }
-          if (camsEnabled) {
-            pauseCams();
-            setCamsPoint({
-              lat: location.lat,
-              lon: location.lon,
-              name: location.name,
-            });
+          fireCount={historyEnabled ? 0 : firms.fires.length}
+          fireStatus={firms.status}
+          demoMode={community.demoMode}
+          stations={historyEnabled ? visibleStations : serviceAreaStations}
+          showHeatmap={showHeatmap}
+          heatmapDistanceKm={heatmapDistanceKm}
+          heatmapStatus={
+            userLocation
+              ? heatmapPoint
+                ? "ready"
+                : "no_data"
+              : currentLocation.status === "denied"
+                ? "location_denied"
+                : currentLocation.status === "unavailable"
+                  ? "location_unavailable"
+                  : "no_location"
+          }
+          showStations={showStations}
+          showIndividualReports={showIndividualReports}
+          showFires={historyEnabled ? false : showFires}
+          onViewModeChange={setViewMode}
+          onToggleHeatmap={() => setShowHeatmap((value) => !value)}
+          onToggleStations={() => setShowStations((value) => !value)}
+          onToggleIndividualReports={() =>
+            setShowIndividualReports((value) => !value)
+          }
+          onToggleFires={() => setShowFires((value) => !value)}
+          onLocationSelect={(location: LocationSuggestion) => {
+            setSelectedRequestId(null);
+            if (requestStep !== "idle") {
+              setRequestPoint(location);
+              setRequestStep("pick");
+              setFocusPoint({ lat: location.lat, lon: location.lon });
+              return;
+            }
+            if (camsEnabled) {
+              pauseCams();
+              setCamsPoint({
+                lat: location.lat,
+                lon: location.lon,
+                name: location.name,
+              });
+              setFocusPoint({ lat: location.lat, lon: location.lon });
+              setViewMode("map");
+              return;
+            }
+            setPlaceClock(Date.now());
+            setHistoryEnabled(false);
+            mapHistory.clear();
+            setSelectedStation(null);
+            setSelectedReport(null);
+            setSelectedStackId(null);
+            setSelectedPlace(location);
             setFocusPoint({ lat: location.lat, lon: location.lon });
             setViewMode("map");
-            return;
-          }
-          setPlaceClock(Date.now());
-          setHistoryEnabled(false);
-          mapHistory.clear();
-          setSelectedStation(null);
-          setSelectedReport(null);
-          setSelectedStackId(null);
-          setSelectedPlace(location);
-          setFocusPoint({ lat: location.lat, lon: location.lon });
-          setViewMode("map");
-        }}
-        onStationSelect={(station) => {
-          if (requestStep !== "idle") {
-            setRequestPoint({
-              id: `station:${station.id}`,
-              name: station.name_th ?? station.name_en ?? station.id,
-              address: station.province ?? "",
-              kind: "station",
-              source: "local",
-              lat: station.lat,
-              lon: station.lon,
-            });
-            setRequestStep("pick");
-            setFocusPoint({ lat: station.lat, lon: station.lon });
-            return;
-          }
-          if (camsEnabled) {
-            pauseCams();
-            setCamsPoint({
-              lat: station.lat,
-              lon: station.lon,
-              name: station.name_th ?? station.name_en ?? station.id,
-            });
-            setFocusPoint({ lat: station.lat, lon: station.lon });
-            return;
-          }
-          setSelectedPlace(null);
-          selectStation(station);
-          setViewMode("map");
-        }}
-      />
+          }}
+          onStationSelect={(station) => {
+            if (requestStep !== "idle") {
+              setRequestPoint({
+                id: `station:${station.id}`,
+                name: station.name_th ?? station.name_en ?? station.id,
+                address: station.province ?? "",
+                kind: "station",
+                source: "local",
+                lat: station.lat,
+                lon: station.lon,
+              });
+              setRequestStep("pick");
+              setFocusPoint({ lat: station.lat, lon: station.lon });
+              return;
+            }
+            if (camsEnabled) {
+              pauseCams();
+              setCamsPoint({
+                lat: station.lat,
+                lon: station.lon,
+                name: station.name_th ?? station.name_en ?? station.id,
+              });
+              setFocusPoint({ lat: station.lat, lon: station.lon });
+              return;
+            }
+            setSelectedPlace(null);
+            selectStation(station);
+            setViewMode("map");
+          }}
+        />
+      )}
       {requestStep === "idle" && viewMode === "list" && (
         <ListView
           stations={mapStations}
@@ -811,7 +816,18 @@ export default function MapPageClient({
           }}
         />
       )}
-      {requestStep !== "idle" ? (
+      {requestStep === "search" ? (
+        <RequestPlaceSearch
+          stations={serviceAreaStations}
+          userLocation={userLocation}
+          onSelect={(location) => {
+            setRequestPoint(location);
+            setRequestStep("pick");
+          }}
+          onMapSelect={() => setRequestStep("pick")}
+          onClose={() => setRequestStep("idle")}
+        />
+      ) : requestStep !== "idle" ? (
         <MapRequestPanel
           onCreated={(row) => {
             requestData.upsert(row);
@@ -825,6 +841,7 @@ export default function MapPageClient({
           editing={requestStep === "form"}
           onConfirm={() => setRequestStep("form")}
           onReselect={() => setRequestStep("pick")}
+          onSearch={() => setRequestStep("search")}
           onClose={() => setRequestStep("idle")}
         />
       ) : timelineOpen &&
@@ -844,6 +861,7 @@ export default function MapPageClient({
           paused={!active || panelOpen}
           onSelect={selectStationTime}
           onClose={closeStationTime}
+          onBack={historyStation ? backToStation : undefined}
         />
       ) : selectedRequest && !camsEnabled ? (
         <RequestMapCard

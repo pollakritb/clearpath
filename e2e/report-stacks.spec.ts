@@ -29,7 +29,7 @@ test("local stack demo shows grouped reports and their individual details", asyn
     card.getByRole("heading", { name: "3 รายงานจาก 2 คน" }),
   ).toBeVisible();
   await expect(
-    card.getByText("ค่าเฉลี่ยจาก 2 คนใน 60 นาทีล่าสุด"),
+    card.getByText("ค่าเฉลี่ยจาก 2 รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม."),
   ).toBeVisible();
   await expect(card).toHaveAttribute("data-expanded", "false");
   expect(
@@ -126,7 +126,7 @@ test("nearby user reports share a marker and preserve each photo/detail", async 
     card.getByRole("heading", { name: "3 รายงานจาก 2 คน" }),
   ).toBeVisible();
   await expect(
-    card.getByText("ค่าเฉลี่ยจาก 2 คนใน 60 นาทีล่าสุด"),
+    card.getByText("ค่าเฉลี่ยจาก 2 รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม."),
   ).toBeVisible();
   await card.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }).click();
   await expect(card.getByText("ใช้ในค่าเฉลี่ย")).toHaveCount(2);

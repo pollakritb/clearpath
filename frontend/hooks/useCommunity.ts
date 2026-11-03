@@ -72,7 +72,11 @@ export function useCommunityMapData() {
     const stackDemo = isCommunityStackDemoMode();
     setDemoMode(demo);
     if (stackDemo) {
-      const scenario = buildDemoStackScenario();
+      const people =
+        new URLSearchParams(window.location.search).get("people") === "5"
+          ? 5
+          : 2;
+      const scenario = buildDemoStackScenario(Date.now(), people);
       setReports(scenario.reports);
       setStacks(scenario.stacks);
     } else {

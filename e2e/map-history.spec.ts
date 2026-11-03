@@ -77,7 +77,9 @@ test("separate station sliders move left through Air4Thai and right through CAMS
     name: "รายละเอียดสถานีตรวจวัดทางการ",
     exact: true,
   });
-  await expect(pin.locator(".cp-pin-station-meta")).toContainText("รหัสสถานี");
+  await expect(
+    pin.locator(".cp-pin-station-meta").filter({ hasText: "รหัสสถานี" }),
+  ).toContainText("รหัสสถานี");
   await expect(
     pin.getByRole("button", { name: "ดูรายละเอียดสถานี" }),
   ).toHaveCount(0);
@@ -94,8 +96,10 @@ test("separate station sliders move left through Air4Thai and right through CAMS
   );
   await timeline.getByRole("button", { name: "ตอนนี้", exact: true }).click();
   await expect(slider).toHaveValue("24");
-  await timeline.getByRole("button", { name: "ปิดแถบเวลา" }).click();
-  await markers.first().click();
+  await timeline
+    .getByRole("button", { name: "กลับไปที่หมุดสถานี", exact: false })
+    .click();
+  await expect(pin).toBeVisible();
   await pin.getByRole("button", { name: "ดูพยากรณ์ของสถานีนี้" }).click();
   const forecast = page.getByRole("region", {
     name: "พยากรณ์ค่าฝุ่น",
@@ -105,6 +109,7 @@ test("separate station sliders move left through Air4Thai and right through CAMS
     name: "เลือกเวลาพยากรณ์ของสถานี",
   });
   await expect(forecastSlider).toHaveValue("0");
+  await expect(page.locator(".cp-cams-canvas")).toHaveCount(0);
   await expect(forecastSlider).toHaveAttribute("max", "120");
   await expect(page.locator("main.cp-map")).toHaveAttribute(
     "data-mode",
@@ -131,6 +136,12 @@ test("separate station sliders move left through Air4Thai and right through CAMS
     document: document.documentElement.scrollWidth,
   }));
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
-  await forecast.getByRole("button", { name: "ปิดแถบเวลา" }).click();
-  await expect(page.getByText("ค่าฝุ่นปัจจุบัน")).toBeVisible();
+  await forecast
+    .getByRole("button", { name: "กลับไปที่หมุดสถานี", exact: false })
+    .click();
+  await expect(pin).toBeVisible();
+  await expect(page.locator("main.cp-map")).toHaveAttribute(
+    "data-mode",
+    "current",
+  );
 });

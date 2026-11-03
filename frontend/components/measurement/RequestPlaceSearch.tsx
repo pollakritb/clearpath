@@ -1,0 +1,89 @@
+"use client";
+
+import MapSearchPanel from "@/frontend/components/app/MapSearchPanel";
+import AppIcon from "@/frontend/components/ui/AppIcon";
+import type { LocationSuggestion, Station } from "@/frontend/types";
+
+export default function RequestPlaceSearch({
+  stations,
+  userLocation,
+  onSelect,
+  onMapSelect,
+  onClose,
+}: {
+  stations: Station[];
+  userLocation: { lat: number; lon: number } | null;
+  onSelect: (location: LocationSuggestion) => void;
+  onMapSelect: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <section
+      className="cp-request-search-screen"
+      aria-label="เลือกพื้นที่ขอค่าฝุ่น"
+    >
+      <header>
+        <button
+          type="button"
+          className="cp-focus"
+          onClick={onClose}
+          aria-label="กลับไปแผนที่"
+        >
+          <AppIcon name="back" size={20} />
+        </button>
+        <div>
+          <h1>ขอค่าฝุ่นที่ไหน?</h1>
+          <p>เลือกสถานที่ก่อน แล้วปรับจุดบนแผนที่</p>
+        </div>
+      </header>
+      <MapSearchPanel
+        embedded
+        stations={stations}
+        onClose={onMapSelect}
+        onLocationSelect={onSelect}
+        onStationSelect={(station) =>
+          onSelect({
+            id: `station:${station.id}`,
+            name: station.name_th ?? station.name_en ?? station.id,
+            address: station.province ?? "",
+            kind: "station",
+            source: "local",
+            lat: station.lat,
+            lon: station.lon,
+          })
+        }
+      />
+      <div className="cp-request-search-options">
+        {userLocation && (
+          <button
+            type="button"
+            className="cp-focus"
+            onClick={() =>
+              onSelect({
+                id: "current-location",
+                name: "ตำแหน่งปัจจุบันของฉัน",
+                address: "",
+                kind: "point",
+                source: "local",
+                ...userLocation,
+              })
+            }
+          >
+            <AppIcon name="locate" size={20} />
+            <span>
+              ใช้ตำแหน่งปัจจุบัน<small>ปรับจุดให้ตรงอีกครั้งบนแผนที่</small>
+            </span>
+            <AppIcon name="chevron" size={18} />
+          </button>
+        )}
+        <button type="button" className="cp-focus" onClick={onMapSelect}>
+          <AppIcon name="map" size={20} />
+          <span>
+            เลือกบนแผนที่<small>เลื่อนแผนที่ให้หมุดตรงจุดที่ต้องการ</small>
+          </span>
+          <AppIcon name="chevron" size={18} />
+        </button>
+      </div>
+    </section>
+  );
+}

@@ -2,7 +2,6 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useState } from "react";
 import {
   Circle,
   CircleMarker,
@@ -118,16 +117,6 @@ export default function MapView({
   onResetView,
   onViewportChange,
 }: MapViewProps) {
-  const [draggedPoint, setDraggedPoint] = useState<{
-    lat: number;
-    lon: number;
-  } | null>(null);
-  const keepDraggedView =
-    requestLocation &&
-    draggedPoint &&
-    focusPoint &&
-    draggedPoint.lat === focusPoint.lat &&
-    draggedPoint.lon === focusPoint.lon;
   return (
     <MapContainer
       center={THAILAND_CENTER}
@@ -155,7 +144,14 @@ export default function MapView({
           }}
         />
       )}
-      {placePoint && (
+      {requestLocation && onMoveRequestPoint && (
+        <RequestLocationMarker
+          position={placePoint}
+          radiusKm={requestRadiusKm ?? 3}
+          onMove={onMoveRequestPoint}
+        />
+      )}
+      {placePoint && !(requestLocation && onMoveRequestPoint) && (
         <>
           <Circle
             center={[placePoint.lat, placePoint.lon]}
@@ -169,17 +165,7 @@ export default function MapView({
             }}
           />
           {requestLocation ? (
-            <RequestLocationMarker
-              position={placePoint}
-              onMove={
-                onMoveRequestPoint
-                  ? (lat, lon) => {
-                      setDraggedPoint({ lat, lon });
-                      onMoveRequestPoint(lat, lon);
-                    }
-                  : undefined
-              }
-            />
+            <RequestLocationMarker position={placePoint} />
           ) : (
             <Marker
               position={[placePoint.lat, placePoint.lon]}
@@ -242,7 +228,7 @@ export default function MapView({
       <AutoResize />
       <ViewportController
         dataMode={dataMode}
-        target={keepDraggedView ? null : focusPoint}
+        target={requestLocation && onMoveRequestPoint ? null : focusPoint}
         radiusKm={placePoint?.radiusKm ?? requestRadiusKm}
         resetViewSignal={resetViewSignal}
       />

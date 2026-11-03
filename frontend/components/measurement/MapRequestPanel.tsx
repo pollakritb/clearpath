@@ -14,6 +14,7 @@ export default function MapRequestPanel({
   editing,
   onConfirm,
   onReselect,
+  onSearch,
   onClose,
   radius = 3,
   onRadiusChange,
@@ -24,6 +25,7 @@ export default function MapRequestPanel({
   editing: boolean;
   onConfirm: () => void;
   onReselect: () => void;
+  onSearch?: () => void;
   onClose: () => void;
   radius?: 1 | 3 | 5;
   onRadiusChange?: (radius: 1 | 3 | 5) => void;
@@ -66,7 +68,7 @@ export default function MapRequestPanel({
           </p>
         ) : (
           <p>
-            เลื่อนหรือซูมแผนที่ แล้วแตะจุดที่ต้องการ
+            เลื่อนแผนที่ให้หมุดตรงกลางชี้จุดที่ต้องการ
             หรือค้นหาสถานที่ด้วยปุ่มแว่นขยาย
           </p>
         )}
@@ -97,7 +99,7 @@ export default function MapRequestPanel({
       ) : (
         <>
           {point && (
-            <p>ลากหมุดหรือแตะจุดอื่นเพื่อปรับตำแหน่ง ยังไม่ได้ส่งคำขอ</p>
+            <p>เลื่อนแผนที่เพื่อเลือกจุดใต้หมุดตรงกลาง ยังไม่ได้ส่งคำขอ</p>
           )}
           <button
             className="cp-measure-primary cp-focus"
@@ -108,6 +110,15 @@ export default function MapRequestPanel({
             ใช้จุดนี้เพื่อขอค่าฝุ่น
           </button>
         </>
+      )}
+      {!editing && onSearch && (
+        <button
+          type="button"
+          className="cp-measure-link cp-focus"
+          onClick={onSearch}
+        >
+          ← ค้นหาสถานที่อื่น
+        </button>
       )}
       {!editing && (
         <Link href="/requests" className="cp-measure-link cp-focus">

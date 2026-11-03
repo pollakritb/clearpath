@@ -67,9 +67,13 @@ function stackIcon(
       const demoAvatar =
         isCommunityStackDemoMode() &&
         report.policy_version === "demo-v1" &&
-        ["/demo/avatar-kan.svg", "/demo/avatar-mint.svg"].includes(
-          report.reporter_avatar_url ?? "",
-        )
+        [
+          "/demo/avatar-kan.svg",
+          "/demo/avatar-mint.svg",
+          "/demo/avatar-non.svg",
+          "/demo/avatar-pim.svg",
+          "/demo/avatar-ton.svg",
+        ].includes(report.reporter_avatar_url ?? "")
           ? report.reporter_avatar_url
           : null;
       const avatar = publicReporterAvatar(report) ?? demoAvatar;
@@ -88,8 +92,8 @@ function stackIcon(
   return L.divIcon({
     className: "cp-marker cp-marker--report-stack",
     html: `<div class="cp-report-stack-marker${selected ? " is-selected" : ""}" style="--marker-aqi:${color}"><span class="cp-report-stack-marker__faces cp-report-stack-marker__faces--${Math.min(uniqueReporters.size, 3)}" aria-hidden="true">${faces}</span><strong class="cp-report-stack-marker__value">${value}</strong><span class="cp-report-stack-marker__count">${overflow > 0 ? `+${overflow} คน · ` : ""}${stack.report_count} รายงาน</span></div>`,
-    iconSize: [60, 60],
-    iconAnchor: [30, 30],
+    iconSize: [60, 64],
+    iconAnchor: [30, 32],
   });
 }
 

@@ -70,6 +70,7 @@ export default function MapChrome({
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
   useEffect(() => {
     onPanelChange?.(openPanel !== null);
+    return () => onPanelChange?.(false);
   }, [openPanel, onPanelChange]);
   const closePanel = () => setOpenPanel(null);
   const togglePanel = (panel: Exclude<OpenPanel, null>) =>

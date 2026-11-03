@@ -161,21 +161,36 @@ export function buildDemoCommunityReports(now = Date.now()): CommunityReport[] {
   });
 }
 
-/** Local-only scenario: three nearby reports, two people, and one distant pin. */
-export function buildDemoStackScenario(now = Date.now()): {
+/** Local-only grouped reports from two or five people, plus a distant pin. */
+export function buildDemoStackScenario(
+  now = Date.now(),
+  people: 2 | 5 = 2,
+): {
   reports: CommunityReport[];
   stacks: CommunityReportStack[];
 } {
   const base = buildDemoCommunityReports(now);
-  const readings = [20, 24, 18] as const;
-  const reporters = ["demo-alice", "demo-bob", "demo-alice"] as const;
-  const names = ["กานต์", "มินตรา", "กานต์"] as const;
+  const readings = people === 5 ? [20, 24, 18, 26, 22] : [20, 24, 18];
+  const reporters =
+    people === 5
+      ? ["demo-alice", "demo-bob", "demo-non", "demo-pim", "demo-ton"]
+      : ["demo-alice", "demo-bob", "demo-alice"];
+  const names =
+    people === 5
+      ? ["กานต์", "มินตรา", "นนท์", "พิม", "ต้น"]
+      : ["กานต์", "มินตรา", "กานต์"];
+  const avatars =
+    people === 5
+      ? ["kan", "mint", "non", "pim", "ton"]
+      : ["kan", "mint", "kan"];
   const offsets = [
     [0, 0],
     [0.00025, 0.0002],
     [-0.0002, 0.00015],
+    [0.0003, -0.0002],
+    [-0.0003, -0.00015],
   ] as const;
-  const nearby = base.slice(0, 3).map((report, index) => {
+  const nearby = base.slice(0, readings.length).map((report, index) => {
     const pm25 = readings[index];
     const capturedAt = new Date(now - (10 + index * 5) * 60_000).toISOString();
     return {
@@ -183,8 +198,7 @@ export function buildDemoStackScenario(now = Date.now()): {
       id: `demo-stack-${index + 1}`,
       user_id: reporters[index],
       display_name: names[index],
-      reporter_avatar_url:
-        index === 1 ? "/demo/avatar-mint.svg" : "/demo/avatar-kan.svg",
+      reporter_avatar_url: `/demo/avatar-${avatars[index]}.svg`,
       show_reporter_profile: true,
       lat: DEMO_COMMUNITY_CENTER.lat + offsets[index][0],
       lon: DEMO_COMMUNITY_CENTER.lon + offsets[index][1],
@@ -205,12 +219,12 @@ export function buildDemoStackScenario(now = Date.now()): {
     lon: nearby[0].lon,
     report_ids: nearby.map((report) => report.id),
     report_count: nearby.length,
-    reporter_count: 2,
+    reporter_count: people,
     latest_captured_at: nearby[0].captured_at,
     pm25: 22,
     value_status: "average",
-    contributing_count: 2,
-    contributing_report_ids: [nearby[0].id, nearby[1].id],
+    contributing_count: people,
+    contributing_report_ids: nearby.slice(0, people).map((report) => report.id),
   };
   return { reports: [...nearby, base[3]], stacks: [stack] };
 }
