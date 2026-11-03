@@ -5,7 +5,11 @@ import {
   forecastColorPacked,
   classifyPm25,
 } from "./aqi";
-import { renderCamsPixels, renderCamsPixelsAsync } from "./cams-raster";
+import {
+  camsRasterBounds,
+  renderCamsPixels,
+  renderCamsPixelsAsync,
+} from "./cams-raster";
 import type { GridSurface } from "@/frontend/types/ui";
 const grid: GridSurface = {
   latitudes: [4.4, 21.6],
@@ -42,14 +46,14 @@ describe("native CAMS grid presentation", () => {
     expect(colours).toEqual(
       new Set([
         [
-          forecastColorPacked(10) >> 16,
-          (forecastColorPacked(10) >> 8) & 255,
-          forecastColorPacked(10) & 255,
+          Number.parseInt(classifyPm25(10).color.slice(1), 16) >> 16,
+          (Number.parseInt(classifyPm25(10).color.slice(1), 16) >> 8) & 255,
+          Number.parseInt(classifyPm25(10).color.slice(1), 16) & 255,
         ].join(","),
         [
-          forecastColorPacked(40) >> 16,
-          (forecastColorPacked(40) >> 8) & 255,
-          forecastColorPacked(40) & 255,
+          Number.parseInt(classifyPm25(40).color.slice(1), 16) >> 16,
+          (Number.parseInt(classifyPm25(40).color.slice(1), 16) >> 8) & 255,
+          Number.parseInt(classifyPm25(40).color.slice(1), 16) & 255,
         ].join(","),
         "100,116,139",
       ]),
@@ -72,4 +76,41 @@ it("cooperative rendering produces the same numerical raster as worker rendering
   expect(await renderCamsPixelsAsync(grid, 32, 64)).toEqual(
     renderCamsPixels(grid, 32, 64),
   );
+});
+
+it("covers the full received rectangle including cells outside Thailand", () => {
+  const source = {
+    ...grid,
+    latitudes: [4.4, 4.8],
+    longitudes: [96.4, 96.8],
+    values: [10, 10, 10, 10],
+  };
+  const bounds = camsRasterBounds(source);
+  expect(bounds[0][0]).toBeCloseTo(4.2);
+  expect(bounds[0][1]).toBeCloseTo(96.2);
+  expect(bounds[1][0]).toBeCloseTo(5);
+  expect(bounds[1][1]).toBeCloseTo(97);
+  const pixels = renderCamsPixels(source, 32, 32);
+  expect(pixels[3]).toBe(255);
+  expect(pixels.at(-1)).toBe(255);
+});
+
+it("uses exactly one category colour for every value within the same PM2.5 band", () => {
+  for (const values of [
+    [0, 7, 14, 15],
+    [15.1, 18, 24, 25],
+    [25.1, 30, 37, 37.5],
+    [37.6, 45, 70, 75],
+    [75.1, 90, 120, 300],
+  ]) {
+    const pixels = renderCamsPixels({ ...grid, values }, 64, 128);
+    const expected = classifyPm25(values[0])
+      .color.match(/[a-f0-9]{2}/gi)!
+      .map((v) => Number.parseInt(v, 16));
+    for (let i = 0; i < pixels.length; i += 4) {
+      const rgb = [...pixels.slice(i, i + 3)];
+      if (pixels[i + 3] && rgb.join(",") !== "100,116,139")
+        expect(rgb).toEqual(expected);
+    }
+  }
 });

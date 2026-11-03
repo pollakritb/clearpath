@@ -1,11 +1,24 @@
-import { forecastColorPacked } from "@/frontend/lib/aqi";
+import { classifyPm25 } from "@/frontend/lib/aqi";
 import { gridAxisIndex } from "@/frontend/lib/forecast-grid";
 import type { GridSurface } from "@/frontend/types/ui";
 
-export const CAMS_RASTER_BOUNDS: [[number, number], [number, number]] = [
-  [5, 97],
-  [21, 106],
-];
+/** Full rectangular extent of received cells, including their outer half-cell edges. */
+export function camsRasterBounds(
+  surface: GridSurface,
+): [[number, number], [number, number]] {
+  const edges = (axis: number[]) => {
+    const last = axis.length - 1;
+    const firstStep = axis.length > 1 ? axis[1] - axis[0] : 0.4;
+    const lastStep = axis.length > 1 ? axis[last] - axis[last - 1] : 0.4;
+    return [axis[0] - firstStep / 2, axis[last] + lastStep / 2];
+  };
+  const [south, north] = edges(surface.latitudes);
+  const [west, east] = edges(surface.longitudes);
+  return [
+    [south, west],
+    [north, east],
+  ];
+}
 const mercator = (lat: number) => Math.asinh(Math.tan((lat * Math.PI) / 180));
 /** Render native cells with hard boundaries in Web Mercator; never blend neighbouring values. */
 function* rasterRows(
@@ -14,10 +27,15 @@ function* rasterRows(
   height = 960,
 ): Generator<void, Uint8ClampedArray> {
   const pixels = new Uint8ClampedArray(width * height * 4);
-  const north = mercator(21),
-    south = mercator(5);
+  if (!surface.latitudes.length || !surface.longitudes.length) return pixels;
+  const [[southLat, west], [northLat, east]] = camsRasterBounds(surface);
+  const north = mercator(northLat),
+    south = mercator(southLat);
   const xs = Array.from({ length: width }, (_, x) =>
-    gridAxisIndex(surface.longitudes, 97 + ((x + 0.5) / width) * 9),
+    gridAxisIndex(
+      surface.longitudes,
+      west + ((x + 0.5) / width) * (east - west),
+    ),
   );
   const ys = Array.from({ length: height }, (_, y) =>
     gridAxisIndex(
@@ -37,7 +55,11 @@ function* rasterRows(
       if (col === null) continue;
       const value = surface.values[row * surface.longitudes.length + col];
       if (value == null || !Number.isFinite(value) || value < 0) continue;
-      if (!colours.has(value)) colours.set(value, forecastColorPacked(value));
+      if (!colours.has(value))
+        colours.set(
+          value,
+          Number.parseInt(classifyPm25(value).color.slice(1), 16),
+        );
       const boundary =
         (x > 0 && xs[x - 1] !== col) || (y > 0 && ys[y - 1] !== row);
       const colour = boundary ? 0x64748b : colours.get(value)!;

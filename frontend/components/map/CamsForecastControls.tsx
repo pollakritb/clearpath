@@ -1,11 +1,6 @@
 "use client";
 import type { ReactNode } from "react";
-import {
-  AQI_LEGEND,
-  classifyPm25,
-  forecastColor,
-  FORECAST_COLOR_STOPS,
-} from "@/frontend/lib/aqi";
+import { AQI_LEGEND, classifyPm25 } from "@/frontend/lib/aqi";
 import {
   bangkokDay,
   formatForecastTime,
@@ -13,6 +8,7 @@ import {
   nearestTime,
 } from "@/frontend/lib/forecast-grid";
 import type { useForecastGrid } from "@/frontend/hooks/useForecastGrid";
+import { camsRasterBounds } from "@/frontend/lib/cams-raster";
 import { isInThailand } from "@/frontend/lib/thailand-boundary";
 import MapTimelineControls from "./MapTimelineControls";
 
@@ -32,9 +28,16 @@ export default function CamsForecastControls({
   onExit: () => void;
 }) {
   const { meta, at, times, surface, loading, error } = grid;
-  const outside = !!point && !isInThailand(point.lat, point.lon);
+  const bounds = surface ? camsRasterBounds(surface) : null;
+  const outside =
+    !!point &&
+    !!bounds &&
+    (point.lat < bounds[0][0] ||
+      point.lat > bounds[1][0] ||
+      point.lon < bounds[0][1] ||
+      point.lon > bounds[1][1]);
   const value =
-    point && surface && isInThailand(point.lat, point.lon)
+    point && surface && !outside
       ? gridValue(surface, point.lat, point.lon)
       : null;
   const cls = classifyPm25(value);
@@ -80,10 +83,10 @@ export default function CamsForecastControls({
           <p>
             <b
               data-message={outside || value == null ? "true" : undefined}
-              style={{ color: forecastColor(value) }}
+              style={{ color: cls.color }}
             >
               {outside
-                ? "นอกพื้นที่พยากรณ์ประเทศไทย"
+                ? "นอกขอบเขตข้อมูลกริด"
                 : loading
                   ? "…"
                   : value == null
@@ -93,7 +96,7 @@ export default function CamsForecastControls({
             {value != null && <> µg/m³ · {cls.level}</>}
           </p>
           <small>{at ? formatForecastTime(at) : ""} · CAMS</small>
-          {!outside && (
+          {!outside && point && isInThailand(point.lat, point.lon) && (
             <button
               type="button"
               className="cp-cams-point__request cp-focus"
@@ -219,10 +222,12 @@ export default function CamsForecastControls({
       <div
         className="cp-cams-ramp"
         aria-hidden="true"
-        style={{
-          background: `linear-gradient(to right, ${FORECAST_COLOR_STOPS.map((stop) => `${stop.color} ${(100 * stop.value) / FORECAST_COLOR_STOPS.at(-1)!.value}%`).join(",")})`,
-        }}
-      />
+        style={{ display: "flex" }}
+      >
+        {AQI_LEGEND.map((band) => (
+          <span key={band.range} style={{ flex: 1, background: band.color }} />
+        ))}
+      </div>
       <div
         className="cp-cams-legend"
         aria-label="ระดับ PM2.5 หน่วยไมโครกรัมต่อลูกบาศก์เมตร"

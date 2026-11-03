@@ -35,7 +35,7 @@ it("distinguishes outside Thailand from missing grid data and keeps the foreign 
       onExit={vi.fn()}
     />,
   );
-  expect(screen.getByText("นอกพื้นที่พยากรณ์ประเทศไทย")).toBeTruthy();
+  expect(screen.getByText("นอกขอบเขตข้อมูลกริด")).toBeTruthy();
   expect(screen.queryByText("ไม่มีข้อมูล")).toBeNull();
   expect(screen.queryByText("ขอให้ชุมชนช่วยวัดบริเวณนี้ →")).toBeNull();
 });
@@ -51,4 +51,26 @@ it("still shows forecast values and the community action for a point in Thailand
   );
   expect(screen.getByText("20.0")).toBeTruthy();
   expect(screen.getByText("ขอให้ชุมชนช่วยวัดบริเวณนี้ →")).toBeTruthy();
+});
+
+it("shows a received foreign grid cell without a community request action", () => {
+  const foreignGrid = {
+    ...grid,
+    surface: {
+      ...grid.surface!,
+      latitudes: [17.6, 18],
+      longitudes: [102.4, 102.8],
+    },
+  };
+  render(
+    <CamsForecastControls
+      grid={foreignGrid}
+      point={{ lat: 17.9757, lon: 102.6331 }}
+      onClosePoint={vi.fn()}
+      onRequest={vi.fn()}
+      onExit={vi.fn()}
+    />,
+  );
+  expect(screen.getByText("20.0")).toBeTruthy();
+  expect(screen.queryByText("ขอให้ชุมชนช่วยวัดบริเวณนี้ →")).toBeNull();
 });

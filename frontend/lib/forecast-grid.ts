@@ -83,7 +83,6 @@ export function gridValue(
   lat: number,
   lon: number,
 ): number | null {
-  if (lat < 5 || lat > 21 || lon < 97 || lon > 106) return null;
   const row = gridAxisIndex(surface.latitudes, lat);
   const col = gridAxisIndex(surface.longitudes, lon);
   if (row === null || col === null) return null;

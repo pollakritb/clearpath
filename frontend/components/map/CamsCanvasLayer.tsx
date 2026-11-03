@@ -1,9 +1,8 @@
 "use client";
 import L from "leaflet";
-import { useEffect, useId, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
-import { CAMS_RASTER_BOUNDS } from "@/frontend/lib/cams-raster";
-import { THAILAND_CLIP_PATH } from "@/frontend/lib/thailand-boundary";
+import { camsRasterBounds } from "@/frontend/lib/cams-raster";
 import {
   cachedCamsRaster,
   prepareCamsRaster,
@@ -19,7 +18,6 @@ export default function CamsCanvasLayer({
   preload?: GridSurface[];
 }) {
   const map = useMap();
-  const clipId = `cams-thailand-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const layer = useRef<L.ImageOverlay | null>(null);
   useLayoutEffect(
     () => () => {
@@ -36,10 +34,12 @@ export default function CamsCanvasLayer({
     }
     const url = cachedCamsRaster(surface);
     if (!url) return;
-    if (layer.current) layer.current.setUrl(url);
+    const bounds = camsRasterBounds(surface);
+    if (layer.current)
+      layer.current.setBounds(L.latLngBounds(bounds)).setUrl(url);
     else {
-      layer.current = L.imageOverlay(url, CAMS_RASTER_BOUNDS, {
-        opacity: 1,
+      layer.current = L.imageOverlay(url, bounds, {
+        opacity: 0.4,
         interactive: false,
         className: "cp-cams-canvas",
         zIndex: 0,
@@ -47,11 +47,10 @@ export default function CamsCanvasLayer({
       layer.current.getElement()?.setAttribute("aria-hidden", "true");
       const element = layer.current.getElement();
       if (element) {
-        element.style.clipPath = `url(#${clipId})`;
         element.style.imageRendering = "pixelated";
       }
     }
-  }, [map, surface, clipId]);
+  }, [map, surface]);
   useEffect(() => {
     if (!surface || !preload?.length) return;
     let token = 0,
@@ -72,19 +71,5 @@ export default function CamsCanvasLayer({
       else clearTimeout(token);
     };
   }, [surface, preload]);
-  return (
-    <svg
-      width="0"
-      height="0"
-      aria-hidden="true"
-      focusable="false"
-      style={{ position: "absolute", pointerEvents: "none" }}
-    >
-      <defs>
-        <clipPath id={clipId} clipPathUnits="objectBoundingBox">
-          <path d={THAILAND_CLIP_PATH} clipRule="evenodd" />
-        </clipPath>
-      </defs>
-    </svg>
-  );
+  return null;
 }

@@ -2,6 +2,11 @@
 
 export const THAILAND_CENTER: [number, number] = [13.2, 101.0];
 export const DEFAULT_ZOOM = 6;
+// Keep the map within Thailand and the surrounding rectangular forecast area.
+export const MAP_BOUNDS: [[number, number], [number, number]] = [
+  [3, 95],
+  [24, 108],
+];
 
 export const OSM_TILE_URL =
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
