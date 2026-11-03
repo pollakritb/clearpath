@@ -7996,3 +7996,24 @@
   grid-template-columns: 28px minmax(0, 1fr) auto auto;
   gap: 6px;
 }
+
+.cp-pin-time-actions {
+  position: absolute;
+  top: 11px;
+  right: 59px;
+  display: flex;
+  gap: 4px;
+}
+.cp-pin-time-actions button {
+  min-height: 44px;
+  min-width: 58px;
+  padding: 7px;
+  border: 1px solid #c4dfda;
+  border-radius: 11px;
+  background: #f0f8f6;
+  color: var(--cp-teal);
+  font: inherit;
+  font-size: 0.65rem;
+  font-weight: 750;
+  cursor: pointer;
+}

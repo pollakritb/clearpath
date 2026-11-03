@@ -10,11 +10,13 @@ import {
   stationTimeAt,
   stationTimePosition,
   type StationTime,
+  type StationTimeMode,
 } from "@/frontend/lib/station-timeline";
 import MapTimelineControls from "./MapTimelineControls";
 
 export default function StationTimelineControls({
   time,
+  mode,
   anchor,
   futureTimes: suppliedTimes,
   observedAt,
@@ -26,6 +28,7 @@ export default function StationTimelineControls({
   onClose,
 }: {
   time: StationTime;
+  mode: StationTimeMode;
   anchor: number;
   futureTimes: string[];
   observedAt?: string | null;
@@ -37,7 +40,7 @@ export default function StationTimelineControls({
   onClose: () => void;
 }) {
   const [available, setAvailable] = useState<string[]>([]);
-  const [position, setPosition] = useState(0);
+  const [position, setPosition] = useState(mode === "history" ? 1 : 0);
   const [playing, setPlaying] = useState(false);
   useEffect(() => {
     if (!paused) return;
@@ -52,6 +55,7 @@ export default function StationTimelineControls({
     return () => document.removeEventListener("visibilitychange", stop);
   }, []);
   useEffect(() => {
+    if (mode !== "forecast") return;
     let alive = true;
     void loadPublicData("station-timeline-grid-metadata", 60_000, () =>
       api.forecastGridMetadata(),
@@ -63,30 +67,32 @@ export default function StationTimelineControls({
     return () => {
       alive = false;
     };
-  }, []);
+  }, [mode]);
   const futureTimes = useMemo(
     () =>
       [...new Set(suppliedTimes.length ? suppliedTimes : available)]
-        .filter((at) => Date.parse(at) > anchor)
+        .filter((at) => Date.parse(at) >= anchor)
         .sort((a, b) => Date.parse(a) - Date.parse(b)),
     [suppliedTimes, available, anchor],
   );
   // Keep the track stable while the asynchronously loaded forecast horizon changes.
-  const steps = 120;
+  const steps = mode === "history" ? 24 : 120;
   const select = (next: StationTime) => {
-    setPosition(stationTimePosition(next, futureTimes));
+    setPosition(stationTimePosition(next, futureTimes, mode));
     onSelect(next);
   };
   useEffect(() => {
     if (!playing || paused || loading || error) return;
-    const frames: StationTime[] = [
-      ...Array.from({ length: 24 }, (_, i) => ({
-        kind: "history" as const,
-        hours: 24 - i,
-      })),
-      { kind: "current" },
-      ...futureTimes.map((at) => ({ kind: "forecast" as const, at })),
-    ];
+    const frames: StationTime[] =
+      mode === "history"
+        ? [
+            { kind: "current" },
+            ...Array.from({ length: 24 }, (_, i) => ({
+              kind: "history" as const,
+              hours: i + 1,
+            })),
+          ]
+        : futureTimes.map((at) => ({ kind: "forecast" as const, at }));
     const index = frames.findIndex(
       (frame) =>
         frame.kind === time.kind &&
@@ -104,11 +110,11 @@ export default function StationTimelineControls({
         setPlaying(false);
         return;
       }
-      setPosition(stationTimePosition(next, futureTimes));
+      setPosition(stationTimePosition(next, futureTimes, mode));
       onSelect(next);
     }, 1400);
     return () => window.clearTimeout(timer);
-  }, [playing, paused, loading, error, time, futureTimes, onSelect]);
+  }, [playing, paused, loading, error, time, futureTimes, onSelect, mode]);
   const at =
     time.kind === "history"
       ? !loading && observedAt
@@ -117,6 +123,16 @@ export default function StationTimelineControls({
       : time.kind === "forecast"
         ? time.at
         : null;
+  const nowTime: StationTime =
+    mode === "history"
+      ? { kind: "current" }
+      : {
+          kind: "forecast",
+          at: futureTimes[0] ?? new Date(anchor).toISOString(),
+        };
+  const isNow =
+    time.kind === "current" ||
+    (time.kind === "forecast" && Date.parse(time.at) === anchor);
   const source =
     time.kind === "forecast"
       ? "CAMS · ค่าพยากรณ์"
@@ -130,11 +146,15 @@ export default function StationTimelineControls({
       hidden={paused}
     >
       <MapTimelineControls
-        title="ย้อนหลัง / พยากรณ์"
-        time={at ? formatForecastTime(at) : "ตอนนี้"}
-        value={(position + 1) * steps}
-        max={steps * 2}
-        rangeLabel="เลือกเวลาตรวจวัดและพยากรณ์"
+        title={mode === "history" ? "ค่าตรวจวัดย้อนหลัง" : "พยากรณ์ค่าฝุ่น"}
+        time={isNow ? "ตอนนี้" : at ? formatForecastTime(at) : "ตอนนี้"}
+        value={position * steps}
+        max={steps}
+        rangeLabel={
+          mode === "history"
+            ? "เลือกชั่วโมงย้อนหลัง"
+            : "เลือกเวลาพยากรณ์ของสถานี"
+        }
         valueText={
           time.kind === "history"
             ? `ย้อนหลัง ${time.hours} ชั่วโมง · Air4Thai`
@@ -142,25 +162,29 @@ export default function StationTimelineControls({
               ? `พยากรณ์ ${formatForecastTime(time.at)} · CAMS`
               : "ตอนนี้ · Air4Thai"
         }
-        startLabel="Air4Thai · ย้อนหลัง 24 ชม."
+        startLabel={
+          mode === "history" ? "Air4Thai · ย้อนหลัง 24 ชม." : "ตอนนี้"
+        }
         endLabel={
-          futureTimes.length
-            ? `CAMS · ถึง ${formatForecastTime(futureTimes.at(-1)!)}`
-            : "CAMS · ยังไม่มีพยากรณ์"
+          mode === "history"
+            ? "ตอนนี้"
+            : futureTimes.length
+              ? `CAMS · ถึง ${formatForecastTime(futureTimes.at(-1)!)}`
+              : "CAMS · ยังไม่มีพยากรณ์"
         }
         playing={playing && !paused}
         disabled={paused || loading || !!error}
         onPlay={() => setPlaying((v) => !v)}
         onChange={(value) => {
           setPlaying(false);
-          const pos = value / steps - 1;
-          if (pos > 0 && !futureTimes.length) return;
+          const pos = value / steps;
+          if (mode === "forecast" && !futureTimes.length) return;
           setPosition(pos);
-          onSelect(stationTimeAt(pos, futureTimes));
+          onSelect(stationTimeAt(pos, futureTimes, mode));
         }}
         onNow={() => {
           setPlaying(false);
-          select({ kind: "current" });
+          select(nowTime);
         }}
         summary={loading ? `${source} · กำลังโหลด…` : source}
         error={error}
@@ -200,9 +224,6 @@ export default function StationTimelineControls({
                 </p>
               </section>
             )}
-            <div className="cp-station-time-now">
-              <span>ตอนนี้</span>
-            </div>
           </>
         }
       />

@@ -23,6 +23,7 @@ interface MapStatusCardProps {
   onBackToPlace?: () => void;
   backLabel?: string;
   onOpenHistory?: () => void;
+  onOpenForecast?: () => void;
   historicalAt?: string | null;
 }
 
@@ -65,6 +66,7 @@ export default function MapStatusCard({
   onBackToPlace,
   backLabel = "กลับไปยังสถานที่",
   onOpenHistory,
+  onOpenForecast,
   historicalAt = null,
 }: MapStatusCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -151,16 +153,29 @@ export default function MapStatusCard({
         >
           <AppIcon name="close" size={19} />
         </button>
-        {station && onOpenHistory && (
-          <button
-            type="button"
-            className="cp-pin-history-shortcut cp-focus"
-            onClick={onOpenHistory}
-            aria-label="ดูย้อนหลังและพยากรณ์ของสถานีนี้"
-          >
-            <AppIcon name="clock" size={15} />
-            ย้อนหลัง / พยากรณ์
-          </button>
+        {station && (onOpenHistory || onOpenForecast) && (
+          <div className="cp-pin-time-actions">
+            {onOpenHistory && (
+              <button
+                type="button"
+                className="cp-focus"
+                onClick={onOpenHistory}
+                aria-label="ดูย้อนหลังของสถานีนี้"
+              >
+                ย้อนหลัง
+              </button>
+            )}
+            {onOpenForecast && (
+              <button
+                type="button"
+                className="cp-focus"
+                onClick={onOpenForecast}
+                aria-label="ดูพยากรณ์ของสถานีนี้"
+              >
+                พยากรณ์
+              </button>
+            )}
+          </div>
         )}
         {onBackToPlace && (
           <button

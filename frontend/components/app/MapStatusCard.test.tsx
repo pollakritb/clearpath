@@ -187,8 +187,9 @@ it.each([true, false])(
   },
 );
 
-it("opens the existing map timeline from the top corner of a station pin", () => {
+it("opens separate history and forecast timelines from a station pin", () => {
   const open = vi.fn();
+  const forecast = vi.fn();
   render(
     <MapStatusCard
       station={
@@ -198,12 +199,16 @@ it("opens the existing map timeline from the top corner of a station pin", () =>
       updatedAt={null}
       onClose={vi.fn()}
       onOpenHistory={open}
+      onOpenForecast={forecast}
     />,
   );
   fireEvent.click(
-    screen.getByRole("button", { name: "ดูย้อนหลังและพยากรณ์ของสถานีนี้" }),
+    screen.getByRole("button", { name: "ดูย้อนหลังของสถานีนี้" }),
   );
   expect(open).toHaveBeenCalledOnce();
+  expect(forecast).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "ดูพยากรณ์ของสถานีนี้" }));
+  expect(forecast).toHaveBeenCalledOnce();
   expect(
     screen.queryByRole("region", {
       name: "ค่าตรวจวัดสถานีย้อนหลัง 24 ชั่วโมง",

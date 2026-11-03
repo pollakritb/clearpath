@@ -17,7 +17,10 @@ import { useForecastGrid } from "@/frontend/hooks/useForecastGrid";
 import type { ViewportBounds } from "@/frontend/types/ui";
 import StationTimelineControls from "@/frontend/components/map/StationTimelineControls";
 import { gridValue, nearestTime } from "@/frontend/lib/forecast-grid";
-import type { StationTime } from "@/frontend/lib/station-timeline";
+import type {
+  StationTime,
+  StationTimeMode,
+} from "@/frontend/lib/station-timeline";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import MapRequestPanel from "@/frontend/components/measurement/MapRequestPanel";
 import RequestMapCard from "@/frontend/components/measurement/RequestMapCard";
@@ -430,6 +433,7 @@ export default function MapPageClient({
     lon: number;
   } | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineMode, setTimelineMode] = useState<StationTimeMode>("history");
   const [timelineAnchor, setTimelineAnchor] = useState(
     () => Math.floor(Date.now() / 3600000) * 3600000,
   );
@@ -508,6 +512,36 @@ export default function MapPageClient({
     setTimelineTime({ kind: "current" });
     setDataMode("current");
     pauseCams();
+  };
+
+  const openStationTime = (nextMode: StationTimeMode) => {
+    setHistoryStation(
+      selectedStation
+        ? {
+            id: selectedStation.id,
+            name:
+              selectedStation.name_th ??
+              selectedStation.name_en ??
+              selectedStation.id,
+            lat: selectedStation.lat,
+            lon: selectedStation.lon,
+          }
+        : null,
+    );
+    const anchor = Math.floor(Date.now() / 3600000) * 3600000;
+    setTimelineAnchor(anchor);
+    setHistoryAnchor(anchor);
+    setTimelineMode(nextMode);
+    setTimelineOpen(true);
+    selectStationTime(
+      nextMode === "history"
+        ? { kind: "current" }
+        : { kind: "forecast", at: new Date(anchor).toISOString() },
+    );
+    setSelectedStation(null);
+    setSelectedReport(null);
+    setSelectedPlace(null);
+    setSelectedStackId(null);
   };
 
   const map = (
@@ -798,6 +832,8 @@ export default function MapPageClient({
         !selectedReport &&
         !selectedRequest ? (
         <StationTimelineControls
+          key={timelineMode}
+          mode={timelineMode}
           time={timelineTime}
           observedAt={mapHistory.targetAt}
           anchor={timelineAnchor}
@@ -914,31 +950,11 @@ export default function MapPageClient({
           historicalAt={historyEnabled ? mapHistory.targetAt : null}
           onOpenHistory={
             selectedStation || (!historyEnabled && !selectedPlace)
-              ? () => {
-                  setHistoryStation(
-                    selectedStation
-                      ? {
-                          id: selectedStation.id,
-                          name:
-                            selectedStation.name_th ??
-                            selectedStation.name_en ??
-                            selectedStation.id,
-                          lat: selectedStation.lat,
-                          lon: selectedStation.lon,
-                        }
-                      : null,
-                  );
-                  const anchor = Math.floor(Date.now() / 3600000) * 3600000;
-                  setTimelineAnchor(anchor);
-                  setHistoryAnchor(anchor);
-                  setTimelineOpen(true);
-                  selectStationTime({ kind: "current" });
-                  setSelectedStation(null);
-                  setSelectedReport(null);
-                  setSelectedPlace(null);
-                  setSelectedStackId(null);
-                }
+              ? () => openStationTime("history")
               : undefined
+          }
+          onOpenForecast={
+            selectedStation ? () => openStationTime("forecast") : undefined
           }
           onClose={() => {
             setSelectedStation(null);
