@@ -57,35 +57,38 @@ export function surfaceFor(
     generationId: data.generation_id,
   };
 }
-/** Interpolate concentration first. Missing corners with positive weight yield no data. */
+/** Index of the native grid cell, bounded by midpoints between source nodes. */
+export function gridAxisIndex(axis: number[], value: number): number | null {
+  if (!axis.length || !Number.isFinite(value)) return null;
+  if (axis.length === 1) return value === axis[0] ? 0 : null;
+  const last = axis.length - 1;
+  if (
+    value < axis[0] - (axis[1] - axis[0]) / 2 ||
+    value > axis[last] + (axis[last] - axis[last - 1]) / 2
+  )
+    return null;
+  let low = 0,
+    high = last;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (value < (axis[middle] + axis[middle + 1]) / 2) high = middle;
+    else low = middle + 1;
+  }
+  return low;
+}
+
+/** Read one native CAMS cell without spatial interpolation or filling missing cells. */
 export function gridValue(
   surface: GridSurface,
   lat: number,
   lon: number,
 ): number | null {
   if (lat < 5 || lat > 21 || lon < 97 || lon > 106) return null;
-  const a = surface.latitudes,
-    b = surface.longitudes;
-  if (
-    a.length < 2 ||
-    b.length < 2 ||
-    lat < a[0] ||
-    lat > a[a.length - 1] ||
-    lon < b[0] ||
-    lon > b[b.length - 1]
-  )
-    return null;
-  const row = Math.min(
-    a.length - 2,
-    Math.max(0, a.findIndex((v) => v >= lat) - 1),
-  );
-  const col = Math.min(
-    b.length - 2,
-    Math.max(0, b.findIndex((v) => v >= lon) - 1),
-  );
-  const y = (lat - a[row]) / (a[row + 1] - a[row]),
-    x = (lon - b[col]) / (b[col + 1] - b[col]);
-  return sampleGridCell(surface.values, b.length, row, col, x, y);
+  const row = gridAxisIndex(surface.latitudes, lat);
+  const col = gridAxisIndex(surface.longitudes, lon);
+  if (row === null || col === null) return null;
+  const value = surface.values[row * surface.longitudes.length + col];
+  return value != null && Number.isFinite(value) && value >= 0 ? value : null;
 }
 /** Shared by the exact point sampler and raster renderer. Zero-weight missing nodes are harmless. */
 export function sampleGridCell(

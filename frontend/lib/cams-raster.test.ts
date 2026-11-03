@@ -14,7 +14,7 @@ const grid: GridSurface = {
   generationId: "raster",
   validAt: "2030-01-01T00:00Z",
 };
-describe("smooth forecast presentation", () => {
+describe("native CAMS grid presentation", () => {
   it("uses the central palette at band midpoints, with continuous transitions and unchanged categories", () => {
     for (const stop of FORECAST_COLOR_STOPS) {
       expect(forecastColor(stop.value)).toBe(stop.color);
@@ -31,7 +31,7 @@ describe("smooth forecast presentation", () => {
     expect(forecastColor(NaN)).toBe(classifyPm25(null).color);
     expect(forecastColor(2000)).toBe(FORECAST_COLOR_STOPS.at(-1)!.color);
   });
-  it("renders varying colours across a constant-gradient grid without categorical steps", () => {
+  it("renders source cell colours and grid lines without blending neighbouring values", () => {
     const pixels = renderCamsPixels(grid, 64, 128);
     const colours = new Set<string>();
     for (let x = 0; x < 64; x++) {
@@ -39,7 +39,21 @@ describe("smooth forecast presentation", () => {
       expect(pixels[offset + 3]).toBe(255);
       colours.add([...pixels.slice(offset, offset + 3)].join(","));
     }
-    expect(colours.size).toBeGreaterThan(50);
+    expect(colours).toEqual(
+      new Set([
+        [
+          forecastColorPacked(10) >> 16,
+          (forecastColorPacked(10) >> 8) & 255,
+          forecastColorPacked(10) & 255,
+        ].join(","),
+        [
+          forecastColorPacked(40) >> 16,
+          (forecastColorPacked(40) >> 8) & 255,
+          forecastColorPacked(40) & 255,
+        ].join(","),
+        "27,49,48",
+      ]),
+    );
   });
   it("keeps missing values transparent and does not bridge missing cells", () => {
     const pixels = renderCamsPixels(
@@ -47,9 +61,10 @@ describe("smooth forecast presentation", () => {
       16,
       32,
     );
-    expect(
-      [...pixels].filter((_, i) => i % 4 === 3).every((alpha) => alpha === 0),
-    ).toBe(true);
+    const alpha = (x: number, y: number) => pixels[(y * 16 + x) * 4 + 3];
+    expect(alpha(1, 30)).toBe(0); // Missing southwest cell.
+    expect(alpha(14, 30)).toBe(255); // Valid southeast neighbour stays visible.
+    expect(alpha(1, 1)).toBe(255); // Valid northwest neighbour stays visible.
   });
 });
 

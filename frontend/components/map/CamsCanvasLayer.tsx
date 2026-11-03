@@ -39,14 +39,17 @@ export default function CamsCanvasLayer({
     if (layer.current) layer.current.setUrl(url);
     else {
       layer.current = L.imageOverlay(url, CAMS_RASTER_BOUNDS, {
-        opacity: 0.4,
+        opacity: 1,
         interactive: false,
         className: "cp-cams-canvas",
         zIndex: 0,
       }).addTo(map);
       layer.current.getElement()?.setAttribute("aria-hidden", "true");
       const element = layer.current.getElement();
-      if (element) element.style.clipPath = `url(#${clipId})`;
+      if (element) {
+        element.style.clipPath = `url(#${clipId})`;
+        element.style.imageRendering = "pixelated";
+      }
     }
   }, [map, surface, clipId]);
   useEffect(() => {

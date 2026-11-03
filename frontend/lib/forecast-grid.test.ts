@@ -19,16 +19,18 @@ const surface: GridSurface = {
   generationId: "one",
 };
 describe("CAMS concentration sampler", () => {
-  it("matches grid nodes, interpolates values and refuses extrapolation", () => {
+  it("reads native cells without interpolating values and refuses points outside their bounds", () => {
     expect(gridValue(surface, 13.6, 100)).toBe(10);
     expect(gridValue(surface, 14, 100.4)).toBe(40);
-    expect(gridValue(surface, 13.8, 100.2)).toBeCloseTo(25);
-    expect(gridValue(surface, 14.1, 100)).toBeNull();
+    expect(gridValue(surface, 13.7, 100.1)).toBe(10);
+    expect(gridValue(surface, 13.9, 100.3)).toBe(40);
+    expect(gridValue(surface, 14.3, 100)).toBeNull();
     expect(gridValue(surface, 4, 100)).toBeNull();
   });
   it("preserves holes while allowing an exact valid node", () => {
     const hole = { ...surface, values: [10, null, 30, 40] };
-    expect(gridValue(hole, 13.8, 100.2)).toBeNull();
+    expect(gridValue(hole, 13.7, 100.3)).toBeNull();
+    expect(gridValue(hole, 13.9, 100.3)).toBe(40);
     expect(gridValue(hole, 13.6, 100)).toBe(10);
     expect(gridValue({ ...surface, values: [0, 0, 0, 0] }, 13.8, 100.2)).toBe(
       0,
