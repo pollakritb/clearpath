@@ -116,19 +116,14 @@ export default function MapView({
     <MapContainer
       center={THAILAND_CENTER}
       zoom={DEFAULT_ZOOM}
-      minZoom={DEFAULT_ZOOM}
+      minZoom={DEFAULT_ZOOM - 1}
       maxBounds={MAP_BOUNDS}
       maxBoundsViscosity={1}
       zoomControl={false}
       className="cp-fill-container"
       scrollWheelZoom
     >
-      <TileLayer
-        url={OSM_TILE_URL}
-        attribution={OSM_ATTRIBUTION}
-        bounds={MAP_BOUNDS}
-        noWrap
-      />
+      <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} noWrap />
 
       <CamsCanvasLayer surface={camsSurface} preload={camsPreload} />
       {camsPoint && (

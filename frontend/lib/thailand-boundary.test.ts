@@ -1,5 +1,9 @@
 import { expect, it } from "vitest";
-import { isInThailand, THAILAND_CLIP_PATH } from "./thailand-boundary";
+import {
+  isInThailand,
+  THAILAND_CLIP_PATH,
+  thailandClipPath,
+} from "./thailand-boundary";
 
 it("keeps mainland Thailand and island polygons", () => {
   for (const [lat, lon] of [
@@ -31,4 +35,15 @@ it("projects every polygon into a closed Web Mercator clip without invalid value
   expect(THAILAND_CLIP_PATH.match(/Z/g)).toHaveLength(20);
   expect(THAILAND_CLIP_PATH).not.toMatch(/NaN|Infinity/);
   expect(THAILAND_CLIP_PATH).toMatch(/^M[\d.,-]+L/);
+});
+
+it("aligns the country clip with the full returned grid rectangle", () => {
+  const clip = thailandClipPath([
+    [4.2, 96.2],
+    [21.8, 106.6],
+  ]);
+  expect(clip).not.toBe(THAILAND_CLIP_PATH);
+  expect(clip.match(/M/g)).toHaveLength(20);
+  expect(clip.match(/Z/g)).toHaveLength(20);
+  expect(clip).not.toMatch(/NaN|Infinity/);
 });

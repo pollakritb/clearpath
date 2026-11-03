@@ -1,23 +1,30 @@
 import boundary from "@/frontend/lib/geo/thailand-boundary.json";
 
 const mercator = (lat: number) => Math.asinh(Math.tan((lat * Math.PI) / 180));
-const north = mercator(21),
-  span = north - mercator(5);
+/** Project the country boundary into the actual overlay extent. */
+export function thailandClipPath(bounds: [[number, number], [number, number]]) {
+  const [[south, west], [northLat, east]] = bounds;
+  const north = mercator(northLat),
+    span = north - mercator(south);
+  return boundary.coordinates
+    .flatMap((polygon) =>
+      polygon.map(
+        (ring) =>
+          ring
+            .map(
+              ([lon, lat], index) =>
+                `${index ? "L" : "M"}${((lon - west) / (east - west)).toFixed(7)},${((north - mercator(lat)) / span).toFixed(7)}`,
+            )
+            .join("") + "Z",
+      ),
+    )
+    .join("");
+}
 
-/** Object-bounding-box coordinates match the national raster's Web Mercator bounds. */
-export const THAILAND_CLIP_PATH = boundary.coordinates
-  .flatMap((polygon) =>
-    polygon.map(
-      (ring) =>
-        ring
-          .map(
-            ([lon, lat], index) =>
-              `${index ? "L" : "M"}${((lon - 97) / 9).toFixed(7)},${((north - mercator(lat)) / span).toFixed(7)}`,
-          )
-          .join("") + "Z",
-    ),
-  )
-  .join("");
+export const THAILAND_CLIP_PATH = thailandClipPath([
+  [5, 97],
+  [21, 106],
+]);
 
 function inRing(ring: number[][], lat: number, lon: number): boolean {
   let inside = false;

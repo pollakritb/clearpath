@@ -1,7 +1,8 @@
 "use client";
 import L from "leaflet";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef } from "react";
 import { useMap } from "react-leaflet";
+import { thailandClipPath } from "@/frontend/lib/thailand-boundary";
 import { camsRasterBounds } from "@/frontend/lib/cams-raster";
 import {
   cachedCamsRaster,
@@ -18,6 +19,11 @@ export default function CamsCanvasLayer({
   preload?: GridSurface[];
 }) {
   const map = useMap();
+  const clipId = `cams-thailand-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const clipPath = useMemo(
+    () => (surface ? thailandClipPath(camsRasterBounds(surface)) : ""),
+    [surface],
+  );
   const layer = useRef<L.ImageOverlay | null>(null);
   useLayoutEffect(
     () => () => {
@@ -48,9 +54,10 @@ export default function CamsCanvasLayer({
       const element = layer.current.getElement();
       if (element) {
         element.style.imageRendering = "pixelated";
+        element.style.clipPath = `url(#${clipId})`;
       }
     }
-  }, [map, surface]);
+  }, [map, surface, clipId]);
   useEffect(() => {
     if (!surface || !preload?.length) return;
     let token = 0,
@@ -71,5 +78,19 @@ export default function CamsCanvasLayer({
       else clearTimeout(token);
     };
   }, [surface, preload]);
-  return null;
+  return (
+    <svg
+      width="0"
+      height="0"
+      aria-hidden="true"
+      focusable="false"
+      style={{ position: "absolute", pointerEvents: "none" }}
+    >
+      <defs>
+        <clipPath id={clipId} clipPathUnits="objectBoundingBox">
+          <path d={clipPath} clipRule="evenodd" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
 }
