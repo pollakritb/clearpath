@@ -24,7 +24,13 @@ export default function HelperPresence() {
       lastAttempt = Date.now();
       try {
         const settings = await api.measurementHelper();
-        if (stopped || !settings.enabled || !navigator.geolocation) return;
+        if (
+          stopped ||
+          settings.registered_locations_enabled ||
+          !settings.enabled ||
+          !navigator.geolocation
+        )
+          return;
         navigator.geolocation.getCurrentPosition(
           (position) => {
             if (stopped || position.coords.accuracy > 200) return;

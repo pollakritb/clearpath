@@ -23,6 +23,7 @@ export default function MapTimelineControls({
   info,
   endAction,
   detail,
+  leadingAction,
 }: {
   title: string;
   time: string;
@@ -43,6 +44,7 @@ export default function MapTimelineControls({
   info?: ReactNode;
   endAction?: ReactNode;
   detail?: ReactNode;
+  leadingAction?: ReactNode;
 }) {
   return (
     <section
@@ -54,9 +56,11 @@ export default function MapTimelineControls({
       onTouchStart={(e) => e.stopPropagation()}
     >
       <header className="cp-map-history-dock__heading">
-        <span aria-hidden>
-          <AppIcon name="clock" size={18} />
-        </span>
+        {leadingAction ?? (
+          <span aria-hidden>
+            <AppIcon name="clock" size={18} />
+          </span>
+        )}
         <div>
           <small>{title}</small>
           <strong>{time}</strong>

@@ -85,11 +85,16 @@ def base_eligibility(report: dict) -> str:
 
 
 def help_eligibility(
-    report: dict, request: dict, claim: dict | None, metadata: dict
+    report: dict,
+    request: dict,
+    claim: dict | None,
+    metadata: dict,
+    *,
+    automatic: bool = False,
 ) -> str:
     from .distance import haversine_km
 
-    if not claim:
+    if not claim and not automatic:
         return "no_claim"
     captured, submitted = stamp(report["captured_at"]), stamp(report["created_at"])
     deadline = stamp(request["expires_at"])
@@ -108,7 +113,7 @@ def help_eligibility(
     if not (
         proven
         and request["user_id"] != report["user_id"]
-        and stamp(claim["started_at"]) <= captured
+        and (automatic or (claim and stamp(claim["started_at"]) <= captured))
         and stamp(request["starts_at"]) <= captured <= submitted
         and submitted - captured <= timedelta(minutes=15)
         and gps.get("accuracy_m") is not None

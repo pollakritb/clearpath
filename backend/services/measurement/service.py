@@ -21,7 +21,7 @@ from .. import line_messaging
 from .. import supabase_client as db
 from ..community.presenter import present_report
 from ..record_keys import creation_key
-from . import store
+from . import registered, store
 
 logger = logging.getLogger("clearpath.measurement")
 
@@ -131,10 +131,14 @@ def view(row: dict, viewer_id: str, *, names: dict[str, str] | None = None) -> d
         ),
         "help_claim": claim,
         "xp_enabled": xp.enabled(),
+        "automatic_help_enabled": registered.enabled(),
         "is_owner": owner,
         "recipient_count": len(store.recipients(row["id"])) if owner else 0,
         "declined": bool(invitation and invitation.get("declined")),
         "matched_location_at": invitation.get("matched_location_at")
+        if invitation
+        else None,
+        "matched_location_source": invitation.get("matched_source", "gps")
         if invitation
         else None,
         "result": result,
@@ -182,14 +186,24 @@ def create(user_id: str, values: dict) -> dict:
 
 def helper_settings(user_id: str, enabled_value: bool | None = None) -> dict:
     require_enabled()
+    saved = registered.locations(user_id) if registered.enabled() else []
+    if registered.enabled() and enabled_value and not any(p["enabled"] for p in saved):
+        raise ValueError("เพิ่มพื้นที่รับคำขออย่างน้อย 1 จุดก่อนเปิดรับ")
     row = store.presence(
         user_id, {"enabled": enabled_value} if enabled_value is not None else None
     )
-    return {"enabled": row.get("enabled", False), "observed_at": row.get("observed_at")}
+    return {
+        "enabled": row.get("enabled", False),
+        "observed_at": None if registered.enabled() else row.get("observed_at"),
+        "registered_locations_enabled": registered.enabled(),
+        "locations": saved,
+    }
 
 
 def update_presence(user_id: str, values: dict) -> dict:
     require_enabled()
+    if registered.enabled():
+        return helper_settings(user_id)
     now = datetime.now(UTC)
     observed = timestamp(values["observed_at"])
     if observed > now + timedelta(seconds=30) or observed < now - timedelta(minutes=2):
@@ -215,6 +229,8 @@ def decline(request_id: str, user_id: str) -> dict:
 
 
 def notify(row: dict, user_id: str, kind: str, matched_location_at: str | None = None):
+    if kind == "measurement_request" and registered.enabled():
+        return registered.invite(row, user_id)
     now = datetime.now(UTC).isoformat()
     request_key = row.get("legacy_id") or row["id"]
     account_key = db.stable_identifier("profiles", user_id)
@@ -297,6 +313,8 @@ def delivery_allowed(user_id: str, payload: dict) -> bool:
     if not row:
         return False
     if payload["measurement_kind"] == "measurement_request":
+        if registered.enabled():
+            return False
         invitation = store.recipient(row["id"], user_id)
         return bool(
             row["status"] == "active"
@@ -309,7 +327,14 @@ def delivery_allowed(user_id: str, payload: dict) -> bool:
 
 def process() -> dict:
     require_enabled()
-    counters = {"processed": 0, "fulfilled": 0, "expired": 0, "failed": 0}
+    registered_mode = registered.enabled()
+    reconciled = registered.process_matches() if registered_mode else {}
+    counters = {
+        "processed": 0,
+        "fulfilled": reconciled.get("matched", 0),
+        "expired": 0,
+        "failed": 0,
+    }
     deadline = monotonic() + 20
     for row in store.work_rows():
         if monotonic() >= deadline:
@@ -323,8 +348,13 @@ def process() -> dict:
                 if row["status"] == "scheduled":
                     store.activate(row)
                     row = store.get(row["id"])
-                match = next(
-                    (r for r in store.reports(row) if qualifying_report(row, r)), None
+                match = (
+                    None
+                    if registered_mode
+                    else next(
+                        (r for r in store.reports(row) if qualifying_report(row, r)),
+                        None,
+                    )
                 )
                 if match:
                     counters["fulfilled"] += store.finish(
@@ -333,21 +363,25 @@ def process() -> dict:
                 elif timestamp(row["expires_at"]) <= now:
                     counters["expired"] += store.finish(row["id"], "expired")
                 else:
-                    helpers = store.helpers(row)
+                    helpers = (
+                        registered.helpers(row)
+                        if registered_mode
+                        else store.helpers(row)
+                    )
                     cursor = row.get("dispatch_cursor")
                     completed_batch = True
                     for helper in helpers:
                         if monotonic() >= deadline:
                             completed_batch = False
                             break
-                        if eligible_helper(row, helper) and not store.recipient(
-                            row["id"], helper["user_id"]
-                        ):
+                        if (
+                            registered_mode or eligible_helper(row, helper)
+                        ) and not store.recipient(row["id"], helper["user_id"]):
                             notify(
                                 row,
                                 helper["user_id"],
                                 "measurement_request",
-                                helper["observed_at"],
+                                helper.get("observed_at"),
                             )
                         cursor = helper["user_id"]
                     store.touch(

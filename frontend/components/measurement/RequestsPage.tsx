@@ -120,8 +120,16 @@ export function RequestSummary({
       )}
       {!row.is_owner && row.matched_location_at && (
         <p>
-          เลือกคุณจาก GPS เข้าเว็บล่าสุดเมื่อ {date(row.matched_location_at)}{" "}
-          ตำแหน่งนี้อาจเปลี่ยนแล้ว
+          {row.matched_location_source === "registered" ? (
+            "ตรงกับพื้นที่รับคำขอที่คุณบันทึกไว้"
+          ) : (
+            <>
+              เลือกคุณจาก GPS เข้าเว็บล่าสุดเมื่อ{" "}
+              {date(row.matched_location_at)}
+            </>
+          )}{" "}
+          {row.matched_location_source !== "registered" &&
+            "ตำแหน่งนี้อาจเปลี่ยนแล้ว"}
         </p>
       )}
       {row.result && (
@@ -194,7 +202,13 @@ export function RequestSummary({
   );
 }
 
-export default function RequestsPage({ requestId }: { requestId?: string }) {
+export default function RequestsPage({
+  requestId,
+  groupId,
+}: {
+  requestId?: string;
+  groupId?: string;
+}) {
   const router = useRouter();
   const auth = useAuth();
   const login = useLoginPrompt();
@@ -203,10 +217,13 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
   const [loaded, setLoaded] = useState<{
     account: string;
     requestId?: string;
+    groupId?: string;
     rows: MeasurementRequestView[];
   } | null>(null);
   const rows =
-    loaded?.account === account && loaded.requestId === requestId
+    loaded?.account === account &&
+    loaded.requestId === requestId &&
+    loaded.groupId === groupId
       ? loaded.rows
       : [];
   const [listTab, setListTab] = useState<"open" | "history">("open");
@@ -229,15 +246,19 @@ export default function RequestsPage({ requestId }: { requestId?: string }) {
     try {
       const data = requestId
         ? [await api.measurementRequest(requestId)]
-        : (await api.measurementRequests()).requests;
-      setLoaded({ account, requestId, rows: data });
+        : (
+            await (groupId
+              ? api.measurementRequestGroup(groupId)
+              : api.measurementRequests())
+          ).requests;
+      setLoaded({ account, requestId, groupId, rows: data });
       setError("");
     } catch (e) {
       setError(apiErrorMessage(e, "โหลดคำขอไม่สำเร็จ"));
     } finally {
       setLoading(false);
     }
-  }, [requestId, signedIn, account]);
+  }, [requestId, groupId, signedIn, account]);
   useEffect(() => {
     let alive = true;
     const refresh = () => {

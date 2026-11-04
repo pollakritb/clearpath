@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     )
 
     measurement_requests_enabled: bool = False
+    measurement_registered_locations_enabled: bool = False
     community_xp_enabled: bool = False
 
     # External APIs

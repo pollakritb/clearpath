@@ -153,30 +153,6 @@ export default function MapStatusCard({
         >
           <AppIcon name="close" size={19} />
         </button>
-        {station && (onOpenHistory || onOpenForecast) && (
-          <div className="cp-pin-time-actions">
-            {onOpenHistory && (
-              <button
-                type="button"
-                className="cp-focus"
-                onClick={onOpenHistory}
-                aria-label="ดูย้อนหลังของสถานีนี้"
-              >
-                ย้อนหลัง
-              </button>
-            )}
-            {onOpenForecast && (
-              <button
-                type="button"
-                className="cp-focus"
-                onClick={onOpenForecast}
-                aria-label="ดูพยากรณ์ของสถานีนี้"
-              >
-                พยากรณ์
-              </button>
-            )}
-          </div>
-        )}
         {onBackToPlace && (
           <button
             type="button"
@@ -218,6 +194,30 @@ export default function MapStatusCard({
           </div>
           <span>{value == null ? "ไม่มีข้อมูล" : classification.level}</span>
         </div>
+        {station && (onOpenHistory || onOpenForecast) && (
+          <div className="cp-pin-time-actions">
+            {onOpenHistory && (
+              <button
+                type="button"
+                className="cp-focus"
+                onClick={onOpenHistory}
+                aria-label="ดูย้อนหลังของสถานีนี้"
+              >
+                <AppIcon name="clock" size={17} /> ย้อนหลัง
+              </button>
+            )}
+            {onOpenForecast && (
+              <button
+                type="button"
+                className="cp-focus"
+                onClick={onOpenForecast}
+                aria-label="ดูพยากรณ์ของสถานีนี้"
+              >
+                <AppIcon name="wind" size={17} /> พยากรณ์
+              </button>
+            )}
+          </div>
+        )}
         {!station && (
           <button
             type="button"

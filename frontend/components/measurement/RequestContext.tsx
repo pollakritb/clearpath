@@ -38,6 +38,13 @@ export default function RequestContext({ requestId }: { requestId: string }) {
     <aside className="cp-measure-card">
       {row ? (
         <>
+          {row.automatic_help_enabled && (
+            <p>
+              ส่งรายงานตามปกติได้
+              ระบบจับคู่ให้ทุกคำขอในพื้นที่และช่วงเวลาเดียวกันอัตโนมัติ
+              โบนัสช่วยวัดนับครั้งเดียวต่อรายงาน
+            </p>
+          )}
           <strong>
             ช่วยรายงาน · {requestPlaceParts(row.place_name).title}
           </strong>
@@ -48,11 +55,14 @@ export default function RequestContext({ requestId }: { requestId: string }) {
             วง {row.radius_km} กม. · ก่อน{" "}
             {new Date(row.expires_at).toLocaleString("th-TH")}
           </p>
-          {row.xp_enabled && !row.help_claim && row.status === "active" && (
-            <p>
-              โบนัส +5 คะแนน ต้องเริ่มจากปุ่ม “ช่วยรายงานค่าฝุ่น” ก่อนถ่ายภาพ
-            </p>
-          )}
+          {row.xp_enabled &&
+            !row.automatic_help_enabled &&
+            !row.help_claim &&
+            row.status === "active" && (
+              <p>
+                โบนัส +5 คะแนน ต้องเริ่มจากปุ่ม “ช่วยรายงานค่าฝุ่น” ก่อนถ่ายภาพ
+              </p>
+            )}
           {row.help_claim && (
             <p>
               โบนัสช่วยคำขอ +5 คะแนน · ส่งก่อน{" "}

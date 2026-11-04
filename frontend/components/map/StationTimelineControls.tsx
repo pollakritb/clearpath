@@ -200,17 +200,21 @@ export default function StationTimelineControls({
             <AppIcon name="close" size={17} />
           </button>
         }
+        leadingAction={
+          onBack && (
+            <button
+              type="button"
+              className="cp-station-time-back cp-focus"
+              onClick={onBack}
+              aria-label="กลับไปที่หมุดสถานี"
+              title="กลับไปที่หมุดสถานี"
+            >
+              <AppIcon name="back" size={20} />
+            </button>
+          )
+        }
         detail={
           <>
-            {onBack && (
-              <button
-                type="button"
-                className="cp-station-time-back cp-focus"
-                onClick={onBack}
-              >
-                ← กลับไปที่หมุดสถานี
-              </button>
-            )}
             {station && (
               <section
                 className="cp-history-station"

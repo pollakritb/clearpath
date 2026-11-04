@@ -10,7 +10,13 @@ import ReportForm from "./ReportForm";
 
 const mocks = vi.hoisted(() => ({ draft: vi.fn(), submit: vi.fn() }));
 vi.mock("@/frontend/lib/api-client", () => ({
-  api: { createReportDraft: mocks.draft, submitReportDraft: mocks.submit },
+  api: {
+    createReportDraft: mocks.draft,
+    submitReportDraft: mocks.submit,
+    measurementHelper: vi.fn(async () => ({
+      registered_locations_enabled: false,
+    })),
+  },
   apiErrorMessage: (_error: unknown, fallback: string) => fallback,
 }));
 vi.mock("@/frontend/components/auth/AuthProvider", () => ({

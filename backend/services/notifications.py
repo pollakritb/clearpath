@@ -168,6 +168,32 @@ def process_outbox(limit: int = 100, budget_seconds: float | None = None) -> dic
         try:
             payload = dict(event.get("payload") or {})
             channel = payload.pop("channel", None)
+            if payload.get("measurement_group_id"):
+                from .measurement import registered
+                from .measurement import store as measurement_store
+
+                if not measurement_store.claim_delivery(str(event["id"])):
+                    continue
+                current = registered.prepare_group(
+                    str(payload["measurement_group_id"]), str(event["user_id"])
+                )
+                preferences = _delivery_preferences(str(event["user_id"]))
+                if (
+                    not current
+                    or not preferences.get("consent_granted")
+                    or not preferences.get("line_enabled", True)
+                ):
+                    dead += 1
+                    supabase_client.update_outbox_event(
+                        str(event["id"]),
+                        {
+                            "status": "dead",
+                            "last_error": "measurement_request_closed_or_opted_out",
+                            "payload": {"tag": payload.get("tag")},
+                        },
+                    )
+                    continue
+                payload.update({key: current[key] for key in ("title", "body", "url")})
             if payload.get("measurement_request_id"):
                 from .measurement import (
                     service as measurement_service,

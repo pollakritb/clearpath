@@ -382,6 +382,11 @@ def reward_report(report: dict) -> dict:
     except UpstreamError:
         return {"status": "pending"}
     try:
+        from ..measurement import registered
+
+        automatic = registered.enabled()
+        if automatic:
+            registered.process_matches()
         if settings.local_demo_mode:
             _reward_demo(report)
         else:
@@ -439,6 +444,9 @@ def reward_report(report: dict) -> dict:
             report_xp=base["points"],
             help_xp=help_event["points"] if help_event else 0,
             reason=REASONS.get(base["reason"], base["reason"]),
+            matched_request_count=registered.match_count(str(report["id"]))
+            if automatic
+            else 0,
             bonus_reason=REASONS.get(help_event["reason"], help_event["reason"])
             if help_event
             else None,
@@ -469,12 +477,41 @@ def _reward_demo(report: dict):
             reason = "report_limit"
         evidence = db.get_report_evidence(report["id"]) or {}
         metadata = evidence.get("image_metadata") or {}
+        from ..measurement import registered
+
+        automatic = registered.enabled()
         req_id = metadata.get("measurement_request_id")
+        if automatic:
+            candidates = [
+                store.get(rid) for rid in registered.MATCHES.get(report["id"], [])
+            ]
+            candidates = [
+                r
+                for r in candidates
+                if r
+                and r["user_id"] != uid
+                and not any(e.get("request_id") == r["id"] for e in own)
+                and not any(
+                    e["kind"] == "help"
+                    and e.get("requester_id") == r["user_id"]
+                    and thai_day(e["occurred_at"]) == thai_day(t)
+                    for e in own
+                )
+                and sum(
+                    e["kind"] == "help"
+                    and e.get("requester_id") == r["user_id"]
+                    and stamp(e["occurred_at"]) > t - timedelta(days=7)
+                    for e in own
+                )
+                < 3
+            ]
+            candidates.sort(key=lambda r: (r["created_at"], r["id"]))
+            req_id = candidates[0]["id"] if candidates else None
         req = store.get(req_id) if req_id else None
         bonus_reason = None
         if req:
             bonus_reason = help_eligibility(
-                report, req, _CLAIMS.get((req_id, uid)), metadata
+                report, req, _CLAIMS.get((req_id, uid)), metadata, automatic=automatic
             )
             if reason in {"not_approved", "stale", "duplicate", "cooldown"}:
                 bonus_reason = reason

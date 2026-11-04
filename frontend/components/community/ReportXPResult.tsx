@@ -82,6 +82,9 @@ export default function ReportXPResult({
           </small>
         </>
       )}
+      {!!result.matched_request_count && (
+        <small>รายงานนี้ช่วยตอบ {result.matched_request_count} คำขอ</small>
+      )}
       {summary && (
         <small>
           {rankUp ? "เลื่อนยศเป็น " : ""}

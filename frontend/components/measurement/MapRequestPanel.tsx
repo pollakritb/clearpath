@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLayoutEffect, useRef } from "react";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import type {
   LocationSuggestion,
@@ -32,8 +33,29 @@ export default function MapRequestPanel({
   onCreated?: (request: MeasurementRequestView) => void;
   resolvingName?: boolean;
 }) {
+  const panelRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (editing) return;
+    const panel = panelRef.current;
+    const map = panel?.closest<HTMLElement>(".cp-map");
+    if (!panel || !map) return;
+    const measure = () =>
+      map.style.setProperty(
+        "--cp-request-sheet-h",
+        `${Math.ceil(panel.getBoundingClientRect().height)}px`,
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(panel);
+    return () => {
+      observer.disconnect();
+      map.style.removeProperty("--cp-request-sheet-h");
+    };
+  }, [editing]);
   return (
     <section
+      ref={panelRef}
+      data-editing={editing}
       className="cp-place-card cp-map-request-panel"
       aria-label="ขอค่าฝุ่นบนแผนที่"
     >
@@ -46,7 +68,12 @@ export default function MapRequestPanel({
         <AppIcon name="close" size={19} />
       </button>
       <div className="cp-place-card__heading">
-        <h2>{editing ? "ขอค่าฝุ่นบริเวณนี้" : "เลือกจุดบนแผนที่"}</h2>
+        <h2>{editing ? "ขอค่าฝุ่นบริเวณนี้" : "ปรับจุดขอค่าฝุ่น"}</h2>
+        {!editing && (
+          <p className="cp-request-pick-hint">
+            เลื่อนแผนที่ให้หมุดตรงจุดที่ต้องการ
+          </p>
+        )}
       </div>
       <div className="cp-map-request-location">
         {point ? (
@@ -98,32 +125,28 @@ export default function MapRequestPanel({
         </>
       ) : (
         <>
-          {point && (
-            <p>เลื่อนแผนที่เพื่อเลือกจุดใต้หมุดตรงกลาง ยังไม่ได้ส่งคำขอ</p>
-          )}
           <button
             className="cp-measure-primary cp-focus"
             type="button"
             disabled={!point}
             onClick={onConfirm}
+            aria-label="ใช้จุดนี้เพื่อขอค่าฝุ่น"
           >
-            ใช้จุดนี้เพื่อขอค่าฝุ่น
+            ยืนยันจุดนี้
           </button>
         </>
       )}
-      {!editing && onSearch && (
-        <button
-          type="button"
-          className="cp-measure-link cp-focus"
-          onClick={onSearch}
-        >
-          ← ค้นหาสถานที่อื่น
-        </button>
-      )}
       {!editing && (
-        <Link href="/requests" className="cp-measure-link cp-focus">
-          ดูคำขอของฉัน
-        </Link>
+        <div className="cp-request-secondary-actions">
+          {onSearch && (
+            <button type="button" className="cp-focus" onClick={onSearch}>
+              <AppIcon name="search" size={16} /> ค้นหาที่อื่น
+            </button>
+          )}
+          <Link href="/requests" className="cp-focus">
+            <AppIcon name="community" size={16} /> คำขอของฉัน
+          </Link>
+        </div>
       )}
     </section>
   );

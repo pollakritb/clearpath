@@ -37,6 +37,7 @@ class XPSettings(BaseModel):
 
 
 class XPResult(BaseModel):
+    matched_request_count: int = 0
     status: Literal["pending", "granted", "not_eligible", "disabled"] = "pending"
     report_xp: int = 0
     help_xp: int = 0

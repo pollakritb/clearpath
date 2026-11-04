@@ -27,6 +27,7 @@ export interface XPSettings {
   identity_mode?: "google" | "alias" | null;
 }
 export interface XPResult {
+  matched_request_count?: number;
   status: "pending" | "granted" | "not_eligible" | "disabled";
   report_xp: number;
   help_xp: number;

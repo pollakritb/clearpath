@@ -20,6 +20,8 @@ import type {
   MeasurementRequestView,
   MeasurementRequestsResponse,
   MeasurementHelperSettings,
+  MeasurementHelperLocation,
+  MeasurementHelperLocationWrite,
   MeasurementPresenceUpdate,
   ActivitiesResponse,
   AnnouncementsResponse,
@@ -196,6 +198,28 @@ export const api = {
       auth: true,
       body: JSON.stringify({ enabled }),
     }),
+  saveMeasurementLocation: (
+    body: MeasurementHelperLocationWrite,
+    slot?: 1 | 2,
+  ) =>
+    http<MeasurementHelperLocation>(
+      `/api/measurement-requests/helper/locations${slot ? `/${slot}` : ""}`,
+      {
+        method: slot ? "PATCH" : "POST",
+        auth: true,
+        body: JSON.stringify(body),
+      },
+    ),
+  deleteMeasurementLocation: (slot: 1 | 2) =>
+    http<{ ok: boolean }>(
+      `/api/measurement-requests/helper/locations/${slot}`,
+      { method: "DELETE", auth: true },
+    ),
+  measurementRequestGroup: (id: string) =>
+    http<MeasurementRequestsResponse>(
+      `/api/measurement-requests/groups/${encodeURIComponent(id)}`,
+      { auth: true, cache: "no-store" },
+    ),
   measurementPresence: (body: MeasurementPresenceUpdate) =>
     http<MeasurementHelperSettings>("/api/measurement-requests/presence", {
       method: "PUT",

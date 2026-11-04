@@ -34,7 +34,7 @@ it("opens history at now on the right and moves left through Air4Thai readings",
     name: "เลือกชั่วโมงย้อนหลัง",
   }) as HTMLInputElement;
   expect(slider.value).toBe("24");
-  fireEvent.click(screen.getByRole("button", { name: "← กลับไปที่หมุดสถานี" }));
+  fireEvent.click(screen.getByRole("button", { name: "กลับไปที่หมุดสถานี" }));
   expect(back).toHaveBeenCalledOnce();
   fireEvent.change(slider, { target: { value: "23" } });
   expect(select).toHaveBeenLastCalledWith({ kind: "history", hours: 1 });

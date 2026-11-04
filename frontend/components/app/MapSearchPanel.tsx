@@ -9,6 +9,7 @@ import type { LocationSuggestion, Station } from "@/frontend/types";
 
 interface MapSearchPanelProps {
   embedded?: boolean;
+  purpose?: "request" | "helper";
   forecastMode?: boolean;
   stations: Station[];
   onClose: () => void;
@@ -21,6 +22,7 @@ const SEARCH_DEBOUNCE_MS = 450;
 
 export default function MapSearchPanel({
   embedded = false,
+  purpose = "request",
   forecastMode = false,
   stations,
   onClose,
@@ -130,10 +132,18 @@ export default function MapSearchPanel({
     >
       <div className="cp-map-flyout__heading">
         <div>
-          <strong>{embedded ? "ขอค่าฝุ่นจากชุมชน" : "ค้นหาสถานที่"}</strong>
+          <strong>
+            {embedded
+              ? purpose === "helper"
+                ? "ค้นหาพื้นที่ที่ช่วยวัดได้"
+                : "ขอค่าฝุ่นจากชุมชน"
+              : "ค้นหาสถานที่"}
+          </strong>
           <small>
             {embedded
-              ? "ค้นหาชื่อสถานที่หรือที่อยู่ แล้วเลือกผลลัพธ์เพื่อปรับจุดบนแผนที่"
+              ? purpose === "helper"
+                ? "ค้นหาบ้านหรือที่ทำงาน แล้วปรับจุดให้ตรงบนแผนที่"
+                : "ค้นหาชื่อสถานที่หรือที่อยู่ แล้วเลือกผลลัพธ์เพื่อปรับจุดบนแผนที่"
               : forecastMode
                 ? "ดูพยากรณ์ CAMS ของบริเวณที่เลือก"
                 : `ดูค่าฝุ่นและแหล่งข้อมูลในระยะ ${PLACE_RADIUS_KM} กม.`}

@@ -188,8 +188,14 @@ export default function ReportForm({
     setMessage(null);
     try {
       if (!canSubmit) return;
+      const automaticHelp = !measurementRequestId
+        ? await api
+            .measurementHelper()
+            .then((settings) => settings.registered_locations_enabled)
+            .catch(() => false)
+        : false;
       const bonusGPS =
-        measurementRequestId && navigator.geolocation
+        (measurementRequestId || automaticHelp) && navigator.geolocation
           ? await new Promise<{
               lat: number;
               lon: number;

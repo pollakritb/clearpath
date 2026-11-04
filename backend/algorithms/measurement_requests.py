@@ -48,10 +48,9 @@ def eligible_helper(request: dict, presence: dict) -> bool:
     )
 
 
-def qualifying_report(request: dict, report: dict) -> bool:
-    if (
-        report.get("status") != "approved"
-        or report.get("user_id") == request["user_id"]
+def qualifying_report(request: dict, report: dict, *, allow_self: bool = False) -> bool:
+    if report.get("status") != "approved" or (
+        not allow_self and report.get("user_id") == request["user_id"]
     ):
         return False
     value = report.get("pm25")
@@ -67,3 +66,16 @@ def qualifying_report(request: dict, report: dict) -> bool:
         )
     except (KeyError, TypeError, ValueError):
         return False
+
+
+def eligible_registered_helper(request: dict, helper: dict) -> bool:
+    """Registered addresses filter invitations, never report eligibility."""
+    return bool(
+        helper.get("enabled")
+        and str(helper.get("user_id")) != str(request["user_id"])
+        and any(
+            place.get("enabled")
+            and in_radius(request, float(place["lat"]), float(place["lon"]))
+            for place in helper.get("locations", [])
+        )
+    )

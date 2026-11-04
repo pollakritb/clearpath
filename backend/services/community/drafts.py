@@ -282,6 +282,14 @@ async def submit_draft(
                     "bonus_gps_at_submission": values.get("bonus_gps"),
                     "bonus_gps_received_at": datetime.now(UTC).isoformat(),
                 }
+    from ..measurement import registered
+
+    if await run_in_threadpool(registered.enabled):
+        draft["image_metadata"] = {
+            **(draft.get("image_metadata") or {}),
+            "bonus_gps_at_submission": values.get("bonus_gps"),
+            "bonus_gps_received_at": datetime.now(UTC).isoformat(),
+        }
     profile = await run_in_threadpool(supabase_client.ensure_profile, user_id)
     official, _source = await get_current_stations()
     nearest_location = min(

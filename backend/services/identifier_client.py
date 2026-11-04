@@ -45,6 +45,17 @@ REFERENCES = {
     "line_notification_links": {"user_id": "profiles"},
     "measurement_delivery_leases": {"event_id": "notification_outbox"},
     "measurement_helper_presence": {"user_id": "profiles"},
+    "measurement_helper_locations": {"user_id": "profiles"},
+    "measurement_report_jobs": {"report_id": "community_reports"},
+    "measurement_report_matches": {
+        "report_id": "community_reports",
+        "request_id": "measurement_requests",
+    },
+    "measurement_notification_batches": {"user_id": "profiles"},
+    "measurement_notification_batch_items": {
+        "user_id": "profiles",
+        "request_id": "measurement_requests",
+    },
     "measurement_request_recipients": {
         "request_id": "measurement_requests",
         "user_id": "profiles",
@@ -77,6 +88,16 @@ REFERENCES = {
 }
 
 RPC_PARAMETERS = {
+    "save_measurement_helper_location": {"p_user": "profiles"},
+    "registered_measurement_helpers": {
+        "p_request": "measurement_requests",
+        "p_cursor": "profiles",
+    },
+    "queue_measurement_group": {
+        "p_user": "profiles",
+        "p_request": "measurement_requests",
+    },
+    "prepare_measurement_group": {"p_user": "profiles"},
     "apply_reputation_event": {
         "p_user_id": "profiles",
         "p_report_id": "community_reports",
@@ -109,6 +130,7 @@ RPC_PARAMETERS = {
     },
 }
 RPC_RESULTS = {
+    "registered_measurement_helpers": "measurement_helper_presence",
     "apply_reputation_event": "profiles",
     "moderate_community_report": "community_reports",
     "moderate_community_report_v2": "community_reports",

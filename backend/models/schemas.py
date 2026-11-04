@@ -65,6 +65,8 @@ from .forecast_grid import ForecastGridFrame, ForecastGridFrames, ForecastGridMe
 from .locations import LocationLabelResponse, LocationSearchResponse, LocationSuggestion
 from .measurement import (
     MeasurementHelperConsent,
+    MeasurementHelperLocation,
+    MeasurementHelperLocationWrite,
     MeasurementHelperSettings,
     MeasurementPresenceUpdate,
     MeasurementRequestCreate,
@@ -108,6 +110,8 @@ __all__ = [
     "MeasurementRequestsResponse",
     "MeasurementHelperSettings",
     "MeasurementHelperConsent",
+    "MeasurementHelperLocation",
+    "MeasurementHelperLocationWrite",
     "MeasurementPresenceUpdate",
     "ActivitiesResponse",
     "Activity",

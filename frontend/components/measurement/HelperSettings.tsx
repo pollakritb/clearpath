@@ -1,4 +1,5 @@
 "use client";
+import RegisteredHelperSettings from "./RegisteredHelperSettings";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
@@ -59,6 +60,14 @@ export default function HelperSettings() {
       setBusy(false);
     }
   }
+  if (settings?.registered_locations_enabled)
+    return (
+      <RegisteredHelperSettings
+        key={account}
+        settings={settings}
+        onChange={setSettings}
+      />
+    );
   return (
     <section className="cp-measure-card">
       <h3>ช่วยวัดค่าฝุ่นให้ชุมชน</h3>

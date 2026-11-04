@@ -38,7 +38,8 @@ export default function HelpRequestButton({
           setBusy(true);
           setError("");
           try {
-            if (request.xp_enabled) await api.claimMeasurementHelp(request.id);
+            if (request.xp_enabled && !request.automatic_help_enabled)
+              await api.claimMeasurementHelp(request.id);
             router.push(`/report?request=${encodeURIComponent(request.id)}`);
           } catch (error) {
             setError(
