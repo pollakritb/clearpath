@@ -1,6 +1,9 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import LocationPickerActions from "./LocationPickerActions";
+import { api } from "@/frontend/lib/api-client";
+import { THAILAND_CENTER } from "@/frontend/lib/constants";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import MapSearchPanel from "@/frontend/components/app/MapSearchPanel";
 import type {
@@ -11,7 +14,14 @@ import type {
 
 const LocationMap = dynamic(() => import("./HelperLocationMap"), {
   ssr: false,
+  loading: () => (
+    <div className="cp-helper-editor__map-loading" role="status">
+      กำลังเปิดแผนที่…
+    </div>
+  ),
 });
+type Step = "search" | "map" | "details";
+
 export default function HelperLocationEditor({
   initial,
   onSave,
@@ -33,30 +43,114 @@ export default function HelperLocationEditor({
     lon: number;
     address: string;
   } | null>(initial);
+  const [placeName, setPlaceName] = useState(initial?.name ?? "");
   const [name, setName] = useState(initial?.name ?? "");
-  const [search, setSearch] = useState(!initial);
+  const [step, setStep] = useState<Step>(initial ? "map" : "search");
+  const [mapZoom, setMapZoom] = useState(15);
+  const [resolved, setResolved] = useState<{
+    lat: number;
+    lon: number;
+    name: string;
+    address: string;
+  } | null>(null);
+  const lat = point?.lat,
+    lon = point?.lon,
+    address = point?.address;
+  useEffect(() => {
+    if (lat == null || lon == null || address || step === "search") return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void api
+        .reverseLocation(lat, lon)
+        .then((label) => {
+          if (!cancelled) setResolved({ lat, lon, ...label });
+        })
+        .catch(() => {
+          /* Coordinates remain usable when address lookup is unavailable. */
+        });
+    }, 450);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [lat, lon, address, step]);
+  const resolvedLabel =
+    resolved?.lat === lat && resolved?.lon === lon ? resolved : null;
   useEffect(() => {
     const element = dialog.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     element?.showModal();
-    return () => element?.close();
+    return () => {
+      element?.close();
+      document.body.style.overflow = previousOverflow;
+    };
   }, []);
+  function back() {
+    if (busy) return;
+    if (step === "search") onClose();
+    else setStep(step === "details" ? "map" : "search");
+  }
   const select = (place: LocationSuggestion) => {
     setPoint({ lat: place.lat, lon: place.lon, address: place.address });
+    setPlaceName(place.name);
     if (!name) setName(place.name.slice(0, 80));
-    setSearch(false);
+    setMapZoom(15);
+    setStep("map");
   };
+  const location = point && (
+    <div className="cp-helper-editor__location">
+      <span className="cp-helper-editor__location-icon">
+        <AppIcon name="location" size={22} />
+      </span>
+      <div>
+        <strong>
+          {point.address
+            ? placeName
+            : resolvedLabel?.name || "จุดที่เลือกบนแผนที่"}
+        </strong>
+        <small>
+          {point.address ||
+            resolvedLabel?.address ||
+            `${point.lat.toFixed(5)}, ${point.lon.toFixed(5)}`}
+        </small>
+      </div>
+    </div>
+  );
   return (
     <dialog
       ref={dialog}
       className="cp-helper-editor"
+      data-step={step}
       aria-label={initial ? "แก้ไขพื้นที่รับคำขอ" : "เพิ่มพื้นที่รับคำขอ"}
       onCancel={(event) => {
         event.preventDefault();
         if (!busy) onClose();
       }}
     >
-      <header>
-        <h2>{initial ? "แก้ไขพื้นที่รับคำขอ" : "เพิ่มพื้นที่รับคำขอ"}</h2>
+      <header className="cp-helper-editor__header">
+        <button
+          type="button"
+          className="cp-focus"
+          disabled={busy}
+          aria-label={
+            step === "search"
+              ? "กลับไปตั้งค่าพื้นที่"
+              : step === "map"
+                ? "กลับไปค้นหาสถานที่"
+                : "กลับไปเลือกจุดบนแผนที่"
+          }
+          onClick={back}
+        >
+          <AppIcon name="back" size={21} />
+        </button>
+        <h2>
+          {step === "search"
+            ? "เลือกพื้นที่รับคำขอ"
+            : step === "map"
+              ? "ปักหมุดพื้นที่"
+              : "บันทึกพื้นที่รับคำขอ"}
+        </h2>
         <button
           type="button"
           className="cp-focus"
@@ -64,51 +158,96 @@ export default function HelperLocationEditor({
           aria-label="ปิดการเลือกพื้นที่"
           onClick={onClose}
         >
-          <AppIcon name="close" size={20} />
+          <AppIcon name="close" size={21} />
         </button>
       </header>
-      {search ? (
-        <MapSearchPanel
-          embedded
-          purpose="helper"
-          stations={[]}
-          onClose={() => {}}
-          onLocationSelect={select}
-          onStationSelect={() => {}}
-        />
-      ) : (
-        point && (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (name.trim() && !busy)
-                onSave(
-                  {
-                    ...point,
-                    name: name.trim(),
-                    enabled: initial?.enabled ?? true,
-                  },
-                  initial?.slot,
-                );
+      {step === "search" ? (
+        <div className="cp-helper-editor__search">
+          <MapSearchPanel
+            embedded
+            locationPicker
+            purpose="helper"
+            stations={[]}
+            onClose={() => {}}
+            onLocationSelect={select}
+            onStationSelect={() => {}}
+          />
+          <LocationPickerActions
+            onSelect={select}
+            onMapSelect={() => {
+              if (!point) {
+                setPoint({
+                  lat: THAILAND_CENTER[0],
+                  lon: THAILAND_CENTER[1],
+                  address: "",
+                });
+                setPlaceName("จุดที่เลือกบนแผนที่");
+                setMapZoom(6);
+              }
+              setStep("map");
             }}
-          >
-            <p>เลื่อนแผนที่ให้หมุดตรงพื้นที่ที่คุณพร้อมช่วยวัด</p>
+          />
+          <p className="cp-helper-editor__privacy">
+            <AppIcon name="shield" size={18} />
+            บันทึกได้ 2 จุด เช่น บ้านและที่ทำงาน พิกัดเห็นเฉพาะคุณ
+          </p>
+        </div>
+      ) : step === "map" && point ? (
+        <>
+          <div className="cp-helper-editor__map">
             <LocationMap
               point={point}
+              initialZoom={mapZoom}
+              onZoomChange={setMapZoom}
               onMove={(lat, lon) => setPoint({ lat, lon, address: "" })}
             />
-            <small>
-              {point.address ||
-                `${point.lat.toFixed(5)}, ${point.lon.toFixed(5)}`}
-            </small>
+          </div>
+          <section
+            className="cp-helper-editor__sheet"
+            aria-label="ยืนยันพื้นที่รับคำขอ"
+          >
+            <h3>รับคำขอบริเวณนี้</h3>
+            <p className="cp-helper-editor__pick-help">
+              เลื่อนแผนที่ให้หมุดตรงจุดที่คุณพร้อมช่วยวัด
+            </p>
+            {location}
             <button
-              className="cp-helper-text-button cp-focus"
+              className="cp-helper-editor__change cp-focus"
               type="button"
-              onClick={() => setSearch(true)}
+              onClick={() => setStep("search")}
             >
-              ค้นหาสถานที่อื่น
+              <AppIcon name="search" size={17} /> ค้นหาสถานที่อื่น
             </button>
-            <label>
+            <button
+              className="cp-measure-primary cp-focus"
+              type="button"
+              onClick={() => setStep("details")}
+            >
+              ยืนยันจุดนี้
+            </button>
+          </section>
+        </>
+      ) : point ? (
+        <form
+          className="cp-helper-editor__details"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (name.trim() && !busy)
+              onSave(
+                {
+                  ...point,
+                  name: name.trim(),
+                  address: point.address || resolvedLabel?.address || "",
+                  enabled: initial?.enabled ?? true,
+                },
+                initial?.slot,
+              );
+          }}
+        >
+          <div className="cp-helper-editor__details-body">
+            <h3>ตั้งชื่อให้จำง่าย</h3>
+            <p>ใช้ชื่อนี้แสดงในรายการพื้นที่รับคำขอของคุณ</p>
+            <label className="cp-helper-editor__name">
               ชื่อพื้นที่
               <input
                 autoComplete="off"
@@ -117,9 +256,56 @@ export default function HelperLocationEditor({
                 maxLength={80}
                 placeholder="เช่น บ้าน หรือที่ทำงาน"
                 value={name}
+                disabled={busy}
                 onChange={(event) => setName(event.target.value)}
               />
             </label>
+            <div
+              className="cp-helper-editor__presets"
+              aria-label="ชื่อพื้นที่ที่ใช้บ่อย"
+            >
+              {["บ้าน", "ที่ทำงาน"].map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="cp-focus"
+                  disabled={busy}
+                  aria-pressed={name === label}
+                  onClick={() => setName(label)}
+                >
+                  <AppIcon
+                    name={label === "บ้าน" ? "home" : "station"}
+                    size={18}
+                  />
+                  {label}
+                </button>
+              ))}
+            </div>
+            <section
+              className="cp-helper-editor__summary"
+              aria-label="จุดที่เลือก"
+            >
+              {location}
+              <button
+                className="cp-helper-editor__change cp-focus"
+                disabled={busy}
+                type="button"
+                onClick={() => setStep("map")}
+              >
+                แก้ไขจุดบนแผนที่
+              </button>
+            </section>
+            <p className="cp-helper-editor__privacy">
+              <AppIcon name="shield" size={18} />
+              คุณจะได้รับแจ้งเมื่อมีคำขอครอบคลุมจุดนี้ และพักรับได้ทุกเมื่อ
+            </p>
+            {error && (
+              <p className="cp-helper-editor__error" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+          <footer className="cp-helper-editor__footer">
             <button
               className="cp-measure-primary cp-focus"
               type="submit"
@@ -131,10 +317,9 @@ export default function HelperLocationEditor({
                   ? "บันทึกและเปิดรับคำขอ"
                   : "บันทึกพื้นที่"}
             </button>
-          </form>
-        )
-      )}
-      {error && <p role="alert">{error}</p>}
+          </footer>
+        </form>
+      ) : null}
     </dialog>
   );
 }

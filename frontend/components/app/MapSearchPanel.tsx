@@ -9,6 +9,7 @@ import type { LocationSuggestion, Station } from "@/frontend/types";
 
 interface MapSearchPanelProps {
   embedded?: boolean;
+  locationPicker?: boolean;
   purpose?: "request" | "helper";
   forecastMode?: boolean;
   stations: Station[];
@@ -22,6 +23,7 @@ const SEARCH_DEBOUNCE_MS = 450;
 
 export default function MapSearchPanel({
   embedded = false,
+  locationPicker = false,
   purpose = "request",
   forecastMode = false,
   stations,
@@ -123,43 +125,49 @@ export default function MapSearchPanel({
       id={embedded ? undefined : "cp-map-search-panel"}
       className={
         embedded
-          ? "cp-measure-card cp-measure-search"
+          ? `cp-measure-card cp-measure-search${locationPicker ? " cp-location-search" : ""}`
           : "cp-map-flyout cp-map-search-panel"
       }
       aria-label={
-        embedded ? "เลือกสถานที่เพื่อขอค่าฝุ่น" : "ค้นหาสถานที่หรือสถานี"
+        embedded
+          ? purpose === "helper"
+            ? "ค้นหาพื้นที่รับคำขอ"
+            : "เลือกสถานที่เพื่อขอค่าฝุ่น"
+          : "ค้นหาสถานที่หรือสถานี"
       }
     >
-      <div className="cp-map-flyout__heading">
-        <div>
-          <strong>
-            {embedded
-              ? purpose === "helper"
-                ? "ค้นหาพื้นที่ที่ช่วยวัดได้"
-                : "ขอค่าฝุ่นจากชุมชน"
-              : "ค้นหาสถานที่"}
-          </strong>
-          <small>
-            {embedded
-              ? purpose === "helper"
-                ? "ค้นหาบ้านหรือที่ทำงาน แล้วปรับจุดให้ตรงบนแผนที่"
-                : "ค้นหาชื่อสถานที่หรือที่อยู่ แล้วเลือกผลลัพธ์เพื่อปรับจุดบนแผนที่"
-              : forecastMode
-                ? "ดูพยากรณ์ CAMS ของบริเวณที่เลือก"
-                : `ดูค่าฝุ่นและแหล่งข้อมูลในระยะ ${PLACE_RADIUS_KM} กม.`}
-          </small>
+      {!locationPicker && (
+        <div className="cp-map-flyout__heading">
+          <div>
+            <strong>
+              {embedded
+                ? purpose === "helper"
+                  ? "ค้นหาพื้นที่ที่ช่วยวัดได้"
+                  : "ขอค่าฝุ่นจากชุมชน"
+                : "ค้นหาสถานที่"}
+            </strong>
+            <small>
+              {embedded
+                ? purpose === "helper"
+                  ? "ค้นหาบ้านหรือที่ทำงาน แล้วปรับจุดให้ตรงบนแผนที่"
+                  : "ค้นหาชื่อสถานที่หรือที่อยู่ แล้วเลือกผลลัพธ์เพื่อปรับจุดบนแผนที่"
+                : forecastMode
+                  ? "ดูพยากรณ์ CAMS ของบริเวณที่เลือก"
+                  : `ดูค่าฝุ่นและแหล่งข้อมูลในระยะ ${PLACE_RADIUS_KM} กม.`}
+            </small>
+          </div>
+          {!embedded && (
+            <button
+              type="button"
+              className="cp-map-flyout__close cp-focus"
+              onClick={onClose}
+              aria-label="ปิดการค้นหา"
+            >
+              <AppIcon name="close" size={20} />
+            </button>
+          )}
         </div>
-        {!embedded && (
-          <button
-            type="button"
-            className="cp-map-flyout__close cp-focus"
-            onClick={onClose}
-            aria-label="ปิดการค้นหา"
-          >
-            <AppIcon name="close" size={20} />
-          </button>
-        )}
-      </div>
+      )}
 
       <form className="cp-map-search-form" onSubmit={submitSearch}>
         <label className="cp-map-search-field">
@@ -168,19 +176,25 @@ export default function MapSearchPanel({
             ref={searchRef}
             value={query}
             onChange={(event) => updateQuery(event.target.value)}
-            placeholder="ชื่อสถานที่ ที่อยู่ หรือสถานี"
+            placeholder={
+              locationPicker
+                ? "ค้นหาสถานที่หรือที่อยู่"
+                : "ชื่อสถานที่ ที่อยู่ หรือสถานี"
+            }
             aria-label="คำค้นหา"
             autoComplete="off"
             type="search"
           />
         </label>
-        <button
-          type="submit"
-          className="cp-map-search-submit cp-focus"
-          disabled={!canSearch || loading}
-        >
-          ค้นหา
-        </button>
+        {!locationPicker && (
+          <button
+            type="submit"
+            className="cp-map-search-submit cp-focus"
+            disabled={!canSearch || loading}
+          >
+            ค้นหา
+          </button>
+        )}
       </form>
       {!searchedQuery && canSearch && !stationMatches.length && (
         <p className="cp-map-search-panel__hint">
@@ -212,7 +226,9 @@ export default function MapSearchPanel({
         )}
       {searchFailed && (
         <p className="cp-map-search-panel__hint" role="alert">
-          ค้นหาสถานที่ไม่สำเร็จ กรุณาลองอีกครั้งหรือกดค้นหา
+          {locationPicker
+            ? "ค้นหาไม่สำเร็จ ลองใหม่หรือเลือกบนแผนที่ด้านล่าง"
+            : "ค้นหาสถานที่ไม่สำเร็จ กรุณาลองอีกครั้งหรือกดค้นหา"}
         </p>
       )}
       {(stationMatches.length > 0 || visibleLocations.length > 0) && (

@@ -19,9 +19,11 @@ function CenterPicker({
   position,
   radiusKm,
   onMove,
+  minimumZoom,
 }: {
   position: Point | null;
   radiusKm: number;
+  minimumZoom: number;
   onMove: (lat: number, lon: number) => void;
 }) {
   const map = useMap();
@@ -58,14 +60,14 @@ function CenterPicker({
       lat != null && lon != null ? L.latLng(lat, lon) : map.getCenter();
     const zoom = initialized.current
       ? map.getZoom()
-      : Math.max(13, map.getZoom());
+      : Math.max(minimumZoom, map.getZoom());
     initialized.current = true;
     // Preserve a searched place's name until the user actually pans away.
     if (lat != null && lon != null) published.current = { lat, lon };
     map.setView(center, zoom, { animate: false });
     circle.current?.setLatLng(map.getCenter());
     publish();
-  }, [map, lat, lon, publish]);
+  }, [map, lat, lon, publish, minimumZoom]);
   return (
     <>
       <Circle
@@ -98,14 +100,21 @@ export default function RequestLocationMarker({
   position,
   radiusKm = 3,
   onMove,
+  minimumZoom = 13,
 }: {
   position: Point | null;
   radiusKm?: number;
+  minimumZoom?: number;
   onMove?: (lat: number, lon: number) => void;
 }) {
   if (onMove)
     return (
-      <CenterPicker position={position} radiusKm={radiusKm} onMove={onMove} />
+      <CenterPicker
+        position={position}
+        radiusKm={radiusKm}
+        onMove={onMove}
+        minimumZoom={minimumZoom}
+      />
     );
   if (!position) return null;
   return (
