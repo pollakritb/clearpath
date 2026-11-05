@@ -66,6 +66,8 @@ def _likely_same_measurement_source(first: dict, second: dict) -> bool:
     if hash_distance is not None and hash_distance <= 4:
         return True
 
+    if first.get("measurement_source_key") and second.get("measurement_source_key"):
+        return first["measurement_source_key"] == second["measurement_source_key"]
     first_model = str(first.get("device_model") or "").strip().casefold()
     second_model = str(second.get("device_model") or "").strip().casefold()
     if not first_model or first_model != second_model:

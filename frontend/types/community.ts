@@ -1,3 +1,4 @@
+import type { ReportEvidence } from "./evidence";
 import type { ParticipationRank, XPSummary, XPResult } from "./xp";
 export type ReportStatus = "pending" | "approved" | "rejected";
 export type VerificationMethod = "pending" | "automatic" | "admin";
@@ -52,6 +53,8 @@ export interface CommunityReport {
   captured_at: string;
   created_at: string;
   status: ReportStatus;
+  evidence?: ReportEvidence | null;
+  evidence_policy?: string;
   trust_score: number;
   trust_reasons: string[];
   peer_up: number;
@@ -70,7 +73,7 @@ export interface CommunityReport {
   source_type: CommunitySourceType;
   device_calibrated: boolean;
   calibrated_at: string | null;
-  measurement_environment: "outdoor" | "indoor";
+  measurement_environment: "outdoor" | "indoor" | "unknown";
   measurement_stable: boolean;
   near_emission_source: boolean;
   measurement_note: string | null;
@@ -80,7 +83,7 @@ export interface CommunityReport {
   gap_fill_basis: GapFillBasis;
   eligibility_reason: string;
   official_recorded_at: string | null;
-  averaging_period: "instant" | "1_minute" | "5_minutes";
+  averaging_period: "instant" | "1_minute" | "5_minutes" | "unknown";
   measurement_duration_seconds: number;
   province: string | null;
   district: string | null;
@@ -193,11 +196,11 @@ export interface ReportDraftSubmit {
   device_model?: string | null;
   device_calibrated?: boolean;
   calibrated_at?: string | null;
-  measurement_environment?: "outdoor";
+  measurement_environment?: "outdoor" | "indoor" | "unknown";
   measurement_stable?: boolean;
   near_emission_source?: boolean;
   measurement_note?: string | null;
-  averaging_period?: "instant" | "1_minute" | "5_minutes";
+  averaging_period?: "instant" | "1_minute" | "5_minutes" | "unknown";
   measurement_duration_seconds?: number;
 }
 
@@ -218,8 +221,18 @@ export interface RatingResult {
   reward_points: number;
 }
 
+export interface ReactionLocation {
+  lat: number;
+  lon: number;
+  accuracy_m: number;
+  observed_at: string;
+}
+
 export interface ReportReactionRequest {
   reaction: ReactionKind;
+  location?: ReactionLocation | null;
+  reason_code?:
+    "useful" | "image_unclear" | "context_question" | "value_question" | null;
 }
 
 export interface ReportCommentCreate {
@@ -243,6 +256,9 @@ export interface ReportEngagementResponse {
   comment_count: number;
   viewer_reaction: ReactionKind | null;
   comments: ReportComment[];
+  location_required?: boolean;
+  location_policy_ready?: boolean;
+  reaction_radius_m?: number | null;
 }
 
 export interface UserReputation {

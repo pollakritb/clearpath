@@ -69,7 +69,7 @@ def account(user_id: str) -> dict:
                 _ACCOUNTS[user_id] = dict(
                     user_id=user_id,
                     member_id=member_id,
-                    alias=f"สมาชิก CP-{member_id[:8].upper()}",
+                    alias=f"สมาชิก CP-{member_id[4:] if member_id.startswith('MBR-') else member_id[:8].upper()}",
                     hidden=False,
                     identity_mode="google",
                 )
@@ -138,7 +138,7 @@ def totals(user_id: str) -> dict:
     now = datetime.now(UTC)
     return dict(
         lifetime_xp=sum(e["points"] for e in live),
-        days=len({thai_day(e["occurred_at"]) for e in live}),
+        days=len({thai_day(e["occurred_at"]) for e in live if e["kind"] == "report"}),
         reports=sum(e["kind"] == "report" for e in live),
         helped=sum(e["kind"] == "help" for e in live),
         today_reports=sum(
@@ -167,16 +167,35 @@ def summary(user_id: str) -> dict | None:
         return None
     a = account(user_id)
     t = totals(user_id)
-    return {key: a[key] for key in ("member_id", "alias", "hidden")} | dict(
-        identity_mode=a.get("identity_mode", "google"),
-        lifetime_xp=t.get("lifetime_xp", 0),
-        contribution_days=t.get("days", 0),
-        report_count=t.get("reports", 0),
-        help_count=t.get("helped", 0),
-        today_reports=t.get("today_reports", 0),
-        today_help=t.get("today_help", 0),
-        rank=rank_progress(t.get("lifetime_xp", 0), t.get("days", 0)),
-        achievements=achievements(t.get("reports", 0), t.get("helped", 0)),
+    from . import policy_v2
+
+    policy = policy_v2.release()
+    extra = (
+        {
+            "policy_version": "contribution-v2"
+            if policy["active_version"] == "v2"
+            else "xp-v1",
+            "launched_at": policy["launched_at"],
+            **policy_v2.counters(user_id),
+            "evidence_history": policy_v2.outcomes(user_id),
+        }
+        if policy.get("launched_at") is not None
+        else {}
+    )
+    return (
+        extra
+        | {key: a[key] for key in ("member_id", "alias", "hidden")}
+        | dict(
+            identity_mode=a.get("identity_mode", "google"),
+            lifetime_xp=t.get("lifetime_xp", 0),
+            contribution_days=t.get("days", 0),
+            report_count=t.get("reports", 0),
+            help_count=t.get("helped", 0),
+            today_reports=t.get("today_reports", 0),
+            today_help=t.get("today_help", 0),
+            rank=rank_progress(t.get("lifetime_xp", 0), t.get("days", 0)),
+            achievements=achievements(t.get("reports", 0), t.get("helped", 0)),
+        )
     )
 
 
@@ -203,7 +222,7 @@ def update_settings(user_id: str, values: dict) -> dict:
     return summary(user_id)
 
 
-def board(period: str, offset: int, user_id: str | None = None) -> dict:
+def _legacy_board(period: str, offset: int, user_id: str | None = None) -> dict:
     if not enabled():
         return dict(period=period, users=[], me=None, next_offset=None)
     if settings.local_demo_mode:
@@ -274,6 +293,18 @@ def board(period: str, offset: int, user_id: str | None = None) -> dict:
         me=present(me) if me else None,
         next_offset=offset + 50 if len(rows) > 50 else None,
     )
+
+
+def board(period: str | None, offset: int, user_id: str | None = None) -> dict:
+    if period is None:
+        from . import policy_v2
+
+        period = "month" if policy_v2.active() else "all"
+    if period in {"all", "7d", "30d"}:
+        return _legacy_board(period, offset, user_id)
+    from . import seasons
+
+    return seasons.board(period, offset, user_id)
 
 
 def leaderboard_names(member_ids: list[str]) -> dict[str, str]:
@@ -366,11 +397,36 @@ def claim(user_id: str, request_id: str) -> dict:
 
 
 def process() -> dict:
-    return (
+    from . import policy_v2
+
+    if not enabled():
+        return {"processed": 0}
+    result = (
         rpc("process_community_xp", {"p_limit": 50})
-        if enabled() and not settings.local_demo_mode
+        if not settings.local_demo_mode
         else {"processed": 0}
     )
+    if policy_v2.active():
+        from . import missions, seasons
+
+        def compensate():
+            if not settings.local_demo_mode:
+                rpc("reconcile_community_v2", {})
+            else:
+                from .compensation import reconcile_demo
+
+                reconcile_demo()
+
+        for task, name in [
+            (compensate, "compensation"),
+            (missions.refresh, "coverage_missions"),
+            (seasons.freeze_due, "season_freeze"),
+        ]:
+            try:
+                task()
+            except Exception:
+                logger.exception("community_v2_maintenance_retry", extra={"task": name})
+    return result
 
 
 def reward_report(report: dict) -> dict:
@@ -389,6 +445,12 @@ def reward_report(report: dict) -> dict:
             registered.process_matches()
         if settings.local_demo_mode:
             _reward_demo(report)
+            from . import policy_v2
+
+            if policy_v2.active():
+                from .compensation import reconcile_demo
+
+                reconcile_demo()
         else:
             process()
         rows = (
@@ -397,7 +459,7 @@ def reward_report(report: dict) -> dict:
                 for e in _EVENTS
                 if str(e.get("report_id")) == str(report["id"])
                 and e["user_id"] == str(report["user_id"])
-                and e["kind"] in {"report", "help"}
+                and e["kind"] in {"report", "help", "first_day", "contribution_week"}
             ]
             if settings.local_demo_mode
             else db.get_client()
@@ -405,7 +467,7 @@ def reward_report(report: dict) -> dict:
             .select("*")
             .eq("user_id", str(report["user_id"]))
             .eq("report_id", str(report["id"]))
-            .in_("kind", ["report", "help"])
+            .in_("kind", ["report", "help", "first_day", "contribution_week"])
             .execute()
             .data
             or []
@@ -441,6 +503,9 @@ def reward_report(report: dict) -> dict:
         help_event = next((e for e in rows if e["kind"] == "help"), None)
         return dict(
             status="granted" if sum(e["points"] for e in rows) > 0 else "not_eligible",
+            first_day_xp=sum(e["points"] for e in rows if e["kind"] == "first_day"),
+            week_xp=sum(e["points"] for e in rows if e["kind"] == "contribution_week"),
+            policy_version=base["policy_version"],
             report_xp=base["points"],
             help_xp=help_event["points"] if help_event else 0,
             reason=REASONS.get(base["reason"], base["reason"]),
@@ -464,13 +529,25 @@ def _reward_demo(report: dict):
         account(uid)
         if any(e.get("report_id") == report["id"] for e in _EVENTS):
             return
-        occurred = report.get("moderated_at") or datetime.now(UTC).isoformat()
+        from . import policy_v2
+
+        policy = policy_v2.release()
+        v2 = policy["active_version"] == "v2" and stamp(report["created_at"]) >= stamp(
+            policy["launched_at"]
+        )
+        occurred = (
+            report["created_at"]
+            if v2
+            else report.get("moderated_at") or datetime.now(UTC).isoformat()
+        )
         t = stamp(occurred)
         own = [e for e in _EVENTS if e["user_id"] == uid and e["points"] > 0]
         today = [e for e in own if thai_day(e["occurred_at"]) == thai_day(t)]
         reason = base_eligibility(report)
         if reason == "granted" and any(
-            t - timedelta(minutes=30) < stamp(e["occurred_at"]) <= t for e in own
+            t - timedelta(minutes=30) < stamp(e["occurred_at"]) <= t
+            for e in own
+            if not v2 or e["kind"] in {"report", "help"}
         ):
             reason = "cooldown"
         if reason == "granted" and sum(e["kind"] == "report" for e in today) >= 5:
@@ -533,6 +610,87 @@ def _reward_demo(report: dict):
                     >= 3
                 ):
                     bonus_reason = "pair_limit"
+        mission = None
+        if v2:
+            from ...algorithms.contribution_v2 import contribution_awards
+            from . import missions
+
+            if reason in {"granted", "report_limit"}:
+                mission = missions.demo_match(report, metadata)
+            awards = contribution_awards(
+                report,
+                _EVENTS,
+                service_eligible=bonus_reason == "granted" or mission is not None,
+                launched_at=policy["launched_at"],
+            )
+            if mission:
+                mission.update(
+                    state="fulfilled",
+                    fulfilled_report_id=report["id"],
+                    fulfilled_user_id=uid,
+                    fulfilled_at=report["captured_at"],
+                )
+                from ...algorithms.distance import haversine_km
+
+                for overlap in policy_v2.DEMO_MISSIONS.values():
+                    if (
+                        overlap["state"] == "open"
+                        and stamp(overlap["starts_at"])
+                        <= stamp(report["captured_at"]) + timedelta(hours=1)
+                        and stamp(overlap["expires_at"]) > stamp(report["captured_at"])
+                        and haversine_km(
+                            overlap["lat"], overlap["lon"], report["lat"], report["lon"]
+                        )
+                        <= overlap["radius_km"]
+                    ):
+                        overlap["state"] = "expired"
+                        overlap["inputs"] = {
+                            **overlap.get("inputs", {}),
+                            "covered_by_report": report["id"],
+                        }
+                if bonus_reason != "granted":
+                    req_id = None
+                    bonus_reason = "coverage_mission"
+            before_rank = rank_progress(totals(uid)["lifetime_xp"])["code"]
+            for award in awards:
+                why = (
+                    bonus_reason
+                    if award["kind"] == "help" and mission
+                    else award["reason"]
+                )
+                _EVENTS.append(
+                    dict(
+                        id=creation_key("community_xp_events"),
+                        user_id=uid,
+                        report_id=report["id"],
+                        kind=award["kind"],
+                        points=award["points"],
+                        reason=why,
+                        occurred_at=occurred,
+                        recorded_at=datetime.now(UTC).isoformat(),
+                        policy_version="contribution-v2",
+                        request_id=req_id if award["kind"] == "help" else None,
+                        requester_id=req["user_id"]
+                        if req and award["kind"] == "help" and req_id
+                        else None,
+                        mission_id=mission["id"]
+                        if mission and award["kind"] == "help"
+                        else None,
+                    )
+                )
+            after = rank_progress(totals(uid)["lifetime_xp"])
+            if after["code"] != before_rank:
+                from .. import notifications
+
+                notifications.enqueue_user_notification(
+                    user_id=uid,
+                    event_type="rank_up",
+                    title="คุณเลื่อนยศแล้ว",
+                    body=after["label"],
+                    url="/profile",
+                    deduplication_key=f"rank:{uid}:{after['code']}",
+                )
+            return
         for kind, points, why in [
             ("report", 10 if reason == "granted" else 0, reason)
         ] + (
@@ -619,7 +777,7 @@ def public_member(member_id: str) -> dict:
         raise KeyError()
     s = summary(a["user_id"])
     s["alias"] = leaderboard_names([member_id]).get(member_id, s["alias"])
-    return {
+    return {"evidence_history": s.get("evidence_history")} | {
         key: s[key]
         for key in (
             "member_id",

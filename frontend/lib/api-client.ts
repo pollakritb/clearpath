@@ -386,11 +386,15 @@ export const api = {
 
   activities: () => http<ActivitiesResponse>("/api/community/activities"),
 
-  leaderboard: (period: "all" | "7d" | "30d" = "all", offset = 0) =>
+  contributionMissions: () =>
+    http<import("@/frontend/types").ContributionMissions>(
+      "/api/community/missions",
+    ),
+  leaderboard: (period: string = "month", offset = 0) =>
     http<XPLeaderboard>(
       `/api/community/leaderboard?period=${period}&offset=${offset}`,
     ),
-  myLeaderboard: (period: "all" | "7d" | "30d" = "all", offset = 0) =>
+  myLeaderboard: (period: string = "month", offset = 0) =>
     http<XPLeaderboard>(
       `/api/community/me/leaderboard?period=${period}&offset=${offset}`,
       { auth: true, cache: "no-store" },

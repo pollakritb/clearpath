@@ -8758,3 +8758,234 @@
 .cp-helper-editor__details-body {
   background: #f8faf9;
 }
+
+/* Contribution/evidence v2 follows the same <=430px mobile frame. */
+.cp-evidence-panel,
+.cp-contribution-overview section {
+  padding: 14px;
+  border: 1px solid var(--cp-border, #dce7e5);
+  border-radius: 18px;
+  background: #f5fbf9;
+  margin-block: 12px;
+  overflow-wrap: anywhere;
+}
+.cp-evidence-panel h3,
+.cp-contribution-overview h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.cp-evidence-panel p,
+.cp-contribution-overview p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.cp-evidence-panel ul,
+.cp-contribution-overview ul {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+}
+.cp-evidence-panel li,
+.cp-contribution-overview li {
+  display: grid;
+  gap: 4px;
+  padding-block: 10px;
+  border-bottom: 1px solid #dce7e5;
+}
+.cp-evidence-panel small,
+.cp-evidence-panel li span,
+.cp-contribution-overview small {
+  color: #526b66;
+  font-size: 0.8rem;
+}
+.cp-evidence-panel summary,
+.cp-contribution-overview summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: #087c76;
+  cursor: pointer;
+}
+.cp-contribution-overview a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: #087c76;
+  font-weight: 700;
+}
+.cp-season-month {
+  display: grid;
+  gap: 8px;
+  margin-block: 12px;
+}
+.cp-season-month input,
+.cp-report-comments__hint select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid #bdd5d0;
+  border-radius: 12px;
+  background: white;
+  font: inherit;
+}
+
+.cp-report-context {
+  min-width: 0;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #dce7e5;
+  border-radius: 16px;
+}
+.cp-report-context label {
+  display: grid;
+  gap: 8px;
+  margin-block: 12px;
+}
+.cp-report-context select {
+  min-height: 44px;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #bdd5d0;
+  border-radius: 12px;
+  padding: 10px;
+  background: white;
+  font: inherit;
+}
+
+/* Voting feedback stays inline with 44px touch controls on the shared mobile UI. */
+.cp-engagement-status {
+  margin: 8px 2px;
+  color: var(--cp-subink);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.cp-engagement-feedback {
+  margin-block: 10px;
+  padding: 12px;
+  border: 1px solid #e8c9bb;
+  border-radius: 14px;
+  background: #fff8f3;
+  color: #783e26;
+  font-size: 0.85rem;
+}
+.cp-engagement-feedback p {
+  margin: 0 0 8px;
+}
+.cp-engagement-feedback button,
+.cp-season-all {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #bdd5d0;
+  border-radius: 12px;
+  background: #fff;
+  color: #087c76;
+  font: inherit;
+  font-weight: 700;
+}
+.cp-reaction-reason {
+  display: grid;
+  gap: 10px;
+  margin-block: 12px;
+  padding: 14px;
+  border: 1px solid #dce7e5;
+  border-radius: 16px;
+  background: #f5fbf9;
+}
+.cp-reaction-reason label {
+  font-weight: 700;
+}
+.cp-reaction-reason select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #bdd5d0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px;
+  font: inherit;
+}
+.cp-reaction-reason p {
+  margin: 0;
+  color: var(--cp-subink);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.cp-reaction-reason > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.cp-reaction-reason button {
+  min-height: 44px;
+  border: 1px solid #bdd5d0;
+  border-radius: 12px;
+  background: white;
+  color: #087c76;
+  font: inherit;
+  font-weight: 700;
+  padding: 10px;
+}
+.cp-reaction-reason button[type="submit"] {
+  color: white;
+  background: #087c76;
+}
+.cp-reaction-reason button:disabled {
+  opacity: 0.5;
+}
+.cp-season-all {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+}
+.cp-report-engagement__actions button {
+  min-height: 60px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 8px;
+  font-size: 0.75rem;
+}
+.cp-report-engagement__actions button > svg {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+.cp-report-engagement__actions button span {
+  white-space: normal;
+  line-height: 1.3;
+}
+.cp-report-comments__hint details {
+  margin-block: 8px;
+}
+.cp-report-comments__hint summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  color: #087c76;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.cp-report-comments__hint details p {
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.cp-evidence-state {
+  width: fit-content;
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: #e9f1ef;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+.cp-evidence-state[data-state="invalid"] {
+  color: #8a3c26;
+  background: #fff0e8;
+}
+.cp-evidence-use {
+  padding: 12px;
+  margin-block: 12px;
+  background: #fff;
+  border: 1px solid #dce7e5;
+  border-radius: 12px;
+  font-size: 0.85rem;
+}

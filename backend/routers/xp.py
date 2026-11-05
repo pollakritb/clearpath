@@ -1,11 +1,12 @@
 """Authenticated XP settings, event history and explicitly claimed help tasks."""
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..core.auth import AuthenticatedUser, require_admin, require_user
 from ..core.identifiers import MemberID, ReportID, RequestID
+from ..models.evidence import ContributionMissions
 from ..models.xp import (
     HelpClaim,
     OwnedReportIDs,
@@ -26,10 +27,15 @@ User = Annotated[AuthenticatedUser, Depends(require_user)]
 @router.get("/me/leaderboard", response_model=XPLeaderboard)
 def my_board(
     user: User,
-    period: Literal["all", "7d", "30d"] = "all",
+    period: str | None = Query(
+        None, pattern=r"^(all|7d|30d|month|[0-9]{4}-(0[1-9]|1[0-2]))$"
+    ),
     offset: Annotated[int, Query(ge=0, le=100000)] = 0,
 ):
-    return xp.board(period, offset, user.id)
+    try:
+        return xp.board(period, offset, user.id)
+    except ValueError as exc:
+        raise HTTPException(422, detail="เดือนอันดับไม่ถูกต้อง") from exc
 
 
 @router.get("/me/xp", response_model=XPSummary | None)
@@ -122,3 +128,10 @@ def member(member_id: MemberID):
 @router.get("/xp/admin", response_model=XPAdminOverview)
 def overview(admin: Annotated[AuthenticatedUser, Depends(require_admin)]):
     return XPAdminOverview(**xp.admin_overview())
+
+
+@router.get("/missions", response_model=ContributionMissions)
+def coverage_tasks():
+    from ..services.community import missions
+
+    return {"missions": missions.available()}

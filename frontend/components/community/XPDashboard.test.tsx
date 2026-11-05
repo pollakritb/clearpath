@@ -71,12 +71,12 @@ beforeEach(() => {
   }));
 });
 afterEach(cleanup);
-it("separates lifetime progress from rolling leaderboard filters", async () => {
+it("separates lifetime progress from calendar-month leaderboard filters", async () => {
   render(<XPDashboard />);
   expect(await screen.findByText("สายลม")).toBeTruthy();
   expect(await screen.findByText("ฟ้าใส")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "7 วัน" }));
-  await waitFor(() => expect(mocks.board).toHaveBeenLastCalledWith("7d"));
+  fireEvent.click(screen.getByRole("button", { name: "ทั้งหมด" }));
+  await waitFor(() => expect(mocks.board).toHaveBeenLastCalledWith("all"));
   expect(screen.getByText(/180\/500 คะแนน/)).toBeTruthy();
   expect(screen.getByText(/อันดับการมีส่วนร่วม/)).toBeTruthy();
 });
@@ -107,7 +107,7 @@ it("saves the ClearPath alias and leaderboard opt-out without erasing XP", async
 it("does not let an older period response replace the currently selected period", async () => {
   let resolveOld: (value: unknown) => void = () => undefined;
   mocks.board.mockImplementation((period) =>
-    period === "all"
+    period === "month"
       ? new Promise((resolve) => {
           resolveOld = resolve;
         })
@@ -115,10 +115,10 @@ it("does not let an older period response replace the currently selected period"
   );
   render(<XPDashboard />);
   await screen.findByText("สายลม");
-  fireEvent.click(screen.getByRole("button", { name: "30 วัน" }));
+  fireEvent.click(screen.getByRole("button", { name: "ทั้งหมด" }));
   await screen.findByText("ยังไม่มีผลงานที่ได้รับคะแนน ในช่วงนี้");
   resolveOld({
-    period: "all",
+    period: "month",
     users: [{ member_id: "old", alias: "OLD RESPONSE", xp: 99, title: rank }],
     me: null,
     next_offset: null,
@@ -193,4 +193,21 @@ it("shows XP-only rank progress even for a member with no contribution days", as
   render(<XPDashboard section="overview" />);
   await screen.findByText(/180\/500 คะแนน/);
   expect(screen.queryByText(/ผลงาน 0\//)).toBeNull();
+});
+
+it("explains an unlaunched monthly season and links back to preserved lifetime points", async () => {
+  mocks.board.mockImplementation(async (period) => ({
+    period,
+    month: period === "month" ? "2026-11" : null,
+    launched_at: null,
+    provisional: true,
+    users: [],
+    me: null,
+    next_offset: null,
+  }));
+  render(<XPDashboard section="leaderboard" />);
+  await screen.findByText(/อันดับเดือนนี้จะเริ่มเมื่อเปิดกติกาใหม่/);
+  expect(screen.queryByText(/รอสรุปผล 72/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "ดูคะแนนสะสมทั้งหมด" }));
+  await waitFor(() => expect(mocks.board).toHaveBeenLastCalledWith("all"));
 });

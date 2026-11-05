@@ -55,11 +55,20 @@ export default function ReportForm({
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState<ReportCreateResponse | null>(null);
   const [hideIdentity, setHideIdentity] = useState(false);
+  const [measurementEnvironment, setMeasurementEnvironment] = useState<
+    "unknown" | "outdoor" | "indoor"
+  >("unknown");
+  const [averagingPeriod, setAveragingPeriod] = useState<
+    "unknown" | "instant" | "1_minute" | "5_minutes"
+  >("unknown");
+  const [deviceModel, setDeviceModel] = useState("");
+  const [nearEmissionSource, setNearEmissionSource] = useState(false);
   const auth = useAuth();
   const googleProfile = googleReporterProfile(auth.user);
   const [participation, setParticipation] = useState<{
     owner: string;
     alias: string;
+    v2: boolean;
   } | null>(null);
   const owner = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
   const publicAlias =
@@ -71,7 +80,11 @@ export default function ReportForm({
       .xpSummary()
       .then((profile) => {
         if (active && profile)
-          setParticipation({ owner, alias: profile.alias });
+          setParticipation({
+            owner,
+            alias: profile.alias,
+            v2: profile.policy_version === "contribution-v2",
+          });
       })
       .catch(() => undefined);
     return () => {
@@ -222,6 +235,14 @@ export default function ReportForm({
         user_claimed_pm25: Number(claimedPm25),
         ...(measurementRequestId
           ? { measurement_request_id: measurementRequestId }
+          : {}),
+        ...(participation?.v2
+          ? {
+              measurement_environment: measurementEnvironment,
+              device_model: deviceModel.trim() || null,
+              near_emission_source: nearEmissionSource,
+              averaging_period: averagingPeriod,
+            }
           : {}),
         hide_identity: hideIdentity,
         measurement_stable: false,
@@ -484,6 +505,68 @@ export default function ReportForm({
                     </p>
                   )}
                 </div>
+                {participation?.v2 && (
+                  <fieldset className="cp-report-context">
+                    <legend>บริบทที่วัด</legend>
+                    <label>
+                      รุ่นเครื่องวัด (ไม่บังคับ)
+                      <input
+                        value={deviceModel}
+                        maxLength={80}
+                        onChange={(event) => setDeviceModel(event.target.value)}
+                        placeholder="ระบุเมื่อทราบรุ่นเครื่อง"
+                        disabled={sending}
+                      />
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={nearEmissionSource}
+                        onChange={(event) =>
+                          setNearEmissionSource(event.target.checked)
+                        }
+                        disabled={sending}
+                      />
+                      วัดติดแหล่งกำเนิดโดยตรง เช่น ควันท่อไอเสีย
+                    </label>
+                    <p>
+                      ข้อมูลที่คุณระบุช่วยอธิบายรายงาน ไม่ใช่ผลตรวจสอบเครื่อง
+                    </p>
+                    <label>
+                      บริเวณที่วัด
+                      <select
+                        value={measurementEnvironment}
+                        disabled={sending}
+                        onChange={(event) =>
+                          setMeasurementEnvironment(
+                            event.target.value as typeof measurementEnvironment,
+                          )
+                        }
+                      >
+                        <option value="unknown">ไม่ทราบ / ไม่ระบุ</option>
+                        <option value="outdoor">กลางแจ้ง</option>
+                        <option value="indoor">ในอาคาร</option>
+                      </select>
+                    </label>
+                    <label>
+                      ช่วงเวลาเฉลี่ยบนเครื่อง
+                      <select
+                        value={averagingPeriod}
+                        disabled={sending}
+                        onChange={(event) =>
+                          setAveragingPeriod(
+                            event.target.value as typeof averagingPeriod,
+                          )
+                        }
+                      >
+                        <option value="unknown">ไม่ทราบ</option>
+                        <option value="instant">ค่าขณะวัด</option>
+                        <option value="1_minute">เฉลี่ย 1 นาที</option>
+                        <option value="5_minutes">เฉลี่ย 5 นาที</option>
+                      </select>
+                    </label>
+                  </fieldset>
+                )}
                 <div
                   className="cp-report-identity-choice"
                   data-hidden={hideIdentity}

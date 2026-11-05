@@ -2,6 +2,7 @@
 import type { MapFocusPoint } from "@/frontend/types/ui";
 
 import dynamic from "next/dynamic";
+import { useMissionMapLink } from "@/frontend/hooks/useMissionMapLink";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
@@ -63,6 +64,7 @@ export default function MapPageClient({
   initialReportId,
   requestInitially = false,
   active = true,
+  initialMissionLink,
   initialCams = false,
   initialRequestId,
 }: {
@@ -70,6 +72,7 @@ export default function MapPageClient({
   initialReportId?: string | null;
   requestInitially?: boolean;
   active?: boolean;
+  initialMissionLink?: string | null;
   initialCams?: boolean;
   initialRequestId?: string | null;
 }) {
@@ -385,6 +388,21 @@ export default function MapPageClient({
     },
     [focusPin],
   );
+
+  const selectMissionPlace = useCallback(
+    (point: LocationSuggestion) => {
+      setRequestStep("idle");
+      setSelectedPlace(point);
+      setSelectedStackId(null);
+      setSelectedRequestId(null);
+      setSelectedStation(null);
+      setSelectedReport(null);
+      setDataMode("current");
+      focusPin(point);
+    },
+    [setDataMode, focusPin],
+  );
+  useMissionMapLink(initialMissionLink, active, selectMissionPlace);
 
   const selectRequest = useCallback(
     (request: MeasurementRequestView) => {

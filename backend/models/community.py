@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from ..core.identifiers import RequestID
+from .evidence import ReportEvidence
 from .xp import ParticipationRank, XPResult, XPSummary
 
 ReportStatus = Literal["pending", "approved", "rejected"]
@@ -56,6 +57,8 @@ class CommunityReport(BaseModel):
     captured_at: str
     created_at: str
     status: ReportStatus
+    evidence: ReportEvidence | None = None
+    evidence_policy: str = "legacy"
     trust_score: float
     trust_reasons: list[str] = Field(default_factory=list)
     peer_up: int = 0
@@ -74,7 +77,7 @@ class CommunityReport(BaseModel):
     source_type: CommunitySourceType = "individual"
     device_calibrated: bool = False
     calibrated_at: str | None = None
-    measurement_environment: Literal["outdoor", "indoor"] = "outdoor"
+    measurement_environment: Literal["outdoor", "indoor", "unknown"] = "outdoor"
     measurement_stable: bool = True
     near_emission_source: bool = False
     measurement_note: str | None = None
@@ -84,7 +87,7 @@ class CommunityReport(BaseModel):
     gap_fill_basis: GapFillBasis = "none"
     eligibility_reason: str = ""
     official_recorded_at: str | None = None
-    averaging_period: Literal["instant", "1_minute", "5_minutes"] = "instant"
+    averaging_period: Literal["instant", "1_minute", "5_minutes", "unknown"] = "instant"
     measurement_duration_seconds: int = 0
     province: str | None = None
     district: str | None = None
@@ -196,11 +199,11 @@ class ReportDraftSubmit(BaseModel):
     device_model: str | None = Field(default=None, max_length=80)
     device_calibrated: bool = False
     calibrated_at: str | None = Field(default=None, max_length=10)
-    measurement_environment: Literal["outdoor"] = "outdoor"
+    measurement_environment: Literal["outdoor", "indoor", "unknown"] = "outdoor"
     measurement_stable: bool = False
     near_emission_source: bool = False
     measurement_note: str | None = Field(default=None, max_length=300)
-    averaging_period: Literal["instant", "1_minute", "5_minutes"] = "instant"
+    averaging_period: Literal["instant", "1_minute", "5_minutes", "unknown"] = "instant"
     measurement_duration_seconds: int = Field(default=0, ge=0, le=600)
 
 
@@ -222,8 +225,19 @@ class RatingResult(BaseModel):
     )
 
 
+class ReactionLocation(BaseModel):
+    lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    lon: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    accuracy_m: float = Field(ge=0, allow_inf_nan=False)
+    observed_at: str
+
+
 class ReportReactionRequest(BaseModel):
     reaction: ReactionKind
+    location: ReactionLocation | None = None
+    reason_code: (
+        Literal["useful", "image_unclear", "context_question", "value_question"] | None
+    ) = None
 
 
 class ReportCommentCreate(BaseModel):
@@ -247,6 +261,9 @@ class ReportEngagementResponse(BaseModel):
     comment_count: int = 0
     viewer_reaction: ReactionKind | None = None
     comments: list[ReportComment] = Field(default_factory=list)
+    location_required: bool = False
+    location_policy_ready: bool = True
+    reaction_radius_m: float | None = None
 
 
 class UserReputation(BaseModel):

@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     measurement_requests_enabled: bool = False
     measurement_registered_locations_enabled: bool = False
     community_xp_enabled: bool = False
+    # Additive v2 schema and evaluated release policy are required before enabling.
+    community_v2_enabled: bool = False
+    community_v2_demo_launch: str = "2026-11-05T00:00:00+07:00"
 
     # External APIs
     geoapify_api_key: str = ""

@@ -154,38 +154,50 @@ test("mobile primary navigation targets are at least 44px", async ({
   }
 });
 
-test("profile leaderboard shows a clear weekly rank without trust scores", async ({
+test("profile leaderboard shows monthly contribution independently of Trust", async ({
   page,
 }) => {
-  await page.route("**/api/community/leaderboard", async (route) => {
+  await page.route("**/api/community/me/leaderboard?**", async (route) => {
+    const period = new URL(route.request().url()).searchParams.get("period");
     await route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
+      json: {
+        period,
         users: [
           {
-            user_id: "helper-1",
-            display_name: "ผู้ช่วยนครปฐม",
+            member_id: "MBR-000001",
+            alias: "ผู้ช่วยนครปฐม",
             rank: 1,
-            weekly_points: 42,
-            badges: ["นักรายงานที่ยืนยันแล้ว"],
+            xp: 42,
+            lifetime_xp: 142,
+            title: {
+              code: "reporter",
+              label: "ผู้รายงานชุมชน",
+              minimum_xp: 100,
+              minimum_days: 0,
+              next_xp: 500,
+              next_label: "ผู้ร่วมดูแลอากาศ",
+              next_days: 0,
+            },
           },
         ],
-      }),
+        me: null,
+        next_offset: null,
+      },
     });
   });
-  await page.goto("/profile");
-  await page.getByText("กิจกรรมและอันดับ", { exact: true }).click();
-
-  await expect(
-    page.getByRole("heading", { name: "ผู้ช่วยชุมชนประจำสัปดาห์" }),
-  ).toBeVisible();
-  await expect(page.getByText("ผู้ช่วยนครปฐม", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("อันดับ 1")).toBeVisible();
-  await expect(page.getByText("42", { exact: true })).toBeVisible();
-  const leaderboard = page.getByRole("region", {
-    name: "ผู้ช่วยชุมชนประจำสัปดาห์",
-  });
-  await expect(leaderboard.getByText(/Trust|ความน่าเชื่อถือ/i)).toHaveCount(0);
+  await page.goto("/profile?tab=leaderboard");
+  const board = page.getByRole("region", { name: "อันดับชุมชน" });
+  await board.getByRole("button", { name: "เดือนนี้", exact: true }).click();
+  const entry = board
+    .getByRole("listitem")
+    .filter({ hasText: "ผู้ช่วยนครปฐม" });
+  await expect(entry).toBeVisible();
+  await expect(entry).toContainText(/42\s*คะแนน/);
+  await expect(entry.getByRole("link")).toHaveAttribute(
+    "href",
+    "/members/MBR-000001",
+  );
+  await expect(entry.getByText(/Trust|ความน่าเชื่อถือ/i)).toHaveCount(0);
   await expectNoHorizontalPageOverflow(page);
 });
 

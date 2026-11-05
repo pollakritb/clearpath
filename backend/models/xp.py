@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from .evidence import EvidenceHistory
+
 
 class ParticipationRank(BaseModel):
     code: str
@@ -20,6 +22,14 @@ class XPSummary(BaseModel):
     alias: str
     hidden: bool = False
     identity_mode: Literal["google", "alias"] = "google"
+    policy_version: str = "xp-v1"
+    launched_at: str | None = None
+    month_rank: int | None = None
+    month_points: int = 0
+    week_days: int = 0
+    fulfilled_requests: int | None = None
+    missions_completed: int = 0
+    evidence_history: EvidenceHistory | None = None
     lifetime_xp: int = 0
     contribution_days: int = 0
     report_count: int = 0
@@ -37,10 +47,13 @@ class XPSettings(BaseModel):
 
 
 class XPResult(BaseModel):
-    matched_request_count: int = 0
     status: Literal["pending", "granted", "not_eligible", "disabled"] = "pending"
+    first_day_xp: int = 0
+    week_xp: int = 0
+    policy_version: str = "xp-v1"
     report_xp: int = 0
     help_xp: int = 0
+    matched_request_count: int = 0
     reason: str | None = None
     bonus_reason: str | None = None
 
@@ -71,7 +84,12 @@ class XPLeader(BaseModel):
 
 
 class XPLeaderboard(BaseModel):
-    period: Literal["all", "7d", "30d"]
+    period: str
+    month: str | None = None
+    launched_at: str | None = None
+    provisional: bool = True
+    revision: int = 0
+    frozen_at: str | None = None
     users: list[XPLeader]
     me: XPLeader | None = None
     next_offset: int | None = None
@@ -85,6 +103,7 @@ class HelpClaim(BaseModel):
 
 
 class PublicMember(BaseModel):
+    evidence_history: EvidenceHistory | None = None
     member_id: str
     alias: str
     lifetime_xp: int

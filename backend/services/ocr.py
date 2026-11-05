@@ -55,6 +55,17 @@ async def read_pm25(
             "raw_text": "",
         }
 
+    schema = OCR_SCHEMA
+    if settings.community_v2_enabled:
+        schema = {
+            **OCR_SCHEMA,
+            "properties": {
+                **OCR_SCHEMA["properties"],
+                "pm25_field_verified": {"type": ["boolean", "null"]},
+                "unit_verified": {"type": ["boolean", "null"]},
+            },
+            "required": ["pm25", "pm25_field_verified", "unit_verified"],
+        }
     frames = [(image, content_type), *(additional_images or [])][:3]
     body = {
         "model": settings.openai_ocr_model,
@@ -73,6 +84,11 @@ async def read_pm25(
                             "ความชื้น, เวลา หรือแบตเตอรี่ และห้ามเดาตัวเลขที่มองไม่ชัด "
                             "เลือกค่าจากเฟรมที่คมชัดที่สุด หากไม่มีค่า PM2.5 ที่ยืนยันได้ "
                             "ให้คืน pm25 เป็น null โดยไม่ต้องอธิบาย"
+                            + (
+                                " พร้อมบันทึก pm25_field_verified ว่าเห็นป้าย PM2.5 ที่สัมพันธ์กับตัวเลขจริง และ unit_verified ว่าเห็นหน่วย µg/m³ ที่สัมพันธ์กัน ใช้ true เมื่อเห็นตรง false เมื่อขัดแย้ง null เมื่อมองไม่เห็นหรือไม่แน่ใจ ห้ามอนุมานจากชื่อเครื่องหรือการอ่านตัวเลขได้ ข้อมูลสองช่องนี้เป็นหลักฐานเพิ่มเติมเท่านั้น"
+                                if settings.community_v2_enabled
+                                else ""
+                            )
                         ),
                     },
                     *[_image_input(content, mime) for content, mime in frames],
@@ -84,7 +100,7 @@ async def read_pm25(
                 "type": "json_schema",
                 "name": "pm25_meter_reading",
                 "strict": True,
-                "schema": OCR_SCHEMA,
+                "schema": schema,
             }
         },
         "max_output_tokens": 300,
@@ -109,6 +125,16 @@ async def read_pm25(
         value = max(0.0, min(1000.0, float(value)))
     reading_found = value is not None
     return {
+        **(
+            {
+                "evidence_extraction": {
+                    key: result.get(key) if isinstance(result.get(key), bool) else None
+                    for key in ("pm25_field_verified", "unit_verified")
+                }
+            }
+            if settings.community_v2_enabled
+            else {}
+        ),
         "available": True,
         "service_error": False,
         "pm25": value,

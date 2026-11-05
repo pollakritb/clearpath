@@ -1,6 +1,6 @@
 """Turn stored community evidence into privacy-safe API representations."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from ...algorithms.community_quality import (
     corroboration_count,
@@ -33,6 +33,7 @@ def present_report(
     include_private_metadata: bool = False,
     reference_at: datetime | None = None,
     identities: dict[str, dict] | None = None,
+    policy_snapshot: dict | None = None,
 ) -> dict:
     """Build an API report while enforcing publication and location rules."""
     reasons = row.get("trust_reasons") or []
@@ -41,13 +42,17 @@ def present_report(
     official_stations = official_stations or []
     approved_reports = approved_reports or []
 
+    from . import policy_v2
+
+    policy = policy_snapshot if policy_snapshot is not None else policy_v2.release()
+    v2 = policy["active_version"] == "v2"
     exact_lat = float(row["lat"])
     exact_lon = float(row["lon"])
     nearest, distance = nearest_official_station(
         exact_lat,
         exact_lon,
         official_stations,
-        max_age_minutes=90,
+        max_age_minutes=60 if v2 else 90,
         now=reference_at,
     )
     role = (
@@ -92,6 +97,52 @@ def present_report(
             "eligible": False,
             "basis": "none",
             "reason": "ตำแหน่งจากภาพหรือผู้ใช้ระบุ ไม่มีความแม่นยำ GPS ณ เวลาวัดยืนยัน",
+        }
+    if v2:
+        from ...algorithms.report_evidence import (
+            evidence_gap_fill,
+            independent_evidence_sources,
+        )
+
+        evidence = row.get("evidence_v2")
+        if evidence and evidence.get("device_status") == "evaluation_available":
+            from ...algorithms.community_xp import stamp
+
+            valid_until = row.get("device_evaluation_valid_until")
+            if not valid_until or stamp(valid_until) < (
+                reference_at or datetime.now(UTC)
+            ):
+                evidence = evidence | {
+                    "device_status": "identified"
+                    if row.get("device_model")
+                    else "unknown"
+                }
+        row = row | {"evidence_v2": evidence}
+        trust_score = float(evidence["score"]) if evidence else 0
+        reasons = (
+            [component["reason"] for component in evidence["components"]]
+            if evidence
+            else ["ยังไม่มีหลักฐานรุ่นใหม่ ไม่ประเมินย้อนหลังจากค่าเริ่มต้น"]
+        )
+        corroborated = independent_evidence_sources(
+            row,
+            approved_reports,
+            now=reference_at or datetime.now(UTC),
+            threshold=policy.get("evidence_threshold"),
+        )
+        eligibility = evidence_gap_fill(
+            row,
+            evidence,
+            now=reference_at or datetime.now(UTC),
+            official_nearby=role == "supplementary",
+            independent_sources=corroborated,
+            threshold=policy.get("evidence_threshold"),
+        )
+    if row.get("current_evidence_issues"):
+        eligibility = {
+            "eligible": False,
+            "basis": "none",
+            "reason": "ผลตรวจอิสระพบปัญหาในหลักฐาน ต้องใช้ผลตรวจที่แก้ข้อสงสัยได้ก่อน",
         }
     source_type = row.get("source_type") or "individual"
     show_reporter_profile = bool(row.get("show_reporter_profile")) and (
@@ -182,6 +233,8 @@ def present_report(
         else None,
         "created_at": str(row["created_at"]),
         "status": row["status"],
+        "evidence": row.get("evidence_v2") if v2 else None,
+        "evidence_policy": "evidence-v2" if v2 else "legacy",
         "trust_score": trust_score,
         "trust_reasons": reasons,
         "peer_up": int(row.get("peer_up") or 0),
@@ -265,7 +318,9 @@ def present_report(
         "evidence_purged_at": str(row["evidence_purged_at"])
         if row.get("evidence_purged_at")
         else None,
-        "policy_version": str(row.get("policy_version") or "trust-v1"),
+        "policy_version": "evidence-v2"
+        if v2
+        else str(row.get("policy_version") or "trust-v1"),
         "rating_count": int(row.get("rating_count") or 0),
         "rating_average": float(row["rating_average"])
         if row.get("rating_average") is not None
@@ -277,6 +332,9 @@ def present_report(
 
 
 def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
+    from . import policy_v2
+
+    batch_policy = policy_v2.release()
     official = supabase_client.get_stations()
     rows = supabase_client.list_community_reports(status, limit)
     approved = (
@@ -290,6 +348,7 @@ def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
     reports = [
         present_report(
             row,
+            policy_snapshot=batch_policy,
             identities=identities,
             official_stations=official,
             approved_reports=approved,
@@ -309,6 +368,9 @@ def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
 def list_public_map_reports(limit: int = 200) -> tuple[list[dict], list[dict]]:
     """Return public reports and stacks built from private coordinates in one snapshot."""
     raw = supabase_client.list_community_reports("approved", limit)
+    from . import policy_v2
+
+    batch_policy = policy_v2.release()
     official = supabase_client.get_stations()
     from . import xp
 
@@ -316,6 +378,7 @@ def list_public_map_reports(limit: int = 200) -> tuple[list[dict], list[dict]]:
     reports = [
         present_report(
             row,
+            policy_snapshot=batch_policy,
             identities=identities,
             official_stations=official,
             approved_reports=raw,
@@ -340,6 +403,9 @@ def list_reviewable_reports(
     reviewer_lon: float,
     limit: int = 50,
 ) -> list[dict]:
+    from . import policy_v2
+
+    batch_policy = policy_v2.release()
     official = supabase_client.get_stations()
     rows = supabase_client.list_community_reports("approved", max(limit * 4, 100))
     nearby: list[tuple[float, dict]] = []
@@ -360,6 +426,7 @@ def list_reviewable_reports(
             continue
         report = present_report(
             row,
+            policy_snapshot=batch_policy,
             official_stations=official,
             approved_reports=rows,
             include_image=True,
@@ -377,10 +444,19 @@ def list_map_points() -> list[dict]:
     from . import xp
 
     raw = supabase_client.list_community_reports("approved", 500)
+    from . import policy_v2
+
+    batch_policy = policy_v2.release()
+    official = supabase_client.get_stations()
     identities = xp.public_identities(raw)
     reports = [
         present_report(
-            row, approved_reports=raw, include_image=False, identities=identities
+            row,
+            policy_snapshot=batch_policy,
+            official_stations=official,
+            approved_reports=raw,
+            include_image=False,
+            identities=identities,
         )
         | {"user_id": str(row["user_id"])}
         for row in raw

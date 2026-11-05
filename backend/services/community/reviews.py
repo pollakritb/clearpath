@@ -75,17 +75,19 @@ def rate_report(
     )
     reviews = supabase_client.get_report_reviews(report_id)
     consensus = star_consensus(reviews)
-    updated = supabase_client.update_community_report(
-        report_id,
-        {
-            "peer_up": sum(
-                1 for review in reviews if int(review.get("rating") or 0) >= 4
-            ),
-            "peer_down": sum(
-                1 for review in reviews if 0 < int(review.get("rating") or 0) <= 2
-            ),
-            "rating_count": consensus["count"],
-            "rating_average": consensus["average"] or None,
+    from . import policy_v2
+
+    v2 = policy_v2.active()
+    changes = {
+        "peer_up": sum(1 for review in reviews if int(review.get("rating") or 0) >= 4),
+        "peer_down": sum(
+            1 for review in reviews if 0 < int(review.get("rating") or 0) <= 2
+        ),
+        "rating_count": consensus["count"],
+        "rating_average": consensus["average"] or None,
+    }
+    if not v2:
+        changes |= {
             "trust_score": max(
                 0,
                 min(
@@ -95,8 +97,8 @@ def rate_report(
                 ),
             ),
             "policy_version": "trust-v2",
-        },
-    )
+        }
+    updated = supabase_client.update_community_report(report_id, changes)
     supabase_client.create_public_map_event(
         {
             "id": creation_key("public_map_events"),
@@ -117,7 +119,7 @@ def rate_report(
         payload={"rating": rating},
     )
     reward_points = 0
-    if consensus["count"] >= 3 and consensus["direction"] != "neutral":
+    if not v2 and consensus["count"] >= 3 and consensus["direction"] != "neutral":
         cutoff = (datetime.now(UTC) - timedelta(hours=24)).isoformat()
         for review in reviews:
             review_rating = int(review.get("rating") or 0)

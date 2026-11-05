@@ -92,6 +92,25 @@ def finalize_automatic_review(
         checks,
     )
 
+    from . import policy_v2
+
+    try:
+        v2_active = policy_v2.active()
+    except Exception:
+        v2_active = False
+        logger.exception(
+            "evidence_policy_read_retry", extra={"report_id": report["id"]}
+        )
+    if v2_active:
+        try:
+            value = policy_v2.save_evidence(updated, draft)
+            updated = updated | {"evidence_v2": value}
+        except Exception:
+            # Publication is already final. A missing evidence record fails closed
+            # analytically; an evidence outage must not undo numeric publication.
+            logger.exception(
+                "evidence_v2_save_failed", extra={"report_id": report["id"]}
+            )
     try:
         notifications.enqueue_user_notification(
             user_id=str(report["user_id"]),

@@ -41,6 +41,32 @@ export default function MemberProfile({ memberId }: { memberId: string }) {
               {member.lifetime_xp} <small>คะแนน</small>
             </p>
             <p>มีผลงาน {member.contribution_days} วัน</p>
+            {member.evidence_history && (
+              <section
+                className="cp-evidence-panel"
+                aria-label="ประวัติหลักฐานสมาชิก"
+              >
+                <h3>ผลตรวจหลักฐานอิสระ</h3>
+                {member.evidence_history.evaluated ? (
+                  <>
+                    <p>
+                      ผ่าน {member.evidence_history.passed} · พบปัญหา{" "}
+                      {member.evidence_history.problems} · ยังสรุปไม่ได้{" "}
+                      {member.evidence_history.unresolved}
+                    </p>
+                    <p>
+                      อัตราผ่าน {member.evidence_history.pass_rate}% จาก{" "}
+                      {member.evidence_history.evaluated} รายการที่สรุปได้
+                    </p>
+                  </>
+                ) : (
+                  <p>ยังมีประวัติไม่เพียงพอ</p>
+                )}
+                <small>
+                  ผลตรวจตามขอบเขตที่ประเมิน ไม่ใช่การรับรองความแม่นยำของเครื่อง
+                </small>
+              </section>
+            )}
             <div className="cp-xp-chips">
               {member.achievements.map((a) => (
                 <span key={a}>✦ {a}</span>

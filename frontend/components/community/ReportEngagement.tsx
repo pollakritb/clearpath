@@ -4,12 +4,14 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
+import { requestReactionLocation } from "@/frontend/lib/reaction-location";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type {
   CommunityReport,
   ReactionKind,
   ReportEngagementResponse,
+  ReportReactionRequest,
 } from "@/frontend/types";
 
 const COMMENT_SUGGESTIONS = [
@@ -35,31 +37,55 @@ export default function ReportEngagement({
   report: CommunityReport;
 }) {
   const auth = useAuth();
+  const viewer = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
+  return <EngagementContent key={`${report.id}:${viewer}`} report={report} />;
+}
+
+function EngagementContent({ report }: { report: CommunityReport }) {
+  const auth = useAuth();
   const loginPrompt = useLoginPrompt();
   const [engagement, setEngagement] = useState(() => initialEngagement(report));
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comment, setComment] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reasonCode, setReasonCode] =
+    useState<ReportReactionRequest["reason_code"]>();
+  const [reasonOpen, setReasonOpen] = useState(false);
+  const [loadStatus, setLoadStatus] = useState<"loading" | "loaded" | "error">(
+    "loading",
+  );
+  const [reload, setReload] = useState(0);
+  const [reactionPhase, setReactionPhase] = useState<
+    "locating" | "sending" | null
+  >(null);
+  const signedIn = Boolean(auth.user || auth.localDemo);
   const reportId = report.id;
 
   useEffect(() => {
     let cancelled = false;
-    const request =
-      auth.user || auth.localDemo
-        ? api.myReportEngagement(reportId)
-        : api.reportEngagement(reportId);
+    const request = signedIn
+      ? api.myReportEngagement(reportId)
+      : api.reportEngagement(reportId);
     void request
       .then((result) => {
-        if (!cancelled) setEngagement(result);
+        if (!cancelled) {
+          setEngagement(result);
+          setLoadStatus("loaded");
+        }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) setLoadStatus("error");
+      });
     return () => {
       cancelled = true;
     };
-  }, [auth.localDemo, auth.user, reportId]);
+  }, [signedIn, reportId, reload]);
 
-  const signedIn = Boolean(auth.user || auth.localDemo);
+  function retryLoad() {
+    setLoadStatus("loading");
+    setReload((value) => value + 1);
+  }
 
   async function react(kind: ReactionKind) {
     if (!signedIn) {
@@ -70,19 +96,39 @@ export default function ReportEngagement({
       });
       return;
     }
-    if (pending) return;
+    if (pending || loadStatus !== "loaded") return;
+    if (kind === "like") setReasonOpen(false);
     setPending(true);
     setError(null);
     try {
-      const result =
-        engagement.viewer_reaction === kind
-          ? await api.clearReportReaction(report.id)
-          : await api.setReportReaction(report.id, { reaction: kind });
+      const removing = engagement.viewer_reaction === kind;
+      setReactionPhase(
+        !removing && engagement.location_required ? "locating" : "sending",
+      );
+      const location =
+        !removing && engagement.location_required
+          ? await requestReactionLocation()
+          : undefined;
+      setReactionPhase("sending");
+      const result = removing
+        ? await api.clearReportReaction(report.id)
+        : await api.setReportReaction(report.id, {
+            reaction: kind,
+            location,
+            reason_code: kind === "like" ? "useful" : reasonCode,
+          });
       setEngagement(result);
+      setReasonOpen(false);
+      setReasonCode(undefined);
     } catch (cause) {
-      setError(apiErrorMessage(cause, "ส่งปฏิกิริยาไม่สำเร็จ"));
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : apiErrorMessage(cause, "ส่งปฏิกิริยาไม่สำเร็จ"),
+      );
     } finally {
       setPending(false);
+      setReactionPhase(null);
     }
   }
 
@@ -136,7 +182,12 @@ export default function ReportEngagement({
           type="button"
           className="cp-focus"
           data-active={engagement.viewer_reaction === "like"}
-          disabled={pending}
+          disabled={
+            pending ||
+            (signedIn && loadStatus !== "loaded") ||
+            (engagement.location_policy_ready === false &&
+              engagement.viewer_reaction !== "like")
+          }
           aria-pressed={engagement.viewer_reaction === "like"}
           onClick={() => void react("like")}
         >
@@ -148,9 +199,25 @@ export default function ReportEngagement({
           type="button"
           className="cp-focus"
           data-active={engagement.viewer_reaction === "dislike"}
-          disabled={pending}
+          disabled={
+            pending ||
+            (signedIn && loadStatus !== "loaded") ||
+            (engagement.location_policy_ready === false &&
+              engagement.viewer_reaction !== "dislike")
+          }
           aria-pressed={engagement.viewer_reaction === "dislike"}
-          onClick={() => void react("dislike")}
+          aria-expanded={reasonOpen}
+          aria-controls={`reaction-reason-${reportId}`}
+          onClick={() => {
+            if (
+              signedIn &&
+              engagement.location_required &&
+              engagement.viewer_reaction !== "dislike"
+            ) {
+              setError(null);
+              setReasonOpen(true);
+            } else void react("dislike");
+          }}
         >
           <AppIcon name="thumb-down" size={18} />
           <span>ไม่ถูกใจ</span>
@@ -178,6 +245,100 @@ export default function ReportEngagement({
         </button>
       </div>
 
+      {engagement.location_required && (
+        <div className="cp-report-comments__hint">
+          {engagement.location_policy_ready === false ? (
+            <p>
+              ยังไม่เปิดโหวตตามตำแหน่ง ระยะรับโหวตยังอยู่ระหว่างประเมิน
+              แสดงความคิดเห็นได้ตามปกติ
+            </p>
+          ) : (
+            <details>
+              <summary>
+                โหวตใกล้จุดวัดภายใน {engagement.reaction_radius_m ?? 500} เมตร
+              </summary>
+              <p>
+                รัศมีชั่วคราว รวมความคลาดเคลื่อน GPS ของทั้งสองฝั่ง
+                หากคร่อมขอบเขตให้ขอตำแหน่งใหม่หรือขยับเข้าใกล้จุดวัด
+                การโหวตไม่มีผลต่อคะแนนหรือหลักฐานรายงาน
+              </p>
+            </details>
+          )}
+        </div>
+      )}
+      {loadStatus === "loading" && (
+        <p className="cp-engagement-status" role="status">
+          กำลังโหลดปฏิกิริยา…
+        </p>
+      )}
+      {loadStatus === "error" && (
+        <div className="cp-engagement-feedback" role="alert">
+          <p>โหลดปฏิกิริยาและความคิดเห็นไม่สำเร็จ</p>
+          <button type="button" className="cp-focus" onClick={retryLoad}>
+            ลองโหลดใหม่
+          </button>
+        </div>
+      )}
+      {reasonOpen && (
+        <form
+          className="cp-reaction-reason"
+          id={`reaction-reason-${reportId}`}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (reasonCode) void react("dislike");
+          }}
+        >
+          <label htmlFor={`reason-${reportId}`}>เหตุผลเมื่อไม่ถูกใจ</label>
+          <select
+            autoFocus
+            id={`reason-${reportId}`}
+            value={reasonCode ?? ""}
+            disabled={pending}
+            onChange={(event) =>
+              setReasonCode(
+                event.target.value as ReportReactionRequest["reason_code"],
+              )
+            }
+          >
+            <option value="" disabled>
+              เลือกเหตุผล
+            </option>
+            <option value="image_unclear">ภาพอ่านไม่ชัด</option>
+            <option value="context_question">
+              มีข้อสงสัยเรื่องบริบทการวัด
+            </option>
+            <option value="value_question">มีข้อสงสัยเรื่องค่าที่อ่าน</option>
+          </select>
+          <p>ส่งเป็นข้อสงสัยเพื่อประกอบการตรวจ ไม่หักคะแนนผู้รายงานอัตโนมัติ</p>
+          <div>
+            <button
+              type="button"
+              className="cp-focus"
+              disabled={pending}
+              onClick={() => {
+                setReasonOpen(false);
+                setReasonCode(undefined);
+              }}
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="submit"
+              className="cp-focus"
+              disabled={pending || !reasonCode}
+            >
+              ส่งไม่ถูกใจ
+            </button>
+          </div>
+        </form>
+      )}
+      {reactionPhase && (
+        <p className="cp-engagement-status" role="status">
+          {reactionPhase === "locating"
+            ? "กำลังขอตำแหน่ง GPS…"
+            : "กำลังบันทึกปฏิกิริยา…"}
+        </p>
+      )}
       {!signedIn && (
         <p className="cp-report-engagement__signin">
           กดปุ่มด้านบนเพื่อเข้าสู่ระบบด้วย Google
@@ -236,7 +397,13 @@ export default function ReportEngagement({
             </form>
           )}
           {engagement.comments.length === 0 ? (
-            <p className="cp-report-comments__empty">ยังไม่มีความคิดเห็น</p>
+            <p className="cp-report-comments__empty">
+              {loadStatus === "loaded"
+                ? "ยังไม่มีความคิดเห็น"
+                : loadStatus === "error"
+                  ? "ยังโหลดความคิดเห็นไม่ได้ กดลองโหลดใหม่ด้านบน"
+                  : "กำลังโหลดความคิดเห็น…"}
+            </p>
           ) : (
             <ul>
               {engagement.comments.map((item) => (
@@ -247,6 +414,7 @@ export default function ReportEngagement({
                       {new Date(item.created_at).toLocaleString("th-TH", {
                         dateStyle: "short",
                         timeStyle: "short",
+                        timeZone: "Asia/Bangkok",
                       })}
                     </time>
                   </div>

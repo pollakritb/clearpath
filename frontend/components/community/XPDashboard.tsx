@@ -13,15 +13,15 @@ import type {
   XPSummary,
 } from "@/frontend/types/xp";
 import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
+import ContributionOverview from "./ContributionOverview";
 import RankEmblem from "./RankEmblem";
 import ParticipationBadge from "./ParticipationBadge";
 import RankDetails from "./RankDetails";
 
-type Period = "all" | "7d" | "30d";
+type Period = string;
 const PERIODS: [Period, string][] = [
+  ["month", "เดือนนี้"],
   ["all", "ทั้งหมด"],
-  ["7d", "7 วัน"],
-  ["30d", "30 วัน"],
 ];
 
 export default function XPDashboard({
@@ -35,7 +35,7 @@ export default function XPDashboard({
 }) {
   const showProfile = section !== "leaderboard";
   const showBoard = section !== "overview";
-  const [period, setPeriod] = useState<Period>("all");
+  const [period, setPeriod] = useState<Period>("month");
   const currentUserId = useCurrentUserId();
   const auth = useAuth();
   const google = googleReporterProfile(auth.user);
@@ -67,6 +67,31 @@ export default function XPDashboard({
   const profileLoaded = summary !== undefined;
   const board = boardQuery.data;
   const events = eventsQuery.data;
+  const selectedMonthDate =
+    board?.month && /^\d{4}-(0[1-9]|1[0-2])$/.test(board.month)
+      ? new Date(`${board.month}-01T12:00:00+07:00`)
+      : null;
+  const selectedMonthLabel =
+    selectedMonthDate && Number.isFinite(selectedMonthDate.getTime())
+      ? selectedMonthDate.toLocaleDateString("th-TH", {
+          month: "long",
+          year: "numeric",
+          timeZone: "Asia/Bangkok",
+        })
+      : board?.month;
+  const seasonNotStarted = Boolean(board?.month && !board.launched_at);
+  const launchDate = board?.launched_at ? new Date(board.launched_at) : null;
+  const launchMonth =
+    launchDate && Number.isFinite(launchDate.getTime())
+      ? new Intl.DateTimeFormat("sv-SE", {
+          year: "numeric",
+          month: "2-digit",
+          timeZone: "Asia/Bangkok",
+        }).format(launchDate)
+      : null;
+  const beforeLaunch = Boolean(
+    board?.month && launchMonth && board.month < launchMonth,
+  );
   const setSummary = summaryQuery.setData;
   const setBoard = boardQuery.setData;
   const setEvents = eventsQuery.setData;
@@ -213,20 +238,21 @@ export default function XPDashboard({
             </div>
             <div>
               <strong>{summary.help_count ?? 0}</strong>
-              <span>ช่วยคำขอ</span>
+              <span>โบนัสบริการสะสม</span>
             </div>
             <div>
               <strong>{summary.contribution_days}</strong>
               <span>วันที่มีผลงาน</span>
             </div>
           </div>
+          <ContributionOverview summary={summary} active={active} />
           <div className="cp-xp-chips">
             {summary.achievements.map((a) => (
               <span key={a}>✦ {a}</span>
             ))}
           </div>
           <p className="cp-xp-note">
-            วันนี้: รายงาน {summary.today_reports}/5 · โบนัสช่วยคำขอ{" "}
+            วันนี้: รายงาน {summary.today_reports}/5 · โบนัสบริการ{" "}
             {summary.today_help}/3
           </p>
           <details>
@@ -318,6 +344,37 @@ export default function XPDashboard({
               </button>
             ))}
           </div>
+          <label className="cp-season-month">
+            เลือกเดือนย้อนหลัง
+            <input
+              type="month"
+              aria-label="เดือนอันดับย้อนหลัง"
+              value={/^\d{4}-\d{2}$/.test(period) ? period : ""}
+              max={new Intl.DateTimeFormat("sv-SE", {
+                year: "numeric",
+                month: "2-digit",
+                timeZone: "Asia/Bangkok",
+              }).format(new Date())}
+              onChange={(event) => {
+                if (event.target.value) setPeriod(event.target.value);
+              }}
+            />
+          </label>
+          {board?.month && (
+            <p className="cp-xp-note">
+              {selectedMonthLabel} · เวลาไทย{" "}
+              {seasonNotStarted
+                ? "· อันดับรายเดือนยังไม่เริ่ม"
+                : beforeLaunch
+                  ? "· เดือนนี้อยู่ก่อนวันเริ่มกติกาใหม่"
+                  : board.provisional
+                    ? "· รอสรุปผล 72 ชม. หลังสิ้นเดือน"
+                    : `· ปิดรอบแล้ว รุ่น ${board.revision}`}
+              {launchDate &&
+                Number.isFinite(launchDate.getTime()) &&
+                ` · เริ่มนับ ${launchDate.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok" })}`}
+            </p>
+          )}
           {board?.period !== period ? (
             boardQuery.error ? (
               <div role="alert">
@@ -364,7 +421,20 @@ export default function XPDashboard({
               </ol>
               {board.users.length === 0 && (
                 <p className="cp-xp-empty">
-                  ยังไม่มีผลงานที่ได้รับคะแนน ในช่วงนี้
+                  {seasonNotStarted
+                    ? "อันดับเดือนนี้จะเริ่มเมื่อเปิดกติกาใหม่ คะแนนสะสมเดิมยังอยู่ครบ"
+                    : beforeLaunch
+                      ? "เดือนนี้ยังไม่เริ่มนับคะแนนตามกติกาใหม่"
+                      : "ยังไม่มีผลงานที่ได้รับคะแนน ในช่วงนี้"}
+                  {(seasonNotStarted || beforeLaunch) && (
+                    <button
+                      type="button"
+                      className="cp-focus cp-season-all"
+                      onClick={() => setPeriod("all")}
+                    >
+                      ดูคะแนนสะสมทั้งหมด
+                    </button>
+                  )}
                 </p>
               )}
               {board.next_offset !== null && (
@@ -383,32 +453,50 @@ export default function XPDashboard({
       {showProfile && (
         <details>
           <summary>กติกาคะแนน</summary>
-          <p>
-            รายงานที่อนุมัติ +10 คะแนน สูงสุด 5 ครั้งต่อวัน · ช่วยคำขอ +5 คะแนน
-            สูงสุด 3 ครั้งต่อวัน
-          </p>
-          <p>
-            รายงานที่รับคะแนนห่างกัน 30 นาที · สูงสุด 65 คะแนน ต่อวันตามเวลาไทย
-            · คะแนนและยศสะสมตลอดอายุบัญชี
-          </p>
-          <p>
-            โบนัสต้องเริ่มช่วยก่อนถ่าย ภาพใหม่ไม่เกิน 15 นาที GPS
-            คลาดเคลื่อนไม่เกิน 200 เมตร อยู่ใกล้จุดวัดไม่เกิน 200 เมตร
-            และจุดวัดอยู่ในรัศมีคำขอ
-          </p>
-          <p>
-            หนึ่งคนต่อคำขอและหนึ่งโบนัสต่อรายงาน คู่ผู้ขอ–ผู้ช่วยเดิมรับได้ 1
-            ครั้งต่อวัน และ 3 ครั้งใน 7 วัน ไม่มีโบนัสพิเศษสำหรับคนแรก
-          </p>
-          <p>
-            ผู้ที่เริ่มช่วยไว้ก่อนคำขอสำเร็จยังส่งได้ถึงเวลาหมดอายุเดิม หรือ 15
-            นาทีหลังสำเร็จ แล้วแต่ว่าเวลาใดถึงก่อน การไม่เข้าเกณฑ์คะแนน
-            ไม่ปิดกั้นรายงานที่ผ่านระบบตรวจเดิม
-          </p>
-          <p>
-            ไม่มีคะแนน จากการให้ดาว ไลก์ หรือสร้างคำขอ · ไม่เพิ่มน้ำหนัก Trust
-            หรือค่าฝุ่น
-          </p>
+          {summary?.policy_version === "contribution-v2" ? (
+            <>
+              <p>
+                รายงานที่เข้าเกณฑ์ +10 สูงสุด 5 รายงานต่อวัน · รายงานแรกของวัน
+                +5 · ช่วยคำขอคนอื่นหรือภารกิจพื้นที่ +5 สูงสุด 3
+                ครั้งต่อวันรวมกัน
+              </p>
+              <p>
+                มีรายงานรับคะแนนครบ 5 วันในสัปดาห์จันทร์–อาทิตย์ +20
+                วันไม่ต้องติดต่อกัน · กิจกรรมสูงสุด 70 คะแนน/วัน
+                และโบนัสสัปดาห์อีก 20 · ทุกช่วงเวลาใช้เวลาไทย
+              </p>
+              <p>
+                รายงานที่รับคะแนนห่างกัน 30 นาที · ภาพใหม่ไม่เกิน 15
+                นาทีและหลักฐานตำแหน่งครบสำหรับโบนัสบริการ ·
+                คำขอที่อยู่ในรัศมีรับผลอัตโนมัติ ไม่ต้องกดช่วยก่อน ·
+                ช่วยหลายคำขอได้โบนัสครั้งเดียว
+              </p>
+              <p>
+                คู่ผู้ขอ–ผู้ช่วยเดิมรับโบนัสได้ 1 ครั้งต่อวัน และ 3 ครั้งใน 7
+                วัน · รายงานของตนเองอาจตอบคำขอได้แต่ไม่รับโบนัสช่วยตนเอง
+              </p>
+              <p>
+                คะแนนและยศเดิมเก็บไว้ทั้งหมด ·
+                อันดับรายเดือนนับกติกาใหม่ตั้งแต่วันเริ่มใช้ ·
+                คะแนนสะสมตลอดอายุบัญชี
+              </p>
+              <p>
+                ไลก์ ไม่ถูกใจ ความคิดเห็น และการสร้างคำขอไม่มีคะแนน ไม่เพิ่ม
+                Trust หรือเปลี่ยนค่าฝุ่น
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                กติกาเดิม: รายงาน +10 สูงสุด 5 ครั้ง/วัน · โบนัสช่วยคำขอ +5
+                สูงสุด 3 ครั้ง/วัน · รายงานที่รับคะแนนห่างกัน 30 นาที
+              </p>
+              <p>
+                คะแนนสะสมตลอดอายุบัญชี และยศเดิมยังอยู่ครบ
+                กติกาใหม่เริ่มเมื่อระบบเปิดใช้
+              </p>
+            </>
+          )}
         </details>
       )}
       {showProfile && signedIn && (

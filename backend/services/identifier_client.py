@@ -14,6 +14,15 @@ from time import monotonic
 from ..core.identifiers import PREFIXES, UUID_ENTITIES, code, legacy_uuid, number
 
 REFERENCES = {
+    "community_evidence_outcomes": {
+        "user_id": "profiles",
+        "report_id": "community_reports",
+    },
+    "community_coverage_missions": {"fulfilled_report_id": "community_reports"},
+    "community_device_evaluations": {
+        "report_id": "community_reports",
+        "user_id": "profiles",
+    },
     "announcements": {"created_by": "profiles", "updated_by": "profiles"},
     "audit_logs": {"actor_id": "profiles"},
     "cams_grid_active": {"generation_id": "cams_grid_generations"},
@@ -118,6 +127,9 @@ RPC_PARAMETERS = {
     "claim_community_help": {"p_user": "profiles", "p_request": "measurement_requests"},
     "community_xp_totals": {"p_user": "profiles"},
     "community_xp_board": {"p_user": "profiles"},
+    "community_v2_month_board": {"p_user": "profiles"},
+    "community_v2_counters": {"p_user": "profiles"},
+    "community_v2_month_points": {"p_user": "profiles"},
     "reverse_community_xp": {"p_event": "community_xp_events"},
     "release_cams_grid": {"p_job": "cams_grid_jobs"},
     "checkpoint_cams_grid": {"p_job": "cams_grid_jobs"},
@@ -138,6 +150,7 @@ RPC_RESULTS = {
     "claim_community_help": "community_help_claims",
     "community_xp_totals": "community_xp_accounts",
     "community_xp_board": "community_xp_accounts",
+    "community_v2_month_board": "community_xp_accounts",
     "create_measurement_request": "measurement_requests",
     "set_measurement_presence": "measurement_helper_presence",
     "publish_cams_grid": "cams_grid_jobs",
@@ -490,6 +503,8 @@ class IdentifierQuery:
             in {
                 "community_xp_totals",
                 "community_xp_board",
+                "community_v2_month_board",
+                "community_v2_counters",
                 "community_xp_admin_overview",
             }
         )

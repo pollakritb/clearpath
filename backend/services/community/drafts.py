@@ -158,6 +158,8 @@ async def create_draft(
         f"originals/{user_id}/{draft_id}.{IMAGE_EXTENSIONS[metadata['mime']]}"
     )
     expires_at = received_at + timedelta(minutes=DRAFT_TTL_MINUTES)
+    if settings.community_v2_enabled:
+        metadata["evidence_extraction"] = ocr_result.get("evidence_extraction") or {}
     row = {
         "id": draft_id,
         "user_id": user_id,
@@ -283,12 +285,19 @@ async def submit_draft(
                     "bonus_gps_received_at": datetime.now(UTC).isoformat(),
                 }
     from ..measurement import registered
+    from . import policy_v2
 
-    if await run_in_threadpool(registered.enabled):
+    evidence_v2_active = await run_in_threadpool(policy_v2.active)
+    if evidence_v2_active or await run_in_threadpool(registered.enabled):
         draft["image_metadata"] = {
             **(draft.get("image_metadata") or {}),
             "bonus_gps_at_submission": values.get("bonus_gps"),
             "bonus_gps_received_at": datetime.now(UTC).isoformat(),
+        }
+    if evidence_v2_active:
+        draft["image_metadata"] = {
+            **(draft.get("image_metadata") or {}),
+            "context_recorded": bool(values.get("_context_explicit")),
         }
     profile = await run_in_threadpool(supabase_client.ensure_profile, user_id)
     official, _source = await get_current_stations()
@@ -414,11 +423,23 @@ async def submit_draft(
         "source_type": "individual",
         "device_calibrated": bool(values.get("device_calibrated")),
         "calibrated_at": values.get("calibrated_at"),
-        "averaging_period": values.get("averaging_period") or "instant",
+        "averaging_period": (
+            (values.get("averaging_period") or "unknown")
+            if values.get("_context_explicit")
+            else "unknown"
+        )
+        if evidence_v2_active
+        else values.get("averaging_period") or "instant",
         "measurement_duration_seconds": int(
             values.get("measurement_duration_seconds") or 0
         ),
-        "measurement_environment": "outdoor",
+        "measurement_environment": (
+            values.get("measurement_environment")
+            if values.get("_context_explicit")
+            else "unknown"
+        )
+        if evidence_v2_active
+        else "outdoor",
         "measurement_stable": bool(values.get("measurement_stable")),
         "near_emission_source": bool(values.get("near_emission_source")),
         "measurement_note": (values.get("measurement_note") or "").strip()[:300]
@@ -497,9 +518,14 @@ async def submit_draft(
             official_stations=official,
         )
     except Exception:
-        # A submission must never remain pending for a human reviewer. If the
-        # final machine decision cannot be persisted, roll the report back and
-        # let the user retry the same draft.
+        # A presentation/evidence outage after a committed machine decision must
+        # never delete an already published report. Its natural draft key makes
+        # a retry return the same report once the dependency recovers.
+        current = await run_in_threadpool(
+            supabase_client.get_community_report, report_id
+        )
+        if current and current.get("status") in {"approved", "rejected"}:
+            raise
         await run_in_threadpool(supabase_client.delete_community_report, report_id)
         await run_in_threadpool(
             supabase_client.update_report_draft,

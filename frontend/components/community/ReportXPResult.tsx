@@ -67,7 +67,7 @@ export default function ReportXPResult({
         <>
           <strong>
             {result.status === "granted"
-              ? `ได้รับ +${result.report_xp + result.help_xp} คะแนน`
+              ? `ได้รับ +${result.report_xp + result.help_xp + (result.first_day_xp ?? 0) + (result.week_xp ?? 0)} คะแนน`
               : "รายงานบันทึกแล้ว · ไม่ได้รับคะแนน"}
           </strong>
           <small>
@@ -75,10 +75,13 @@ export default function ReportXPResult({
               ? `รายงาน +${result.report_xp}`
               : result.reason}
             {result.help_xp > 0
-              ? ` · ช่วยคำขอ +${result.help_xp}`
+              ? ` · ${result.bonus_reason === "ช่วยเติมพื้นที่ขาดข้อมูล" ? "ภารกิจพื้นที่" : "ช่วยคำขอ"} +${result.help_xp}`
               : result.bonus_reason
                 ? ` · ${result.bonus_reason}`
                 : ""}
+            {!!result.first_day_xp &&
+              ` · รายงานแรกของวัน +${result.first_day_xp}`}
+            {!!result.week_xp && ` · ครบ 5 วันในสัปดาห์ +${result.week_xp}`}
           </small>
         </>
       )}

@@ -37,6 +37,7 @@ from .community import (
     PhotoMetadata,
     RatingResult,
     ReactionKind,
+    ReactionLocation,
     ReportComment,
     ReportCommentCreate,
     ReportCreateResponse,
@@ -158,6 +159,7 @@ __all__ = [
     "OperationResponse",
     "RatingResult",
     "ReactionKind",
+    "ReactionLocation",
     "ReadinessResponse",
     "ReportCreateResponse",
     "ReportComment",
@@ -176,6 +178,14 @@ __all__ = [
     "Weather",
 ]
 
+from .evidence import (
+    ContributionMission,
+    ContributionMissions,
+    EvidenceComponent,
+    EvidenceHistory,
+    HistoryCheckSummary,
+    ReportEvidence,
+)
 from .xp import (  # noqa: F401
     HelpClaim,
     OwnedReportIDs,
@@ -192,3 +202,12 @@ from .xp import (  # noqa: F401
     XPSettings,
     XPSummary,
 )
+
+__all__ += [
+    "ContributionMission",
+    "ContributionMissions",
+    "EvidenceComponent",
+    "ReportEvidence",
+    "HistoryCheckSummary",
+    "EvidenceHistory",
+]

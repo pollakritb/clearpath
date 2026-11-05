@@ -8,9 +8,14 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ReportForm from "./ReportForm";
 
-const mocks = vi.hoisted(() => ({ draft: vi.fn(), submit: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  draft: vi.fn(),
+  submit: vi.fn(),
+  summary: vi.fn(),
+}));
 vi.mock("@/frontend/lib/api-client", () => ({
   api: {
+    xpSummary: mocks.summary,
     createReportDraft: mocks.draft,
     submitReportDraft: mocks.submit,
     measurementHelper: vi.fn(async () => ({
@@ -51,6 +56,7 @@ afterEach(() => {
 });
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.summary.mockResolvedValue(null);
   mocks.draft.mockResolvedValue({
     id: "draft",
     ocr_pm25: 42.5,
@@ -161,3 +167,32 @@ it.each([true, false])(
     );
   },
 );
+
+it("keeps unknown v2 context explicit and allows ordinary report submission", async () => {
+  mocks.summary.mockResolvedValue({
+    alias: "สายลม",
+    policy_version: "contribution-v2",
+  });
+  const submitted = vi.fn();
+  render(
+    <ReportForm
+      location={{ lat: 13.8, lon: 100.1, accuracy: 15, source: "gps" }}
+      onRequestLocation={vi.fn()}
+      onSubmitted={submitted}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "เลือกภาพทดสอบ" }));
+  const context = await screen.findByLabelText("บริเวณที่วัด");
+  expect((context as HTMLSelectElement).value).toBe("unknown");
+  fireEvent.click(screen.getByRole("button", { name: "ส่งรายงาน" }));
+  await waitFor(() => expect(submitted).toHaveBeenCalledOnce());
+  expect(mocks.submit).toHaveBeenCalledWith(
+    "draft",
+    expect.objectContaining({
+      measurement_environment: "unknown",
+      averaging_period: "unknown",
+      device_model: null,
+      near_emission_source: false,
+    }),
+  );
+});

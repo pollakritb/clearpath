@@ -280,7 +280,13 @@ async def submit_report_draft(
         report = await community_service.submit_draft(
             draft_id=draft_id,
             user_id=user.id,
-            values=body.model_dump(),
+            values=body.model_dump()
+            | {
+                "_context_explicit": {
+                    "measurement_environment",
+                    "averaging_period",
+                }.issubset(body.model_fields_set)
+            },
             reporter_identity={
                 "display_name": user.display_name,
                 "avatar_url": user.avatar_url,
@@ -400,7 +406,12 @@ async def set_report_reaction(
         raise HTTPException(429, detail="กดปฏิกิริยาถี่เกินไป กรุณารอสักครู่")
     try:
         result = await run_in_threadpool(
-            community_service.set_reaction, report_id, user.id, body.reaction
+            community_service.set_reaction,
+            report_id,
+            user.id,
+            body.reaction,
+            body.location.model_dump() if body.location else None,
+            body.reason_code,
         )
     except KeyError as exc:
         raise HTTPException(404, detail="ไม่พบรายงาน") from exc
@@ -511,11 +522,17 @@ async def my_profile(user: AuthenticatedUser = Depends(require_user)):
 
 @router.get("/community/leaderboard", response_model=XPLeaderboard)
 def leaderboard(
-    period: Literal["all", "7d", "30d"] = "all", offset: int = Query(0, ge=0, le=100000)
+    period: str | None = Query(
+        None, pattern=r"^(all|7d|30d|month|[0-9]{4}-(0[1-9]|1[0-2]))$"
+    ),
+    offset: int = Query(0, ge=0, le=100000),
 ):
     from ..services.community import xp
 
-    return XPLeaderboard(**xp.board(period, offset))
+    try:
+        return XPLeaderboard(**xp.board(period, offset))
+    except ValueError as exc:
+        raise HTTPException(422, detail="เดือนอันดับไม่ถูกต้อง") from exc
 
 
 @router.get("/community/announcements", response_model=AnnouncementsResponse)

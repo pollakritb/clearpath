@@ -2081,6 +2081,10 @@ def moderate_report_transaction(
             if reason == "report_rejected_invalid"
             else 0
         )
+        from .community import policy_v2
+
+        if policy_v2.active():
+            points = 0
         local_store.apply_event(
             str(updated["user_id"]),
             points,

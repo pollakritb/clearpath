@@ -1,3 +1,4 @@
+import type { EvidenceHistory } from "./evidence";
 export interface ParticipationRank {
   code: string;
   label: string;
@@ -12,6 +13,14 @@ export interface XPSummary {
   alias: string;
   hidden: boolean;
   identity_mode: "google" | "alias";
+  policy_version?: string;
+  launched_at?: string | null;
+  month_rank?: number | null;
+  month_points?: number;
+  week_days?: number;
+  fulfilled_requests?: number | null;
+  missions_completed?: number;
+  evidence_history?: EvidenceHistory | null;
   lifetime_xp: number;
   contribution_days: number;
   report_count: number;
@@ -27,10 +36,13 @@ export interface XPSettings {
   identity_mode?: "google" | "alias" | null;
 }
 export interface XPResult {
-  matched_request_count?: number;
   status: "pending" | "granted" | "not_eligible" | "disabled";
+  first_day_xp?: number;
+  week_xp?: number;
+  policy_version?: string;
   report_xp: number;
   help_xp: number;
+  matched_request_count?: number;
   reason: string | null;
   bonus_reason: string | null;
 }
@@ -57,7 +69,12 @@ export interface XPLeader {
   title: ParticipationRank;
 }
 export interface XPLeaderboard {
-  period: "all" | "7d" | "30d";
+  period: string;
+  month?: string | null;
+  launched_at?: string | null;
+  provisional?: boolean;
+  revision?: number;
+  frozen_at?: string | null;
   users: XPLeader[];
   me: XPLeader | null;
   next_offset: number | null;
@@ -69,6 +86,7 @@ export interface HelpClaim {
   potential_xp: number;
 }
 export interface PublicMember {
+  evidence_history?: EvidenceHistory | null;
   member_id: string;
   alias: string;
   lifetime_xp: number;
@@ -90,9 +108,6 @@ export interface XPAdminOverview {
   events: XPAdminEvent[];
 }
 
-export interface XPReversalRequest {
-  reason: string;
-}
 export interface OwnedReportIDs {
   ids: string[];
 }

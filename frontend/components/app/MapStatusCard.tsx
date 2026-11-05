@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 
 import Link from "next/link";
 
+import ReportEvidencePanel from "@/frontend/components/community/ReportEvidencePanel";
 import ReportEngagement from "@/frontend/components/community/ReportEngagement";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
@@ -53,6 +54,7 @@ function formatReportDate(value: string | null) {
 }
 
 function averagingLabel(period: CommunityReport["averaging_period"]) {
+  if (period === "unknown") return "ยังไม่ทราบช่วงเฉลี่ย";
   if (period === "1_minute") return "เฉลี่ย 1 นาที";
   if (period === "5_minutes") return "เฉลี่ย 5 นาที";
   return "ค่า ณ ขณะวัด";
@@ -509,6 +511,9 @@ export default function MapStatusCard({
         </details>
       )}
 
+      {source === "individual" && report && (
+        <ReportEvidencePanel report={report} />
+      )}
       {source === "individual" && report && !historicalAt && (
         <ReportEngagement key={report.id} report={report} />
       )}

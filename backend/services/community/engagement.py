@@ -2,8 +2,10 @@
 
 from datetime import UTC, datetime
 
+from ...algorithms.reaction_location import reaction_eligibility
 from .. import supabase_client
 from ..record_keys import creation_key
+from . import policy_v2
 
 
 def _approved_report(report_id: str) -> dict:
@@ -48,7 +50,15 @@ def get_engagement(
         supabase_client.get_report_reaction(report_id, viewer_id) if viewer_id else None
     )
     comments = supabase_client.list_report_comments(report_id, comment_limit)
+    policy = policy_v2.release()
+    required = policy["active_version"] == "v2"
     return {
+        "location_required": required,
+        "location_policy_ready": not required
+        or bool(
+            policy.get("reaction_radius_m") and policy.get("reaction_validation_ref")
+        ),
+        "reaction_radius_m": policy.get("reaction_radius_m") if required else None,
         "like_count": int(report.get("like_count") or 0),
         "dislike_count": int(report.get("dislike_count") or 0),
         "comment_count": int(report.get("comment_count") or 0),
@@ -57,12 +67,51 @@ def get_engagement(
     }
 
 
-def set_reaction(report_id: str, user_id: str, reaction: str) -> dict:
+def set_reaction(
+    report_id: str,
+    user_id: str,
+    reaction: str,
+    location: dict | None = None,
+    reason_code: str | None = None,
+) -> dict:
     report = _approved_report(report_id)
     if str(report["user_id"]) == user_id:
         raise ValueError("ไม่สามารถกดถูกใจหรือไม่ถูกใจรายงานของตนเองได้")
     if reaction not in {"like", "dislike"}:
         raise ValueError("ปฏิกิริยาไม่ถูกต้อง")
+    policy = policy_v2.release()
+    metadata = {}
+    if policy["active_version"] == "v2":
+        reason = reaction_eligibility(
+            report,
+            location or {},
+            now=datetime.now(UTC),
+            radius_m=policy.get("reaction_radius_m"),
+            reference=policy.get("reaction_validation_ref"),
+        )
+        messages = {
+            "policy_unvalidated": "ยังไม่เปิดโหวตตามตำแหน่ง: รัศมียังไม่มีผลประเมินรองรับ แสดงความคิดเห็นได้ตามปกติ",
+            "gps_invalid": "กรุณาอนุญาตตำแหน่งและขอตำแหน่งใหม่ก่อนโหวต",
+            "gps_expired": "ตำแหน่งหมดอายุ กรุณาขอตำแหน่งใหม่",
+            "report_expired": "รายงานนี้พ้นช่วงรับการโหวตจากพื้นที่แล้ว",
+            "report_location_unknown": "รายงานนี้ไม่มีข้อมูลความคลาดเคลื่อนตำแหน่งเพียงพอ",
+            "outside_area": "คุณอยู่นอกพื้นที่รับการโหวตของรายงานนี้",
+            "gps_uncertain": "ตำแหน่งยังคลาดเคลื่อนคร่อมขอบเขต กรุณาขอตำแหน่งใหม่ แล้วลองอีกครั้ง",
+        }
+        if reason:
+            raise ValueError(messages[reason])
+        allowed = (
+            {"useful"}
+            if reaction == "like"
+            else {"image_unclear", "context_question", "value_question"}
+        )
+        if reason_code not in allowed:
+            raise ValueError("กรุณาเลือกเหตุผลของปฏิกิริยา")
+        # Retain the versioned decision policy, never raw voter GPS.
+        metadata = {
+            "reason_code": reason_code,
+            "geofence_policy": "location-v2:" + str(policy["reaction_validation_ref"]),
+        }
     now = datetime.now(UTC).isoformat()
     existing = supabase_client.get_report_reaction(report_id, user_id)
     supabase_client.upsert_report_reaction(
@@ -70,6 +119,7 @@ def set_reaction(report_id: str, user_id: str, reaction: str) -> dict:
             "report_id": report_id,
             "user_id": user_id,
             "reaction": reaction,
+            **metadata,
             "created_at": existing.get("created_at") if existing else now,
             "updated_at": now,
         }

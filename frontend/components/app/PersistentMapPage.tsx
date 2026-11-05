@@ -24,6 +24,11 @@ export default function PersistentMapPage() {
     <div hidden={!isMapPage} inert={!isMapPage}>
       <MapPageClient
         active={isMapPage}
+        initialMissionLink={
+          isMapPage && searchParams.get("mission")
+            ? `${searchParams.get("mission")}|${searchParams.get("lat")}|${searchParams.get("lon")}`
+            : null
+        }
         initialCams={searchParams.get("layer") === "cams"}
         initialRequestId={
           isMapPage ? searchParams.get("measurement_request") : null
