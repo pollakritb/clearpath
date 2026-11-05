@@ -8,6 +8,10 @@ const backendPort = isCi ? 8000 : 8017;
 
 export default defineConfig({
   testDir: "./e2e",
+  // Artifact generation is opt-in; regression checks must not overwrite slides.
+  testIgnore: process.env.CAPTURE_PRESENTATION_SCREENSHOTS
+    ? undefined
+    : "**/presentation-screenshots.spec.ts",
   // Keep Playwright cleanup isolated from pytest and local browser artifacts.
   outputDir: "test-results/playwright",
   fullyParallel: false,

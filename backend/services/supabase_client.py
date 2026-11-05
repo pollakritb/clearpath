@@ -1170,12 +1170,25 @@ def create_user_notification(row: dict) -> dict:
     rows = (
         get_client()
         .table("user_notifications")
-        .upsert(row, on_conflict="user_id,deduplication_key")
+        .upsert(row, on_conflict="user_id,deduplication_key", ignore_duplicates=True)
         .execute()
         .data
         or []
     )
-    return rows[0] if rows else row
+    if rows:
+        return rows[0]
+    existing = (
+        get_client()
+        .table("user_notifications")
+        .select("*")
+        .eq("user_id", row["user_id"])
+        .eq("deduplication_key", row["deduplication_key"])
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return existing[0] if existing else row
 
 
 def list_user_notifications(user_id: str, limit: int = 50) -> list[dict]:
@@ -1226,7 +1239,7 @@ def create_outbox_event(row: dict) -> dict:
     rows = (
         get_client()
         .table("notification_outbox")
-        .upsert(row, on_conflict="event_key")
+        .upsert(row, on_conflict="event_key", ignore_duplicates=True)
         .execute()
         .data
         or []

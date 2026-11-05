@@ -66,3 +66,24 @@ it("opens forecast at now on the left and moves right using only CAMS", () => {
   expect(select).toHaveBeenLastCalledWith({ kind: "forecast", at: times[0] });
   expect(slider.value).toBe("0");
 });
+
+it("shows the actual measurement time and warns instead of presenting expired data as current", () => {
+  render(
+    <StationTimelineControls
+      {...shared}
+      mode="history"
+      time={{ kind: "current" }}
+      onSelect={vi.fn()}
+      station={{
+        ...shared.station,
+        recorded_at: "2029-12-31T00:00:00Z",
+        data_status: "expired",
+      }}
+    />,
+  );
+  expect(screen.getByText(/ข้อมูลหมดอายุ/)).toBeTruthy();
+  expect(screen.getByText(/ตรวจวัดจริง/).querySelector("time")?.dateTime).toBe(
+    "2029-12-31T00:00:00Z",
+  );
+  expect(screen.queryByText("ดี")).toBeNull();
+});

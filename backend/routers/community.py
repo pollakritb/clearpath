@@ -8,6 +8,7 @@ from starlette.concurrency import run_in_threadpool
 
 from ..core.auth import AuthenticatedUser, require_user
 from ..core.config import settings
+from ..core.identifiers import ReportID, RequestID
 from ..models.schemas import (
     AccountAccessResponse,
     ActivitiesResponse,
@@ -124,6 +125,24 @@ async def reports(limit: int = Query(200, ge=1, le=500)):
         count=len(rows),
         stacks=[CommunityReportStack(**stack) for stack in stacks],
     )
+
+
+@router.get("/community/reports/{report_id}", response_model=CommunityReport)
+async def published_report(
+    report_id: ReportID,
+    response: Response,
+    request_id: RequestID | None = None,
+    user: AuthenticatedUser = Depends(require_user),
+):
+    from ..services.community.details import published_report as resolve
+
+    response.headers["Cache-Control"] = "no-store"
+    try:
+        return await run_in_threadpool(
+            resolve, str(report_id), user.id, user.role, request_id
+        )
+    except KeyError:
+        raise HTTPException(404, detail="ไม่พบรายงานที่เผยแพร่แล้ว") from None
 
 
 @router.get("/community/map-points", response_model=CommunityMapPointsResponse)

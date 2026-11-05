@@ -38,3 +38,13 @@ def test_parse_feed_rejects_old_duplicate_and_future_items():
 
     result = parse_feed(xml, now=datetime(2026, 9, 17, 10, tzinfo=UTC))
     assert [item["title"] for item in result] == ["Fresh"]
+
+
+def test_foreign_news_is_not_labelled_as_thailand():
+    xml = b"""<rss><channel><item><title>Pakistan air pollution</title>
+    <link>https://example.com/pakistan</link><guid>foreign</guid>
+    <pubDate>Thu, 17 Sep 2026 08:00:00 GMT</pubDate></item></channel></rss>"""
+    assert (
+        parse_feed(xml, now=datetime(2026, 9, 17, 10, tzinfo=UTC))[0]["area"]
+        == "ไม่ระบุพื้นที่"
+    )

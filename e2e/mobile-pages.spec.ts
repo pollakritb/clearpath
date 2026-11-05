@@ -6,11 +6,11 @@ import { submitUnreadableReport } from "./support/community-report";
 const pages = [
   { path: "/", text: "คุณภาพอากาศทั่วไทย" },
   { path: "/air", text: "อากาศวันนี้" },
-  { path: "/report", text: "ส่งข้อมูลจากเครื่องวัด" },
+  { path: "/report", text: "ส่งรายงานค่าฝุ่น" },
   { path: "/community", text: "ข่าวสารล่าสุด" },
-  { path: "/settings", text: "การแสดงผล" },
-  { path: "/profile", text: "โปรไฟล์ของฉัน" },
-  { path: "/admin", text: "ศูนย์ควบคุม ClearPath" },
+  { path: "/settings", text: "การตั้งค่า" },
+  { path: "/profile", text: "ผลงานและอันดับ" },
+  { path: "/admin", text: "ภาพรวม ClearPath" },
   { path: "/offline", text: "ขณะนี้ไม่ได้เชื่อมต่ออินเทอร์เน็ต" },
 ];
 
@@ -93,7 +93,7 @@ test("admin exposes only the active operational surfaces", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: "ติดตามการทำงาน ไม่ตัดสินรายงานแทนระบบ",
+      name: "ภาพรวมการใช้งานและสถานะระบบ",
     }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "อนุมัติ" })).toHaveCount(0);
@@ -104,10 +104,7 @@ test("admin exposes only the active operational surfaces", async ({ page }) => {
   const adminNavigation = page.getByRole("navigation", {
     name: "เมนูผู้ดูแล",
   });
-  await adminNavigation
-    .getByRole("button")
-    .filter({ hasText: "สถานะระบบ" })
-    .click();
+  await adminNavigation.getByRole("button").filter({ hasText: "ระบบ" }).click();
   await expect(
     page.getByRole("heading", { name: "ข้อมูลและบริการที่ต้องดูแล" }),
   ).toBeVisible();
@@ -123,7 +120,7 @@ test("admin exposes only the active operational surfaces", async ({ page }) => {
 
   await adminNavigation
     .getByRole("button")
-    .filter({ hasText: "ประวัติรายงาน" })
+    .filter({ hasText: "รายงาน" })
     .click();
   await expect(
     page.getByRole("heading", { name: "ประวัติรายงานจากผู้ใช้" }).first(),
@@ -201,27 +198,23 @@ test("profile leaderboard shows monthly contribution independently of Trust", as
   await expectNoHorizontalPageOverflow(page);
 });
 
-test("header actions expose refresh and a dedicated settings page", async ({
+test("header opens the account menu and dedicated settings page", async ({
   page,
 }) => {
   await page.goto("/air");
   await expect(
     page.getByRole("button", { name: "รีเฟรชข้อมูลล่าสุด" }),
   ).toBeVisible();
-
-  const settings = page.getByRole("link", { name: "เปิดการตั้งค่า" });
-  await expect(settings).toHaveAttribute("href", "/settings");
-  await settings.click();
-  await expect(page.getByRole("heading", { name: "การแสดงผล" })).toBeVisible();
+  await page.getByRole("button", { name: "เปิดโปรไฟล์" }).click();
+  const menu = page.getByRole("navigation", { name: "เมนูบัญชี" });
+  await menu.getByRole("link", { name: "การตั้งค่า", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings$/);
   await expect(
-    page.getByRole("switch", { name: /ตัวอักษรใหญ่/ }),
+    page.getByRole("region", { name: "สิทธิ์อุปกรณ์" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("switch", { name: /คอนทราสต์สูง/ }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("switch", { name: /ลดการเคลื่อนไหว/ }),
-  ).toBeVisible();
+    page.getByRole("link", { name: /ช่องทางและเงื่อนไข/ }),
+  ).toHaveAttribute("href", "/settings/notifications");
 });
 
 test("news page prioritizes announcements and moves settings elsewhere", async ({
@@ -287,7 +280,7 @@ test("non-map pages do not load map-only data", async ({ page }) => {
   });
 
   await page.goto("/settings");
-  await expect(page.getByRole("heading", { name: "การแสดงผล" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "การตั้งค่า" })).toBeVisible();
   await page.waitForTimeout(250);
 
   for (const path of [
@@ -325,7 +318,9 @@ test("map defers satellite hotspot data until its layer is enabled", async ({
   const hotspotRequest = page.waitForRequest(
     (request) => new URL(request.url()).pathname === "/api/firms",
   );
-  await page.getByRole("button", { name: /จุดความร้อนจากดาวเทียม/ }).click();
+  await page
+    .getByRole("switch", { name: /จุดความร้อน(?:จาก)?ดาวเทียม/ })
+    .click();
   await hotspotRequest;
 });
 
@@ -367,9 +362,11 @@ test("satellite hotspot fixture is distinct and never presented as a confirmed f
   await page
     .getByRole("button", { name: "เลือกข้อมูลที่แสดงบนแผนที่" })
     .click();
-  await page.getByRole("button", { name: /จุดความร้อนจากดาวเทียม/ }).click();
   await page
-    .getByRole("button", { name: /สถานีตรวจวัดทางการ Air4Thai/ })
+    .getByRole("switch", { name: /จุดความร้อน(?:จาก)?ดาวเทียม/ })
+    .click();
+  await page
+    .getByRole("switch", { name: /สถานีตรวจวัดทางการ Air4Thai/ })
     .click();
   await page.getByRole("button", { name: "ปิดตัวเลือกข้อมูล" }).click();
 
@@ -475,7 +472,7 @@ test("air page keeps station readings without a GPS IDW summary", async ({
   await page.goto("/air");
   await expect(page.getByText("ฝุ่นใกล้ตำแหน่งคุณ")).toHaveCount(0);
   await expect(
-    page.getByRole("region", { name: "คุณภาพอากาศสถานีที่เลือก" }),
+    page.getByRole("region", { name: "คุณภาพอากาศจากจุดอ้างอิงที่ใกล้ที่สุด" }),
   ).toBeVisible();
 });
 
@@ -505,7 +502,7 @@ test("notification settings separate channels from conditions on mobile", async 
   await expect(
     page.getByRole("heading", { name: "แจ้งเตือนผ่าน LINE" }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Web Push" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Web Push" })).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "เงื่อนไขแจ้งเตือน" }),
   ).toBeVisible();
@@ -601,7 +598,7 @@ test("mobile camera opens, becomes ready and captures a live frame @camera-390",
   await expect(capture).toBeEnabled();
   await capture.click();
   await expect(
-    page.getByRole("img", { name: "ภาพหน้าจอเครื่องวัดที่เพิ่งถ่าย" }),
+    page.getByRole("img", { name: "ภาพเครื่องวัดที่เลือกสำหรับรายงาน" }),
   ).toBeVisible();
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerWidth,
@@ -652,12 +649,9 @@ test("an unreadable OCR draft offers a working retake path @camera-390", async (
     page.getByText("กล้องหลังพร้อมแล้ว ถือเครื่องให้นิ่ง", { exact: false }),
   ).toBeVisible();
   await page.getByRole("button", { name: "ถ่ายหน้าจอเครื่องวัด" }).click();
-  const analyze = page.getByRole("button", { name: "อ่านค่าจากภาพ" });
-  await expect(analyze).toBeEnabled();
-  await analyze.click();
 
   await expect(page.getByText("ยังอ่านตัวเลข PM2.5 ไม่ได้")).toBeVisible();
-  const retake = page.getByRole("button", { name: "ถ่ายภาพใหม่" });
+  const retake = page.getByRole("button", { name: "เปลี่ยนภาพ" });
   await expect(retake).toBeEnabled();
   await retake.click();
   await expect(
@@ -696,7 +690,7 @@ test("a numeric OCR draft can be submitted without a device model @camera-390", 
     "**/api/community/report-drafts/ocr-submit-e2e/submit",
     async (route) => {
       const requestBody = route.request().postDataJSON();
-      expect(requestBody.device_model).toBe("");
+      expect(requestBody.device_model).toBeUndefined();
       expect(requestBody.user_claimed_pm25).toBe(23.4);
       await route.fulfill({
         status: 201,
@@ -721,14 +715,7 @@ test("a numeric OCR draft can be submitted without a device model @camera-390", 
     page.getByText("กล้องหลังพร้อมแล้ว ถือเครื่องให้นิ่ง", { exact: false }),
   ).toBeVisible();
   await page.getByRole("button", { name: "ถ่ายหน้าจอเครื่องวัด" }).click();
-  await page.getByRole("button", { name: "อ่านค่าจากภาพ" }).click();
-
-  const confirmMeasurement = page.getByRole("checkbox", {
-    name: /ยืนยันวิธีวัดถูกต้อง/,
-  });
-  await expect(confirmMeasurement).not.toBeChecked();
-  await confirmMeasurement.check();
-  const submit = page.getByRole("button", { name: "ยืนยันและส่งข้อมูล" });
+  const submit = page.getByRole("button", { name: "ส่งรายงาน", exact: true });
   await expect(submit).toBeEnabled();
   await submit.click();
   await expect(
@@ -746,21 +733,22 @@ test("map separates official stations from individual reports", async ({
     .click();
 
   const panel = page.locator("#cp-map-layers-panel");
-  const official = panel.getByRole("button", {
+  const official = panel.getByRole("switch", {
     name: /สถานีตรวจวัดทางการ/,
   });
-  const community = panel.getByRole("button", {
-    name: /รายงานจากบุคคล/,
+  const community = panel.getByRole("switch", {
+    name: /รายงานจากชุมชน/,
   });
   await expect(official).toBeVisible();
   await expect(community).toBeVisible();
-  await expect(official).toHaveAttribute("aria-pressed", "true");
-  await expect(community).toHaveAttribute("aria-pressed", "true");
+  await expect(official).toHaveAttribute("aria-checked", "true");
+  await expect(community).toHaveAttribute("aria-checked", "true");
   await expect(
-    panel.getByRole("button", { name: /สถานีเซนเซอร์ชุมชน/ }),
+    panel.getByRole("switch", { name: /สถานีเซนเซอร์ชุมชน/ }),
   ).toHaveCount(0);
+  await panel.getByText("สีระดับ PM2.5", { exact: true }).click();
   await expect(
-    page.getByText(/วงสีรอบจุดใกล้ที่สุดไม่ใช่ค่าประมาณทั้งพื้นที่/),
+    panel.getByText(/วงสีใช้ค่าปัจจุบันจากจุดตรวจที่ใกล้ GPS/),
   ).toBeVisible();
 });
 
@@ -1010,23 +998,14 @@ test("map shows my location with a distinct marker and recenter control", async 
   }
 });
 
-test("large text and high contrast remain mobile-safe", async ({ page }) => {
-  await page.goto("/settings");
-  const largeText = page.getByRole("switch", { name: /ตัวอักษรใหญ่/ });
-  const contrast = page.getByRole("switch", { name: /คอนทราสต์สูง/ });
-  await largeText.click();
-  await contrast.click();
-  await expect(largeText).toHaveAttribute("aria-checked", "true");
-  await expect(contrast).toHaveAttribute("aria-checked", "true");
-  await page
-    .getByRole("navigation", { name: "เมนูหลักบนมือถือ" })
-    .getByRole("link", { name: "วันนี้" })
-    .click();
-  await expect(page).toHaveURL(/\/air$/);
-  await expect(page.locator(".cp-app")).toHaveAttribute(
-    "data-contrast",
-    "true",
-  );
+test("browser text enlargement and forced contrast remain mobile-safe", async ({
+  page,
+}) => {
+  await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+  await page.goto("/air");
+  await page.locator(".cp-app").evaluate((element) => {
+    (element as HTMLElement).style.fontSize = "18px";
+  });
   await expect(page.locator(".cp-app")).toHaveCSS("font-size", "18px");
   await expectNoHorizontalPageOverflow(page);
 });
@@ -1070,38 +1049,54 @@ test("installed service worker provides the explicit offline fallback", async ({
   }
 });
 
-test("admin triages a data issue and sees its audit trail @stateful-360", async ({
+test("admin reads historical data issues without submission or mutation controls @stateful-360", async ({
   page,
   request,
 }) => {
-  const message = `E2E ตรวจเวลาสถานีผิดปกติ ${Date.now()}`;
-  const created = await request.post("/api/community/data-issues", {
-    data: {
-      category: "station",
-      reference_id: "station-e2e",
-      message,
-    },
-  });
-  expect(created.status()).toBe(201);
-
+  const message = "ประวัติข้อมูลสถานีผิดปกติ";
+  await page.route("**/api/admin/data-issues?**", (route) =>
+    route.fulfill({
+      json: {
+        issues: [
+          {
+            id: "ISS-000001",
+            category: "station",
+            reference_id: "81t",
+            message,
+            status: "resolved",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ],
+        count: 1,
+      },
+    }),
+  );
+  expect(
+    (
+      await request.post("/api/community/data-issues", {
+        data: { category: "station", message },
+      })
+    ).status(),
+  ).toBe(404);
   await page.goto("/admin");
   await page
     .getByRole("navigation", { name: "เมนูผู้ดูแล" })
-    .getByRole("button")
-    .filter({ hasText: "สถานะระบบ" })
+    .getByRole("button", { name: "ระบบ", exact: true })
     .click();
   const issue = page
     .locator(".cp-admin-issue-row")
     .filter({ hasText: message });
   await expect(issue).toBeVisible();
-  await issue.getByLabel("สถานะถัดไป").selectOption("resolved");
-  await issue
-    .getByLabel("ผลตรวจและเหตุผล")
-    .fill("ตรวจข้อมูลสถานีต้นทางและแก้ไขรายการเรียบร้อยแล้ว");
-  await issue.getByRole("button", { name: "บันทึกผลตรวจ" }).click();
-
   await expect(issue.getByText("แก้ไขแล้ว")).toBeVisible();
-  await expect(page.getByText("data_issue_transitioned").first()).toBeVisible();
+  await expect(issue.locator("button,input,select,textarea")).toHaveCount(0);
+  expect(
+    (
+      await request.patch("/api/admin/data-issues/ISS-000001", {
+        data: { status: "resolved" },
+      })
+    ).status(),
+  ).toBe(404);
 });
 
 test("admin can inspect an automatically rejected OCR report without review controls @stateful-360", async ({
@@ -1141,46 +1136,48 @@ test("admin can inspect an automatically rejected OCR report without review cont
   expect(rows.some((row) => row.id === rejected.id)).toBe(false);
 });
 
-test("admin manages the complete announcement lifecycle @stateful-360", async ({
+test("admin reads announcements without publishing controls @stateful-360", async ({
   page,
+  request,
 }) => {
-  const suffix = Date.now();
-  const title = `ประกาศทดสอบ ${suffix}`;
-  const editedTitle = `${title} แก้ไขแล้ว`;
-
+  await page.route("**/api/admin/announcements", (route) =>
+    route.fulfill({
+      json: {
+        announcements: [
+          {
+            id: "ANN-000001",
+            title: "ประกาศที่เผยแพร่แล้ว",
+            body: "อ่านประวัติเท่านั้น",
+            kind: "community",
+            area: "นครปฐม",
+            status: "published",
+            published_at: new Date().toISOString(),
+            expires_at: null,
+            image_url: null,
+          },
+        ],
+      },
+    }),
+  );
   await page.goto("/admin");
-  await page.getByRole("button", { name: /ประกาศ/ }).click();
-  const form = page.locator("form").filter({ hasText: "สร้างประกาศชุมชน" });
-  await form.getByLabel("หัวข้อประกาศ").fill(title);
-  await form
-    .getByLabel("รายละเอียด")
-    .fill("ข้อมูลทดสอบวงจรประกาศสำหรับผู้ใช้งาน ClearPath");
-  await form.getByLabel("ประเภท").selectOption("news");
-  await form.getByLabel("พื้นที่").fill("นครปฐม");
-  await form.getByLabel("สถานะ").selectOption("draft");
-  await form
-    .getByLabel(/ภาพประกอบ/)
-    .setInputFiles("docs/assets/ui-archive/clearpath-mobile-final.png");
-  await form.getByRole("button", { name: "บันทึกประกาศ" }).click();
-
-  let row = page
-    .locator(".cp-admin-announcement-row")
-    .filter({ hasText: title });
-  await expect(row.getByText(/ฉบับร่าง/)).toBeVisible();
-  await row.getByRole("button", { name: "แก้ไข" }).click();
-  const editForm = page.locator("form").filter({ hasText: "แก้ไขประกาศ" });
-  await editForm.getByLabel("หัวข้อประกาศ").fill(editedTitle);
-  await editForm.getByRole("button", { name: "บันทึกการแก้ไข" }).click();
-
-  row = page
-    .locator(".cp-admin-announcement-row")
-    .filter({ hasText: editedTitle });
-  await expect(row).toBeVisible();
-  await row.getByRole("button", { name: "เผยแพร่", exact: true }).click();
-  await expect(row.getByText(/เผยแพร่แล้ว/)).toBeVisible();
-  await row.getByRole("button", { name: "ยกเลิกเผยแพร่" }).click();
-  await expect(row.getByText(/ฉบับร่าง/)).toBeVisible();
-  page.once("dialog", (dialog) => dialog.accept());
-  await row.getByRole("button", { name: "เก็บออกจากรายการ" }).click();
-  await expect(row.getByText(/เก็บแล้ว/)).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "เมนูผู้ดูแล" })
+    .getByRole("button", { name: "ประกาศ", exact: true })
+    .click();
+  await expect(page.locator(".cp-admin-announcement-row")).toContainText(
+    "ประกาศที่เผยแพร่แล้ว",
+  );
+  await expect(
+    page.locator(".cp-admin-announcement-row").locator("button"),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /บันทึกประกาศ|เผยแพร่|แก้ไข/ }),
+  ).toHaveCount(0);
+  expect([404, 405]).toContain(
+    (
+      await request.post("/api/admin/announcements", {
+        data: { title: "ไม่อนุญาต" },
+      })
+    ).status(),
+  );
 });

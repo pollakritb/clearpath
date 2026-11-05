@@ -69,7 +69,7 @@ def parse_feed(xml: bytes, *, now: datetime | None = None) -> list[dict]:
                 "title": title,
                 "body": "เปิดอ่านรายละเอียดจากสำนักข่าวต้นฉบับ",
                 "kind": "news",
-                "area": "ประเทศไทย",
+                "area": "ไม่ระบุพื้นที่",
                 "published_at": published.isoformat(),
                 "expires_at": None,
                 "status": "published",

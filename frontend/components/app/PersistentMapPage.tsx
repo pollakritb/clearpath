@@ -35,6 +35,7 @@ export default function PersistentMapPage() {
         }
         requestInitially={isMapPage && searchParams.get("request") === "1"}
         initialReportId={searchParams.get("report")}
+        initialReportRequestId={searchParams.get("report_request")}
         showFiresInitially={searchParams.get("layer") === "fires"}
       />
     </div>

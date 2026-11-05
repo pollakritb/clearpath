@@ -33,7 +33,13 @@ export default function StationTimelineControls({
   anchor: number;
   futureTimes: string[];
   observedAt?: string | null;
-  station: { id: string; name: string; pm25: number | null } | null;
+  station: {
+    id: string;
+    name: string;
+    pm25: number | null;
+    recorded_at?: string | null;
+    data_status?: "fresh" | "delayed" | "expired" | null;
+  } | null;
   loading: boolean;
   error: string | null;
   paused: boolean;
@@ -141,7 +147,14 @@ export default function StationTimelineControls({
       : time.kind === "history"
         ? "Air4Thai · ค่าตรวจวัดย้อนหลัง"
         : "Air4Thai · ค่าตรวจวัดล่าสุด";
-  const classification = classifyPm25(loading || error ? null : station?.pm25);
+  const expired =
+    time.kind !== "forecast" && station?.data_status === "expired";
+  const delayed =
+    time.kind !== "forecast" && station?.data_status === "delayed";
+  const measuredAt = time.kind !== "forecast" ? station?.recorded_at : null;
+  const classification = classifyPm25(
+    loading || error || expired ? null : station?.pm25,
+  );
   return (
     <div
       className="cp-history-timeline-host cp-station-time-panel"
@@ -229,6 +242,21 @@ export default function StationTimelineControls({
                 <div>
                   <small>สถานีที่เลือก · {station.id}</small>
                   <strong>{station.name}</strong>
+                  {measuredAt && !loading && !error && (
+                    <small>
+                      ตรวจวัดจริง ·{" "}
+                      <time dateTime={measuredAt}>
+                        {formatForecastTime(measuredAt)}
+                      </time>
+                    </small>
+                  )}
+                  {!loading && !error && (expired || delayed) && (
+                    <small role="status">
+                      {expired
+                        ? "ข้อมูลหมดอายุ · เป็นค่าที่วัดไว้ ไม่ใช่ค่าฝุ่นปัจจุบัน"
+                        : "ข้อมูลล่าช้า · โปรดตรวจเวลาที่วัด"}
+                    </small>
+                  )}
                   {!loading && !error && station.pm25 == null && (
                     <small>ไม่มีข้อมูลสถานีนี้ในเวลาที่เลือก</small>
                   )}

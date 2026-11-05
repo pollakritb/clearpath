@@ -196,3 +196,30 @@ it("keeps unknown v2 context explicit and allows ordinary report submission", as
     }),
   );
 });
+
+it("keeps the image while GPS is denied and starts OCR only after accurate GPS returns", async () => {
+  const props = { onRequestLocation: vi.fn(), onSubmitted: vi.fn() };
+  const { rerender } = render(
+    <ReportForm {...props} location={null} locationError="ไม่อนุญาต GPS" />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "เลือกภาพทดสอบ" }));
+  expect(screen.getByText("ต้องแก้ไขตำแหน่งก่อนอ่านภาพ")).toBeTruthy();
+  expect(screen.queryByText("กำลังรับตำแหน่ง GPS…")).toBeNull();
+  expect(mocks.draft).not.toHaveBeenCalled();
+  rerender(
+    <ReportForm
+      {...props}
+      location={{ lat: 13.8, lon: 100.1, accuracy: 250, source: "gps" }}
+    />,
+  );
+  expect(screen.getByText("ต้องแก้ไขตำแหน่งก่อนอ่านภาพ")).toBeTruthy();
+  expect(mocks.draft).not.toHaveBeenCalled();
+  rerender(
+    <ReportForm
+      {...props}
+      location={{ lat: 13.8, lon: 100.1, accuracy: 20, source: "gps" }}
+    />,
+  );
+  await screen.findByText("PM2.5 42.5 µg/m³");
+  expect(mocks.draft).toHaveBeenCalledOnce();
+});

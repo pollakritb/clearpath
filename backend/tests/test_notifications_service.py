@@ -240,3 +240,31 @@ def test_publish_alert_deduplicates_event_and_recipient_list(monkeypatch):
             },
         }
     ]
+
+
+def test_inbox_merges_legacy_report_duplicates_without_deleting_history(monkeypatch):
+    original = [
+        {
+            "id": "new",
+            "event_type": "report_status",
+            "entity_id": "RPT-000004",
+            "payload": {"status": "approved"},
+            "read_at": None,
+        },
+        {
+            "id": "old",
+            "event_type": "report_status",
+            "entity_id": "RPT-000004",
+            "payload": {"status": "approved"},
+            "read_at": "2026-11-01",
+        },
+        {"id": "other", "event_type": "announcement", "read_at": None},
+    ]
+    monkeypatch.setattr(
+        notifications.supabase_client, "list_user_notifications", lambda *_: original
+    )
+    rows = notifications.inbox("user")
+    assert len(rows) == 2
+    assert rows[0]["url"] == "/?report=RPT-000004"
+    assert rows[0]["read_at"] == "2026-11-01"
+    assert len(original) == 3 and original[0]["read_at"] is None

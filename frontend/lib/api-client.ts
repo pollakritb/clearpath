@@ -30,6 +30,7 @@ import type {
   CommunityProfileResponse,
   CommunityMapPointsResponse,
   CommunityReportsResponse,
+  CommunityReport,
   DataIssueCreate,
   FirmsResponse,
   ForecastResponse,
@@ -263,6 +264,15 @@ export const api = {
 
   communityReports: () =>
     http<CommunityReportsResponse>("/api/community/reports"),
+
+  reportDetail: (id: string, requestId?: string | null) =>
+    http<CommunityReport>(
+      `/api/community/reports/${encodeURIComponent(id)}${requestId ? `?request_id=${encodeURIComponent(requestId)}` : ""}`,
+      {
+        cache: "no-store",
+        auth: true,
+      },
+    ),
 
   communityMapPoints: () =>
     http<CommunityMapPointsResponse>("/api/community/map-points"),

@@ -191,11 +191,11 @@ test("forecast card exposes a time-based timeline and accessible table", async (
     page.getByText("อากาศวันนี้", { exact: false }).first(),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "พยากรณ์ PM2.5 บริเวณสถานี" }).first(),
+    page.getByRole("heading", { name: "แนวโน้มค่าฝุ่น" }).first(),
   ).toBeVisible();
 
   const timeline = page.getByRole("group", { name: "พยากรณ์ตามเวลา" }).first();
-  await expect(timeline.getByText("ตอนนี้", { exact: true })).toBeVisible();
+  await expect(timeline.getByText("ตอนนี้", { exact: true })).toHaveCount(0);
   await expect(timeline.getByRole("button")).toHaveCount(9);
   const sizes = await timeline.getByRole("button").evaluateAll((buttons) =>
     buttons.map((button) => {
@@ -213,7 +213,9 @@ test("forecast card exposes a time-based timeline and accessible table", async (
   await timeline.getByRole("button").last().click();
   await page.getByText("รายละเอียดพยากรณ์และแหล่งข้อมูล").click();
   await page.getByText("เปรียบเทียบแหล่งข้อมูล").click();
-  await expect(page.getByText("GISTDA เช็คฝุ่น")).toBeVisible();
+  await expect(
+    page.getByText("GISTDA เช็คฝุ่น", { exact: true }),
+  ).toBeVisible();
   await page.getByText("รายละเอียดและวิธีคำนวณ").click();
   await expect(page.getByText("ข้อมูลยืนยันจากชุมชน")).toBeVisible();
   await page.getByText("ดูค่าทุกช่วงเวลา").click();

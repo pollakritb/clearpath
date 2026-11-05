@@ -145,7 +145,7 @@ export function RequestSummary({
             วัดเมื่อ {date(row.result.captured_at)} · ห่างจากเป้าหมายประมาณ{" "}
             {row.result_distance_km} กม.
           </p>
-          <Link href={`/?report=${row.result.id}`}>
+          <Link href={`/?report=${row.result.id}&report_request=${row.id}`}>
             ดูหมุดและรายละเอียดรายงาน
           </Link>
         </div>

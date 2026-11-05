@@ -69,6 +69,29 @@ def deliver_to_user(user_id: str, payload: dict, *, force: bool = False) -> int:
     return delivered
 
 
+def inbox(user_id: str, limit: int = 50) -> list[dict]:
+    rows = supabase_client.list_user_notifications(user_id, 100)
+    result: list[dict] = []
+    seen: dict[tuple[str, str], dict] = {}
+    for source in rows:
+        row = dict(source)
+        if row.get("event_type") == "report_status" and row.get("entity_id"):
+            report_id = str(row["entity_id"])
+            key = (report_id, str((row.get("payload") or {}).get("status")))
+            if key in seen:
+                # Reading either representation means the event has been read.
+                seen[key]["read_at"] = seen[key].get("read_at") or row.get("read_at")
+                continue
+            row["url"] = (
+                "/report"
+                if (row.get("payload") or {}).get("status") == "rejected"
+                else f"/?report={report_id}"
+            )
+            seen[key] = row
+        result.append(row)
+    return result[:limit]
+
+
 def enqueue_user_notification(
     *,
     user_id: str,

@@ -89,7 +89,7 @@ export default function AdminOperationsPanel({
           <div className="cp-admin-card-heading">
             <div>
               <h3>ข้อมูล PM2.5 จาก Air4Thai</h3>
-              <p>ความสดของสถานีและงานซิงก์รายชั่วโมง</p>
+              <p>ความสดของสถานีและงานซิงก์ทุก 30 นาที</p>
             </div>
             <span
               className="cp-admin-status"

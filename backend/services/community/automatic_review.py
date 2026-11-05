@@ -121,10 +121,10 @@ def finalize_automatic_review(
                 if approved
                 else "OCR อ่านตัวเลข PM2.5 ไม่ได้ กรุณาถ่ายภาพใหม่"
             ),
-            url="/",
+            url=f"/?report={report['id']}" if approved else "/report",
             entity_type="community_report",
             entity_id=str(report["id"]),
-            deduplication_key=f"report_status:{report['id']}",
+            deduplication_key=f"report_status:{supabase_client.stable_identifier('community_reports', str(report['id']))}",
             payload={
                 "status": "approved" if approved else "rejected",
                 "verification_method": "automatic",

@@ -95,6 +95,11 @@ export default function ReportForm({
   const activeStep = draft ? 3 : evidence ? 2 : 1;
 
   const hasGps = location?.source === "gps";
+  const locationIssue =
+    locationError ||
+    (hasGps && (location?.accuracy ?? Infinity) > 200
+      ? "ตำแหน่งคลาดเคลื่อนเกิน 200 เมตร กรุณาขอตำแหน่งใหม่ก่อนอ่านภาพ"
+      : null);
   const canSubmit = Boolean(
     draft &&
     draft.ocr_pm25 != null &&
@@ -349,9 +354,13 @@ export default function ReportForm({
           <h2>
             {draft
               ? "ตรวจข้อมูลก่อนส่ง"
-              : evidence
+              : sending
                 ? "กำลังอ่านข้อมูลอัตโนมัติ"
-                : "เพิ่มภาพเครื่องวัด"}
+                : locationIssue
+                  ? "ต้องแก้ไขตำแหน่งก่อนอ่านภาพ"
+                  : !hasGps
+                    ? "รอตำแหน่งก่อนอ่านภาพ"
+                    : "ตรวจภาพเครื่องวัด"}
           </h2>
           <p>
             {draft
@@ -460,7 +469,7 @@ export default function ReportForm({
               location={location}
               onRequestLocation={onRequestLocation}
             />
-            {locationError && <p role="alert">{locationError}</p>}
+            {locationIssue && <p role="alert">{locationIssue}</p>}
           </div>
         )}
 
@@ -637,9 +646,11 @@ export default function ReportForm({
           <p role="status">
             {sending
               ? "กำลังอ่านค่า PM2.5 จากภาพ…"
-              : hasGps
-                ? "กรุณาเปลี่ยนภาพหากอ่านข้อมูลไม่สำเร็จ"
-                : "กำลังรับตำแหน่ง GPS จากอุปกรณ์…"}
+              : locationIssue
+                ? "ยังไม่ได้เริ่มอ่านภาพ กรุณาแก้ไขตำแหน่งแล้วลองอีกครั้ง ภาพที่เลือกยังอยู่"
+                : hasGps
+                  ? "กรุณาเปลี่ยนภาพหากอ่านข้อมูลไม่สำเร็จ"
+                  : "กำลังรับตำแหน่ง GPS จากอุปกรณ์…"}
           </p>
         )}
       </form>

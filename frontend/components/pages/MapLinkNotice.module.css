@@ -1,0 +1,26 @@
+.notice {
+  position: absolute;
+  z-index: 1100;
+  inset: auto 12px 104px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #b8cecb;
+  border-radius: 16px;
+  background: #fff;
+  color: #173a37;
+  box-shadow: 0 4px 20px #173a3726;
+  font-size: 0.875rem;
+}
+.notice button {
+  flex-shrink: 0;
+  min-width: 64px;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid #0b766f;
+  border-radius: 12px;
+  background: #eef7f5;
+  color: #075e58;
+  font: inherit;
+}

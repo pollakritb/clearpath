@@ -33,90 +33,104 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test("station detail shows current reading, hourly CAMS and attribution", async ({
+test("station popup contains metadata and returns from its own history without changing tabs", async ({
   page,
 }) => {
-  const fetchedAt = new Date().toISOString();
-  const points = Array.from({ length: 8 }, (_, index) => {
-    const validAt = new Date(
-      Date.now() + (index + 1) * 3_600_000,
-    ).toISOString();
-    return {
-      valid_at: validAt,
-      forecast_at: validAt,
-      pm25: 20 + index,
-      source: "openmeteo_cams",
-    };
-  });
-  await page.route("**/api/forecast?*", (route) =>
-    route.fulfill({
-      json: {
-        station_id: station.id,
-        target_kind: "station",
-        forecast_status: "available",
-        fetched_at: fetchedAt,
-        points,
-      },
-    }),
-  );
-
   await page.goto("/");
   await page.locator(".cp-marker--station").first().click();
-  const card = page.getByRole("region", {
+  const pin = page.getByRole("region", {
     name: "รายละเอียดสถานีตรวจวัดทางการ",
   });
-  await expect(card).toHaveAttribute("data-expanded", "false");
-  await expect(card.getByText("18.5")).toBeVisible();
-  await card.getByRole("button", { name: "ดูรายละเอียดสถานี" }).click();
-  await expect(card).toHaveAttribute("data-expanded", "true");
-
-  const forecast = card.getByRole("region", {
-    name: "พยากรณ์ PM2.5 รายชั่วโมง",
+  await expect(pin.getByText("18.5", { exact: true })).toBeVisible();
+  await expect(pin.getByText(/รหัสสถานี 103t/)).toBeVisible();
+  await expect(pin.locator("time")).toHaveAttribute(
+    "datetime",
+    station.recorded_at,
+  );
+  await expect(
+    pin.getByRole("button", { name: "ดูรายละเอียดสถานี" }),
+  ).toHaveCount(0);
+  await pin.getByRole("button", { name: "ดูย้อนหลังของสถานีนี้" }).click();
+  const history = page.getByRole("region", {
+    name: "ค่าตรวจวัดย้อนหลัง",
+    exact: true,
   });
-  await expect(forecast.getByText("20", { exact: true })).toBeVisible();
-  await expect(forecast.getByText("CAMS / Open-Meteo").first()).toBeVisible();
-  await expect(forecast.getByText(/ดึงข้อมูล/)).toBeVisible();
-  await expect(
-    card.getByRole("region", { name: "ที่มาข้อมูลสถานี" }),
-  ).toBeVisible();
-  await expect(card.getByText("กรมควบคุมมลพิษ").first()).toBeVisible();
-
-  await forecast.getByRole("button", { name: "ดูครบ 8 ชั่วโมง" }).click();
-  await expect(
-    forecast
-      .getByRole("group", { name: "เลือกชั่วโมงพยากรณ์" })
-      .getByRole("button"),
-  ).toHaveCount(8);
-  await forecast.getByRole("button", { name: /PM2\.5 21 ไมโครกรัม/ }).click();
-  await expect(forecast.getByText("21", { exact: true })).toBeVisible();
-  expect(
-    await page.evaluate(() => document.documentElement.scrollWidth),
-  ).toBeLessThanOrEqual(page.viewportSize()!.width);
-  await page.screenshot({ path: "test-results/station-detail-mobile.png" });
+  await expect(history.locator("time")).toHaveAttribute(
+    "datetime",
+    station.recorded_at,
+  );
+  await history.getByRole("button", { name: "กลับไปที่หมุดสถานี" }).click();
+  await expect(pin).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
 });
 
-test("station detail never invents forecast when provider is unavailable", async ({
+test("station forecast shows missing data without inventing a reading or showing a grid", async ({
   page,
 }) => {
-  await page.route("**/api/forecast?*", (route) =>
+  await page.route("**/api/forecast-grid/metadata", (route) =>
     route.fulfill({
       json: {
-        station_id: station.id,
-        target_kind: "station",
-        forecast_status: "unavailable",
-        fetched_at: null,
-        points: [],
+        status: "unavailable",
+        generation_id: null,
+        valid_times: [],
+        latitudes: [],
+        longitudes: [],
+        stale: true,
       },
     }),
   );
   await page.goto("/");
   await page.locator(".cp-marker--station").first().click();
-  await page.getByRole("button", { name: "ดูรายละเอียดสถานี" }).click();
+  await page.getByRole("button", { name: "ดูพยากรณ์ของสถานีนี้" }).click();
   const forecast = page.getByRole("region", {
-    name: "พยากรณ์ PM2.5 รายชั่วโมง",
+    name: "พยากรณ์ค่าฝุ่น",
+    exact: true,
   });
   await expect(
-    forecast.getByText("ยังไม่มีพยากรณ์สำหรับสถานีนี้"),
+    forecast.getByText("ไม่มีข้อมูลพยากรณ์ในเวลาที่เลือก"),
   ).toBeVisible();
-  await expect(forecast.getByText("0", { exact: true })).toHaveCount(0);
+  await expect(forecast.locator(".cp-history-station b")).toHaveText("—");
+  await expect(page.locator(".cp-cams-canvas")).toHaveCount(0);
+  await forecast.getByRole("button", { name: "กลับไปที่หมุดสถานี" }).click();
+  await expect(
+    page.getByRole("region", { name: "รายละเอียดสถานีตรวจวัดทางการ" }),
+  ).toBeVisible();
+});
+
+test("expired observations stay visibly expired when opening history at now", async ({
+  page,
+}) => {
+  const recordedAt = new Date(Date.now() - 8 * 3600000).toISOString();
+  await page.route("**/api/pm25/current", (route) =>
+    route.fulfill({
+      json: {
+        count: 1,
+        updated_at: new Date().toISOString(),
+        fresh_count: 0,
+        delayed_count: 0,
+        expired_count: 1,
+        stations: [
+          {
+            ...station,
+            recorded_at: recordedAt,
+            data_status: "expired",
+            age_minutes: 480,
+            eligible_for_surface: false,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("/");
+  await expect(
+    page.getByText("Air4Thai ยังไม่มีค่าตรวจวัดใหม่ภายใน 1 ชม."),
+  ).toBeVisible();
+  await page.locator(".cp-marker--station").first().click();
+  await page.getByRole("button", { name: "ดูย้อนหลังของสถานีนี้" }).click();
+  const history = page.getByRole("region", {
+    name: "ค่าตรวจวัดย้อนหลัง",
+    exact: true,
+  });
+  await expect(history.getByText(/ข้อมูลหมดอายุ/)).toBeVisible();
+  await expect(history.locator("time")).toHaveAttribute("datetime", recordedAt);
 });

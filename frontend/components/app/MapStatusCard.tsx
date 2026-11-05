@@ -20,6 +20,7 @@ interface MapStatusCardProps {
   station: Station | null;
   report: CommunityReport | null;
   updatedAt: string | null;
+  freshStationCount?: number;
   onClose: () => void;
   onBackToPlace?: () => void;
   backLabel?: string;
@@ -64,6 +65,7 @@ export default function MapStatusCard({
   station,
   report,
   updatedAt,
+  freshStationCount,
   onClose,
   onBackToPlace,
   backLabel = "กลับไปยังสถานที่",
@@ -87,15 +89,21 @@ export default function MapStatusCard({
         </span>
         <span className="cp-map-current-dock__copy">
           <strong>ค่าฝุ่นปัจจุบัน</strong>
-          <small>Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ</small>
+          <small>
+            {freshStationCount === 0
+              ? "Air4Thai ยังไม่มีค่าตรวจวัดใหม่ภายใน 1 ชม."
+              : "Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ"}
+          </small>
         </span>
         <span className="cp-map-current-dock__actions">
           <time
-            className="cp-map-current-dock__time"
+            className={
+              freshStationCount === 0 ? undefined : "cp-map-current-dock__time"
+            }
             dateTime={updatedAt ?? undefined}
           >
             <i aria-hidden="true" />
-            {updatedAt ? `อัปเดต ${formatTime(updatedAt)} น.` : "กำลังอัปเดต"}
+            {updatedAt ? `ซิงก์ ${formatTime(updatedAt)} น.` : "กำลังอัปเดต"}
           </time>
           {onOpenHistory && (
             <button
@@ -115,7 +123,10 @@ export default function MapStatusCard({
   const isCommunity = report != null;
   const source = report ? communitySourceKind(report) : "official";
   const value = isCommunity ? report.pm25 : station?.pm25;
-  const classification = classifyPm25(value);
+  const expired =
+    !historicalAt &&
+    (report ? report.is_fresh === false : station?.data_status === "expired");
+  const classification = classifyPm25(expired ? null : value);
   const reporterAvatar = report ? publicReporterAvatar(report) : null;
   const showReporterProfile = Boolean(
     report?.source_type === "individual" && report.show_reporter_profile,
@@ -194,7 +205,13 @@ export default function MapStatusCard({
               µg/m³ <small>PM2.5</small>
             </span>
           </div>
-          <span>{value == null ? "ไม่มีข้อมูล" : classification.level}</span>
+          <span>
+            {expired
+              ? "ข้อมูลหมดอายุ"
+              : value == null
+                ? "ไม่มีข้อมูล"
+                : classification.level}
+          </span>
         </div>
         {station && (onOpenHistory || onOpenForecast) && (
           <div className="cp-pin-time-actions">
@@ -299,7 +316,7 @@ export default function MapStatusCard({
         </div>
         <span className="cp-map-selection-reading__level">
           <i aria-hidden>{classification.glyph}</i>
-          <strong>{classification.level}</strong>
+          <strong>{expired ? "ข้อมูลหมดอายุ" : classification.level}</strong>
         </span>
       </div>
 

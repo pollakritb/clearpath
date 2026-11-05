@@ -8,10 +8,7 @@ test("map keeps its Leaflet instance, zoom and selected station across tabs", as
   const controls = page.locator(".cp-mapctrls");
   await expect(controls).toHaveAttribute("data-zoom", "6");
   await page.locator(".cp-marker--station").first().click();
-  await page.locator(".leaflet-container").dblclick({
-    position: { x: 35, y: 250 },
-  });
-  await expect(controls).toHaveAttribute("data-zoom", "7");
+  await expect(controls).toHaveAttribute("data-zoom", "15");
   await page.locator(".leaflet-container").evaluate((element) => {
     element.setAttribute("data-map-instance", "original");
   });
@@ -30,7 +27,7 @@ test("map keeps its Leaflet instance, zoom and selected station across tabs", as
     "data-map-instance",
     "original",
   );
-  await expect(controls).toHaveAttribute("data-zoom", "7");
+  await expect(controls).toHaveAttribute("data-zoom", "15");
 
   await page.getByRole("button", { name: "กลับมุมมองแผนที่กว้าง" }).click();
   await expect(controls).toHaveAttribute("data-zoom", "6");

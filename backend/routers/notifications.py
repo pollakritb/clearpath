@@ -25,7 +25,7 @@ async def notification_inbox(
     limit: int = 50, user: AuthenticatedUser = Depends(require_user)
 ):
     rows = await run_in_threadpool(
-        supabase_client.list_user_notifications, user.id, min(max(limit, 1), 100)
+        notification_service.inbox, user.id, min(max(limit, 1), 100)
     )
     return NotificationsResponse(
         notifications=[UserNotification(**row) for row in rows],
