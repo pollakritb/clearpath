@@ -192,6 +192,9 @@ def view(
 
 def create(user_id: str, values: dict) -> dict:
     require_enabled()
+    if values.get("radius_km", 2) != 2:
+        raise ValueError("รัศมีคำขอค่าฝุ่นต้องเป็น 2 กม.")
+    values = {**values, "radius_km": 2}
     if not is_thailand_area(values["lat"], values["lon"]):
         raise ValueError("เลือกสถานที่ในประเทศไทย")
     if not values["place_name"].strip():

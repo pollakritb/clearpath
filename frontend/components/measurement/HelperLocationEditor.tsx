@@ -1,6 +1,10 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import {
+  HELPER_LOCATION_EMOJIS,
+  helperLocationEmoji,
+} from "@/frontend/lib/helper-location-emoji";
 import LocationPickerActions from "./LocationPickerActions";
 import { api } from "@/frontend/lib/api-client";
 import { THAILAND_CENTER } from "@/frontend/lib/constants";
@@ -44,6 +48,7 @@ export default function HelperLocationEditor({
     address: string;
   } | null>(initial);
   const [placeName, setPlaceName] = useState(initial?.name ?? "");
+  const [emoji, setEmoji] = useState(helperLocationEmoji(initial?.emoji));
   const [name, setName] = useState(initial?.name ?? "");
   const [step, setStep] = useState<Step>(initial ? "map" : "search");
   const [mapZoom, setMapZoom] = useState(15);
@@ -237,6 +242,7 @@ export default function HelperLocationEditor({
                 {
                   ...point,
                   name: name.trim(),
+                  emoji,
                   address: point.address || resolvedLabel?.address || "",
                   enabled: initial?.enabled ?? true,
                 },
@@ -281,6 +287,25 @@ export default function HelperLocationEditor({
                 </button>
               ))}
             </div>
+            <fieldset className="cp-helper-emoji-picker">
+              <legend>สัญลักษณ์บนแผนที่</legend>
+              <div>
+                {HELPER_LOCATION_EMOJIS.map((choice) => (
+                  <button
+                    key={choice.emoji}
+                    type="button"
+                    className="cp-focus"
+                    aria-label={`ใช้สัญลักษณ์${choice.label}`}
+                    aria-pressed={emoji === choice.emoji}
+                    disabled={busy}
+                    onClick={() => setEmoji(choice.emoji)}
+                  >
+                    <span aria-hidden="true">{choice.emoji}</span>
+                  </button>
+                ))}
+              </div>
+              <p>หมุดสถานที่นี้เห็นเฉพาะคุณ</p>
+            </fieldset>
             <section
               className="cp-helper-editor__summary"
               aria-label="จุดที่เลือก"

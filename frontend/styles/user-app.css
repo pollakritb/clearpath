@@ -11499,3 +11499,66 @@ dialog.cp-login-modal::backdrop {
   opacity: 0.6;
   cursor: wait;
 }
+
+.cp-helper-emoji-picker {
+  border: 0;
+  padding: 0;
+  margin: 0 0 24px;
+  min-width: 0;
+}
+.cp-helper-emoji-picker legend {
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+.cp-helper-emoji-picker > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(44px, 1fr));
+  gap: 8px;
+}
+.cp-helper-emoji-picker button {
+  min-height: 48px;
+  border: 1px solid #c7ded7;
+  border-radius: 12px;
+  background: white;
+  font-size: 26px;
+  cursor: pointer;
+}
+.cp-helper-emoji-picker button[aria-pressed="true"] {
+  border: 2px solid var(--cp-teal);
+  background: #e4f3ed;
+}
+.cp-helper-emoji-picker button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.cp-helper-emoji-picker p {
+  color: var(--cp-muted);
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+.cp-saved-helper-marker {
+  background: transparent;
+}
+.cp-saved-helper-marker > span {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 16px 16px 16px 4px;
+  background: white;
+  border: 2px solid var(--cp-teal);
+  font-size: 27px;
+  box-shadow: 0 3px 8px #183e3526;
+}
+
+.cp-saved-helper-popup .leaflet-popup-content {
+  margin: 16px 44px 16px 16px;
+  font: 400 14px/1.5 var(--font-sans);
+  color: var(--cp-ink);
+}
+.cp-saved-helper-popup .leaflet-popup-close-button {
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  color: var(--cp-teal);
+}

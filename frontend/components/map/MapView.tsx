@@ -23,6 +23,7 @@ import type {
   CommunityReportStack,
   FirePoint,
   MeasurementRequestView,
+  MeasurementHelperLocation,
   Station,
 } from "@/frontend/types";
 import type { MapFocusPoint, ViewportBounds } from "@/frontend/types/ui";
@@ -40,6 +41,7 @@ import ReportMarkers from "./ReportMarkers";
 import StationMarkers from "./StationMarkers";
 import { ViewportController } from "./MapBehaviors";
 import { ViewportReporter } from "./MapBehaviors";
+import SavedHelperMarkers from "./SavedHelperMarkers";
 import RequestMarkers from "./RequestMarkers";
 
 export interface MapViewProps {
@@ -53,6 +55,7 @@ export interface MapViewProps {
   reports: CommunityReport[];
   reportStacks: CommunityReportStack[];
   reportPin: { lat: number; lon: number } | null;
+  savedHelperLocations?: MeasurementHelperLocation[];
   measurementRequests?: MeasurementRequestView[];
   selectedRequestId?: string | null;
   requestsNow?: number;
@@ -91,6 +94,7 @@ export default function MapView({
   reports,
   reportStacks,
   reportPin,
+  savedHelperLocations = [],
   measurementRequests = [],
   selectedRequestId = null,
   requestsNow = 0,
@@ -130,6 +134,7 @@ export default function MapView({
     >
       <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} noWrap />
 
+      <SavedHelperMarkers locations={savedHelperLocations} />
       <CamsCanvasLayer surface={camsSurface} preload={camsPreload} />
       {camsPoint && (
         <CircleMarker
@@ -147,7 +152,7 @@ export default function MapView({
       {requestLocation && onMoveRequestPoint && (
         <RequestLocationMarker
           position={placePoint}
-          radiusKm={requestRadiusKm ?? 3}
+          radiusKm={requestRadiusKm ?? 2}
           onMove={onMoveRequestPoint}
         />
       )}

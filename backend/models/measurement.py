@@ -16,13 +16,14 @@ class MeasurementRequestCreate(BaseModel):
     place_name: str = Field(min_length=1, max_length=160)
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-180, le=180)
-    radius_km: Literal[1, 3, 5] = 3
+    radius_km: Literal[2] = 2
     needed_by: datetime | None = None
     idempotency_key: UUID
 
 
 class MeasurementHelperLocationWrite(BaseModel):
     name: str = Field(min_length=1, max_length=80)
+    emoji: Literal["🏠", "🏢", "🏫", "🏥", "🏡", "🏪", "🌳", "📍"] = "📍"
     address: str = Field(default="", max_length=240)
     lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
     lon: float = Field(ge=-180, le=180, allow_inf_nan=False)
@@ -67,7 +68,7 @@ class MeasurementRequestView(BaseModel):
     place_name: str
     lat: float
     lon: float
-    radius_km: Literal[1, 3, 5]
+    radius_km: Literal[1, 2, 3, 5]
     starts_at: str
     expires_at: str
     created_at: str

@@ -2,12 +2,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
-import AppIcon from "@/frontend/components/ui/AppIcon";
 import type {
   MeasurementHelperSettings,
   MeasurementHelperLocation,
   MeasurementHelperLocationWrite,
 } from "@/frontend/types";
+import { HELPER_LOCATIONS_CHANGED } from "@/frontend/lib/measurement-events";
+import { helperLocationEmoji } from "@/frontend/lib/helper-location-emoji";
 import HelperLocationEditor from "./HelperLocationEditor";
 
 export default function RegisteredHelperSettings({
@@ -29,6 +30,7 @@ export default function RegisteredHelperSettings({
     try {
       await operation();
       onChange(await api.measurementHelper());
+      window.dispatchEvent(new Event(HELPER_LOCATIONS_CHANGED));
       return true;
     } catch (cause) {
       setError(
@@ -78,7 +80,7 @@ export default function RegisteredHelperSettings({
         {places.map((place) => (
           <article key={place.slot}>
             <div className="cp-helper-place-title">
-              <AppIcon name="location" size={20} />
+              <span aria-hidden="true">{helperLocationEmoji(place.emoji)}</span>
               <strong>{place.name}</strong>
               <label>
                 <input
@@ -146,7 +148,7 @@ export default function RegisteredHelperSettings({
           รายละเอียดการรับคำขอและความเป็นส่วนตัว
         </summary>
         <small>
-          จุดที่บันทึกเป็นข้อมูลส่วนตัว ใช้รับแจ้งคำขอเท่านั้น
+          จุดที่บันทึกเป็นข้อมูลส่วนตัว แสดงบนแผนที่เฉพาะคุณและใช้รับแจ้งคำขอ
           ไม่จำกัดพื้นที่ส่งรายงาน · ปิดรับชั่วคราวยังเก็บพื้นที่ไว้
           และยังใช้การตั้งค่า LINE กับเวลาพักเดิม
         </small>

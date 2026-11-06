@@ -22,23 +22,18 @@ export default function CreateRequest({
   place,
   initiallyOpen = false,
   mapContext = false,
-  selectedRadius,
-  onRadiusChange,
   onCreated,
   resolvingName = false,
 }: {
   place: LocationSuggestion;
   initiallyOpen?: boolean;
   mapContext?: boolean;
-  selectedRadius?: 1 | 3 | 5;
-  onRadiusChange?: (radius: 1 | 3 | 5) => void;
   onCreated?: (request: MeasurementRequestView) => void;
   resolvingName?: boolean;
 }) {
   const login = useLoginPrompt();
   const [open, setOpen] = useState(initiallyOpen);
-  const [localRadius, setRadius] = useState<1 | 3 | 5>(3);
-  const radius = selectedRadius ?? localRadius;
+  const radius = 2 as const;
   const [scheduled, setScheduled] = useState(false);
   const [time, setTime] = useState("");
   const [busy, setBusy] = useState(false);
@@ -109,26 +104,7 @@ export default function CreateRequest({
               <p>เลือกบริเวณที่ต้องการค่าฝุ่นใหม่</p>
             </>
           )}
-          <fieldset>
-            <legend>{mapContext ? "รัศมี" : "รัศมีรอบสถานที่"}</legend>
-            <div className="cp-measure-options">
-              {([1, 3, 5] as const).map((r) => (
-                <button
-                  type="button"
-                  key={r}
-                  aria-pressed={radius === r}
-                  disabled={busy}
-                  onClick={() => {
-                    setRadius(r);
-                    onRadiusChange?.(r);
-                    key.current = null;
-                  }}
-                >
-                  {r} กม.
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          <p>รัศมีคำขอ 2 กม. รอบจุดที่เลือก</p>
           <fieldset>
             <legend>
               {mapContext ? "ต้องการข้อมูล" : "เวลาที่ต้องการข้อมูล"}

@@ -161,7 +161,7 @@ function CenterPicker({
 
 export default function RequestLocationMarker({
   position,
-  radiusKm = 3,
+  radiusKm = 2,
   onMove,
   minimumZoom = 13,
 }: {

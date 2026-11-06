@@ -6,11 +6,14 @@ export interface MeasurementRequestCreate {
   place_name: string;
   lat: number;
   lon: number;
-  radius_km: 1 | 3 | 5;
+  radius_km: 2;
   needed_by?: string | null;
   idempotency_key: string;
 }
+export type HelperLocationEmoji =
+  "🏠" | "🏢" | "🏫" | "🏥" | "🏡" | "🏪" | "🌳" | "📍";
 export interface MeasurementHelperLocationWrite {
+  emoji?: HelperLocationEmoji;
   name: string;
   address: string;
   lat: number;
@@ -44,7 +47,7 @@ export interface MeasurementRequestView {
   place_name: string;
   lat: number;
   lon: number;
-  radius_km: 1 | 3 | 5;
+  radius_km: 1 | 2 | 3 | 5;
   starts_at: string;
   expires_at: string;
   created_at: string;

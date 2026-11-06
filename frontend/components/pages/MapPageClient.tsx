@@ -1,5 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
+import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
+import { useSavedHelperLocations } from "@/frontend/hooks/useSavedHelperLocations";
 import noticeStyles from "./MapLinkNotice.module.css";
 import { useCallback, useEffect, useState } from "react";
 import MapChrome from "@/frontend/components/app/MapChrome";
@@ -31,6 +33,10 @@ const MapView = dynamic(() => import("@/frontend/components/map/MapView"), {
 });
 
 export default function MapPageClient(options: MapPageOptions) {
+  const savedHelperLocations = useSavedHelperLocations(
+    useCurrentUserId(),
+    options.active ?? true,
+  );
   const {
     active,
     reportLinkError,
@@ -53,7 +59,6 @@ export default function MapPageClient(options: MapPageOptions) {
     requestPoint,
     setRequestPoint,
     requestRadius,
-    setRequestRadius,
     requestLabel,
     setSelectedStackId,
     selectedPlace,
@@ -293,6 +298,7 @@ export default function MapPageClient(options: MapPageOptions) {
         selectedRequestId={selectedRequestId}
         requestsNow={requestData.now}
         onSelectRequest={selectRequest}
+        savedHelperLocations={savedHelperLocations}
         requestRadiusKm={
           requestStep !== "idle" ? requestRadius : selectedRequest?.radius_km
         }
@@ -529,8 +535,6 @@ export default function MapPageClient(options: MapPageOptions) {
             setRequestStep("idle");
             selectRequest(row);
           }}
-          radius={requestRadius}
-          onRadiusChange={setRequestRadius}
           point={requestLabel.point}
           resolvingName={requestLabel.loading}
           editing={requestStep === "form"}

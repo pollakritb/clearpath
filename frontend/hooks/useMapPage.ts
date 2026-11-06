@@ -115,7 +115,7 @@ export function useMapPage({
   const [requestPoint, setRequestPoint] = useState<LocationSuggestion | null>(
     null,
   );
-  const [requestRadius, setRequestRadius] = useState<1 | 3 | 5>(3);
+  const requestRadius = 2 as const;
   const requestLabel = useRequestPlaceLabel(
     requestPoint,
     requestStep !== "idle",
@@ -193,7 +193,6 @@ export function useMapPage({
     setSelectedRequestId(null);
     setRequestStep("search");
     setRequestPoint(null);
-    setRequestRadius(3);
     setSelectedPlace(null);
     setSelectedStation(null);
     setSelectedReport(null);
@@ -515,7 +514,6 @@ export function useMapPage({
     requestPoint,
     setRequestPoint,
     requestRadius,
-    setRequestRadius,
     requestLabel,
     setSelectedStackId,
     selectedPlace,

@@ -134,58 +134,33 @@ it("moves a cancelled request into history and removes its map link", async () =
   ).toBeTruthy();
   expect(screen.queryByRole("button", { name: "ยกเลิกคำขอ" })).toBeNull();
 });
-it("creates an immediate request with 3 km default and shows tracking", async () => {
+it("creates an immediate request with fixed 2 km radius and shows tracking", async () => {
   render(<CreateRequest place={place} />);
   fireEvent.click(
     screen.getByRole("button", { name: "ขอให้ช่วยวัดบริเวณนี้" }),
   );
-  expect(
-    screen.getByRole("button", { name: "3 กม." }).getAttribute("aria-pressed"),
-  ).toBe("true");
+  expect(screen.getByText("รัศมีคำขอ 2 กม. รอบจุดที่เลือก")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "ส่งคำขอ" }));
   await screen.findByText("บันทึกคำขอแล้ว");
   expect(mocks.create.mock.calls[0][0]).toMatchObject({
     place_name: "สถานที่ A",
-    radius_km: 3,
+    radius_km: 2,
     needed_by: null,
   });
   expect(
     screen.getByRole("link", { name: "ติดตามคำขอนี้" }).getAttribute("href"),
   ).toBe("/requests/request");
 });
-it("uses the main-map radius without a nested map or duplicate open button", async () => {
-  const onRadiusChange = vi.fn();
-  const { rerender } = render(
-    <CreateRequest
-      place={place}
-      initiallyOpen
-      mapContext
-      selectedRadius={3}
-      onRadiusChange={onRadiusChange}
-    />,
-  );
+it("uses a fixed 2 km radius on the main map without radius controls", async () => {
+  render(<CreateRequest place={place} initiallyOpen mapContext />);
   expect(screen.queryByTestId("preview-map")).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: "ขอให้ช่วยวัดบริเวณนี้" }),
-  ).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "5 กม." }));
-  expect(onRadiusChange).toHaveBeenCalledWith(5);
-  rerender(
-    <CreateRequest
-      place={place}
-      initiallyOpen
-      mapContext
-      selectedRadius={5}
-      onRadiusChange={onRadiusChange}
-    />,
-  );
-  expect(
-    screen.getByRole("button", { name: "5 กม." }).getAttribute("aria-pressed"),
-  ).toBe("true");
+  for (const radius of [1, 3, 5]) {
+    expect(screen.queryByRole("button", { name: `${radius} กม.` })).toBeNull();
+  }
   fireEvent.click(screen.getByRole("button", { name: "ส่งคำขอ" }));
   await waitFor(() =>
     expect(mocks.create).toHaveBeenCalledWith(
-      expect.objectContaining({ radius_km: 5, lat: place.lat, lon: place.lon }),
+      expect.objectContaining({ radius_km: 2, lat: place.lat, lon: place.lon }),
     ),
   );
 });

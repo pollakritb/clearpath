@@ -17,8 +17,6 @@ export default function MapRequestPanel({
   onReselect,
   onSearch,
   onClose,
-  radius = 3,
-  onRadiusChange,
   onCreated,
   resolvingName = false,
 }: {
@@ -28,8 +26,6 @@ export default function MapRequestPanel({
   onReselect: () => void;
   onSearch?: () => void;
   onClose: () => void;
-  radius?: 1 | 3 | 5;
-  onRadiusChange?: (radius: 1 | 3 | 5) => void;
   onCreated?: (request: MeasurementRequestView) => void;
   resolvingName?: boolean;
 }) {
@@ -117,8 +113,6 @@ export default function MapRequestPanel({
             place={point}
             initiallyOpen
             mapContext
-            selectedRadius={radius}
-            onRadiusChange={onRadiusChange}
             onCreated={onCreated}
             resolvingName={resolvingName}
           />

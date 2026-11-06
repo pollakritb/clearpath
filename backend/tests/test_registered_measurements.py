@@ -61,7 +61,7 @@ def request(uid, **values):
             place_name="Area",
             lat=13.8,
             lon=100.1,
-            radius_km=3,
+            radius_km=2,
             idempotency_key=str(uuid4()),
         )
         | values,
@@ -248,3 +248,18 @@ def test_location_api_has_owner_isolation_and_valid_slot_parsing(feature):
             ).status_code
             == 422
         )
+
+
+def test_saved_location_emoji_round_trip_and_validation(feature):
+    from pydantic import ValidationError
+
+    from backend.models.measurement import MeasurementHelperLocationWrite
+
+    saved = place("owner", emoji="🏠")
+    assert registered.locations("owner")[0]["emoji"] == "🏠"
+    assert registered.locations("other") == []
+    updated = registered.save_location("owner", {**saved, "emoji": "🌳"}, saved["slot"])
+    assert updated["emoji"] == "🌳"
+    with pytest.raises(ValidationError):
+        MeasurementHelperLocationWrite(name="Bad", lat=13.8, lon=100.1, emoji="<img>")
+    assert MeasurementHelperLocationWrite(name="Old", lat=13.8, lon=100.1).emoji == "📍"

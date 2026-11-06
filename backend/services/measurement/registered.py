@@ -14,6 +14,7 @@ from ...algorithms.measurement_requests import (
 from ...algorithms.trust import is_thailand_area
 from ...core.config import settings
 from ...core.errors import ConfigurationError
+from ...models.measurement import MeasurementHelperLocationWrite
 from .. import local_store
 from .. import supabase_client as db
 from . import store
@@ -70,7 +71,7 @@ def locations(user_id: str) -> list[dict]:
             lambda: (
                 db.get_client()
                 .table("measurement_helper_locations")
-                .select("slot,name,address,lat,lon,enabled")
+                .select("slot,name,emoji,address,lat,lon,enabled")
                 .eq("user_id", user_id)
                 .order("slot")
                 .execute()
@@ -83,6 +84,7 @@ def locations(user_id: str) -> list[dict]:
 
 def save_location(user_id: str, values: dict, slot: int | None = None) -> dict:
     require_enabled()
+    values = MeasurementHelperLocationWrite.model_validate(values).model_dump()
     if not is_thailand_area(values["lat"], values["lon"]):
         raise ValueError("เลือกพื้นที่ในประเทศไทย")
     if not settings.local_demo_mode:

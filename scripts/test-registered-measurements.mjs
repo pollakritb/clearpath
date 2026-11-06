@@ -186,4 +186,55 @@ assert.equal(
 console.log(
   "Registered places: RLS, two-slot cap, batched invitations, five-request fanout and one automatic bonus passed",
 );
+// Additive migration keeps legacy requests readable and enforces 2 km on new rows.
+await pg.exec(migration("measurement_request_radius_2km"));
+assert.equal(
+  (
+    await pg.query(
+      "select count(*)::int n from measurement_requests where radius_km=3",
+    )
+  ).rows[0].n,
+  5,
+);
+const insertRadius = (radius, key) =>
+  pg.query(
+    "insert into measurement_requests(user_id,idempotency_key,fingerprint,place_name,lat,lon,radius_km,starts_at,expires_at,status) values(6,$1,$2,'New area',13.8,100.1,$3,now(),now()+interval '1 hour','active')",
+    [uuid(key), "radius-" + key, radius],
+  );
+await insertRadius(2, 500);
+for (const radius of [1, 3, 5])
+  await assert.rejects(
+    insertRadius(radius, 500 + radius),
+    /measurement_request_radius_must_be_2km/,
+  );
+assert.equal(
+  (
+    await pg.query(
+      "select count(*)::int n from measurement_requests where radius_km=2",
+    )
+  ).rows[0].n,
+  1,
+);
+console.log(
+  "Fixed 2 km request radius: new inserts enforced; historical radii preserved",
+);
+await pg.exec(migration("measurement_helper_location_emoji"));
+assert.equal(
+  (await pg.query("select emoji from measurement_helper_locations limit 1"))
+    .rows[0].emoji,
+  "📍",
+);
+const emojiSave = (emoji) =>
+  pg.query("select save_measurement_helper_location(6,1,$1::jsonb,true) data", [
+    JSON.stringify({ ...place, emoji }),
+  ]);
+assert.equal((await emojiSave("🏠")).rows[0].data.emoji, "🏠");
+assert.equal((await emojiSave("🌳")).rows[0].data.emoji, "🌳");
+await assert.rejects(emojiSave("<img>"), /check constraint/);
+await pg.exec("set role authenticated");
+await assert.rejects(emojiSave("🏠"), /permission denied/);
+await pg.exec("reset role");
+console.log(
+  "Saved emoji: defaults, updates, allowed symbols and service-only writes passed",
+);
 await pg.close();

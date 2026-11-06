@@ -7,3 +7,5 @@ export function announceRequestUpdate(request: MeasurementRequestView) {
     new CustomEvent(REQUESTS_CHANGED, { detail: { request } }),
   );
 }
+
+export const HELPER_LOCATIONS_CHANGED = "clearpath:helper-locations-changed";

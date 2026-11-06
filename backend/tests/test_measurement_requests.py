@@ -160,7 +160,7 @@ def create(owner, **extra):
             "place_name": "สถานที่ A",
             "lat": 13.8,
             "lon": 100.1,
-            "radius_km": 3,
+            "radius_km": 2,
             "needed_by": None,
             "idempotency_key": str(uuid4()),
             **extra,
@@ -310,12 +310,12 @@ def test_concurrent_duplicate_creation_and_quota(env):
         rows = list(pool.map(lambda _: create(owner), range(8)))
     assert len({row["id"] for row in rows}) == 1
     with pytest.raises(ValueError, match="มีคำขอที่เปิดอยู่แล้ว"):
-        create(owner, radius_km=1)
+        create(owner, lat=13.801)
     first = rows[0]
     service.cancel(first["id"], owner)
-    second = create(owner, radius_km=1)
+    second = create(owner, lat=13.801)
     store.finish(second["id"], "fulfilled")
-    third = create(owner, radius_km=5)
+    third = create(owner, lat=13.802)
     service.cancel(third["id"], owner)
     with pytest.raises(ValueError, match="ต่อวัน"):
         create(owner, lat=13.81)
@@ -391,7 +391,7 @@ def test_scheduled_cancel_expire_and_authorization(env):
     service.cancel(req["id"], owner)
     service.process()
     assert store.get(req["id"])["status"] == "cancelled"
-    req = create(owner, radius_km=1)
+    req = create(owner, lat=13.801)
     store.REQUESTS[req["id"]]["expires_at"] = (
         datetime.now(UTC) - timedelta(seconds=1)
     ).isoformat()
@@ -460,7 +460,7 @@ def test_api_hides_requests_and_recipient_coordinates(env):
             "place_name": "A",
             "lat": 13.8,
             "lon": 100.1,
-            "radius_km": 3,
+            "radius_km": 2,
             "idempotency_key": str(uuid4()),
         },
     )
@@ -520,7 +520,7 @@ def test_expired_clock_releases_slot_even_before_worker(env):
         datetime.now(UTC) - timedelta(seconds=1)
     ).isoformat()
     assert not store.is_open(store.get(req["id"]))
-    assert create(owner, radius_km=1)["id"] != req["id"]
+    assert create(owner, lat=13.801)["id"] != req["id"]
 
 
 def test_different_simultaneous_requests_only_one_open_slot(env):
@@ -546,7 +546,7 @@ def test_open_slot_is_per_requester_and_not_a_global_limit(env):
     assert len({first["id"], second["id"], third["id"]}) == 3
     for uid in (owner, helper, other):
         with pytest.raises(ValueError, match="มีคำขอที่เปิดอยู่แล้ว"):
-            create(uid, radius_km=1)
+            create(uid, lat=13.801)
     assert len(store.visible(owner)) == 3
 
 
@@ -562,3 +562,55 @@ def test_requester_name_uses_chosen_alias_and_never_returns_account_id(env):
     assert "email" not in shown
     xp.update_settings(owner, dict(alias="ลมเย็น", hidden=False, identity_mode="google"))
     assert service.view(store.get(req["id"]), helper)["requester_name"] == "tester"
+
+
+@pytest.mark.parametrize("radius", [1, 3, 5])
+def test_new_requests_reject_non_two_km_radius(env, radius):
+    from pydantic import ValidationError
+
+    from backend.models.measurement import MeasurementRequestCreate
+
+    with pytest.raises(ValidationError):
+        MeasurementRequestCreate(
+            place_name="สถานที่",
+            lat=13.8,
+            lon=100.1,
+            radius_km=radius,
+            idempotency_key=uuid4(),
+        )
+    with pytest.raises(ValueError, match="2 กม"):
+        create(env[0], radius_km=radius)
+    assert not store.REQUESTS
+
+
+@pytest.mark.parametrize(
+    "distance_km,expected", [(1.999, True), (2, True), (2.001, False)]
+)
+def test_two_km_boundary_applies_to_saved_addresses_and_reports(
+    env, distance_km, expected
+):
+    from math import degrees
+
+    from backend.algorithms.measurement_requests import eligible_registered_helper
+
+    req = store.get(create(env[0])["id"])
+    assert req["radius_km"] == 2
+    lat = req["lat"] + degrees(distance_km / 6371.0088)
+    helper = {
+        "user_id": env[1],
+        "enabled": True,
+        "locations": [{"lat": lat, "lon": req["lon"], "enabled": True}],
+    }
+    assert eligible_registered_helper(req, helper) is expected
+    now = datetime.now(UTC).isoformat()
+    report = {
+        "user_id": env[1],
+        "status": "approved",
+        "pm25": 20,
+        "lat": lat,
+        "lon": req["lon"],
+        "captured_at": now,
+        "created_at": now,
+        "moderated_at": now,
+    }
+    assert qualifying_report(req, report) is expected
