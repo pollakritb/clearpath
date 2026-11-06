@@ -223,3 +223,25 @@ it("keeps the image while GPS is denied and starts OCR only after accurate GPS r
   await screen.findByText("PM2.5 42.5 µg/m³");
   expect(mocks.draft).toHaveBeenCalledOnce();
 });
+
+it("lets a user retry a transient OCR request without selecting or capturing the image again", async () => {
+  mocks.draft.mockRejectedValueOnce(new Error("offline"));
+  render(
+    <ReportForm
+      location={{ lat: 13.8, lon: 100.1, accuracy: 15, source: "gps" }}
+      onRequestLocation={vi.fn()}
+      onSubmitted={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "เลือกภาพทดสอบ" }));
+  await screen.findByRole("alert");
+  fireEvent.click(screen.getByRole("button", { name: "ลองอ่านภาพอีกครั้ง" }));
+  await screen.findByText("PM2.5 42.5 µg/m³");
+  expect(mocks.draft).toHaveBeenCalledTimes(2);
+  const first = mocks.draft.mock.calls[0][0] as FormData;
+  const retried = mocks.draft.mock.calls[1][0] as FormData;
+  expect(retried.get("image")).toBe(first.get("image"));
+  expect(retried.get("camera_session_token")).toBe(
+    first.get("camera_session_token"),
+  );
+});

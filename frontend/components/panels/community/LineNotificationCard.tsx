@@ -128,9 +128,6 @@ export default function LineNotificationCard() {
 
   return (
     <section className="cp-line-link" aria-labelledby="line-notification-title">
-      {!status?.linked && (
-        <span className="cp-line-link__recommended">แนะนำ</span>
-      )}
       <header className="cp-line-link__header">
         <span className="cp-line-link__brand" aria-hidden="true">
           <AppIcon name="line" size={23} />

@@ -22,7 +22,6 @@ from ..models.schemas import (
     CommunityReport,
     CommunityReportsResponse,
     CommunityReportStack,
-    DataIssueCreate,
     OperationResponse,
     PhotoMetadata,
     RatingResult,
@@ -57,31 +56,6 @@ ALLOWED_IMAGE_TYPES = {
     "image/heif-sequence",
 }
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
-
-
-@router.post(
-    "/community/data-issues", response_model=OperationResponse, status_code=201
-)
-async def report_data_issue(
-    body: DataIssueCreate,
-    user: AuthenticatedUser = Depends(require_user),
-):
-    allowed = await run_in_threadpool(
-        supabase_client.take_rate_limit, user.id, "data_issue", 86400, 5
-    )
-    if not allowed:
-        raise HTTPException(429, detail="ส่งได้ไม่เกิน 5 รายการต่อ 24 ชั่วโมง")
-    await run_in_threadpool(supabase_client.ensure_profile, user.id)
-    try:
-        await run_in_threadpool(
-            community_service.create_data_issue, user.id, body.model_dump()
-        )
-    except ValueError as exc:
-        raise HTTPException(400, detail=str(exc)) from exc
-    return OperationResponse(
-        ok=True,
-        message="รับเรื่องแล้ว ผู้ดูแลจะตรวจจากข้อมูลสาธารณะและ reference ที่ให้มา",
-    )
 
 
 @router.post("/community/capture-session", response_model=CaptureSessionResponse)

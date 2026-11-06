@@ -84,7 +84,12 @@ export class ApiError extends Error {
 }
 
 export function apiErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? error.message : fallback;
+  // Keep server diagnostics in the error object; show task-specific recovery copy in UI.
+  return error instanceof ApiError &&
+    error.status < 500 &&
+    !error.message.includes("[object Object]")
+    ? error.message
+    : fallback;
 }
 
 interface HttpOptions extends RequestInit {

@@ -723,8 +723,19 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
             "message": "เวลาของสถานีนี้ดูไม่ตรงกับเวลาที่แสดงบนหน้าหลัก",
         },
     )
-    assert feedback.status_code == 201
-    assert feedback.json()["ok"] is True
+    assert feedback.status_code == 404
+    # Historical entries remain readable; the retired HTTP submission stays closed.
+    local_store.create_data_issue(
+        {
+            "id": "historical-issue",
+            "category": "station",
+            "reference_id": station_id,
+            "message": "historical issue",
+            "status": "new",
+            "created_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
+        }
+    )
 
     become("admin")
     assert client.get("/api/admin/reports").status_code == 200

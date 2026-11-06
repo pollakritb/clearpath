@@ -40,7 +40,15 @@ const stationsResponse = {
   fresh_count: 1,
   delayed_count: 0,
   expired_count: 0,
-  stations: [{ id: "station-1", pm25: 12 }],
+  stations: [
+    {
+      id: "station-1",
+      pm25: 12,
+      recorded_at: new Date().toISOString(),
+      data_status: "fresh",
+      eligible_for_surface: true,
+    },
+  ],
 };
 
 describe("data hooks", () => {
@@ -315,4 +323,30 @@ describe("data hooks", () => {
     await act(async () => announcements.result.current.refresh());
     expect(announcements.result.current.error).toBe("news failed");
   });
+});
+
+it("ages a cached station during an outage without requiring a successful refresh", async () => {
+  vi.useFakeTimers();
+  clearPublicDataCache();
+  apiMocks.pm25Current.mockResolvedValue({
+    ...stationsResponse,
+    stations: [
+      {
+        ...stationsResponse.stations[0],
+        recorded_at: new Date(Date.now() - 59.5 * 60000).toISOString(),
+      },
+    ],
+  });
+  const { result } = renderHook(() => usePm25());
+  await act(async () => {});
+  expect(result.current.counts.fresh).toBe(1);
+  apiMocks.pm25Current.mockRejectedValue(new Error("offline"));
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  expect(result.current.counts.delayed).toBe(1);
+  await act(async () => vi.advanceTimersByTimeAsync(30 * 60_000));
+  expect(result.current.counts.expired).toBe(1);
+  expect(result.current.stations[0].eligible_for_surface).toBe(false);
+  cleanup();
+  vi.useRealTimers();
+  clearPublicDataCache();
 });

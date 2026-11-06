@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import ReportForm from "@/frontend/components/panels/ReportForm";
@@ -12,10 +12,18 @@ export default function ReportPageClient({
 }: {
   requestId?: string;
 }) {
+  const requestSequence = useRef(0);
+  useEffect(
+    () => () => {
+      requestSequence.current += 1;
+    },
+    [],
+  );
   const [location, setLocation] = useState<ReportLocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
   const requestLocation = useCallback(() => {
+    const sequence = ++requestSequence.current;
     setLocation(null);
     setLocationError(null);
     if (!navigator.geolocation) {
@@ -26,6 +34,7 @@ export default function ReportPageClient({
     }
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (sequence !== requestSequence.current) return;
         setLocation({
           lat: position.coords.latitude,
           lon: position.coords.longitude,
@@ -38,6 +47,7 @@ export default function ReportPageClient({
           );
       },
       (error) => {
+        if (sequence !== requestSequence.current) return;
         setLocationError(
           error.code === 1
             ? "กรุณาอนุญาตตำแหน่งให้ ClearPath ในการตั้งค่าเบราว์เซอร์ แล้วลองอีกครั้ง"

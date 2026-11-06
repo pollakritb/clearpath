@@ -69,13 +69,8 @@ export default function HelperSettings() {
       />
     );
   return (
-    <section className="cp-measure-card">
+    <section className="cp-measure-card cp-helper-settings">
       <h3>ช่วยวัดค่าฝุ่นให้ชุมชน</h3>
-      <p>
-        รับคำขอใกล้ตำแหน่งเข้าเว็บล่าสุด เก็บเฉพาะ GPS
-        ล่าสุดเมื่อเปิดหรือกลับมาใช้เว็บ ไม่ติดตามเบื้องหลัง และอาจได้รับ LINE
-        แม้ปิดเว็บแล้ว
-      </p>
       <label className="cp-measure-toggle">
         <input
           type="checkbox"
@@ -92,10 +87,18 @@ export default function HelperSettings() {
             : "เปิดแล้ว กำลังขอ GPS จากอุปกรณ์ หากไม่มีสิทธิ์ให้อนุญาตตำแหน่งในการตั้งค่าเบราว์เซอร์"}
         </p>
       )}
-      <small>
-        ปิดแล้วลบพิกัดที่ใช้จับคู่และหยุดแจ้งคำขอที่ยังไม่ส่ง · LINE
-        ใช้การเชื่อมบัญชีและเวลาพักจากการตั้งค่าเดิม
-      </small>
+      <details className="cp-helper-details">
+        <summary className="cp-focus">ตำแหน่งและความเป็นส่วนตัว</summary>
+        <p>
+          รับคำขอใกล้ตำแหน่งเข้าเว็บล่าสุด เก็บเฉพาะ GPS
+          ล่าสุดเมื่อเปิดหรือกลับมาใช้เว็บ ไม่ติดตามเบื้องหลัง และอาจได้รับ LINE
+          แม้ปิดเว็บแล้ว
+        </p>
+        <small>
+          ปิดแล้วลบพิกัดที่ใช้จับคู่และหยุดแจ้งคำขอที่ยังไม่ส่ง · LINE
+          ใช้การเชื่อมบัญชีและเวลาพักจากการตั้งค่าเดิม
+        </small>
+      </details>
       <Link href="/requests" className="cp-measure-link">
         ดูคำขอของฉันและคำขอให้ช่วยวัด
       </Link>

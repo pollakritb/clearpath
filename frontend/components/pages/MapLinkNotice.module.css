@@ -6,11 +6,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  border: 1px solid #b8cecb;
+  border: 1px solid var(--cp-line);
   border-radius: 16px;
-  background: #fff;
-  color: #173a37;
-  box-shadow: 0 4px 20px #173a3726;
+  background: var(--cp-panel);
+  color: var(--cp-ink);
+  box-shadow: var(--cp-shadow-overlay);
   font-size: 0.875rem;
 }
 .notice button {
@@ -18,9 +18,17 @@
   min-width: 64px;
   min-height: 44px;
   padding: 8px;
-  border: 1px solid #0b766f;
+  border: 1px solid var(--cp-teal);
   border-radius: 12px;
-  background: #eef7f5;
-  color: #075e58;
+  background: var(--cp-teal-soft);
+  color: var(--cp-teal);
   font: inherit;
+}
+
+.notice button:hover {
+  background: var(--cp-chip);
+}
+.notice button:focus-visible {
+  outline: 3px solid var(--cp-teal);
+  outline-offset: 3px;
 }

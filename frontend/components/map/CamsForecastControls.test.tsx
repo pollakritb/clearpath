@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import CamsForecastControls from "./CamsForecastControls";
 import type { useForecastGrid } from "@/frontend/hooks/useForecastGrid";
@@ -73,4 +73,18 @@ it("shows a received foreign grid cell without a community request action", () =
   );
   expect(screen.getByText("20.0")).toBeTruthy();
   expect(screen.queryByText("ขอให้ชุมชนช่วยวัดบริเวณนี้ →")).toBeNull();
+});
+
+it("offers a working retry when the forecast service is unavailable", () => {
+  render(
+    <CamsForecastControls
+      grid={{ ...grid, error: "โหลดพยากรณ์ไม่สำเร็จ" }}
+      point={null}
+      onClosePoint={vi.fn()}
+      onRequest={vi.fn()}
+      onExit={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "ลองโหลดพยากรณ์ใหม่" }));
+  expect(grid.retry).toHaveBeenCalledOnce();
 });

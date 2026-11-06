@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import styles from "@/frontend/styles/mobile-refinements.module.css";
 import AccountMenu from "@/frontend/components/auth/AccountMenu";
 
 import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
@@ -49,9 +50,8 @@ export default function Header({
   const state = error ? "error" : hasStaleData ? "warning" : "healthy";
 
   return (
-    <header className="cp-context-header" data-theme={theme}>
+    <header className={`cp-context-header ${styles.header}`} data-theme={theme}>
       <div className="cp-context-header__topline">
-        <span className="cp-eyebrow">ClearPath · ประเทศไทย</span>
         <div className="cp-a11y-actions" aria-label="เครื่องมือหน้าเว็บ">
           {onRefresh && (
             <button

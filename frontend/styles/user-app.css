@@ -4661,7 +4661,7 @@
 }
 
 .cp-map-current-dock__history {
-  min-height: 36px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -8988,4 +8988,57 @@
   border: 1px solid #dce7e5;
   border-radius: 12px;
   font-size: 0.85rem;
+}
+
+/* System audit: practical mobile hit areas and native modal containment. */
+.cp-app .cp-icon-button {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.cp-auth-session > button {
+  min-height: 44px;
+}
+dialog.cp-login-modal {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: 100%;
+  margin: 0;
+  border: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+dialog.cp-login-modal:not([open]) {
+  display: none;
+}
+dialog.cp-login-modal::backdrop {
+  background: transparent;
+}
+.cp-login-modal__close {
+  width: 44px;
+  height: 44px;
+}
+.cp-login-modal__card > a {
+  min-height: 44px;
+}
+.cp-notifications-count {
+  color: var(--cp-subink);
+  font-size: 0.8rem;
+}
+
+.cp-report-retry {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  background: var(--cp-panel);
+  color: var(--cp-teal);
+  font: 700 0.875rem var(--font-sans);
+  cursor: pointer;
+}
+.cp-report-retry:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }

@@ -1,5 +1,6 @@
 "use client";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import { ageStation } from "@/frontend/lib/station-age";
 import { useMissionMapLink } from "./useMissionMapLink";
 import type { MapFocusPoint } from "@/frontend/types/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -491,7 +492,11 @@ export function useMapPage({
   return {
     reportLinkError,
     active,
-    selectedStation,
+    selectedStation:
+      selectedStation && !historyEnabled
+        ? (pm25.stations.find((station) => station.id === selectedStation.id) ??
+          ageStation(selectedStation, placeClock))
+        : selectedStation,
     selectedReport,
     selectedRequestId,
     setSelectedStation,

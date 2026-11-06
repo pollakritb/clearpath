@@ -126,6 +126,7 @@ export default function DashboardSidebar({
             <Link
               key={item.id}
               href={item.href}
+              prefetch={false}
               aria-current={selected ? "page" : undefined}
               data-active={selected}
               data-tab={item.id}

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
 import { useAccountData } from "@/frontend/hooks/useAccountData";
 import { api } from "@/frontend/lib/api-client";
@@ -12,10 +12,21 @@ export default function NotificationInbox() {
     "notifications",
     api.notifications,
   );
+  const listRef = useRef<HTMLUListElement>(null);
+  const [visibleCount, setVisibleCount] = useState(10);
+  useEffect(() => {
+    if (visibleCount > 10)
+      listRef.current
+        ?.querySelectorAll<HTMLAnchorElement>("li a")
+        [visibleCount - 10]?.focus();
+  }, [visibleCount]);
+  const [markingAll, setMarkingAll] = useState(false);
   const [error, setError] = useState("");
   const items = query.data?.notifications ?? [];
   const unread = items.filter((item) => !item.read_at).length;
   const read = (id?: string) => {
+    if (!id && markingAll) return;
+    if (!id) setMarkingAll(true);
     setError("");
     void (id ? api.markNotificationRead(id) : api.markAllNotificationsRead())
       .then(() =>
@@ -36,7 +47,10 @@ export default function NotificationInbox() {
             : previous,
         ),
       )
-      .catch(() => setError("บันทึกสถานะการอ่านไม่สำเร็จ กรุณาลองอีกครั้ง"));
+      .catch(() => setError("บันทึกสถานะการอ่านไม่สำเร็จ กรุณาลองอีกครั้ง"))
+      .finally(() => {
+        if (!id) setMarkingAll(false);
+      });
   };
   if (!owner) return null;
   return (
@@ -44,8 +58,13 @@ export default function NotificationInbox() {
       <header>
         <h2>การแจ้งเตือน {unread > 0 && <span>{unread}</span>}</h2>
         {unread > 0 && (
-          <button type="button" className="cp-focus" onClick={() => read()}>
-            อ่านทั้งหมด
+          <button
+            type="button"
+            className="cp-focus"
+            onClick={() => read()}
+            disabled={markingAll}
+          >
+            {markingAll ? "กำลังบันทึก…" : "อ่านทั้งหมด"}
           </button>
         )}
       </header>
@@ -71,8 +90,8 @@ export default function NotificationInbox() {
           <small>สถานะรายงานและคำขอค่าฝุ่นจะแสดงที่นี่</small>
         </p>
       ) : (
-        <ul>
-          {items.slice(0, 10).map((item) => (
+        <ul ref={listRef}>
+          {items.slice(0, visibleCount).map((item) => (
             <li key={item.id}>
               <Link
                 href={item.url}
@@ -96,6 +115,20 @@ export default function NotificationInbox() {
             </li>
           ))}
         </ul>
+      )}
+      {visibleCount < items.length && (
+        <button
+          type="button"
+          className="cp-focus"
+          onClick={() => setVisibleCount((count) => count + 10)}
+        >
+          ดูการแจ้งเตือนเพิ่มเติม ({items.length - visibleCount})
+        </button>
+      )}
+      {items.length > 0 && (
+        <p role="status" className="cp-notifications-count">
+          แสดง {Math.min(visibleCount, items.length)} จาก {items.length} รายการ
+        </p>
       )}
       {error && <p role="alert">{error}</p>}
     </section>

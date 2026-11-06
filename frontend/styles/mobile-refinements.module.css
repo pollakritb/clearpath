@@ -1,0 +1,291 @@
+/* Task-focused refinements. Scope overrides to the surfaces that own them. */
+.header.header {
+  display: grid;
+  grid-template: "title actions" auto "status status" auto / minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 8px;
+  padding: max(14px, env(safe-area-inset-top)) 16px 14px;
+}
+
+.header :global(.cp-context-header__topline) {
+  grid-area: actions;
+  min-height: 44px;
+}
+
+.header :global(.cp-context-header__title) {
+  grid-area: title;
+  min-width: 0;
+  margin: 0;
+  gap: 10px;
+}
+
+.header :global(.cp-context-header__title h1) {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.4;
+  letter-spacing: normal;
+  text-wrap: balance;
+}
+
+.header :global(.cp-context-header__title p) {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow: visible;
+}
+
+.header :global(.cp-a11y-actions) {
+  gap: 8px;
+}
+
+.header.header :global(.cp-icon-button) {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+}
+
+.header :global(.cp-data-status) {
+  grid-area: status;
+  margin: 0;
+}
+
+.settings.settings {
+  gap: 20px;
+}
+
+.settings :global(.cp-settings-page__heading) {
+  display: block;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.settings :global(.cp-settings-page__heading h2) {
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.settings :global(.cp-settings-page__heading p) {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.settings > :global(.cp-settings-row) {
+  border: 1px solid var(--cp-line);
+  border-radius: 16px;
+  padding: 16px;
+  gap: 12px;
+}
+
+.settings :global(.cp-settings-row strong),
+.settings :global(.cp-settings-permissions strong) {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.settings :global(.cp-settings-row small),
+.settings :global(.cp-settings-permissions small) {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.settings :global(.cp-settings-permissions) {
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.settings :global(.cp-helper-settings) {
+  margin: 0;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.settings :global(.cp-helper-settings h3),
+.settings :global(.cp-notification-section-heading h3) {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.settings :global(.cp-helper-settings p),
+.settings :global(.cp-helper-settings small) {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.settings :global(.cp-helper-settings .cp-measure-toggle) {
+  min-height: 48px;
+  margin-block: 12px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.settings :global(.cp-helper-details) {
+  margin-top: 8px;
+  color: var(--cp-subink);
+}
+
+.settings :global(.cp-helper-details summary) {
+  min-height: 44px;
+  padding-block: 12px;
+  color: var(--cp-teal);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.settings :global(.cp-helper-details small) {
+  display: block;
+}
+
+.settings :global(.cp-measure-link) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  text-underline-offset: 3px;
+}
+
+.settings :global(.cp-notification-section-heading) {
+  margin: 24px 0 12px;
+}
+
+.settings :global(.cp-notification-section-heading:first-child) {
+  margin-top: 0;
+}
+
+.settings :global(.cp-line-link) {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--cp-line);
+  border-radius: 16px;
+  background: var(--cp-panel);
+  box-shadow: none;
+}
+
+.settings :global(.cp-line-link__header) {
+  gap: 10px;
+}
+
+.settings :global(.cp-line-link__header small),
+.settings :global(.cp-line-link__notice) {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.searchLabel {
+  display: block;
+  margin-top: 12px;
+  color: var(--cp-subink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.searchField.searchField {
+  min-width: 0;
+  gap: 8px;
+  padding-right: 4px;
+  border: 1px solid var(--cp-line);
+  background: var(--cp-input);
+}
+
+.searchField:focus-within {
+  outline: 2px solid var(--cp-teal);
+  outline-offset: 0;
+}
+
+.searchField input {
+  width: 100%;
+  min-height: 48px;
+}
+
+.searchField input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.clearSearch {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cp-subink);
+  cursor: pointer;
+}
+
+.timeline.timeline {
+  border: 0;
+  border-radius: 16px;
+  background: var(--cp-panel);
+  backdrop-filter: none;
+}
+
+.timeline :global(.cp-map-history-dock__heading small) {
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.timeline :global(.cp-map-history-dock__heading strong) {
+  font-size: 18px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline :global(.cp-map-timeline__sub) {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--cp-subink);
+}
+
+.timeline :global(.cp-history-station) {
+  border: 0;
+  border-radius: 12px;
+}
+
+.timeline :global(.cp-history-station strong) {
+  display: block;
+  overflow: visible;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.timeline :global(.cp-history-station small),
+.timeline :global(.cp-map-timeline__ends) {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.timeline :global(.cp-history-station b) {
+  letter-spacing: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline :global(.cp-map-timeline__slider button) {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+
+.clearSearch:hover,
+.settings :global(.cp-settings-row:hover),
+.settings :global(.cp-helper-details summary:hover) {
+  background: var(--cp-chip);
+}
+
+.clearSearch:active {
+  background: var(--cp-teal-soft);
+}

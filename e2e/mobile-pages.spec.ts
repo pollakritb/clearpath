@@ -213,7 +213,7 @@ test("header opens the account menu and dedicated settings page", async ({
     page.getByRole("region", { name: "สิทธิ์อุปกรณ์" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /ช่องทางและเงื่อนไข/ }),
+    page.getByRole("link", { name: /การแจ้งเตือน.*ช่องทาง/ }),
   ).toHaveAttribute("href", "/settings/notifications");
 });
 
@@ -748,7 +748,7 @@ test("map separates official stations from individual reports", async ({
   ).toHaveCount(0);
   await panel.getByText("สีระดับ PM2.5", { exact: true }).click();
   await expect(
-    panel.getByText(/วงสีใช้ค่าปัจจุบันจากจุดตรวจที่ใกล้ GPS/),
+    panel.getByText(/วงสีใช้ค่าล่าสุดที่มีของจุดตรวจใกล้ GPS/),
   ).toBeVisible();
 });
 

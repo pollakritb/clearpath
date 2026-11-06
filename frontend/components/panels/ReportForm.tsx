@@ -94,6 +94,7 @@ export default function ReportForm({
   const loginPrompt = useLoginPrompt();
   const activeStep = draft ? 3 : evidence ? 2 : 1;
 
+  const [analysisAttempt, setAnalysisAttempt] = useState(0);
   const hasGps = location?.source === "gps";
   const locationIssue =
     locationError ||
@@ -183,13 +184,16 @@ export default function ReportForm({
       } catch (cause) {
         if (analysisEvidence.current === evidence)
           setError(
-            apiErrorMessage(cause, "อ่านภาพไม่สำเร็จ กรุณาเลือกภาพใหม่"),
+            apiErrorMessage(
+              cause,
+              "อ่านภาพไม่สำเร็จ กรุณาลองอีกครั้ง ภาพที่เลือกยังอยู่",
+            ),
           );
       } finally {
         if (analysisEvidence.current === evidence) setSending(false);
       }
     })();
-  }, [evidence, location, auth.user, auth.localDemo]);
+  }, [evidence, location, auth.user, auth.localDemo, analysisAttempt]);
 
   useEffect(
     () => () => {
@@ -642,6 +646,19 @@ export default function ReportForm({
             {sending ? "กำลังส่งรายงาน…" : "ส่งรายงาน"}
           </button>
         )}
+        {evidence && !draft && error && hasGps && !locationIssue && (
+          <button
+            type="button"
+            className="cp-report-retry cp-focus"
+            disabled={sending}
+            onClick={() => {
+              analysisEvidence.current = null;
+              setAnalysisAttempt((attempt) => attempt + 1);
+            }}
+          >
+            ลองอ่านภาพอีกครั้ง
+          </button>
+        )}
         {evidence && !draft && (
           <p role="status">
             {sending
@@ -649,7 +666,7 @@ export default function ReportForm({
               : locationIssue
                 ? "ยังไม่ได้เริ่มอ่านภาพ กรุณาแก้ไขตำแหน่งแล้วลองอีกครั้ง ภาพที่เลือกยังอยู่"
                 : hasGps
-                  ? "กรุณาเปลี่ยนภาพหากอ่านข้อมูลไม่สำเร็จ"
+                  ? "ภาพที่เลือกยังอยู่ คุณลองอ่านภาพเดิมอีกครั้งได้"
                   : "กำลังรับตำแหน่ง GPS จากอุปกรณ์…"}
           </p>
         )}

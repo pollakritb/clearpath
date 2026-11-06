@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { ageStation } from "@/frontend/lib/station-age";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import {
   cachedPublicValue,
@@ -18,6 +19,7 @@ const loadStations = (force = false) =>
   loadPublicData(STATION_CACHE_KEY, STATION_REFRESH_MS, api.pm25Current, force);
 
 export function usePm25() {
+  const [now, setNow] = useState(() => Date.now());
   const [snapshot, setSnapshot] = useState<StationsResponse | null>(() =>
     cachedPublicValue(STATION_CACHE_KEY),
   );
@@ -25,6 +27,22 @@ export function usePm25() {
     () => cachedPublicValue(STATION_CACHE_KEY) === null,
   );
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const tick = () => {
+      if (!document.hidden) setNow(Date.now());
+    };
+    const timer = window.setInterval(tick, 60_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
+  const stations = useMemo(
+    () => (snapshot?.stations ?? []).map((station) => ageStation(station, now)),
+    [snapshot, now],
+  );
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -79,12 +97,15 @@ export function usePm25() {
   }, [refreshSilently]);
 
   return {
-    stations: snapshot?.stations ?? [],
+    stations,
     updatedAt: snapshot?.updated_at ?? null,
     counts: {
-      fresh: snapshot?.fresh_count ?? 0,
-      delayed: snapshot?.delayed_count ?? 0,
-      expired: snapshot?.expired_count ?? 0,
+      fresh: stations.filter((station) => station.data_status === "fresh")
+        .length,
+      delayed: stations.filter((station) => station.data_status === "delayed")
+        .length,
+      expired: stations.filter((station) => station.data_status === "expired")
+        .length,
     },
     loading,
     error,

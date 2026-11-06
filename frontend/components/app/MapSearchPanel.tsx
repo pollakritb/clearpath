@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
+import styles from "@/frontend/styles/mobile-refinements.module.css";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api } from "@/frontend/lib/api-client";
 import { PLACE_RADIUS_KM } from "@/frontend/lib/place-air";
@@ -31,6 +32,7 @@ export default function MapSearchPanel({
   onLocationSelect,
   onStationSelect,
 }: MapSearchPanelProps) {
+  const searchId = useId();
   const [query, setQuery] = useState("");
   const [locations, setLocations] = useState<LocationSuggestion[]>([]);
   const [coverage, setCoverage] = useState<"nationwide" | "limited" | null>(
@@ -169,11 +171,17 @@ export default function MapSearchPanel({
         </div>
       )}
 
+      <label className={styles.searchLabel} htmlFor={searchId}>
+        {locationPicker ? "สถานที่หรือที่อยู่" : "ค้นหาสถานที่หรือสถานี"}
+      </label>
       <form className="cp-map-search-form" onSubmit={submitSearch}>
-        <label className="cp-map-search-field">
+        <div className={`cp-map-search-field ${styles.searchField}`}>
           <AppIcon name="search" size={19} />
           <input
             ref={searchRef}
+            id={searchId}
+            name="place-search"
+            enterKeyHint="search"
             value={query}
             onChange={(event) => updateQuery(event.target.value)}
             placeholder={
@@ -181,11 +189,23 @@ export default function MapSearchPanel({
                 ? "ค้นหาสถานที่หรือที่อยู่"
                 : "ชื่อสถานที่ ที่อยู่ หรือสถานี"
             }
-            aria-label="คำค้นหา"
             autoComplete="off"
             type="search"
           />
-        </label>
+          {query && (
+            <button
+              type="button"
+              className={`cp-focus ${styles.clearSearch}`}
+              aria-label="ล้างคำค้นหา"
+              onClick={() => {
+                updateQuery("");
+                searchRef.current?.focus();
+              }}
+            >
+              <AppIcon name="close" size={18} />
+            </button>
+          )}
+        </div>
         {!locationPicker && (
           <button
             type="submit"

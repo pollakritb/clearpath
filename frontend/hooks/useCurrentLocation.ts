@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type CurrentLocationStatus =
   "idle" | "locating" | "ready" | "denied" | "unavailable";
@@ -12,10 +12,18 @@ export interface CurrentLocation {
 }
 
 export function useCurrentLocation(enabled: boolean) {
+  const requestSequence = useRef(0);
+  useEffect(
+    () => () => {
+      requestSequence.current += 1;
+    },
+    [],
+  );
   const [location, setLocation] = useState<CurrentLocation | null>(null);
   const [status, setStatus] = useState<CurrentLocationStatus>("idle");
 
   const request = useCallback(() => {
+    const sequence = ++requestSequence.current;
     if (!navigator.geolocation) {
       setStatus("unavailable");
       return;
@@ -24,6 +32,7 @@ export function useCurrentLocation(enabled: boolean) {
     setStatus("locating");
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (sequence !== requestSequence.current) return;
         setLocation({
           lat: position.coords.latitude,
           lon: position.coords.longitude,
@@ -32,6 +41,7 @@ export function useCurrentLocation(enabled: boolean) {
         setStatus("ready");
       },
       (error) => {
+        if (sequence !== requestSequence.current) return;
         setLocation(null);
         setStatus(
           error.code === error.PERMISSION_DENIED ? "denied" : "unavailable",

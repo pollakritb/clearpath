@@ -83,3 +83,35 @@ describe("useCurrentLocation", () => {
     expect(getCurrentPosition).toHaveBeenCalledOnce();
   });
 });
+
+it("ignores an older GPS success arriving after the latest request was denied", () => {
+  const callbacks: {
+    success: PositionCallback;
+    failure: PositionErrorCallback;
+  }[] = [];
+  Object.defineProperty(navigator, "geolocation", {
+    configurable: true,
+    value: {
+      getCurrentPosition: (
+        success: PositionCallback,
+        failure: PositionErrorCallback,
+      ) => callbacks.push({ success, failure }),
+    },
+  });
+  const { result } = renderHook(() => useCurrentLocation(false));
+  act(() => result.current.request());
+  act(() => result.current.request());
+  act(() =>
+    callbacks[1].failure({
+      code: 1,
+      PERMISSION_DENIED: 1,
+    } as GeolocationPositionError),
+  );
+  act(() =>
+    callbacks[0].success({
+      coords: { latitude: 13.8, longitude: 100.1, accuracy: 15 },
+    } as GeolocationPosition),
+  );
+  expect(result.current.status).toBe("denied");
+  expect(result.current.location).toBeNull();
+});

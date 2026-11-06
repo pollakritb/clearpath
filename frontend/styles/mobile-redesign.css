@@ -858,13 +858,30 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cp-app *,
-  .cp-app *::before,
-  .cp-app *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  .cp-app {
+    scroll-behavior: auto;
+  }
+  .cp-app .cp-map-flyout,
+  .cp-app .cp-map-selection-card,
+  .cp-app .cp-map-current-dock,
+  .cp-app .cp-map-history-dock,
+  .cp-app .cp-section-enter,
+  .cp-app .cp-report-step-card,
+  .cp-app .cp-forecast-details__body,
+  .cp-app .cp-icon-button[data-loading="true"] svg {
+    animation: none;
+  }
+  .cp-app button,
+  .cp-app a,
+  .cp-app summary,
+  .cp-app .cp-forecast-details > summary > svg,
+  .cp-app .cp-report-source-help > summary > svg {
+    transition-property: background-color, border-color, color;
+    transition-duration: 120ms;
+  }
+  .cp-app button:active:not(:disabled),
+  .cp-app a:active {
+    transform: none;
   }
 }
 

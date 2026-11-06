@@ -141,11 +141,16 @@ export default function RegisteredHelperSettings({
           เพิ่มพื้นที่รับคำขอ
         </button>
       )}
-      <small>
-        จุดที่บันทึกเป็นข้อมูลส่วนตัว ใช้รับแจ้งคำขอเท่านั้น
-        ไม่จำกัดพื้นที่ส่งรายงาน · ปิดรับชั่วคราวยังเก็บพื้นที่ไว้
-        และยังใช้การตั้งค่า LINE กับเวลาพักเดิม
-      </small>
+      <details className="cp-helper-details">
+        <summary className="cp-focus">
+          รายละเอียดการรับคำขอและความเป็นส่วนตัว
+        </summary>
+        <small>
+          จุดที่บันทึกเป็นข้อมูลส่วนตัว ใช้รับแจ้งคำขอเท่านั้น
+          ไม่จำกัดพื้นที่ส่งรายงาน · ปิดรับชั่วคราวยังเก็บพื้นที่ไว้
+          และยังใช้การตั้งค่า LINE กับเวลาพักเดิม
+        </small>
+      </details>
       <Link href="/requests" className="cp-measure-link">
         ดูคำขอให้ช่วยวัด
       </Link>

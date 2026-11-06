@@ -220,7 +220,7 @@
   display: grid;
   place-items: center;
   border-radius: 99px;
-  background: #d44d45;
+  background: var(--cp-red);
   color: #fff;
   font-family: var(--font-mono);
   font-size: 9px;

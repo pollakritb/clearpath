@@ -148,7 +148,15 @@ export default function CamsForecastControls({
         }
         summary={message}
         extra={
-          days.length > 0 ? (
+          error ? (
+            <button
+              type="button"
+              className="cp-map-current-dock__history cp-focus"
+              onClick={grid.retry}
+            >
+              ลองโหลดพยากรณ์ใหม่
+            </button>
+          ) : days.length > 0 ? (
             <label className="cp-cams-day">
               <span className="sr-only">เลือกวันพยากรณ์</span>
               <select
@@ -192,7 +200,7 @@ export default function CamsForecastControls({
               <strong>CAMS Global · Open-Meteo</strong>
               <p>
                 เตรียมล่วงหน้า {grid.preparedFrames}/{times.length} ช่วงเวลา ·
-                สีไล่ระดับจากพาเลต PM2.5
+                สีตามเกณฑ์ PM2.5 ของแต่ละช่อง
               </p>
               <p>
                 กริดประมาณ 45 กม. แสดงค่าของแต่ละช่องโดยไม่เกลี่ยระหว่างช่อง

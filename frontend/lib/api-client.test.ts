@@ -264,3 +264,23 @@ describe("api client", () => {
     });
   });
 });
+
+it("uses recovery copy for server failures while retaining diagnostics in the error object", () => {
+  const error = new ApiError("SUPABASE_URL / SERVICE_ROLE_KEY", 503);
+  expect(apiErrorMessage(error, "โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่")).toBe(
+    "โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่",
+  );
+  expect(error.message).toBe("SUPABASE_URL / SERVICE_ROLE_KEY");
+  expect(
+    apiErrorMessage(new ApiError("กรุณาเข้าสู่ระบบก่อน", 401), "fallback"),
+  ).toBe("กรุณาเข้าสู่ระบบก่อน");
+});
+
+it("uses readable recovery copy for structured validation errors", () => {
+  expect(
+    apiErrorMessage(
+      new ApiError("[object Object]", 422),
+      "กรุณาตรวจสอบข้อมูลแล้วลองใหม่",
+    ),
+  ).toBe("กรุณาตรวจสอบข้อมูลแล้วลองใหม่");
+});

@@ -1,4 +1,5 @@
 "use client";
+import styles from "@/frontend/styles/mobile-refinements.module.css";
 import type { ReactNode } from "react";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 
@@ -48,7 +49,7 @@ export default function MapTimelineControls({
 }) {
   return (
     <section
-      className="cp-map-history-dock cp-map-timeline"
+      className={`cp-map-history-dock cp-map-timeline ${styles.timeline}`}
       aria-label={title}
       data-paused={disabled}
       onPointerDown={(e) => e.stopPropagation()}
@@ -88,7 +89,7 @@ export default function MapTimelineControls({
           aria-label={playing ? `หยุดเล่น${title}` : `เล่น${title}`}
           onClick={onPlay}
         >
-          {playing ? "Ⅱ" : "▶"}
+          <AppIcon name={playing ? "pause" : "play"} size={20} />
         </button>
         <input
           type="range"

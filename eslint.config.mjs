@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Non-source dirs (Python venv ships .js that must not be linted)
     "node_modules/**",
+    // Vendored upstream packages are reviewed separately from application code.
+    "vendor/**",
     ".venv/**",
     ".pytest_cache/**",
     ".pytest-*/**",

@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -38,12 +39,19 @@ export function LoginPromptProvider({
   children: React.ReactNode;
 }) {
   const auth = useAuth();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
   const [copy, setCopy] = useState<LoginPromptCopy | null>(null);
 
   const closeLoginPrompt = useCallback(() => setCopy(null), []);
   const openLoginPrompt = useCallback(
     (nextCopy: Partial<LoginPromptCopy> = {}) => {
       if (auth.user || auth.localDemo) return false;
+      if (!dialogRef.current?.open)
+        triggerRef.current =
+          document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
       setCopy({ ...DEFAULT_COPY, ...nextCopy });
       return true;
     },
@@ -54,11 +62,16 @@ export function LoginPromptProvider({
 
   useEffect(() => {
     if (!visibleCopy) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeLoginPrompt();
+    const element = dialogRef.current;
+    const trigger = triggerRef.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    element?.showModal();
+    return () => {
+      element?.close();
+      document.body.style.overflow = previousOverflow;
+      if (trigger?.isConnected) trigger.focus();
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [closeLoginPrompt, visibleCopy]);
 
   const value = useMemo(
@@ -70,20 +83,37 @@ export function LoginPromptProvider({
     <LoginPromptContext.Provider value={value}>
       {children}
       {visibleCopy && (
-        <div
+        <dialog
+          ref={dialogRef}
           className="cp-login-modal"
-          role="presentation"
+          aria-labelledby="cp-login-modal-title"
+          aria-describedby="cp-login-modal-description"
+          onKeyDown={(event) => {
+            if (event.key !== "Tab") return;
+            const focusable = Array.from(
+              event.currentTarget.querySelectorAll<HTMLElement>(
+                "button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])",
+              ),
+            ).filter((element) => element.getClientRects().length > 0);
+            const first = focusable[0],
+              last = focusable.at(-1);
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first?.focus();
+            }
+          }}
+          onCancel={(event) => {
+            event.preventDefault();
+            closeLoginPrompt();
+          }}
           onMouseDown={(event) => {
             if (event.currentTarget === event.target) closeLoginPrompt();
           }}
         >
-          <section
-            className="cp-login-modal__card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="cp-login-modal-title"
-            aria-describedby="cp-login-modal-description"
-          >
+          <section className="cp-login-modal__card">
             <button
               type="button"
               className="cp-login-modal__close cp-focus"
@@ -103,7 +133,7 @@ export function LoginPromptProvider({
               จัดการบัญชีและความเป็นส่วนตัว
             </Link>
           </section>
-        </div>
+        </dialog>
       )}
     </LoginPromptContext.Provider>
   );

@@ -40,7 +40,7 @@ def test_new_product_api_surface_and_no_navigation_api():
     assert "/api/locations/search" in paths
     assert "/api/cron/alerts" in paths
     assert "/api/cron/forecast-evaluation" in paths
-    assert "/api/community/data-issues" in paths
+    assert "/api/community/data-issues" not in paths
     assert "/api/admin/data-issues" in paths
     assert "/api/admin/data-issues/{issue_id}" not in paths
     assert "/api/admin/audit-logs" in paths

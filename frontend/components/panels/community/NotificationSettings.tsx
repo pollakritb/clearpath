@@ -117,34 +117,16 @@ export default function NotificationSettings() {
   return (
     <section
       className="cp-notification-settings"
-      aria-labelledby="notification-settings-title"
+      aria-label="ช่องทางและเงื่อนไขแจ้งเตือน"
     >
-      <header className="cp-notification-settings__intro">
-        <span aria-hidden="true">
-          <AppIcon name="alert" size={22} />
-        </span>
-        <div>
-          <h2 id="notification-settings-title">รับเฉพาะเรื่องที่สำคัญ</h2>
-          <p>เลือกช่องทางก่อน แล้วกำหนดระดับฝุ่นและพื้นที่ด้านล่าง</p>
-        </div>
-      </header>
-
       <div className="cp-notification-section-heading">
-        <div>
-          <small>ขั้นตอนที่ 1</small>
-          <h3>ช่องทางรับแจ้งเตือน</h3>
-        </div>
-        <span>แจ้งเตือนผ่าน LINE</span>
+        <h3>ช่องทางรับแจ้งเตือน</h3>
       </div>
 
       <LineNotificationCard />
 
       <div className="cp-notification-section-heading">
-        <div>
-          <small>ขั้นตอนที่ 2</small>
-          <h3>เงื่อนไขแจ้งเตือน</h3>
-        </div>
-        <span>ปรับเงื่อนไขสำหรับ LINE</span>
+        <h3>เงื่อนไขแจ้งเตือน</h3>
       </div>
 
       <section className="cp-notification-conditions">

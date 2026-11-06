@@ -152,7 +152,7 @@ export default function AuthControl({
       </form>
       {!auth.configured && (
         <span role="alert" style={{ fontSize: ".66em", color: T.red }}>
-          ยังไม่ได้ตั้งค่า NEXT_PUBLIC_SUPABASE_URL/ANON_KEY
+          ขณะนี้ยังไม่พร้อมให้เข้าสู่ระบบ กรุณาลองใหม่ภายหลัง
         </span>
       )}
       {message && (

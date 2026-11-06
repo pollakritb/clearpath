@@ -1,6 +1,8 @@
 import type { SVGProps } from "react";
 
 export type AppIconName =
+  | "play"
+  | "pause"
   | "compass"
   | "wind"
   | "sprout"
@@ -68,6 +70,10 @@ export default function AppIcon({ name, size = 20, ...props }: AppIconProps) {
       {...props}
       {...common}
     >
+      {name === "play" && (
+        <path d="m9 5 11 7-11 7Z" fill="currentColor" stroke="none" />
+      )}
+      {name === "pause" && <path d="M8 5v14M16 5v14" strokeWidth={3} />}
       {name === "compass" && (
         <>
           <circle cx="12" cy="12" r="9" />
