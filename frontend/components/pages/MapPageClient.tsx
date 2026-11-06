@@ -383,6 +383,17 @@ export default function MapPageClient(options: MapPageOptions) {
           setSelectedStackId(null);
           setSelectedReport(null);
           setLocatedManually({ lat, lon, accuracy });
+          if (requestStep === "pick") {
+            setRequestPoint({
+              id: `point:${lat}:${lon}`,
+              name: "จุดที่เลือกบนแผนที่",
+              address: "",
+              kind: "point",
+              source: "local",
+              lat,
+              lon,
+            });
+          }
           setFocusPoint({ lat, lon });
         }}
         onResetView={() => {
@@ -451,12 +462,7 @@ export default function MapPageClient(options: MapPageOptions) {
           onToggleFires={() => setShowFires((value) => !value)}
           onLocationSelect={(location: LocationSuggestion) => {
             setSelectedRequestId(null);
-            if (requestStep !== "idle") {
-              setRequestPoint(location);
-              setRequestStep("pick");
-              setFocusPoint({ lat: location.lat, lon: location.lon });
-              return;
-            }
+            setRequestStep("idle");
             if (camsEnabled) {
               pauseCams();
               setCamsPoint({
@@ -479,20 +485,7 @@ export default function MapPageClient(options: MapPageOptions) {
             setViewMode("map");
           }}
           onStationSelect={(station) => {
-            if (requestStep !== "idle") {
-              setRequestPoint({
-                id: `station:${station.id}`,
-                name: station.name_th ?? station.name_en ?? station.id,
-                address: station.province ?? "",
-                kind: "station",
-                source: "local",
-                lat: station.lat,
-                lon: station.lon,
-              });
-              setRequestStep("pick");
-              setFocusPoint({ lat: station.lat, lon: station.lon });
-              return;
-            }
+            setRequestStep("idle");
             if (camsEnabled) {
               pauseCams();
               setCamsPoint({

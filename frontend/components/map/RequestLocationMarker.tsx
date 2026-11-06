@@ -30,9 +30,12 @@ function CenterPicker({
   const circle = useRef<L.Circle>(null);
   const published = useRef<Point | null>(null);
   const initialized = useRef(false);
+  const positioning = useRef(false);
+  const userMove = useRef(false);
   const lat = position?.lat,
     lon = position?.lon;
   const publish = useCallback(() => {
+    if (positioning.current) return;
     const center = map.getCenter();
     if (
       published.current?.lat === center.lat &&
@@ -43,11 +46,64 @@ function CenterPicker({
     onMove(center.lat, center.lng);
   }, [map, onMove]);
   useMapEvents({
+    dragstart() {
+      userMove.current = true;
+    },
+    keydown(event) {
+      if (
+        [
+          "ArrowUp",
+          "ArrowDown",
+          "ArrowLeft",
+          "ArrowRight",
+          "+",
+          "-",
+          "=",
+        ].includes(event.originalEvent.key)
+      )
+        userMove.current = true;
+    },
     move() {
       circle.current?.setLatLng(map.getCenter());
     },
-    moveend: publish,
+    moveend() {
+      if (positioning.current) return;
+      if (!userMove.current) {
+        // Layout changes or a previous viewport animation must not move the chosen place.
+        const chosen = published.current;
+        if (
+          chosen &&
+          !L.latLng(chosen.lat, chosen.lon).equals(map.getCenter())
+        ) {
+          positioning.current = true;
+          map.stop();
+          map.setView(L.latLng(chosen.lat, chosen.lon), map.getZoom(), {
+            animate: false,
+          });
+          circle.current?.setLatLng(map.getCenter());
+          positioning.current = false;
+        }
+        return;
+      }
+      userMove.current = false;
+      publish();
+    },
   });
+  useEffect(() => {
+    const container = map.getContainer();
+    const wheel = () => {
+      userMove.current = true;
+    };
+    const pinch = (event: TouchEvent) => {
+      if (event.touches.length > 1) userMove.current = true;
+    };
+    container.addEventListener("wheel", wheel, { passive: true });
+    container.addEventListener("touchmove", pinch, { passive: true });
+    return () => {
+      container.removeEventListener("wheel", wheel);
+      container.removeEventListener("touchmove", pinch);
+    };
+  }, [map]);
   useEffect(() => {
     // Points emitted by this picker must never recenter the map or reset its zoom.
     if (
@@ -62,11 +118,18 @@ function CenterPicker({
       ? map.getZoom()
       : Math.max(minimumZoom, map.getZoom());
     initialized.current = true;
-    // Preserve a searched place's name until the user actually pans away.
-    if (lat != null && lon != null) published.current = { lat, lon };
+    // setView/stop emit moveend too. Those events are not a user-selected point.
+    positioning.current = true;
+    userMove.current = false;
+    map.stop();
     map.setView(center, zoom, { animate: false });
     circle.current?.setLatLng(map.getCenter());
-    publish();
+    if (lat != null && lon != null) {
+      const actual = map.getCenter();
+      published.current = { lat: actual.lat, lon: actual.lng };
+    }
+    positioning.current = false;
+    if (lat == null || lon == null) publish();
   }, [map, lat, lon, publish, minimumZoom]);
   return (
     <>

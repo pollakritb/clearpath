@@ -6,18 +6,18 @@ import {
   storedRequestPlace,
   UNKNOWN_REQUEST_PLACE,
 } from "./request-place";
-it("stores a consistent title and supporting area without duplicating the prefix", () => {
+it("shows the place name directly and removes the legacy area prefix", () => {
   const stored = storedRequestPlace({
     name: "Central Embassy",
     address: "ปทุมวัน · กรุงเทพมหานคร",
   });
-  expect(stored).toBe("บริเวณCentral Embassy\nปทุมวัน · กรุงเทพมหานคร");
+  expect(stored).toBe("Central Embassy\nปทุมวัน · กรุงเทพมหานคร");
   expect(requestPlaceParts(stored)).toEqual({
-    title: "บริเวณCentral Embassy",
+    title: "Central Embassy",
     shortName: "Central Embassy",
     address: "ปทุมวัน · กรุงเทพมหานคร",
   });
-  expect(requestPlaceTitle("บริเวณกำแพงแสน")).toBe("บริเวณกำแพงแสน");
+  expect(requestPlaceTitle("บริเวณกำแพงแสน")).toBe("กำแพงแสน");
 });
 it("uses a neutral label for legacy generic points and abbreviates only common names", () => {
   expect(requestPlaceParts("จุดที่เลือกบนแผนที่").title).toBe(

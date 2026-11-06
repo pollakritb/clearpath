@@ -5,7 +5,7 @@ import RequestLocationMarker from "./RequestLocationMarker";
 const state = vi.hoisted(() => ({
   center: { lat: 14, lng: 100 },
   zoom: 11,
-  handlers: {} as { moveend?: () => void },
+  handlers: {} as { moveend?: () => void; dragstart?: () => void },
   marker: null as null | { draggable: boolean; position: number[] },
   setView: vi.fn(),
 }));
@@ -25,6 +25,7 @@ const map = {
   getZoom: () => state.zoom,
   getContainer: () => document.body,
   setView: state.setView,
+  stop: vi.fn(),
 };
 beforeEach(() => {
   state.center = { lat: 14, lng: 100 };
@@ -45,6 +46,7 @@ it("selects the map center, follows map panning, and never recenters on its own 
   ).toBeTruthy();
   expect(move).toHaveBeenLastCalledWith(14, 100);
   state.center = { lat: 14.01, lng: 100.02 };
+  state.handlers.dragstart?.();
   state.handlers.moveend?.();
   expect(move).toHaveBeenLastCalledWith(14.01, 100.02);
   state.setView.mockClear();
@@ -68,4 +70,21 @@ it("keeps a confirmed location fixed and removes the screen-center picker", () =
   expect(
     screen.queryByRole("img", { name: /หมุดคำขออยู่กลางแผนที่/ }),
   ).toBeNull();
+});
+it("does not replace a searched place during programmatic moveend", () => {
+  const move = vi.fn();
+  state.setView.mockImplementation((point, zoom) => {
+    state.center = { lat: point.lat + 0.000000001, lng: point.lng };
+    state.zoom = zoom;
+    state.handlers.moveend?.();
+  });
+  render(
+    <RequestLocationMarker position={{ lat: 14, lon: 100 }} onMove={move} />,
+  );
+  state.handlers.moveend?.();
+  expect(move).not.toHaveBeenCalled();
+  state.center = { lat: 14.01, lng: 100.01 };
+  state.handlers.dragstart?.();
+  state.handlers.moveend?.();
+  expect(move).toHaveBeenCalledWith(14.01, 100.01);
 });

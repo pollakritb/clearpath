@@ -67,14 +67,11 @@ export default function MapRequestPanel({
       >
         <AppIcon name="close" size={19} />
       </button>
-      <div className="cp-place-card__heading">
-        <h2>{editing ? "ขอค่าฝุ่นบริเวณนี้" : "ปรับจุดขอค่าฝุ่น"}</h2>
-        {!editing && (
-          <p className="cp-request-pick-hint">
-            เลื่อนแผนที่ให้หมุดตรงจุดที่ต้องการ
-          </p>
-        )}
-      </div>
+      {editing && (
+        <div className="cp-place-card__heading">
+          <h2>ขอค่าฝุ่นบริเวณนี้</h2>
+        </div>
+      )}
       <div className="cp-map-request-location">
         {point ? (
           <p className="cp-map-request-point">
@@ -110,6 +107,9 @@ export default function MapRequestPanel({
           </button>
         )}
       </div>
+      {!editing && point && (
+        <p className="cp-request-pick-hint">เลื่อนแผนที่เพื่อปรับจุด</p>
+      )}
       {editing && point ? (
         <>
           <CreateRequest

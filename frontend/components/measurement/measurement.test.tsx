@@ -98,7 +98,7 @@ it("lists own and invited requests without location search or creation controls"
   render(<RequestsPage />);
   fireEvent.click(screen.getByRole("button", { name: "กลับ" }));
   expect(mocks.back).toHaveBeenCalledOnce();
-  await screen.findByText("บริเวณสถานที่ B");
+  await screen.findByText("สถานที่ B");
   expect(
     screen
       .getByRole("button", { name: "คำขอที่เปิดอยู่" })
@@ -145,7 +145,7 @@ it("creates an immediate request with 3 km default and shows tracking", async ()
   fireEvent.click(screen.getByRole("button", { name: "ส่งคำขอ" }));
   await screen.findByText("บันทึกคำขอแล้ว");
   expect(mocks.create.mock.calls[0][0]).toMatchObject({
-    place_name: "บริเวณสถานที่ A",
+    place_name: "สถานที่ A",
     radius_km: 3,
     needed_by: null,
   });

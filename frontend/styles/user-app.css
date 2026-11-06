@@ -8186,14 +8186,22 @@
   line-height: 1.45;
 }
 .cp-map-request-panel[data-editing="false"] {
-  max-height: none;
-  padding: 16px;
+  max-height: min(50dvh, 260px);
+  padding: 12px;
 }
 .cp-map-request-panel[data-editing="false"] .cp-map-request-location {
-  margin: 14px 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: #f2f7f5;
+  min-height: 44px;
+  margin: 0 44px 4px 0;
+  padding: 0;
+  background: transparent;
+}
+.cp-map-request-panel[data-editing="false"] .cp-request-pick-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.cp-map-request-panel[data-editing="false"] .cp-map-request-point > span {
+  -webkit-line-clamp: 1;
 }
 .cp-map-request-panel .cp-map-request-point strong {
   display: -webkit-box;

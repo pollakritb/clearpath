@@ -4,7 +4,7 @@ export const UNKNOWN_REQUEST_PLACE = "พื้นที่ที่ขอวั
 const clean = (value: string | undefined) =>
   (value ?? "").replace(/\s+/g, " ").trim();
 export function requestPlaceTitle(name: string) {
-  const value = clean(name);
+  const value = clean(name).replace(/^บริเวณ\s*/, "");
   if (
     !value ||
     ["จุดที่เลือกบนแผนที่", "จุดที่เลือก", UNKNOWN_REQUEST_PLACE].includes(
@@ -12,7 +12,7 @@ export function requestPlaceTitle(name: string) {
     )
   )
     return UNKNOWN_REQUEST_PLACE;
-  return value.startsWith("บริเวณ") ? value : `บริเวณ${value}`;
+  return value;
 }
 /** Keep title + supporting area in the existing bounded text field, separated by a newline. */
 export function storedRequestPlace(
