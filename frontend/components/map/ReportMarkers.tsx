@@ -1,11 +1,14 @@
 "use client";
+import PriorityMarker from "./PriorityMarker";
 
 import L from "leaflet";
-import { Marker } from "react-leaflet";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { formatCommunityArea } from "@/frontend/lib/community-location";
-import { isCommunityStackDemoMode } from "@/frontend/lib/demo-community";
+import {
+  stackReporterGroups,
+  stackReporterAvatar,
+} from "@/frontend/lib/report-stack-profiles";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
 import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
 import type { CommunityReport, CommunityReportStack } from "@/frontend/types";
@@ -54,29 +57,11 @@ function stackIcon(
 ) {
   const color = stack.pm25 == null ? "#58716d" : classifyPm25(stack.pm25).color;
   const value = stack.pm25 == null ? "—" : String(Math.round(stack.pm25));
-  const uniqueReporters = new Map<string, CommunityReport>();
-  for (const id of stack.report_ids) {
-    const report = reports.find((entry) => entry.id === id);
-    if (report && !uniqueReporters.has(report.user_id)) {
-      uniqueReporters.set(report.user_id, report);
-    }
-  }
-  const faces = [...uniqueReporters.values()]
+  const reporters = stackReporterGroups(stack, reports);
+  const faces = reporters
     .slice(0, 3)
-    .map((report, index) => {
-      const demoAvatar =
-        isCommunityStackDemoMode() &&
-        report.policy_version === "demo-v1" &&
-        [
-          "/demo/avatar-kan.svg",
-          "/demo/avatar-mint.svg",
-          "/demo/avatar-non.svg",
-          "/demo/avatar-pim.svg",
-          "/demo/avatar-ton.svg",
-        ].includes(report.reporter_avatar_url ?? "")
-          ? report.reporter_avatar_url
-          : null;
-      const avatar = publicReporterAvatar(report) ?? demoAvatar;
+    .map(({ profile: report }, index) => {
+      const avatar = stackReporterAvatar(report);
       const initial = report.show_reporter_profile
         ? (report.display_name?.trim().charAt(0) ?? "")
         : "";
@@ -91,7 +76,7 @@ function stackIcon(
   const overflow = Math.max(0, stack.reporter_count - 3);
   return L.divIcon({
     className: "cp-marker cp-marker--report-stack",
-    html: `<div class="cp-report-stack-marker${selected ? " is-selected" : ""}" style="--marker-aqi:${color}"><span class="cp-report-stack-marker__faces cp-report-stack-marker__faces--${Math.min(uniqueReporters.size, 3)}" aria-hidden="true">${faces}</span><strong class="cp-report-stack-marker__value">${value}</strong><span class="cp-report-stack-marker__count">${overflow > 0 ? `+${overflow} คน · ` : ""}${stack.report_count} รายงาน</span></div>`,
+    html: `<div class="cp-report-stack-marker${selected ? " is-selected" : ""}" style="--marker-aqi:${color}"><span class="cp-report-stack-marker__faces cp-report-stack-marker__faces--${Math.min(reporters.length, 3)}" aria-hidden="true">${faces}</span><strong class="cp-report-stack-marker__value">${value}</strong><span class="cp-report-stack-marker__count">${overflow > 0 ? `+${overflow} คน · ` : ""}${stack.report_count} รายงาน</span></div>`,
     iconSize: [60, 64],
     iconAnchor: [30, 32],
   });
@@ -116,7 +101,8 @@ export default function ReportMarkers({
   return (
     <>
       {stacks.map((stack) => (
-        <Marker
+        <PriorityMarker
+          priorityId={`stack:${stack.id}`}
           key={stack.id}
           position={[stack.lat, stack.lon]}
           icon={stackIcon(stack, reports, stack.id === selectedStackId)}
@@ -140,7 +126,8 @@ export default function ReportMarkers({
         const area = formatCommunityArea(report);
         const label = `${SOURCE_LABELS[source].label} ${area} PM2.5 ${report.pm25} ไมโครกรัมต่อลูกบาศก์เมตร ${cls.level}`;
         return (
-          <Marker
+          <PriorityMarker
+            priorityId={`report:${report.id}`}
             key={report.id}
             position={[report.lat, report.lon]}
             icon={reportIcon(

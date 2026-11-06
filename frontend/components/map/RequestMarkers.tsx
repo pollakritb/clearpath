@@ -1,8 +1,9 @@
 "use client";
+import PriorityMarker from "./PriorityMarker";
 
 import L from "leaflet";
 import { Fragment } from "react";
-import { Circle, Marker, Tooltip } from "react-leaflet";
+import { Circle, Tooltip } from "react-leaflet";
 import {
   escapeMarkerText,
   requestPlaceParts,
@@ -57,7 +58,8 @@ export default function RequestMarkers({
                 }}
               />
             )}
-            <Marker
+            <PriorityMarker
+              priorityId={`request:${row.id}`}
               position={[row.lat, row.lon]}
               icon={requestIcon(state, place.shortName)}
               title={`${row.is_owner ? "คำขอของคุณ" : "คำขอให้ช่วยวัด"} · ${place.title} · ${REQUEST_MARKER_STATES[state].label}`}
@@ -78,7 +80,7 @@ export default function RequestMarkers({
                 {row.is_owner ? "คำขอของคุณ" : "คำขอให้ช่วยวัด"} · วง{" "}
                 {row.radius_km} กม.
               </Tooltip>
-            </Marker>
+            </PriorityMarker>
           </Fragment>
         );
       })}

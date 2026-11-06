@@ -1,5 +1,10 @@
 "use client";
 
+import Image from "next/image";
+import {
+  stackReporterGroups,
+  stackReporterAvatar,
+} from "@/frontend/lib/report-stack-profiles";
 import ReporterTrustCard from "@/frontend/components/community/ReporterTrustCard";
 import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
 
@@ -41,6 +46,7 @@ export default function ReportStackCard({
   }[stack.value_status];
   const color = stack.pm25 == null ? "#58716d" : classifyPm25(stack.pm25).color;
   const contributingIds = new Set(stack.contributing_report_ids);
+  const reporters = stackReporterGroups(stack, reports);
 
   return (
     <section
@@ -93,37 +99,76 @@ export default function ReportStackCard({
             ข้อมูลจากผู้ใช้เป็นข้อมูลเสริม และหมุดถูกเลื่อนเพื่อความเป็นส่วนตัว
           </p>
           <div className="cp-report-stack-card__list">
-            {reports.map((report) => (
-              <button
-                key={report.id}
-                type="button"
-                className="cp-report-stack-card__item cp-focus"
-                onClick={() => onSelectReport(report)}
-              >
-                <span>
-                  <strong>{report.display_name ?? "ไม่เปิดเผยตัวตน"}</strong>
-                  {report.show_reporter_profile &&
-                    report.participation_rank && (
-                      <ParticipationBadge rank={report.participation_rank} />
-                    )}
-                  {report.show_reporter_profile && (
-                    <ReporterTrustCard compact trust={report.reporter_trust} />
-                  )}
-                  <small>
-                    {reportTime(report.captured_at)} · แตะดูภาพและรายละเอียด
-                  </small>
-                  {stack.value_status === "average" &&
-                    contributingIds.has(report.id) && (
-                      <em className="cp-report-stack-card__included">
-                        ใช้ในค่าเฉลี่ย
-                      </em>
-                    )}
-                </span>
-                <b>
-                  {report.pm25 ?? "—"} <small>µg/m³</small>
-                </b>
-              </button>
-            ))}
+            {reporters.map(({ profile, reports: readings }) => {
+              const avatar = stackReporterAvatar(profile);
+              const name = profile.display_name ?? "ไม่เปิดเผยตัวตน";
+              return (
+                <section
+                  key={readings[0].id}
+                  className="cp-report-stack-card__reporter"
+                  aria-label={`ผู้รายงาน ${name}`}
+                >
+                  <header className="cp-report-stack-card__profile">
+                    <span
+                      className="cp-report-stack-card__avatar"
+                      aria-hidden="true"
+                    >
+                      {avatar ? (
+                        <Image
+                          src={avatar}
+                          alt=""
+                          width={36}
+                          height={36}
+                          unoptimized
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <AppIcon name="user" size={22} />
+                      )}
+                    </span>
+                    <div>
+                      <strong>{name}</strong>
+                      <small>{readings.length} รายงาน</small>
+                      {profile.show_reporter_profile &&
+                        profile.participation_rank && (
+                          <ParticipationBadge
+                            rank={profile.participation_rank}
+                          />
+                        )}
+                      {profile.show_reporter_profile && (
+                        <ReporterTrustCard
+                          compact
+                          trust={profile.reporter_trust}
+                        />
+                      )}
+                    </div>
+                  </header>
+                  {readings.map((report) => (
+                    <button
+                      key={report.id}
+                      type="button"
+                      className="cp-report-stack-card__item cp-focus"
+                      aria-label={`ดูรายงานของ ${name} ${reportTime(report.captured_at)} ค่า ${report.pm25 ?? "ไม่ทราบ"}`}
+                      onClick={() => onSelectReport(report)}
+                    >
+                      <span>
+                        <small>{reportTime(report.captured_at)}</small>
+                        <small>แตะดูภาพและรายละเอียด</small>
+                        {stack.value_status === "average" &&
+                          contributingIds.has(report.id) && (
+                            <em className="cp-report-stack-card__included">
+                              ใช้ในค่าเฉลี่ย
+                            </em>
+                          )}
+                      </span>
+                      <b>
+                        {report.pm25 ?? "—"} <small>µg/m³</small>
+                      </b>
+                    </button>
+                  ))}
+                </section>
+              );
+            })}
           </div>
         </>
       )}

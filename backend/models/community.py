@@ -112,6 +112,7 @@ class CommunityReport(BaseModel):
 
 
 class CommunityReportStack(BaseModel):
+    reporter_groups: list[list[str]] = Field(default_factory=list)
     id: str
     lat: float
     lon: float

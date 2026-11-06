@@ -108,6 +108,8 @@ export interface CommunityReportsResponse {
 }
 
 export interface CommunityReportStack {
+  /** Report IDs grouped within this stack; contains no account identifiers. */
+  reporter_groups?: string[][];
   id: string;
   lat: number;
   lon: number;

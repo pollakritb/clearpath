@@ -1,9 +1,10 @@
 "use client";
+import PriorityMarker from "./PriorityMarker";
 
 import L from "leaflet";
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Circle, Marker, useMap, useMapEvents } from "react-leaflet";
+import { Circle, useMap, useMapEvents } from "react-leaflet";
 
 const pinSvg =
   '<svg width="56" height="82" viewBox="0 0 56 82" fill="none" aria-hidden="true" style="display:block"><path d="M28 49V77" stroke="#0d3b29" stroke-width="5" stroke-linecap="round"/><circle cx="28" cy="28" r="24" fill="#0d3b29"/><circle cx="28" cy="28" r="8" fill="white"/></svg>';
@@ -181,7 +182,8 @@ export default function RequestLocationMarker({
     );
   if (!position) return null;
   return (
-    <Marker
+    <PriorityMarker
+      priorityId="request-picker"
       position={[position.lat, position.lon]}
       icon={icon}
       draggable={false}

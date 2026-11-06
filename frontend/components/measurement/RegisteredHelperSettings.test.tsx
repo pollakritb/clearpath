@@ -60,6 +60,18 @@ const settings: MeasurementHelperSettings = {
 };
 beforeEach(() => {
   vi.clearAllMocks();
+  Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
+    configurable: true,
+    value: function (this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    },
+  });
+  Object.defineProperty(HTMLDialogElement.prototype, "close", {
+    configurable: true,
+    value: function (this: HTMLDialogElement) {
+      this.removeAttribute("open");
+    },
+  });
   mocks.helper.mockResolvedValue(settings);
   mocks.save.mockResolvedValue(settings.locations![0]);
   mocks.remove.mockResolvedValue({ ok: true });
@@ -72,9 +84,7 @@ it("shows two private saved areas and pauses an area without adding a third", as
   const changed = vi.fn();
   render(<RegisteredHelperSettings settings={settings} onChange={changed} />);
   expect(screen.getByText("2/2 จุด")).toBeTruthy();
-  expect(
-    screen.queryByRole("button", { name: "เพิ่มพื้นที่รับคำขอ" }),
-  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "เพิ่มสถานที่" })).toBeNull();
   fireEvent.click(
     screen.getByRole("checkbox", { name: "รับคำขอที่ ที่ทำงาน" }),
   );
@@ -89,7 +99,7 @@ it("shows two private saved areas and pauses an area without adding a third", as
 it("deletes only the selected slot and refreshes settings", async () => {
   const changed = vi.fn();
   render(<RegisteredHelperSettings settings={settings} onChange={changed} />);
-  fireEvent.click(screen.getAllByRole("button", { name: "ลบพื้นที่" })[1]);
+  fireEvent.click(screen.getByRole("button", { name: "ลบสถานที่ ที่ทำงาน" }));
   await waitFor(() => expect(mocks.remove).toHaveBeenCalledWith(2));
   await waitFor(() => expect(changed).toHaveBeenCalledWith(settings));
 });
@@ -118,4 +128,36 @@ it("opens reporting without claiming when automatic help is enabled", async () =
     expect(mocks.push).toHaveBeenCalledWith("/report?request=REQ-000001"),
   );
   expect(mocks.claim).not.toHaveBeenCalled();
+});
+
+it("edits a saved emoji immediately without requiring map selection or changing its receiving flag", async () => {
+  const change = vi.fn();
+  render(
+    <RegisteredHelperSettings
+      settings={{
+        ...settings,
+        enabled: false,
+        locations: [{ ...settings.locations![0], emoji: "🏠" }],
+      }}
+      onChange={change}
+    />,
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "เปลี่ยนสัญลักษณ์ บ้าน" }),
+  );
+  expect(
+    screen
+      .getByRole("button", { name: "ใช้สัญลักษณ์บ้าน" })
+      .getAttribute("aria-pressed"),
+  ).toBe("true");
+  expect(screen.queryByRole("button", { name: "ยืนยันจุดนี้" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "ใช้สัญลักษณ์สวน" }));
+  fireEvent.click(screen.getByRole("button", { name: "บันทึกพื้นที่" }));
+  await waitFor(() =>
+    expect(mocks.save).toHaveBeenCalledWith(
+      expect.objectContaining({ ...settings.locations![0], emoji: "🌳" }),
+      1,
+    ),
+  );
+  await waitFor(() => expect(change).toHaveBeenCalledOnce());
 });

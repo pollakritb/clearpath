@@ -180,3 +180,18 @@ def test_map_publication_and_three_hour_lifetime_still_apply():
     group = group_report_stacks(rows, now=NOW)[0]
     assert group["report_count"] == 2
     assert group["pm25"] == 22
+
+
+def test_reporter_membership_exposes_only_report_ids_within_each_stack():
+    rows = [
+        report("a", "private-alice", 20),
+        report("b", "private-bob", 24),
+        report("c", "private-alice", 18),
+    ]
+    group = group_report_stacks(rows, now=NOW)[0]
+    assert {frozenset(ids) for ids in group["reporter_groups"]} == {
+        frozenset(["a", "c"]),
+        frozenset(["b"]),
+    }
+    assert "private-alice" not in str(group)
+    assert "private-bob" not in str(group)

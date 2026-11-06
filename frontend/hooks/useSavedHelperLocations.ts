@@ -21,10 +21,7 @@ export function useSavedHelperLocations(userId: string | null, active = true) {
           setSnapshot({
             userId,
             locations: settings.registered_locations_enabled
-              ? (settings.locations ?? []).map((place) => ({
-                  ...place,
-                  enabled: settings.enabled && place.enabled,
-                }))
+              ? (settings.locations ?? [])
               : [],
           });
       } catch {

@@ -19,6 +19,18 @@ test("local stack demo shows grouped reports and their individual details", asyn
         ),
     )
     .toBe(true);
+  expect(
+    await marker.locator(".cp-report-stack-marker__face").evaluateAll((faces) =>
+      faces.every((face) => {
+        const image = face.querySelector("img")!;
+        return (
+          getComputedStyle(face).clipPath === "none" &&
+          image.getBoundingClientRect().width <=
+            face.getBoundingClientRect().width
+        );
+      }),
+    ),
+  ).toBe(true);
   await expect(page.locator(".cp-marker--individual")).toHaveCount(1);
   await page.screenshot({ path: "test-results/demo-stack-map-mobile.png" });
   await marker.click();
@@ -41,6 +53,8 @@ test("local stack demo shows grouped reports and their individual details", asyn
   await page.screenshot({ path: "test-results/demo-stack-compact-mobile.png" });
   await card.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }).click();
   await expect(card.locator(".cp-report-stack-card__item")).toHaveCount(3);
+  await expect(card.locator(".cp-report-stack-card__reporter")).toHaveCount(2);
+  await expect(card.getByText("กานต์", { exact: true })).toHaveCount(1);
   await expect(card.getByText("ใช้ในค่าเฉลี่ย")).toHaveCount(2);
   await page.screenshot({ path: "test-results/demo-stack-mobile.png" });
 
@@ -131,6 +145,8 @@ test("nearby user reports share a marker and preserve each photo/detail", async 
   await card.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }).click();
   await expect(card.getByText("ใช้ในค่าเฉลี่ย")).toHaveCount(2);
   await expect(card.locator(".cp-report-stack-card__item")).toHaveCount(3);
+  await expect(card.locator(".cp-report-stack-card__reporter")).toHaveCount(2);
+  await expect(card.getByText("กานต์", { exact: true })).toHaveCount(1);
   await card.getByRole("button", { name: /มินตรา/ }).click();
   const detail = page.getByRole("region", {
     name: "รายละเอียดรายงานจากบุคคล",

@@ -1,8 +1,9 @@
 "use client";
+import PriorityMarker from "./PriorityMarker";
 
 import L from "leaflet";
 import { useMemo, useState } from "react";
-import { Marker, useMapEvents } from "react-leaflet";
+import { useMapEvents } from "react-leaflet";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { clusterStations } from "@/frontend/lib/station-clusters";
@@ -76,7 +77,8 @@ export default function StationMarkers({
           const classification = classifyPm25(average);
           const label = `${cluster.stations.length} สถานี แตะเพื่อขยายแผนที่`;
           return (
-            <Marker
+            <PriorityMarker
+              priorityId={`station-cluster:${cluster.id}`}
               key={cluster.id}
               position={[cluster.lat, cluster.lon]}
               title={label}
@@ -102,7 +104,8 @@ export default function StationMarkers({
           s.data_status === "expired" ? "ข้อมูลหมดอายุ" : cls.level
         }`;
         return (
-          <Marker
+          <PriorityMarker
+            priorityId={`station:${s.id}`}
             key={s.id}
             position={[s.lat, s.lon]}
             title={markerLabel}

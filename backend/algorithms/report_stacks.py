@@ -113,11 +113,17 @@ def group_report_stacks(
         if len(group) < 2:
             continue
         status, value, contributing_report_ids = _reading_status(group)
+        # Link report IDs only inside this stack. Never publish account IDs or
+        # create a stable identity for anonymous reports across different stacks.
+        reporters: dict[str, list[str]] = {}
+        for member in group:
+            reporters.setdefault(str(member["user_id"]), []).append(str(member["id"]))
         stacks.append(
             {
                 "id": f"stack:{group[0]['id']}",
                 "report_ids": [str(member["id"]) for member in group],
                 "report_count": len(group),
+                "reporter_groups": list(reporters.values()),
                 "reporter_count": len({str(member["user_id"]) for member in group}),
                 "latest_captured_at": str(group[0]["captured_at"]),
                 "pm25": value,

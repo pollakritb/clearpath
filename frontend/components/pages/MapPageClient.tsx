@@ -299,6 +299,13 @@ export default function MapPageClient(options: MapPageOptions) {
         requestsNow={requestData.now}
         onSelectRequest={selectRequest}
         savedHelperLocations={savedHelperLocations}
+        onSelectSavedLocation={() => {
+          setSelectedStation(null);
+          setSelectedReport(null);
+          setSelectedStackId(null);
+          setSelectedRequestId(null);
+          setSelectedPlace(null);
+        }}
         requestRadiusKm={
           requestStep !== "idle" ? requestRadius : selectedRequest?.radius_km
         }

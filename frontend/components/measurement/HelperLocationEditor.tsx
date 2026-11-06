@@ -50,7 +50,7 @@ export default function HelperLocationEditor({
   const [placeName, setPlaceName] = useState(initial?.name ?? "");
   const [emoji, setEmoji] = useState(helperLocationEmoji(initial?.emoji));
   const [name, setName] = useState(initial?.name ?? "");
-  const [step, setStep] = useState<Step>(initial ? "map" : "search");
+  const [step, setStep] = useState<Step>(initial ? "details" : "search");
   const [mapZoom, setMapZoom] = useState(15);
   const [resolved, setResolved] = useState<{
     lat: number;
@@ -93,7 +93,7 @@ export default function HelperLocationEditor({
   }, []);
   function back() {
     if (busy) return;
-    if (step === "search") onClose();
+    if (step === "search" || (initial && step === "details")) onClose();
     else setStep(step === "details" ? "map" : "search");
   }
   const select = (place: LocationSuggestion) => {
@@ -139,7 +139,7 @@ export default function HelperLocationEditor({
           className="cp-focus"
           disabled={busy}
           aria-label={
-            step === "search"
+            step === "search" || (initial && step === "details")
               ? "กลับไปตั้งค่าพื้นที่"
               : step === "map"
                 ? "กลับไปค้นหาสถานที่"
@@ -154,7 +154,9 @@ export default function HelperLocationEditor({
             ? "เลือกพื้นที่รับคำขอ"
             : step === "map"
               ? "ปักหมุดพื้นที่"
-              : "บันทึกพื้นที่รับคำขอ"}
+              : initial
+                ? "แก้ไขสถานที่"
+                : "บันทึกพื้นที่รับคำขอ"}
         </h2>
         <button
           type="button"
@@ -251,8 +253,7 @@ export default function HelperLocationEditor({
           }}
         >
           <div className="cp-helper-editor__details-body">
-            <h3>ตั้งชื่อให้จำง่าย</h3>
-            <p>ใช้ชื่อนี้แสดงในรายการพื้นที่รับคำขอของคุณ</p>
+            <p>ชื่อและสัญลักษณ์ที่แสดงบนแผนที่</p>
             <label className="cp-helper-editor__name">
               ชื่อพื้นที่
               <input
@@ -266,27 +267,29 @@ export default function HelperLocationEditor({
                 onChange={(event) => setName(event.target.value)}
               />
             </label>
-            <div
-              className="cp-helper-editor__presets"
-              aria-label="ชื่อพื้นที่ที่ใช้บ่อย"
-            >
-              {["บ้าน", "ที่ทำงาน"].map((label) => (
-                <button
-                  key={label}
-                  type="button"
-                  className="cp-focus"
-                  disabled={busy}
-                  aria-pressed={name === label}
-                  onClick={() => setName(label)}
-                >
-                  <AppIcon
-                    name={label === "บ้าน" ? "home" : "station"}
-                    size={18}
-                  />
-                  {label}
-                </button>
-              ))}
-            </div>
+            {!initial && (
+              <div
+                className="cp-helper-editor__presets"
+                aria-label="ชื่อพื้นที่ที่ใช้บ่อย"
+              >
+                {["บ้าน", "ที่ทำงาน"].map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className="cp-focus"
+                    disabled={busy}
+                    aria-pressed={name === label}
+                    onClick={() => setName(label)}
+                  >
+                    <AppIcon
+                      name={label === "บ้าน" ? "home" : "station"}
+                      size={18}
+                    />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             <fieldset className="cp-helper-emoji-picker">
               <legend>สัญลักษณ์บนแผนที่</legend>
               <div>
@@ -304,7 +307,6 @@ export default function HelperLocationEditor({
                   </button>
                 ))}
               </div>
-              <p>หมุดสถานที่นี้เห็นเฉพาะคุณ</p>
             </fieldset>
             <section
               className="cp-helper-editor__summary"
@@ -322,7 +324,7 @@ export default function HelperLocationEditor({
             </section>
             <p className="cp-helper-editor__privacy">
               <AppIcon name="shield" size={18} />
-              คุณจะได้รับแจ้งเมื่อมีคำขอครอบคลุมจุดนี้ และพักรับได้ทุกเมื่อ
+              เห็นเฉพาะคุณ · แก้ไขชื่อและสัญลักษณ์ได้ทุกเมื่อ
             </p>
             {error && (
               <p className="cp-helper-editor__error" role="alert">

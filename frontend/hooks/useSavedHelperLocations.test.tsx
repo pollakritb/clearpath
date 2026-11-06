@@ -58,3 +58,13 @@ it("refreshes emoji changes and deletion without keeping stale markers", async (
   });
   expect(result.current).toEqual([]);
 });
+it("preserves per-place receiving settings when global notifications are paused", async () => {
+  mocks.helper.mockResolvedValue({
+    enabled: false,
+    registered_locations_enabled: true,
+    locations: [location],
+  });
+  const { result } = renderHook(() => useSavedHelperLocations("owner"));
+  await waitFor(() => expect(result.current).toHaveLength(1));
+  expect(result.current[0].enabled).toBe(true);
+});

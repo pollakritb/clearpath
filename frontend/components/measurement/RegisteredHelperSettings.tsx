@@ -55,8 +55,8 @@ export default function RegisteredHelperSettings({
     >
       <header>
         <div>
-          <h3>พื้นที่ที่ฉันช่วยวัดได้</h3>
-          <p>รับคำขอใกล้บ้านหรือที่ทำงาน สูงสุด 2 จุด</p>
+          <h3>พื้นที่รับคำขอ</h3>
+          <p>บันทึกได้ 2 จุด · เห็นเฉพาะคุณ</p>
         </div>
         <span>{places.length}/2 จุด</span>
       </header>
@@ -71,18 +71,37 @@ export default function RegisteredHelperSettings({
             void run(() => api.setMeasurementHelper(!settings.enabled))
           }
         />
-        เปิดรับคำขอในพื้นที่ที่บันทึกไว้
+        รับแจ้งคำขอให้ช่วยวัด
       </label>
       {!places.length && (
         <p>เพิ่มพื้นที่แรกเพื่อเปิดรับคำขอ ไม่ใช้ GPS เมื่อเข้าเว็บล่าสุด</p>
       )}
       <div className="cp-helper-places">
         {places.map((place) => (
-          <article key={place.slot}>
+          <article key={place.slot} className="cp-helper-saved-row">
             <div className="cp-helper-place-title">
-              <span aria-hidden="true">{helperLocationEmoji(place.emoji)}</span>
-              <strong>{place.name}</strong>
-              <label>
+              <button
+                type="button"
+                className="cp-helper-place-emoji cp-focus"
+                aria-label={`เปลี่ยนสัญลักษณ์ ${place.name}`}
+                disabled={busy}
+                onClick={() => {
+                  setError("");
+                  setEditor(place);
+                }}
+              >
+                <span aria-hidden="true">
+                  {helperLocationEmoji(place.emoji)}
+                </span>
+              </button>
+              <div className="cp-helper-place-copy">
+                <strong>{place.name}</strong>
+                <small>
+                  {place.address ||
+                    `${place.lat.toFixed(5)}, ${place.lon.toFixed(5)}`}
+                </small>
+              </div>
+              <label className="cp-helper-place-receiving">
                 <input
                   type="checkbox"
                   aria-label={`รับคำขอที่ ${place.name}`}
@@ -100,31 +119,29 @@ export default function RegisteredHelperSettings({
                 <span>{place.enabled ? "เปิดรับ" : "พักรับ"}</span>
               </label>
             </div>
-            <p>
-              {place.address ||
-                `${place.lat.toFixed(5)}, ${place.lon.toFixed(5)}`}
-            </p>
             <div className="cp-helper-place-actions">
               <button
                 type="button"
                 className="cp-focus"
                 disabled={busy}
+                aria-label={`แก้ไขสถานที่ ${place.name}`}
                 onClick={() => {
                   setError("");
                   setEditor(place);
                 }}
               >
-                แก้ไขพื้นที่
+                แก้ไขชื่อ / สัญลักษณ์ / จุด
               </button>
               <button
                 type="button"
                 className="cp-focus"
                 disabled={busy}
+                aria-label={`ลบสถานที่ ${place.name}`}
                 onClick={() =>
                   void run(() => api.deleteMeasurementLocation(place.slot))
                 }
               >
-                ลบพื้นที่
+                ลบ
               </button>
             </div>
           </article>
@@ -140,13 +157,11 @@ export default function RegisteredHelperSettings({
             setEditor(null);
           }}
         >
-          เพิ่มพื้นที่รับคำขอ
+          เพิ่มสถานที่
         </button>
       )}
       <details className="cp-helper-details">
-        <summary className="cp-focus">
-          รายละเอียดการรับคำขอและความเป็นส่วนตัว
-        </summary>
+        <summary className="cp-focus">การรับคำขอทำงานอย่างไร</summary>
         <small>
           จุดที่บันทึกเป็นข้อมูลส่วนตัว แสดงบนแผนที่เฉพาะคุณและใช้รับแจ้งคำขอ
           ไม่จำกัดพื้นที่ส่งรายงาน · ปิดรับชั่วคราวยังเก็บพื้นที่ไว้

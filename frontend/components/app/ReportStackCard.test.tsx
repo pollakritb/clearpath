@@ -88,3 +88,47 @@ it("shows a single eligible reading as one report", () => {
     screen.getByText("ค่าจาก 1 รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม."),
   ).toBeTruthy();
 });
+it("shows one profile per person while keeping all individual readings accessible", () => {
+  const select = vi.fn();
+  render(
+    <ReportStackCard
+      stack={stack}
+      reports={reports}
+      onSelectReport={select}
+      onClose={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }));
+  expect(screen.getAllByText("Alice")).toHaveLength(1);
+  expect(screen.getAllByText("Bob")).toHaveLength(1);
+  expect(
+    screen.getAllByRole("button", { name: /ดูรายงานของ Alice/ }),
+  ).toHaveLength(2);
+  fireEvent.click(
+    screen.getAllByRole("button", { name: /ดูรายงานของ Alice/ })[1],
+  );
+  expect(select).toHaveBeenCalledWith(reports[1]);
+});
+it("combines per-report anonymous IDs using the server's stack-only grouping", () => {
+  render(
+    <ReportStackCard
+      stack={{
+        ...stack,
+        reporter_count: 1,
+        reporter_groups: [["a", "b", "c"]],
+      }}
+      reports={reports.map((r, i) => ({
+        ...r,
+        user_id: `token-${i}`,
+        display_name: "Reporter",
+      }))}
+      onSelectReport={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }));
+  expect(screen.getAllByText("Reporter")).toHaveLength(1);
+  expect(
+    screen.getAllByRole("button", { name: /ดูรายงานของ Reporter/ }),
+  ).toHaveLength(3);
+});

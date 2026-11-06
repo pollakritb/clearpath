@@ -1,7 +1,8 @@
 "use client";
+import PriorityMarker from "./PriorityMarker";
 
 import L from "leaflet";
-import { Marker, Popup } from "react-leaflet";
+import { Popup } from "react-leaflet";
 
 import type { FirePoint } from "@/frontend/types";
 
@@ -24,7 +25,8 @@ export default function FireLayer({ fires }: { fires: FirePoint[] }) {
         const frp = f.frp ?? 0;
         const size = frp > 50 ? 24 : frp > 15 ? 20 : 16;
         return (
-          <Marker
+          <PriorityMarker
+            priorityId={`hotspot:${f.id}`}
             key={f.id}
             position={[f.lat, f.lon]}
             icon={hotspotIcon(size)}
@@ -74,7 +76,7 @@ export default function FireLayer({ fires }: { fires: FirePoint[] }) {
                 </div>
               </div>
             </Popup>
-          </Marker>
+          </PriorityMarker>
         );
       })}
     </>
