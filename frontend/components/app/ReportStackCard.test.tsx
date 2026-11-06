@@ -14,8 +14,8 @@ const stack: CommunityReportStack = {
   latest_captured_at: "2026-11-01T12:00:00Z",
   pm25: 22,
   value_status: "average",
-  contributing_count: 3,
-  contributing_report_ids: ["a", "b", "c"],
+  contributing_count: 2,
+  contributing_report_ids: ["a", "c"],
 };
 const reports = ["a", "b", "c"].map(
   (id, index) =>
@@ -28,7 +28,7 @@ const reports = ["a", "b", "c"].map(
       captured_at: stack.latest_captured_at,
     }) as CommunityReport,
 );
-it("labels the mean by report count and GPS, including repeat reports", () => {
+it("labels the mean by independent people and keeps older readings as history", () => {
   const select = vi.fn();
   render(
     <ReportStackCard
@@ -39,13 +39,11 @@ it("labels the mean by report count and GPS, including repeat reports", () => {
     />,
   );
   expect(screen.getByText("3 รายงานจาก 2 คน")).toBeTruthy();
-  expect(
-    screen.getByText("ค่าเฉลี่ยจาก 3 รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม."),
-  ).toBeTruthy();
+  expect(screen.getByText("ค่าเฉลี่ยค่าล่าสุดจาก 2 คน")).toBeTruthy();
   expect(screen.queryByText(/60 นาที/)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }));
-  expect(screen.getByText(/รวมรายงานจากคนเดียวกัน/)).toBeTruthy();
-  expect(screen.getAllByText("ใช้ในค่าเฉลี่ย")).toHaveLength(3);
+  expect(screen.getByText(/ใช้ค่าล่าสุดคนละ 1 รายงาน/)).toBeTruthy();
+  expect(screen.getAllByText("ใช้ในค่าเฉลี่ย")).toHaveLength(2);
   fireEvent.click(screen.getAllByRole("button", { name: /Alice/ })[0]);
   expect(select).toHaveBeenCalledWith(reports[0]);
 });
@@ -65,7 +63,7 @@ it("explains missing GPS eligibility without blaming the time of measurement", (
     />,
   );
   expect(
-    screen.getByText("ไม่มีรายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม."),
+    screen.getByText("ไม่มีค่าล่าสุดที่ GPS คลาดเคลื่อนไม่เกิน 50 ม."),
   ).toBeTruthy();
   expect(screen.queryByText(/60 นาที/)).toBeNull();
 });
@@ -84,9 +82,7 @@ it("shows a single eligible reading as one report", () => {
       onClose={vi.fn()}
     />,
   );
-  expect(
-    screen.getByText("ค่าจาก 1 รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม."),
-  ).toBeTruthy();
+  expect(screen.getByText(/^ค่าล่าสุด ·/)).toBeTruthy();
 });
 it("shows one profile per person while keeping all individual readings accessible", () => {
   const select = vi.fn();
@@ -131,4 +127,34 @@ it("combines per-report anonymous IDs using the server's stack-only grouping", (
   expect(
     screen.getAllByRole("button", { name: /ดูรายงานของ Reporter/ }),
   ).toHaveLength(3);
+});
+it("shows the latest value 6 and keeps the older value 4 as history for one person", () => {
+  const readings = [
+    { ...reports[0], id: "new", pm25: 6, captured_at: "2026-11-06T14:33:00Z" },
+    { ...reports[0], id: "old", pm25: 4, captured_at: "2026-11-06T14:32:00Z" },
+  ];
+  render(
+    <ReportStackCard
+      stack={{
+        ...stack,
+        report_ids: ["new", "old"],
+        report_count: 2,
+        reporter_count: 1,
+        pm25: 6,
+        value_status: "single",
+        contributing_count: 1,
+        contributing_report_ids: ["new"],
+      }}
+      reports={readings}
+      onSelectReport={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  expect(screen.getByText(/^ค่าล่าสุด ·/)).toBeTruthy();
+  expect(screen.queryByText(/ค่าเฉลี่ย/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "ดูทั้ง 2 รายงาน" }));
+  expect(screen.getAllByText("Alice")).toHaveLength(1);
+  expect(screen.getByText("ค่าล่าสุด", { exact: true })).toBeTruthy();
+  expect(screen.getByText("รายงานก่อนหน้า")).toBeTruthy();
+  expect(screen.queryByText("ใช้ในค่าเฉลี่ย")).toBeNull();
 });

@@ -38,14 +38,19 @@ export default function ReportStackCard({
   onClose: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const contributingIds = new Set(stack.contributing_report_ids);
+  const selectedReading = reports.find((report) =>
+    contributingIds.has(report.id),
+  );
   const statusText = {
-    average: `ค่าเฉลี่ยจาก ${stack.contributing_count} รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม.`,
-    single: "ค่าจาก 1 รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม.",
+    average: `ค่าเฉลี่ยค่าล่าสุดจาก ${stack.contributing_count} คน`,
+    single: selectedReading
+      ? `ค่าล่าสุด · ${reportTime(selectedReading.captured_at)}`
+      : "ค่าล่าสุดของผู้รายงาน",
     mixed: "ค่ารายงานแตกต่างกัน จึงไม่แสดงค่าเฉลี่ย",
-    older: "ไม่มีรายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม.",
+    older: "ไม่มีค่าล่าสุดที่ GPS คลาดเคลื่อนไม่เกิน 50 ม.",
   }[stack.value_status];
   const color = stack.pm25 == null ? "#58716d" : classifyPm25(stack.pm25).color;
-  const contributingIds = new Set(stack.contributing_report_ids);
   const reporters = stackReporterGroups(stack, reports);
 
   return (
@@ -94,8 +99,8 @@ export default function ReportStackCard({
       {expanded && (
         <>
           <p className="cp-report-stack-card__note">
-            เรียงตามเวลาล่าสุด · เฉลี่ยทุกรายงานในกลุ่มที่ GPS
-            คลาดเคลื่อนไม่เกิน 50 ม. รวมรายงานจากคนเดียวกัน ·
+            เรียงตามเวลาล่าสุด · ใช้ค่าล่าสุดคนละ 1 รายงานที่ GPS
+            คลาดเคลื่อนไม่เกิน 50 ม. หากมีหลายคนจึงแสดงค่าเฉลี่ย ·
             ข้อมูลจากผู้ใช้เป็นข้อมูลเสริม และหมุดถูกเลื่อนเพื่อความเป็นส่วนตัว
           </p>
           <div className="cp-report-stack-card__list">
@@ -154,12 +159,14 @@ export default function ReportStackCard({
                       <span>
                         <small>{reportTime(report.captured_at)}</small>
                         <small>แตะดูภาพและรายละเอียด</small>
-                        {stack.value_status === "average" &&
-                          contributingIds.has(report.id) && (
-                            <em className="cp-report-stack-card__included">
-                              ใช้ในค่าเฉลี่ย
-                            </em>
-                          )}
+                        <em className="cp-report-stack-card__included">
+                          {stack.value_status === "average" &&
+                          contributingIds.has(report.id)
+                            ? "ใช้ในค่าเฉลี่ย"
+                            : report.id === readings[0].id
+                              ? "ค่าล่าสุด"
+                              : "รายงานก่อนหน้า"}
+                        </em>
                       </span>
                       <b>
                         {report.pm25 ?? "—"} <small>µg/m³</small>

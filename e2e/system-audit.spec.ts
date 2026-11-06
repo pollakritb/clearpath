@@ -131,7 +131,7 @@ test("a temporary OCR outage can be retried with the captured photo @camera-390"
   ).toBeVisible();
   await expect(page.locator("body")).not.toContainText("OPENAI_API_KEY");
   await page.getByRole("button", { name: "ลองอ่านภาพอีกครั้ง" }).click();
-  await expect(page.getByText("PM2.5 23.4 µg/m³")).toBeVisible();
+  await expect(page.getByLabel("PM2.5 23.4 µg/m³")).toBeVisible();
   expect(attempts).toBe(2);
   await expect(
     page.getByRole("button", { name: "ส่งรายงาน", exact: true }),

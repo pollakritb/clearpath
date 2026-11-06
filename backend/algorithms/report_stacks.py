@@ -48,14 +48,18 @@ def _can_stack(first: dict, second: dict) -> bool:
 
 
 def _reading_status(members: list[dict]) -> tuple[str, float | None, list[str]]:
-    """Among already published/map-visible reports, only GPS gates the mean.
+    """Use each person's latest visible report once, then apply the GPS rule.
 
-    Each eligible report contributes equally, including repeat reports from the
-    same account. Audit flags and differences between readings do not exclude it.
+    Members are ordered newest first by capture time and ID. An older accurate
+    report never replaces a newer report with poor GPS, and repeat submissions
+    cannot increase one person's weight in the displayed stack value.
     """
+    latest_by_reporter: dict[str, dict] = {}
+    for row in members:
+        latest_by_reporter.setdefault(str(row["user_id"]), row)
     selected = [
         row
-        for row in members
+        for row in latest_by_reporter.values()
         if (accuracy := _accuracy(row)) is not None
         and accuracy <= AVERAGE_MAX_GPS_ACCURACY_M
     ]

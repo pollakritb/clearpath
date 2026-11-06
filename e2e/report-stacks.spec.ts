@@ -40,9 +40,7 @@ test("local stack demo shows grouped reports and their individual details", asyn
   await expect(
     card.getByRole("heading", { name: "3 รายงานจาก 2 คน" }),
   ).toBeVisible();
-  await expect(
-    card.getByText("ค่าเฉลี่ยจาก 2 รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม."),
-  ).toBeVisible();
+  await expect(card.getByText("ค่าเฉลี่ยค่าล่าสุดจาก 2 คน")).toBeVisible();
   await expect(card).toHaveAttribute("data-expanded", "false");
   expect(
     await card.evaluate((element) => element.getBoundingClientRect().height),
@@ -139,9 +137,7 @@ test("nearby user reports share a marker and preserve each photo/detail", async 
   await expect(
     card.getByRole("heading", { name: "3 รายงานจาก 2 คน" }),
   ).toBeVisible();
-  await expect(
-    card.getByText("ค่าเฉลี่ยจาก 2 รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม."),
-  ).toBeVisible();
+  await expect(card.getByText("ค่าเฉลี่ยค่าล่าสุดจาก 2 คน")).toBeVisible();
   await card.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }).click();
   await expect(card.getByText("ใช้ในค่าเฉลี่ย")).toHaveCount(2);
   await expect(card.locator(".cp-report-stack-card__item")).toHaveCount(3);

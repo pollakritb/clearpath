@@ -31,7 +31,7 @@ def test_two_nearby_users_get_one_average():
     assert "lat" not in groups[0] and "lon" not in groups[0]
 
 
-def test_each_eligible_report_contributes_even_from_the_same_account():
+def test_each_person_contributes_only_their_latest_report():
     rows = [
         report(
             "old", "alice", 18, captured_at=(NOW - timedelta(minutes=40)).isoformat()
@@ -43,9 +43,9 @@ def test_each_eligible_report_contributes_even_from_the_same_account():
     assert group["report_count"] == 3
     assert group["reporter_count"] == 2
     assert group["report_ids"][0] in {"new", "bob"}
-    assert group["pm25"] == 21.3
-    assert group["contributing_count"] == 3
-    assert set(group["contributing_report_ids"]) == {"old", "new", "bob"}
+    assert group["pm25"] == 23
+    assert group["contributing_count"] == 2
+    assert set(group["contributing_report_ids"]) == {"new", "bob"}
 
 
 def test_distance_accounts_for_both_gps_accuracy_radii():
@@ -100,16 +100,19 @@ def test_poor_accuracy_can_stack_visually_but_not_affect_average():
     assert group["value_status"] == "older"
 
 
-def test_repeat_reports_are_labelled_as_a_report_average_not_an_area_average():
+def test_repeat_reports_from_one_person_show_the_latest_value_without_averaging():
     rows = [
         report("a", "alice", 20, captured_at=(NOW - timedelta(minutes=25)).isoformat()),
         report("b", "alice", 22),
     ]
     group = group_report_stacks(rows, now=NOW)[0]
-    assert group["value_status"] == "average"
-    assert group["pm25"] == 21
+    assert group["value_status"] == "single"
+    assert group["pm25"] == 22
     assert group["reporter_count"] == 1
-    assert group["contributing_count"] == 2
+    assert group["contributing_count"] == 1
+
+    assert group["contributing_report_ids"] == ["b"]
+    assert set(group["report_ids"]) == {"a", "b"}
 
 
 def test_public_stack_uses_only_obfuscated_report_coordinates(monkeypatch):
@@ -195,3 +198,60 @@ def test_reporter_membership_exposes_only_report_ids_within_each_stack():
     }
     assert "private-alice" not in str(group)
     assert "private-bob" not in str(group)
+
+
+def test_same_person_screenshot_case_uses_six_not_the_mean_of_six_and_four():
+    rows = [
+        report(
+            "old", "alice", 4, captured_at=(NOW - timedelta(minutes=11)).isoformat()
+        ),
+        report("new", "alice", 6),
+    ]
+    for ordered in [rows, list(reversed(rows))]:
+        stack = group_report_stacks(ordered, now=NOW)[0]
+        assert stack["pm25"] == 6
+        assert stack["value_status"] == "single"
+        assert stack["contributing_count"] == 1
+        assert stack["contributing_report_ids"] == ["new"]
+        assert set(stack["report_ids"]) == {"new", "old"}
+
+
+def test_old_accurate_reading_does_not_replace_latest_poor_gps_reading():
+    stack = group_report_stacks(
+        [
+            report(
+                "old", "alice", 4, captured_at=(NOW - timedelta(minutes=11)).isoformat()
+            ),
+            report("new", "alice", 6, gps_accuracy_m=100),
+        ],
+        now=NOW,
+    )[0]
+    assert stack["pm25"] is None
+    assert stack["contributing_report_ids"] == []
+    assert stack["report_count"] == 2
+
+
+def test_more_reports_from_one_person_do_not_increase_their_weight():
+    stack = group_report_stacks(
+        [
+            report(
+                "old1",
+                "alice",
+                200,
+                captured_at=(NOW - timedelta(minutes=30)).isoformat(),
+            ),
+            report(
+                "old2",
+                "alice",
+                100,
+                captured_at=(NOW - timedelta(minutes=20)).isoformat(),
+            ),
+            report("new", "alice", 6),
+            report("bob", "bob", 10),
+        ],
+        now=NOW,
+    )[0]
+    assert stack["pm25"] == 8
+    assert stack["contributing_count"] == 2
+    assert set(stack["contributing_report_ids"]) == {"new", "bob"}
+    assert stack["report_count"] == 4

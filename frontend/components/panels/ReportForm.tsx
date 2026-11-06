@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import OcrReadingDisplay from "./report/OcrReadingDisplay";
+import feedbackStyles from "./report/ReportFeedback.module.css";
 import ReportXPResult from "@/frontend/components/community/ReportXPResult";
 
 import { useEffect, useRef, useState } from "react";
@@ -327,17 +330,22 @@ export default function ReportForm({
               <dd>{approved ? "เผยแพร่แล้ว" : "ไม่ผ่านเกณฑ์"}</dd>
             </div>
           </dl>
-          <button
-            type="button"
-            className="cp-report-submit cp-focus"
-            onClick={() => {
-              setCompleted(null);
-              setMessage(null);
-              setError(null);
-            }}
-          >
-            ส่งรายงานใหม่
-          </button>
+          <div className={feedbackStyles.actions}>
+            <Link href="/" className={`${feedbackStyles.finish} cp-focus`}>
+              เสร็จสิ้นและกลับไปแผนที่
+            </Link>
+            <button
+              type="button"
+              className={`${feedbackStyles.newReport} cp-focus`}
+              onClick={() => {
+                setCompleted(null);
+                setMessage(null);
+                setError(null);
+              }}
+            >
+              ส่งรายงานใหม่
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -504,13 +512,11 @@ export default function ReportForm({
               </div>
             ) : (
               <div className="cp-report-fields">
-                <div aria-label="ค่าฝุ่นที่อ่านจากภาพ">
-                  <strong>PM2.5 {draft.ocr_pm25} µg/m³</strong>
-                  <p>ระบบจะเผยแพร่ค่าที่อ่านจากภาพโดยอัตโนมัติ</p>
-                  <p>
-                    เวลาที่วัด{" "}
-                    {new Date(draft.captured_at).toLocaleString("th-TH")}
-                  </p>
+                <div>
+                  <OcrReadingDisplay
+                    value={draft.ocr_pm25}
+                    capturedAt={draft.captured_at}
+                  />
                   {evidence?.measuredLocation && (
                     <p>
                       ตำแหน่งจากภาพ {evidence.measuredLocation.lat.toFixed(5)},{" "}
