@@ -1,4 +1,5 @@
 "use client";
+import BrandMark from "@/frontend/components/ui/BrandMark";
 
 import { useEffect, useState } from "react";
 
@@ -80,7 +81,7 @@ export default function MapChrome({
     <>
       <div className="cp-map-topbar" aria-label="ข้อมูลแผนที่ ClearPath">
         <div aria-hidden className="cp-map-topbar__mark">
-          C
+          <BrandMark />
         </div>
         <div className="cp-map-topbar__copy">
           <strong>ClearPath</strong>

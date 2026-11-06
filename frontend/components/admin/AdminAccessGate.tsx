@@ -1,3 +1,4 @@
+import BrandMark from "@/frontend/components/ui/BrandMark";
 import Link from "next/link";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
@@ -13,7 +14,9 @@ export default function AdminAccessGate() {
     return (
       <main className="cp-admin-gate">
         <div className="cp-admin-gate__card">
-          <span className="cp-admin-gate__mark">C</span>
+          <span className="cp-admin-gate__mark cp-admin-gate__mark--brand">
+            <BrandMark />
+          </span>
           <h1>กำลังตรวจสอบสิทธิ์</h1>
           <p>โปรดรอสักครู่ ระบบกำลังตรวจสอบ session ของคุณ</p>
         </div>

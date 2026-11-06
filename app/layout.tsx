@@ -33,7 +33,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   interactiveWidget: "resizes-content",
-  themeColor: "#0b766f",
+  themeColor: "#147BC1",
 };
 
 export default function RootLayout({

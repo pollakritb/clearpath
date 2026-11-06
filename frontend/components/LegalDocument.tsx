@@ -1,3 +1,4 @@
+import BrandMark from "@/frontend/components/ui/BrandMark";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -20,7 +21,7 @@ export function LegalDocument({
         <header className="cp-legal-header">
           <Link href="/" className="cp-legal-brand">
             <span aria-hidden="true" className="cp-legal-brand__mark">
-              C
+              <BrandMark />
             </span>
             <span>
               <span className="cp-legal-brand__name">ClearPath</span>

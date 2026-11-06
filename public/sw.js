@@ -1,5 +1,5 @@
 self.addEventListener("install", (event) => {
-  const cacheName = "clearpath-shell-v1";
+  const cacheName = "clearpath-shell-v2";
   const shell = [
     "/",
     "/air",
@@ -17,7 +17,7 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  const activeCache = "clearpath-shell-v1";
+  const activeCache = "clearpath-shell-v2";
   event.waitUntil(
     caches
       .keys()
@@ -46,7 +46,7 @@ self.addEventListener("fetch", (event) => {
           if (response.ok) {
             const copy = response.clone();
             void caches
-              .open("clearpath-shell-v1")
+              .open("clearpath-shell-v2")
               .then((cache) => cache.put(request, copy));
           }
           return response;
@@ -70,7 +70,7 @@ self.addEventListener("fetch", (event) => {
             if (response.ok) {
               const copy = response.clone();
               void caches
-                .open("clearpath-shell-v1")
+                .open("clearpath-shell-v2")
                 .then((cache) => cache.put(request, copy));
             }
             return response;

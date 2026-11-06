@@ -3371,7 +3371,7 @@
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: linear-gradient(145deg, #18ad9f, #087a72);
+  background: transparent;
   color: #fff;
   font: 900 1rem var(--font-mono);
 }
@@ -11561,4 +11561,11 @@ dialog.cp-login-modal::backdrop {
   height: 44px;
   padding: 10px;
   color: var(--cp-teal);
+}
+
+.cp-brand-mark-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }

@@ -8,20 +8,20 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     display: "standalone",
     background_color: "#f4f7f6",
-    theme_color: "#0e7c79",
+    theme_color: "#147BC1",
     lang: "th",
     icons: [
       {
-        src: "/icon.svg",
-        sizes: "any",
-        type: "image/svg+xml",
+        src: "/android-chrome-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icon.svg",
-        sizes: "any",
-        type: "image/svg+xml",
-        purpose: "maskable",
+        src: "/android-chrome-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
       },
     ],
     shortcuts: [
@@ -29,19 +29,37 @@ export default function manifest(): MetadataRoute.Manifest {
         name: "อากาศวันนี้",
         short_name: "วันนี้",
         url: "/air",
-        icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
+        icons: [
+          {
+            src: "/clearpath-app-icon.svg",
+            sizes: "any",
+            type: "image/svg+xml",
+          },
+        ],
       },
       {
         name: "ส่งข้อมูล PM2.5",
         short_name: "ส่งข้อมูล",
         url: "/report",
-        icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
+        icons: [
+          {
+            src: "/clearpath-app-icon.svg",
+            sizes: "any",
+            type: "image/svg+xml",
+          },
+        ],
       },
       {
         name: "ข่าวสาร ClearPath",
         short_name: "ข่าวสาร",
         url: "/community",
-        icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
+        icons: [
+          {
+            src: "/clearpath-app-icon.svg",
+            sizes: "any",
+            type: "image/svg+xml",
+          },
+        ],
       },
     ],
   };

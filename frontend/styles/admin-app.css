@@ -1495,3 +1495,7 @@
     font-size: 13px;
   }
 }
+
+.cp-admin-gate__mark--brand {
+  background: transparent;
+}
