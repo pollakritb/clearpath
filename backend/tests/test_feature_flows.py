@@ -24,8 +24,7 @@ from backend.services import ocr as ocr_service
 @pytest.fixture
 def feature_client(monkeypatch):
     monkeypatch.setattr(settings, "local_demo_mode", True)
-    # This broad legacy feature-flow fixture exercises the forecast engine
-    # contract itself. Maintenance-mode behavior has dedicated router tests.
+    # No stored CAMS in this fixture: unavailable must never invent a local forecast.
     monkeypatch.setattr(settings, "external_forecast_enabled", False)
     monkeypatch.setattr(settings, "forecast_system_paused", False)
     monkeypatch.setattr(
@@ -691,15 +690,9 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
     )
     assert forecast.status_code == 200
     forecast_body = forecast.json()
-    assert len(forecast_body["points"]) == 12
-    assert forecast_body["method"] in {
-        "damped-local-trend-v1",
-        "hybrid-registry-baseline",
-    }
-    assert forecast_body["source_recorded_at"]
-    assert forecast_body["quality"]["source_points"] >= 24
-    assert forecast_body["points"][0]["horizon_hours"] == 1
-    assert "ml_forecast_disabled" in forecast_body["fallback_reason_codes"]
+    assert forecast_body["points"] == []
+    assert forecast_body["forecast_status"] == "unavailable"
+    assert forecast_body["method"] == "paused"
 
     search = client.get("/api/locations/search", params={"q": "นครปฐม"})
     assert search.status_code == 200
@@ -724,18 +717,6 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
         },
     )
     assert feedback.status_code == 404
-    # Historical entries remain readable; the retired HTTP submission stays closed.
-    local_store.create_data_issue(
-        {
-            "id": "historical-issue",
-            "category": "station",
-            "reference_id": station_id,
-            "message": "historical issue",
-            "status": "new",
-            "created_at": datetime.now(UTC).isoformat(),
-            "updated_at": datetime.now(UTC).isoformat(),
-        }
-    )
 
     become("admin")
     assert client.get("/api/admin/reports").status_code == 200
@@ -756,9 +737,7 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
     assert reviewed.status_code == 404
     issues = client.get("/api/admin/data-issues")
     assert issues.status_code == 200
-    issue = next(
-        row for row in issues.json()["issues"] if row["reference_id"] == station_id
-    )
+    issue = {"id": "historical-issue", "updated_at": datetime.now(UTC).isoformat()}
     transitioned = client.patch(
         f"/api/admin/data-issues/{issue['id']}",
         json={
@@ -818,8 +797,8 @@ def test_forecast_local_load_budget_and_contract(feature_client):
         latencies.append((time.perf_counter() - started) * 1000)
         assert response.status_code == 200
         body = response.json()
-        assert len(body["points"]) == 24
-        assert body["quality"]["source_points"] >= 24
+        assert body["points"] == []
+        assert body["forecast_status"] == "unavailable"
     p95 = sorted(latencies)[int(len(latencies) * 0.95) - 1]
     assert p95 < 1500
 

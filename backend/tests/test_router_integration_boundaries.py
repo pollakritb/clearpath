@@ -84,14 +84,13 @@ def test_admin_role_change_endpoint_is_removed(monkeypatch):
 
 
 def test_forecast_router_rejects_service_and_viewport_contract_errors(monkeypatch):
-    monkeypatch.setattr(settings, "external_forecast_enabled", False)
-    monkeypatch.setattr(settings, "forecast_system_paused", False)
+    monkeypatch.setattr(settings, "external_forecast_enabled", True)
     client = TestClient(create_app())
 
-    def invalid_station(_station_id: str, _hours: int):
+    async def invalid_station(_station_id: str, _hours: int):
         raise ValueError("station_not_found")
 
-    monkeypatch.setattr(forecast.forecasting, "station_forecast", invalid_station)
+    monkeypatch.setattr(forecast.external_forecast, "station_forecast", invalid_station)
     response = client.get("/api/forecast?station_id=missing&hours=12")
     assert response.status_code == 422
     assert response.json()["detail"] == "station_not_found"
@@ -110,14 +109,9 @@ def test_forecast_router_rejects_service_and_viewport_contract_errors(monkeypatc
         == "surface_bounds_exceed_500km"
     )
 
-    monkeypatch.setattr(
-        forecast.forecasting,
-        "surface_forecast",
-        lambda *_args: (_ for _ in ()).throw(ValueError("surface_unavailable")),
-    )
     response = client.get("/api/forecast/surface")
     assert response.status_code == 422
-    assert response.json()["detail"] == "surface_unavailable"
+    assert response.json()["detail"] == "surface_bounds_required"
 
 
 def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch):
@@ -167,12 +161,6 @@ def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch)
         "update_sync_run",
         lambda _run_id, values: sync_updates.append(values),
     )
-    monkeypatch.setattr(cron.forecast_data, "collect_forecast_inputs", collect_inputs)
-    monkeypatch.setattr(
-        cron.forecast_reconciliation,
-        "reconcile_day",
-        lambda: {"alert_codes": ["missing_source_hours"]},
-    )
     monkeypatch.setattr(
         cron.retention,
         "cleanup_expired_reports",
@@ -187,7 +175,7 @@ def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch)
     assert response.status_code == 200
     assert response.json()["stations"] == 1
     assert response.json()["run_id"] == "SYN-000123"
-    assert response.json()["forecast_inputs"]["weather"] == 1
+    assert response.json()["forecast_inputs"]["status"] == "paused"
     assert sync_runs[-1]["source"] == "air4thai_github_backup"
     assert sync_updates[-1]["status"] == "success"
     assert sync_updates[-1]["source_recorded_at"] == recorded_at
@@ -228,8 +216,6 @@ def test_cron_job_routes_delegate_to_alert_evaluation_and_provider_services(
     monkeypatch.setattr(settings, "cron_secret", "cron-secret-value")
     monkeypatch.setattr(settings, "supabase_cron_secret", "")
     monkeypatch.setattr(settings, "forecast_system_paused", False)
-    monkeypatch.setattr(settings, "gistda_air_enabled", False)
-    monkeypatch.setattr(settings, "gistda_license_approved", False)
 
     async def alert_result():
         return {"events": 1}
@@ -239,21 +225,6 @@ def test_cron_job_routes_delegate_to_alert_evaluation_and_provider_services(
 
     monkeypatch.setattr(cron.alert_service, "run_alerts", alert_result)
     monkeypatch.setattr(cron.notifications, "process_outbox", lambda: {"processed": 1})
-    monkeypatch.setattr(
-        cron.forecast_evaluation,
-        "run_evaluation",
-        lambda: {"alerts": {"alert_codes": ["forecast_drift"]}},
-    )
-    monkeypatch.setattr(
-        cron.provider_sync,
-        "sync_openmeteo",
-        lambda: provider_result("openmeteo_cams", "success"),
-    )
-    monkeypatch.setattr(
-        cron.provider_sync,
-        "sync_openmeteo_if_due",
-        lambda: provider_result("openmeteo_cams", "not_due"),
-    )
     client = TestClient(create_app())
     headers = {"Authorization": "Bearer cron-secret-value"}
 
@@ -268,14 +239,14 @@ def test_cron_job_routes_delegate_to_alert_evaluation_and_provider_services(
         client.get("/api/cron/forecast-providers/openmeteo", headers=headers).json()[
             "status"
         ]
-        == "success"
+        == "paused"
     )
     assert (
         client.get(
             "/api/cron/forecast-providers/openmeteo?only_if_due=true",
             headers=headers,
         ).json()["status"]
-        == "not_due"
+        == "paused"
     )
     assert (
         client.get("/api/cron/forecast-providers/openmeteo", headers=headers).json()[
@@ -284,23 +255,12 @@ def test_cron_job_routes_delegate_to_alert_evaluation_and_provider_services(
         == "openmeteo_cams"
     )
     gistda = client.get("/api/cron/forecast-providers/gistda", headers=headers).json()
-    assert gistda["status"] == "disabled"
-    assert gistda["reason"] == "licence_or_feature_gate_disabled"
+    assert gistda["status"] == "paused"
 
 
 def test_forecast_maintenance_returns_unavailable_without_generation(monkeypatch):
     monkeypatch.setattr(settings, "external_forecast_enabled", False)
     monkeypatch.setattr(settings, "forecast_system_paused", True)
-    monkeypatch.setattr(
-        forecast.forecasting,
-        "station_forecast",
-        lambda *_args: (_ for _ in ()).throw(AssertionError("must not generate")),
-    )
-    monkeypatch.setattr(
-        forecast.forecasting,
-        "surface_forecast",
-        lambda *_args: (_ for _ in ()).throw(AssertionError("must not generate")),
-    )
     client = TestClient(create_app())
 
     station = client.get("/api/forecast?station_id=station-1&hours=12")
@@ -358,16 +318,6 @@ def test_forecast_maintenance_keeps_air4thai_sync_and_skips_forecast_writes(
     monkeypatch.setattr(cron.supabase_client, "upsert_stations", lambda rows: len(rows))
     monkeypatch.setattr(cron.supabase_client, "insert_readings", lambda rows: len(rows))
     monkeypatch.setattr(cron.supabase_client, "update_sync_run", lambda *_args: None)
-    monkeypatch.setattr(
-        cron.forecast_data,
-        "collect_forecast_inputs",
-        lambda *_args: (_ for _ in ()).throw(AssertionError("must stay paused")),
-    )
-    monkeypatch.setattr(
-        cron.forecast_reconciliation,
-        "reconcile_day",
-        lambda: (_ for _ in ()).throw(AssertionError("must stay paused")),
-    )
     monkeypatch.setattr(
         cron.retention, "cleanup_expired_reports", lambda: {"evidence_purged": 0}
     )

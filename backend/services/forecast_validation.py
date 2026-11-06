@@ -6,6 +6,8 @@ from datetime import UTC, datetime, timedelta
 
 from starlette.concurrency import run_in_threadpool
 
+from backend.services import store_client
+
 from ..algorithms.cams_accuracy import aggregate
 from ..algorithms.external_forecast import select_hourly_rows
 from ..algorithms.forecast_validation import (
@@ -29,7 +31,7 @@ def validated_station_summary(station_id: str) -> dict:
     }
     cutoff = (datetime.now(UTC) - timedelta(days=30)).isoformat()
     try:
-        client = supabase_client.get_client()
+        client = store_client.get_client()
         snapshots = (
             client.table("forecast_validation_snapshots")
             .select("*")

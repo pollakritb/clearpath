@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 
 from backend.core.identifiers import code, number
+from backend.services import store_client
 from backend.services.identifier_client import IdentifierClient
 
 
@@ -263,7 +264,6 @@ def test_rollout_pause_blocks_writes_and_get_cron_but_keeps_public_reads(monkeyp
     from fastapi.testclient import TestClient
 
     from backend.main import create_app
-    from backend.services import supabase_client as db
 
     raw = Raw()
     original_rpc = raw.rpc
@@ -274,10 +274,12 @@ def test_rollout_pause_blocks_writes_and_get_cron_but_keeps_public_reads(monkeyp
         return original_rpc(name, params)
 
     raw.rpc = rpc
-    monkeypatch.setattr(db.settings, "local_demo_mode", False)
-    monkeypatch.setattr(db.settings, "supabase_url", "https://example.test")
-    monkeypatch.setattr(db.settings, "supabase_service_role_key", "test-secret")
-    monkeypatch.setattr(db, "get_client", lambda: IdentifierClient(raw))
+    monkeypatch.setattr(store_client.settings, "local_demo_mode", False)
+    monkeypatch.setattr(store_client.settings, "supabase_url", "https://example.test")
+    monkeypatch.setattr(
+        store_client.settings, "supabase_service_role_key", "test-secret"
+    )
+    monkeypatch.setattr(store_client, "get_client", lambda: IdentifierClient(raw))
     with TestClient(create_app()) as client:
         assert client.get("/api/health").status_code == 200
         assert client.post("/api/community/capture-session").status_code == 503

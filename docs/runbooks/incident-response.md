@@ -18,19 +18,20 @@ Page the on-call owner when any condition occurs:
 1. Record start time, reporter, release SHA and request IDs. Do not paste tokens,
    report images or exact coordinates into the incident channel.
 2. Check Vercel runtime logs using request ID and Supabase service status.
-3. Run `scripts.verify_deployment` and inspect Admin sync/outbox/model status.
+3. Run `scripts.verify_deployment` and inspect Admin sync/outbox status.
 4. Contain with the narrowest feature flag:
    - หาก OCR ขัดข้อง ระบบจะปฏิเสธรายงานใหม่แบบ fail closed และให้ผู้ใช้ลองใหม่;
    - `PUSH_ENABLED=false` — stop delivery while keeping preferences;
-   - `ML_FORECAST_ENABLED=false` — return to explainable baseline;
-   - disable Vercel cron temporarily if it is damaging data.
+   - `EXTERNAL_FORECAST_ENABLED=false` — return unavailable for station/area forecasts;
+   - disable the affected CAMS collector flag if collection is failing;
+   - pause the affected Supabase/GitHub scheduler if it is damaging data.
 5. Redeploy after a Vercel environment change; old deployments do not receive
    new values.
 
 ## Privacy/security incident
 
 1. Disable affected evidence access and rotate the service-role, capture, cron,
-   VAPID and OpenAI keys as applicable.
+   LINE and OpenAI keys as applicable.
 2. Revoke suspicious Auth sessions and remove compromised Admin roles.
 3. Preserve audit logs and affected evidence under audit hold. Do not run normal
    retention deletion on evidence required for investigation.

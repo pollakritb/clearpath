@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Annotated
 from urllib.parse import urlparse
 
@@ -29,6 +30,7 @@ class AuthenticatedUser:
     display_name: str | None = None
     avatar_url: str | None = None
     identity_provider: str | None = None
+    authenticated_at: str | None = None
 
 
 def _safe_google_avatar_url(value: object, provider: str | None) -> str | None:
@@ -74,6 +76,7 @@ def require_user(
             display_name=profile.get("display_name"),
             avatar_url=profile.get("avatar_url"),
             identity_provider=profile.get("identity_provider"),
+            authenticated_at=datetime.now(UTC).isoformat(),
         )
 
     token = _bearer_token(authorization)
@@ -121,6 +124,7 @@ def require_user(
         # never against identity data left over from an older session.
         avatar_url=avatar_url,
         identity_provider="google" if provider == "google" else None,
+        authenticated_at=auth_user.get("authenticated_at"),
     )
 
 
@@ -137,4 +141,17 @@ def require_admin(
 ) -> AuthenticatedUser:
     if user.role != "admin":
         raise HTTPException(403, detail="ต้องมีสิทธิ์ผู้ดูแลระบบ")
+    return user
+
+
+def require_recent_user(
+    user: Annotated[AuthenticatedUser, Depends(require_user)],
+) -> AuthenticatedUser:
+    try:
+        at = datetime.fromisoformat(user.authenticated_at or "")
+        age = (datetime.now(UTC) - at).total_seconds()
+    except (TypeError, ValueError):
+        age = -1
+    if not 0 <= age <= 300:
+        raise HTTPException(403, detail="กรุณาเข้าสู่ระบบใหม่ก่อนจัดการข้อมูลบัญชี")
     return user

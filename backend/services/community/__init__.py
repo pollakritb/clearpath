@@ -8,7 +8,6 @@ from .engagement import (
     remove_comment,
     set_reaction,
 )
-from .feedback import create_data_issue
 from .presenter import (
     list_map_points,
     list_public_map_reports,
@@ -19,7 +18,6 @@ from .reviews import rate_report
 
 __all__ = [
     "create_draft",
-    "create_data_issue",
     "add_comment",
     "clear_reaction",
     "discard_draft",

@@ -69,7 +69,8 @@ __pycache__/
 *.py[cod]
 .mypy_cache/
 
-.vercel
+# Supabase CLI local cache
+/supabase/.temp/
 
 # Local browser QA artifacts
 .playwright-cli/
@@ -78,3 +79,4 @@ __pycache__/
 /.community-reset-backups/
 
 /output/playwright/
+/output/completion-*/

@@ -16,25 +16,7 @@ SECURITY_HEADERS = (
 )
 
 
-def baseline_fallback_valid(
-    *, current_status: int, forecast_status: int | None, forecast: dict
-) -> bool:
-    points = forecast.get("points", [])
-    return bool(
-        current_status == 200
-        and forecast_status == 200
-        and forecast.get("model_version") is None
-        and forecast.get("artifact_sha256") is None
-        and "ml_forecast_disabled" in forecast.get("fallback_reason_codes", [])
-        and points
-        and all(
-            point.get("model_version") is None and point.get("artifact_sha256") is None
-            for point in points
-        )
-    )
-
-
-def verify(base_url: str, *, expect_baseline_fallback: bool = False) -> dict:
+def verify(base_url: str) -> dict:
     origin = base_url.rstrip("/")
     checks: dict[str, bool] = {}
     details: dict[str, object] = {}
@@ -69,40 +51,6 @@ def verify(base_url: str, *, expect_baseline_fallback: bool = False) -> dict:
             ],
         }
     )
-    if expect_baseline_fallback and checks["readiness"]:
-        with httpx.Client(
-            base_url=origin, timeout=30, follow_redirects=True
-        ) as fallback_client:
-            current = fallback_client.get("/api/pm25/current")
-            try:
-                stations = current.json().get("stations", [])
-            except (AttributeError, ValueError):
-                stations = []
-            forecast = (
-                fallback_client.get(
-                    "/api/forecast",
-                    params={"station_id": stations[0]["id"], "hours": 24},
-                )
-                if stations
-                else None
-            )
-        try:
-            forecast_body = forecast.json() if forecast is not None else {}
-        except ValueError:
-            forecast_body = {}
-        points = forecast_body.get("points", [])
-        checks["baseline_fallback"] = baseline_fallback_valid(
-            current_status=current.status_code,
-            forecast_status=forecast.status_code if forecast is not None else None,
-            forecast=forecast_body,
-        )
-        details["baseline_fallback"] = {
-            "current_status": current.status_code,
-            "forecast_status": forecast.status_code if forecast is not None else None,
-            "method": forecast_body.get("method"),
-            "fallback_reason_codes": forecast_body.get("fallback_reason_codes", []),
-            "point_count": len(points),
-        }
     result_ready = all(checks.values())
     return {"ready": result_ready, "checks": checks, "details": details}
 
@@ -110,17 +58,9 @@ def verify(base_url: str, *, expect_baseline_fallback: bool = False) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("base_url", help="Example: https://clearpath.example")
-    parser.add_argument(
-        "--expect-baseline-fallback",
-        action="store_true",
-        help="Verify ML is disabled and all forecast points expose baseline metadata.",
-    )
     args = parser.parse_args()
     try:
-        result = verify(
-            args.base_url,
-            expect_baseline_fallback=args.expect_baseline_fallback,
-        )
+        result = verify(args.base_url)
     except httpx.HTTPError as exc:
         result = {
             "ready": False,

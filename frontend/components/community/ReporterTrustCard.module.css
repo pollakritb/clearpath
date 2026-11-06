@@ -1,0 +1,92 @@
+.panel {
+  margin-block: 16px;
+  padding-block: 16px;
+  border-block: 1px solid var(--cp-line);
+  color: var(--cp-ink);
+  overflow-wrap: anywhere;
+}
+.panel h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.panel p {
+  margin: 6px 0;
+  line-height: 1.6;
+  font-size: 13px;
+  color: var(--cp-subink);
+}
+.panel .score {
+  font-weight: 700;
+  color: var(--cp-ink);
+  font-variant-numeric: tabular-nums;
+}
+.panel summary {
+  min-height: 44px;
+  padding-block: 12px;
+  color: var(--cp-teal);
+  font-size: 13px;
+  cursor: pointer;
+}
+.candidate {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--cp-subink);
+}
+.compact {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--cp-subink);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.history form {
+  display: grid;
+  gap: 12px;
+}
+.history label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.history select,
+.history textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  background: var(--cp-panel);
+  color: var(--cp-ink);
+  font: inherit;
+}
+.history button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--cp-teal);
+  border-radius: 10px;
+  background: var(--cp-panel);
+  color: var(--cp-teal);
+  font: inherit;
+  cursor: pointer;
+}
+.history button:hover {
+  background: var(--cp-teal-soft);
+}
+.history button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.history select:focus-visible,
+.history textarea:focus-visible {
+  outline: 2px solid var(--cp-teal);
+  outline-offset: 2px;
+}

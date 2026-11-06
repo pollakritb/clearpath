@@ -1,6 +1,6 @@
 """Public station forecast and bounded viewport-surface endpoints."""
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 from starlette.concurrency import run_in_threadpool
 
 from ..algorithms.distance import haversine_km
@@ -14,7 +14,6 @@ from ..services import (
     external_forecast,
     forecast_status,
     forecast_validation,
-    forecasting,
 )
 
 router = APIRouter()
@@ -36,7 +35,6 @@ async def validation_summary(station_id: str = Query(min_length=1, max_length=50
 
 @router.get("/forecast", response_model=ForecastResponse)
 async def forecast(
-    background_tasks: BackgroundTasks,
     response: Response,
     station_id: str | None = Query(default=None),
     lat: float | None = Query(default=None, ge=-90, le=90),
@@ -64,25 +62,13 @@ async def forecast(
         return ForecastResponse(**result)
     response.headers["Cache-Control"] = "no-store, max-age=0"
     response.headers["CDN-Cache-Control"] = "no-store"
-    if settings.forecast_system_paused:
-        return ForecastResponse(
-            **forecast_status.unavailable_station_response(station_id or "area", hours)
-        )
-    if not station_id:
-        raise HTTPException(422, detail="station_target_required_for_local_forecast")
-    try:
-        response, ledger = await run_in_threadpool(
-            forecasting.station_forecast, station_id, hours
-        )
-    except ValueError as exc:
-        raise HTTPException(422, detail=str(exc)) from exc
-    background_tasks.add_task(forecasting.persist_ledger, ledger)
-    return ForecastResponse(**response)
+    return ForecastResponse(
+        **forecast_status.unavailable_station_response(station_id or "area", hours)
+    )
 
 
 @router.get("/forecast/surface", response_model=ForecastSurfaceResponse)
 async def surface(
-    background_tasks: BackgroundTasks,
     response: Response,
     horizon: int = Query(12),
     grid_size: int = Query(12, ge=4, le=30),
@@ -120,16 +106,6 @@ async def surface(
             "public, max-age=300, s-maxage=1800, stale-while-revalidate=300"
         )
         return ForecastSurfaceResponse(**result)
-    if settings.forecast_system_paused:
-        return ForecastSurfaceResponse(
-            **forecast_status.unavailable_surface_response(horizon, grid_size, bounds)
-        )
-    try:
-        response, ledgers = await run_in_threadpool(
-            forecasting.surface_forecast, horizon, grid_size, bounds
-        )
-    except ValueError as exc:
-        raise HTTPException(422, detail=str(exc)) from exc
-    for ledger in ledgers:
-        background_tasks.add_task(forecasting.persist_ledger, ledger)
-    return ForecastSurfaceResponse(**response)
+    return ForecastSurfaceResponse(
+        **forecast_status.unavailable_surface_response(horizon, grid_size, bounds)
+    )

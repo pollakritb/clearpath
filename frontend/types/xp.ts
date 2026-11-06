@@ -1,4 +1,4 @@
-import type { EvidenceHistory } from "./evidence";
+import type { EvidenceHistory, ReporterTrust } from "./evidence";
 export interface ParticipationRank {
   code: string;
   label: string;
@@ -9,6 +9,7 @@ export interface ParticipationRank {
   next_days: number | null;
 }
 export interface XPSummary {
+  reporter_trust?: ReporterTrust | null;
   member_id: string;
   alias: string;
   hidden: boolean;
@@ -86,6 +87,7 @@ export interface HelpClaim {
   potential_xp: number;
 }
 export interface PublicMember {
+  reporter_trust?: ReporterTrust | null;
   evidence_history?: EvidenceHistory | null;
   member_id: string;
   alias: string;

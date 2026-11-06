@@ -95,7 +95,8 @@ def chunks():
 def test_assemble_stable_cell_order_and_fail_closed():
     parts = chunks()
     frames, fingerprint = grid.assemble(parts)
-    assert len(frames[0]["values"]) == 1144 and frames[1]["values"] == [None] * 1144
+    assert len(frames[0]["values"]) == 1144 and len(frames) == 1
+    assert parts[0]["cells"][0]["values"][1] is None
     assert grid.assemble(list(reversed(parts)))[1] == fingerprint
     with pytest.raises(ValueError):
         grid.assemble(parts[:-1])
@@ -160,6 +161,9 @@ def test_read_metadata_and_generation_pinned_cropped_frames(monkeypatch):
 
 
 def test_sync_is_gated_checkpointed_and_failure_does_not_publish(monkeypatch):
+    monkeypatch.setattr(
+        forecast_grid_store, "job_start", lambda _: "2026-11-06T09:59:00+00:00"
+    )
     settings = forecast_grid_sync.settings
     monkeypatch.setattr(settings, "cams_grid_collection_enabled", False)
     assert asyncio.run(forecast_grid_sync.sync()) == {"status": "disabled"}
@@ -178,7 +182,8 @@ def test_sync_is_gated_checkpointed_and_failure_does_not_publish(monkeypatch):
 
     monkeypatch.setattr(forecast_grid_store, "rpc", rpc)
 
-    async def fetch(points):
+    async def fetch(points, *, start_at):
+        assert start_at == "2026-11-06T09:59:00+00:00"
         return grid.normalize_batch(payload(points), points)
 
     monkeypatch.setattr(openmeteo_grid, "fetch_batch", fetch)
@@ -190,7 +195,7 @@ def test_sync_is_gated_checkpointed_and_failure_does_not_publish(monkeypatch):
     ]
     calls.clear()
 
-    async def fail(points):
+    async def fail(points, *, start_at):
         raise UpstreamError("upstream unavailable")
 
     monkeypatch.setattr(openmeteo_grid, "fetch_batch", fail)
@@ -201,6 +206,9 @@ def test_sync_is_gated_checkpointed_and_failure_does_not_publish(monkeypatch):
 
 
 def test_finalization_is_separate_and_rejects_changed_upstream(monkeypatch):
+    monkeypatch.setattr(
+        forecast_grid_store, "job_start", lambda _: "2026-11-06T09:59:00+00:00"
+    )
     settings = forecast_grid_sync.settings
     monkeypatch.setattr(settings, "cams_grid_collection_enabled", True)
     monkeypatch.setattr(settings, "cams_snapshot_expected_supabase_ref", "local-test")
@@ -217,7 +225,7 @@ def test_finalization_is_separate_and_rejects_changed_upstream(monkeypatch):
     monkeypatch.setattr(forecast_grid_store, "rpc", rpc)
     monkeypatch.setattr(forecast_grid_store, "chunks", lambda _: parts)
 
-    async def anchor(points):
+    async def anchor(points, *, start_at):
         return parts[0]
 
     monkeypatch.setattr(openmeteo_grid, "fetch_batch", anchor)
@@ -226,7 +234,7 @@ def test_finalization_is_separate_and_rejects_changed_upstream(monkeypatch):
     assert len(calls[-1][1]["p_frames"][0]["values"]) == 1144
     calls.clear()
 
-    async def changed(points):
+    async def changed(points, *, start_at):
         return {"times": [], "cells": []}
 
     monkeypatch.setattr(openmeteo_grid, "fetch_batch", changed)

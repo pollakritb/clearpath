@@ -126,34 +126,3 @@ def test_fire_feed_distinguishes_positive_clear_and_stale(monkeypatch):
     assert stale_feed.status == "stale"
     assert stale_feed.fires == []
     assert stale_feed.latest_acquired_at == (now - timedelta(hours=13)).isoformat()
-
-
-def test_openmeteo_hourly_weather_forecast_keeps_units_and_skips_missing_values(
-    monkeypatch,
-):
-    captured = {}
-
-    async def fake_get(_client, _url, *, params):
-        captured.update(params)
-        return _Response(
-            {
-                "hourly": {
-                    "time": [1800000000, 1800003600],
-                    "temperature_2m": [30, None],
-                    "relative_humidity_2m": [70, 80],
-                    "wind_speed_10m": [2.5, 3],
-                    "wind_direction_10m": [180, 190],
-                    "precipitation": [0.2, 0],
-                }
-            }
-        )
-
-    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
-    rows = asyncio.run(openmeteo_weather.get_forecast(13.8, 100.1))
-    assert len(rows) == 1
-    assert rows[0]["temperature"] == 30
-    assert rows[0]["wind_speed"] == 2.5
-    assert rows[0]["rain_mm"] == 0.2
-    assert captured["wind_speed_unit"] == "ms"
-    assert captured["forecast_hours"] == 120
-    assert datetime.fromisoformat(rows[0]["forecast_at"]).tzinfo == UTC

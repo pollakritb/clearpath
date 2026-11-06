@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -13,8 +14,117 @@ from backend.algorithms.measurement_requests import (
 from backend.core.auth import AuthenticatedUser, require_user
 from backend.core.config import settings
 from backend.main import create_app
-from backend.services import local_store
+from backend.services import local_store, store_client
 from backend.services.measurement import service, store
+
+
+@pytest.mark.parametrize("size", [10, 100, 251])
+def test_listing_batches_storage_reads_and_preserves_viewer_fields(monkeypatch, size):
+    from backend.services.community import xp
+
+    now = datetime.now(UTC)
+    rows = [
+        dict(
+            id=f"REQ-{index:06d}",
+            user_id="viewer" if index % 2 == 0 else "owner",
+            place_name="สถานที่",
+            lat=13.8,
+            lon=100.1,
+            radius_km=3,
+            starts_at=now.isoformat(),
+            expires_at=(now + timedelta(hours=1)).isoformat(),
+            created_at=now.isoformat(),
+            status="active",
+            result_report_id=f"RPT-{index:06d}",
+        )
+        for index in range(size)
+    ]
+    recipients = [
+        dict(
+            request_id=row["id"],
+            user_id=uid,
+            declined=False,
+            matched_location_at=now.isoformat(),
+        )
+        for row in rows
+        for uid in (
+            ["helper-a", "helper-b"] if row["user_id"] == "viewer" else ["viewer"]
+        )
+    ]
+    tables = dict(
+        measurement_request_recipients=recipients,
+        community_help_claims=[
+            dict(request_id=row["id"], user_id="viewer", started_at=now.isoformat())
+            for row in rows
+        ],
+        community_reports=[
+            dict(id=row["result_report_id"], status="approved") for row in rows
+        ],
+    )
+    calls = []
+
+    class Query:
+        def __init__(self, table):
+            self.table = table
+            self.rows = tables[table]
+            self.start, self.end = 0, len(self.rows)
+
+        def select(self, columns):
+            return self
+
+        def in_(self, key, values):
+            self.rows = [row for row in self.rows if row[key] in values]
+            return self
+
+        def eq(self, key, value):
+            self.rows = [row for row in self.rows if row[key] == value]
+            return self
+
+        def order(self, key):
+            self.rows = sorted(self.rows, key=lambda row: row[key])
+            return self
+
+        def range(self, start, end):
+            self.start, self.end = start, end + 1
+            return self
+
+        def execute(self):
+            calls.append(self.table)
+            return SimpleNamespace(data=self.rows[self.start : self.end])
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError(
+            "Row serialization must not issue individual storage reads"
+        )
+
+    monkeypatch.setattr(settings, "local_demo_mode", False)
+    monkeypatch.setattr(store, "visible", lambda uid: rows)
+    monkeypatch.setattr(
+        store_client, "get_client", lambda: SimpleNamespace(table=Query)
+    )
+    monkeypatch.setattr(
+        service, "requester_names", lambda rows: {"viewer": "ฉัน", "owner": "นามแฝง"}
+    )
+    monkeypatch.setattr(
+        service,
+        "present_report",
+        lambda raw, **kwargs: dict(id=raw["id"], lat=13.801, lon=100.101),
+    )
+    monkeypatch.setattr(store, "recipient", forbidden)
+    monkeypatch.setattr(store, "recipients", forbidden)
+    monkeypatch.setattr(store.db, "get_community_report", forbidden)
+    monkeypatch.setattr(xp, "enabled", lambda: True)
+    monkeypatch.setattr(xp, "existing_claim", forbidden)
+
+    result = service.listing("viewer")["requests"]
+    assert len(result) == size
+    assert len(calls) == 4 if size < store.PAGE else len(calls) < 15
+    for index, row in enumerate(result):
+        assert row["requester_name"] == ("ฉัน" if index % 2 == 0 else "นามแฝง")
+        assert row["recipient_count"] == (2 if index % 2 == 0 else 0)
+        assert bool(row["help_claim"]) == (index % 2 == 1)
+        assert row["result"]["id"] == rows[index]["result_report_id"]
+        assert "user_id" not in row
 
 
 @pytest.fixture

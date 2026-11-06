@@ -53,9 +53,6 @@ vi.mock("@/frontend/components/auth/AuthProvider", () => ({
 vi.mock("@/frontend/components/app/UserPageShell", () => ({
   default: ({ children }: { children: ReactNode }) => children,
 }));
-vi.mock("@/frontend/components/app/NationalSummary", () => ({
-  default: () => null,
-}));
 vi.mock("@/frontend/components/panels/ForecastPanel", () => ({
   default: () => null,
 }));

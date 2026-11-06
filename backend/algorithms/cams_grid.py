@@ -101,7 +101,12 @@ def assemble(chunks: list[dict]) -> tuple[list[dict], str]:
         {"valid_at": at, "values": [cells[i][t] for i in range(CELL_COUNT)]}
         for t, at in enumerate(times)
     ]
-    if not any(value is not None for frame in frames for value in frame["values"]):
+    # Requested timestamps beyond the upstream run may be all null. Do not
+    # advertise them as available forecast hours; retain nulls within real frames.
+    frames = [
+        frame for frame in frames if any(value is not None for value in frame["values"])
+    ]
+    if not frames:
         raise ValueError("grid_all_values_missing")
     fingerprint = hashlib.sha256(
         json.dumps(frames, separators=(",", ":"), allow_nan=False).encode()

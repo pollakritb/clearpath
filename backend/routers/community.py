@@ -39,23 +39,14 @@ from ..services import capture as capture_service
 from ..services import community as community_service
 from ..services import (
     google_news,
-    image_fingerprint,
     local_store,
     photo_metadata,
     supabase_client,
 )
+from ..services.community import evidence
+from ..services.community.evidence import MAX_IMAGE_BYTES
 
 router = APIRouter()
-ALLOWED_IMAGE_TYPES = {
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/heic",
-    "image/heif",
-    "image/heic-sequence",
-    "image/heif-sequence",
-}
-MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
 
 @router.post("/community/capture-session", response_model=CaptureSessionResponse)
@@ -181,55 +172,16 @@ async def create_report_draft(
     user: AuthenticatedUser = Depends(require_user),
 ):
     """Upload fresh camera evidence and return advisory OCR before final submit."""
-    content_type = image.content_type or ""
-    if content_type not in ALLOWED_IMAGE_TYPES and content_type not in {
-        "",
-        "application/octet-stream",
-    }:
-        raise HTTPException(
-            415, detail="รองรับภาพ JPEG, PNG, WEBP และ HEIC/HEIF จาก iPhone"
-        )
-    content = await image.read(MAX_IMAGE_BYTES + 1)
-    if not content:
-        raise HTTPException(400, detail="ไฟล์ภาพว่าง")
-    if len(content) > MAX_IMAGE_BYTES:
-        raise HTTPException(413, detail="ภาพต้องมีขนาดไม่เกิน 8 MB")
     try:
-        detected_type = await run_in_threadpool(
-            image_fingerprint.detect_image_mime, content
-        )
-    except ValueError as exc:
-        raise HTTPException(415, detail=str(exc)) from exc
-    aliases = {
-        "image/heif": "image/heic",
-        "image/heic-sequence": "image/heic",
-        "image/heif-sequence": "image/heic",
-    }
-    if content_type not in {
-        "",
-        "application/octet-stream",
-    } and detected_type != aliases.get(content_type, content_type):
-        raise HTTPException(415, detail="ชนิดไฟล์ภาพไม่ตรงกับข้อมูลภายในไฟล์")
-    content_type = detected_type
-    if len(burst_images) > 2:
-        raise HTTPException(400, detail="รองรับภาพเสริมไม่เกิน 2 เฟรม")
-    burst: list[tuple[bytes, str]] = []
-    for upload in burst_images:
-        burst_type = upload.content_type or ""
-        burst_content = await upload.read(MAX_IMAGE_BYTES + 1)
-        if burst_type not in ALLOWED_IMAGE_TYPES:
-            raise HTTPException(415, detail="ภาพเสริมต้องเป็น JPEG, PNG หรือ WEBP")
-        if not burst_content or len(burst_content) > MAX_IMAGE_BYTES:
-            raise HTTPException(413, detail="ภาพเสริมแต่ละภาพต้องไม่เกิน 8 MB")
-        try:
-            detected_burst_type = await run_in_threadpool(
-                image_fingerprint.detect_image_mime, burst_content
-            )
-        except ValueError as exc:
-            raise HTTPException(415, detail=str(exc)) from exc
-        if detected_burst_type != burst_type:
-            raise HTTPException(415, detail="ชนิดไฟล์ภาพเสริมไม่ตรงกับข้อมูลภายในไฟล์")
-        burst.append((burst_content, burst_type))
+        content, content_type = await evidence.read_upload(image)
+        if len(burst_images) > 2:
+            raise HTTPException(400, detail="รองรับภาพเสริมไม่เกิน 2 เฟรม")
+        burst = [
+            await evidence.read_upload(upload, supplementary=True)
+            for upload in burst_images
+        ]
+    except evidence.InvalidImageUpload as exc:
+        raise HTTPException(exc.status_code, detail=str(exc)) from exc
     try:
         allowed = await run_in_threadpool(
             supabase_client.take_rate_limit, user.id, "report_draft", 60, 12

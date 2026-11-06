@@ -77,8 +77,22 @@ def delete_helper_location(slot: Annotated[int, Path(ge=1, le=2)], user: User):
 def request_group(batch_id: UUID, user: User):
     def load():
         rows = registered.group_requests(str(batch_id), user.id)
+        from ..services.community import xp
+
         names = service.requester_names(rows)
-        return {"requests": [service.view(row, user.id, names=names) for row in rows]}
+        context = store.view_context(rows, user.id, xp_enabled=xp.enabled())
+        context["identities"] = xp.public_identities(
+            [
+                r
+                for r in context["reports"].values()
+                if r and r.get("status") == "approved"
+            ]
+        )
+        return {
+            "requests": [
+                service.view(row, user.id, names=names, context=context) for row in rows
+            ]
+        }
 
     return call(load)
 

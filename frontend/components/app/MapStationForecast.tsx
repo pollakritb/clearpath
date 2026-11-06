@@ -12,11 +12,6 @@ import {
   formatProviderTime,
 } from "@/frontend/lib/forecast-presentation";
 
-import {
-  FORECAST_PAUSED_MESSAGE,
-  FORECAST_SYSTEM_PAUSED,
-} from "@/frontend/lib/forecast-state";
-
 export default function MapStationForecast({
   stationId,
   area,
@@ -33,7 +28,7 @@ export default function MapStationForecast({
     [stationId, areaLat, areaLon],
   );
   useEffect(() => {
-    if (!FORECAST_SYSTEM_PAUSED) void load(target, 120);
+    void load(target, 120);
   }, [load, target]);
   const matchesTarget = stationId
     ? data?.station_id === stationId
@@ -103,11 +98,7 @@ export default function MapStationForecast({
         </div>
       </div>
 
-      {FORECAST_SYSTEM_PAUSED ? (
-        <p className="cp-map-station-forecast__empty" role="status">
-          {FORECAST_PAUSED_MESSAGE}
-        </p>
-      ) : loading || (!current && !error) ? (
+      {loading || (!current && !error) ? (
         <p className="cp-map-station-forecast__empty" role="status">
           กำลังโหลดพยากรณ์…
         </p>

@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from backend.core.config import settings
 from backend.core.errors import UpstreamError
 from backend.main import app
-from backend.services import provider_sync, supabase_client
+from backend.services import provider_sync, store_client, supabase_client
 
 
 def test_collect_cams_snapshots_stores_future_hours_without_predictions(monkeypatch):
@@ -43,14 +43,10 @@ def test_collect_cams_snapshots_stores_future_hours_without_predictions(monkeypa
         "upsert_provider_snapshots",
         lambda rows: saved.extend(rows) or len(rows),
     )
-    monkeypatch.setattr(
-        provider_sync,
-        "_persist_provider_evidence",
-        lambda **_kwargs: (_ for _ in ()).throw(AssertionError("prediction write")),
-    )
+    assert not hasattr(provider_sync, "_persist_provider_evidence")
 
-    async def forecasts(_stations, *, forecast_days):
-        assert forecast_days == 5
+    async def forecasts(_stations, *, forecast_hours):
+        assert forecast_hours == 120
         return {
             "103t": [
                 {
@@ -153,8 +149,8 @@ def test_cams_batch_collects_only_its_stations(monkeypatch):
     )
     monkeypatch.setattr(provider_sync, "_cleanup_cams_history", lambda: {})
 
-    async def forecasts(batch, *, forecast_days):
-        assert forecast_days == 5
+    async def forecasts(batch, *, forecast_hours):
+        assert forecast_hours == 120
         selected_ids.extend(row["id"] for row in batch)
         return {
             row["id"]: [
@@ -207,8 +203,8 @@ def test_collect_cams_snapshots_marks_missing_hour_partial(monkeypatch):
         lambda rows: saved.extend(rows) or len(rows),
     )
 
-    async def forecasts(_stations, *, forecast_days):
-        assert forecast_days == 5
+    async def forecasts(_stations, *, forecast_hours):
+        assert forecast_hours == 120
         return {
             "103t": [
                 {
@@ -308,7 +304,7 @@ def test_cams_retention_uses_database_rpc_instead_of_uuid_url(monkeypatch):
             return RpcRequest()
 
     monkeypatch.setattr(settings, "local_demo_mode", False)
-    monkeypatch.setattr(supabase_client, "get_client", lambda: Client())
+    monkeypatch.setattr(store_client, "get_client", lambda: Client())
 
     result = supabase_client.delete_cams_history_before(
         "2026-10-20T00:00:00+00:00", "2026-09-27T00:00:00+00:00"
@@ -341,7 +337,7 @@ def test_supabase_provider_writes_reject_silent_reset_trigger(monkeypatch):
 
     monkeypatch.setattr(settings, "local_demo_mode", False)
     monkeypatch.setattr(
-        supabase_client,
+        store_client,
         "get_client",
         lambda: SimpleNamespace(table=lambda _name: EmptyWrite()),
     )

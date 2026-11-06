@@ -1,0 +1,95 @@
+.panel {
+  display: grid;
+  gap: 12px;
+  color: var(--cp-ink);
+  overflow-wrap: anywhere;
+}
+.panel h2,
+.panel h3,
+.panel p {
+  margin: 0;
+}
+.panel h2 {
+  font-size: 20px;
+  line-height: 1.5;
+}
+.panel h3 {
+  font-size: 16px;
+  line-height: 1.5;
+}
+.panel p {
+  color: var(--cp-subink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.panel section {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--cp-line);
+  padding-top: 16px;
+  margin-top: 8px;
+}
+.panel a,
+.panel summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--cp-teal);
+  font-size: 14px;
+  cursor: pointer;
+}
+.panel button {
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--cp-teal);
+  border-radius: 12px;
+  background: var(--cp-panel);
+  color: var(--cp-teal);
+  font: inherit;
+  cursor: pointer;
+}
+.panel button:hover {
+  background: var(--cp-teal-soft);
+}
+.panel button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.panel form {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.panel label {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.panel input:not([type="checkbox"]) {
+  min-height: 48px;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--cp-panel);
+  color: var(--cp-ink);
+  font: inherit;
+}
+.panel input:focus-visible {
+  outline: 2px solid var(--cp-teal);
+  outline-offset: 2px;
+}
+.panel .check {
+  display: flex;
+  align-items: flex-start;
+  min-height: 44px;
+  padding-block: 8px;
+}
+.check input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  accent-color: var(--cp-teal);
+}

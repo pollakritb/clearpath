@@ -1,5 +1,7 @@
 # Pilot, automatic review and forecast model rollout
 
+> Historical planning record: local/ML forecast and multi-provider pipelines were removed in the 2026-11-02 refactor. Use [current forecast behavior](forecast-reset.md) for the running system; commands below describe the former design.
+
 ## Stage 0 — internal acceptance
 
 - 5–10 named testers; staging only.

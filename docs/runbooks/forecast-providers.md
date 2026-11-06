@@ -1,5 +1,7 @@
 # Forecast provider operations
 
+> Historical planning record: local/ML forecast and multi-provider pipelines were removed in the 2026-11-02 refactor. Use [current forecast behavior](forecast-reset.md) for the running system; commands below describe the former design.
+
 This runbook is the production source of truth for external PM2.5 forecasts.
 ClearPath shows one recommended raw provider value and lets a user compare no
 more than three sources. Community readings are presented separately and do not

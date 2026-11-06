@@ -14,6 +14,12 @@ from time import monotonic
 from ..core.identifiers import PREFIXES, UUID_ENTITIES, code, legacy_uuid, number
 
 REFERENCES = {
+    "community_reporter_review_requests": {"user_id": "profiles"},
+    "community_reporter_audits": {
+        "user_id": "profiles",
+        "report_id": "community_reports",
+    },
+    "account_privacy_requests": {"user_id": "profiles"},
     "community_evidence_outcomes": {
         "user_id": "profiles",
         "report_id": "community_reports",
@@ -97,6 +103,8 @@ REFERENCES = {
 }
 
 RPC_PARAMETERS = {
+    "request_reporter_review": {"p_user": "profiles"},
+    "request_account_erasure": {"p_user": "profiles"},
     "save_measurement_helper_location": {"p_user": "profiles"},
     "registered_measurement_helpers": {
         "p_request": "measurement_requests",

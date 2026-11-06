@@ -1,5 +1,11 @@
 # Production deployment
 
+Current forecast behavior: [stored CAMS and retired boundaries](forecast-reset.md).
+The refactor and completion foundation are deployable without database changes;
+new Reporter Trust and account privacy features remain disabled until their own
+staging migrations and acceptance evidence pass. See the
+[completion runbook](reporter-trust-and-completion.md).
+
 This sequence keeps community evidence private and prevents a green deployment
 from being mistaken for a healthy data pipeline.
 
@@ -102,28 +108,30 @@ the staging exercise.
 
 Required in both Vercel Preview and Production unless marked optional:
 
-| Variable                            | Source / rule                                           |
-| ----------------------------------- | ------------------------------------------------------- |
-| `APP_ENVIRONMENT`                   | `staging` for Preview; `production` for Production      |
-| `RELEASE_SHA`                       | Git commit SHA; CI or Vercel system value               |
-| `SUPABASE_URL`                      | Supabase project URL, server runtime                    |
-| `SUPABASE_SERVICE_ROLE_KEY`         | Server only; never `NEXT_PUBLIC_*`                      |
-| `NEXT_PUBLIC_SUPABASE_URL`          | Same project URL, browser build                         |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | Publishable/anon browser key                            |
-| `REPORT_IMAGE_BUCKET`               | `report-images`                                         |
-| `CRON_SECRET`                       | Independent random secret, at least 32 characters       |
-| `SUPABASE_CRON_SECRET`              | Separate token matching the ClearPath Supabase Vault    |
-| `CAPTURE_SESSION_SECRET`            | Different independent random secret                     |
-| `CORS_ALLOWED_ORIGINS`              | Exact HTTPS origin, no `*`                              |
-| `OPENMETEO_AIR_ENABLED`             | `true`; no key, with CAMS/Open-Meteo attribution        |
-| `GISTDA_AIR_ENABLED`                | Keep `false` until the documented legal gate passes     |
-| `GISTDA_LICENSE_APPROVED`           | Keep `false` until written reuse permission is recorded |
-| `FIRMS_MAP_KEY`                     | Server only                                             |
-| `OPENAI_API_KEY`                    | Required before enabling real automatic review          |
-| `PUSH_ENABLED`                      | Start `false`; enable after VAPID delivery test         |
-| `VAPID_*`                           | Required when push is enabled                           |
-| `ML_FORECAST_ENABLED`               | Keep `false` until every artifact gate passes           |
-| `COMMUNITY_FORECAST_SHADOW_ENABLED` | Keep `false` at launch; no public forecast influence    |
+| Variable                        | Source / rule                                                       |
+| ------------------------------- | ------------------------------------------------------------------- |
+| `APP_ENVIRONMENT`               | `staging` for Preview; `production` for Production                  |
+| `RELEASE_SHA`                   | Git commit SHA; CI or Vercel system value                           |
+| `SUPABASE_URL`                  | Supabase project URL, server runtime                                |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server only; never `NEXT_PUBLIC_*`                                  |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Same project URL, browser build                                     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable/anon browser key                                        |
+| `REPORT_IMAGE_BUCKET`           | `report-images`                                                     |
+| `CRON_SECRET`                   | Independent random secret, at least 32 characters                   |
+| `SUPABASE_CRON_SECRET`          | Separate token matching the ClearPath Supabase Vault                |
+| `CAPTURE_SESSION_SECRET`        | Different independent random secret                                 |
+| `CORS_ALLOWED_ORIGINS`          | Exact HTTPS origin, no `*`                                          |
+| `OPENMETEO_AIR_ENABLED`         | `true`; no key, with CAMS/Open-Meteo attribution                    |
+| `FIRMS_MAP_KEY`                 | Server only                                                         |
+| `OPENAI_API_KEY`                | Required before enabling real automatic review                      |
+| `PUSH_ENABLED`                  | Start `false`; enable after VAPID delivery test                     |
+| `VAPID_*`                       | Required when push is enabled                                       |
+| `REPORTER_TRUST_ENABLED`        | Default `false`; independent validation and private ledger required |
+| `REPORTER_TRUST_VALIDATION_REF` | Reviewed independent evidence reference, not a placeholder          |
+| `ACCOUNT_PRIVACY_ENABLED`       | Default `false`; staging schema and retention workflow required     |
+
+The retired ML/GISTDA/shadow pipeline is absent from this source. Old environment
+flags cannot re-enable it; do not treat those flags as current deployment prerequisites.
 
 For each variable, let `vercel env add` prompt for the value so it does not
 appear in terminal history:
@@ -151,7 +159,7 @@ npm run typecheck
 npm run test:unit:coverage
 .venv\Scripts\python -m ruff format --check backend api scripts
 .venv\Scripts\python -m ruff check backend api scripts
-.venv\Scripts\python -m pytest --cov=backend --cov-fail-under=75
+.venv\Scripts\python -m pytest --cov=backend --cov-fail-under=80
 npm run build
 vercel deploy
 ```
@@ -165,15 +173,11 @@ After the preview URL is available:
 
 ```powershell
 .venv\Scripts\python -m scripts.verify_deployment https://<PREVIEW_HOST>
-.venv\Scripts\python scripts\measure_forecast_runtime.py https://<PREVIEW_HOST> --requests 30
 vercel logs --deployment https://<PREVIEW_HOST> --level error
 ```
 
-Keep the aggregate runtime JSON with its UTC window. It measures client-visible
-availability, fallback rate, response size, and p50/p95/p99 latency without
-storing station IDs or response bodies. Correlate that same UTC window with the
-Vercel dashboard for function memory, invocation errors, and cost; the sampler
-cannot replace provider-side memory or billing evidence.
+Use the Vercel runtime dashboard and request logs for latency, errors and memory.
+Do not store response bodies or exact user coordinates in operational evidence.
 
 Export a representative JSONL operational-log window without request bodies,
 then run the local privacy scanner. Its report contains line numbers and finding
@@ -183,18 +187,10 @@ codes only; it does not echo leaked values:
 .venv\Scripts\python scripts\audit_operational_logs.py operational-logs-preview.jsonl
 ```
 
-Before recording any external FCAST task as complete, update the gitignored
-evidence file and require `ready=true`:
-
-```powershell
-Copy-Item docs\runbooks\forecast-external-evidence.example.json forecast-external-evidence.json
-.venv\Scripts\python scripts\forecast_external_evidence.py forecast-external-evidence.json
-```
-
 Preview acceptance also requires a real OTP login, camera/GPS capture on one
 iPhone and one Android device, automatic approval/rejection with no manual
 decision queue, Admin role denial for normal users, approved-marker image
-access, signed-image expiry, and a test push notification.
+access, signed-image expiry, and a consented LINE/in-app notification.
 
 ## 6. Production and scheduler acceptance
 
@@ -203,7 +199,6 @@ Deploy only after preview acceptance and a recorded backup:
 ```powershell
 vercel deploy --prod
 .venv\Scripts\python -m scripts.verify_deployment https://<PRODUCTION_HOST>
-.venv\Scripts\python scripts\measure_forecast_runtime.py https://<PRODUCTION_HOST> --requests 30
 vercel logs --environment production --level error --since 5m
 ```
 
@@ -246,11 +241,7 @@ Do not call the production sync endpoint manually from browser history because
 the bearer secret could be exposed. Use the protected GitHub Actions workflow
 or a trusted terminal that obtains the secret from the password manager.
 
-For the rollback drill, disable ML, redeploy, and use the stronger verifier:
-
-```powershell
-.venv\Scripts\python scripts\verify_deployment.py https://<STAGING_HOST> --expect-baseline-fallback
-```
-
-The result must show `baseline_fallback=true`; every returned forecast point
-must omit model/artifact identity and report `ml_forecast_disabled`.
+For a forecast containment drill, disable the relevant CAMS collector or stored
+station read gate in staging. Verify health/readiness/auth with
+`scripts.verify_deployment`, then inspect unavailable responses without fabricated
+points. Retired model/provider endpoints must remain paused regardless of old ML flags.

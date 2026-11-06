@@ -8,6 +8,8 @@ from datetime import UTC, datetime, timedelta, timezone
 from time import monotonic
 from uuid import NAMESPACE_URL, uuid5
 
+from backend.services import store_client
+
 from ...algorithms.distance import haversine_km
 from ...algorithms.measurement_requests import (
     eligible_helper,
@@ -54,7 +56,7 @@ def requester_names(rows: list[dict]) -> dict[str, str]:
                 else []
             )
         else:
-            client = db.get_client()
+            client = store_client.get_client()
             profiles = (
                 client.table("profiles")
                 .select("id,display_name")
@@ -89,25 +91,61 @@ def requester_names(rows: list[dict]) -> dict[str, str]:
 
 
 def listing(user_id: str) -> dict:
-    rows = store.visible(user_id)
-    names = requester_names(rows)
-    return {"requests": [view(row, user_id, names=names) for row in rows]}
-
-
-def view(row: dict, viewer_id: str, *, names: dict[str, str] | None = None) -> dict:
-    owner = row["user_id"] == viewer_id
-    invitation = store.recipient(row["id"], viewer_id)
     from ..community import xp
 
-    claim = xp.existing_claim(viewer_id, row) if not owner else None
+    rows = store.visible(user_id)
+    names = requester_names(rows)
+    context = store.view_context(rows, user_id, xp_enabled=xp.enabled())
+    context["identities"] = xp.public_identities(
+        [
+            row
+            for row in context["reports"].values()
+            if row and row.get("status") == "approved"
+        ]
+    )
+    return {
+        "requests": [view(row, user_id, names=names, context=context) for row in rows]
+    }
+
+
+def view(
+    row: dict,
+    viewer_id: str,
+    *,
+    names: dict[str, str] | None = None,
+    context: dict | None = None,
+) -> dict:
+    owner = row["user_id"] == viewer_id
+    invitation = (
+        context["invitations"].get(str(row["id"]))
+        if context is not None
+        else store.recipient(row["id"], viewer_id)
+    )
+    from ..community import xp
+
+    claim = (
+        (
+            xp.present_claim(row, context["claims"].get(str(row["id"])))
+            if context is not None
+            else xp.existing_claim(viewer_id, row)
+        )
+        if not owner
+        else None
+    )
     if not owner and invitation is None and claim is None and not store.is_open(row):
         raise KeyError("ไม่พบคำขอ")
     result = None
     distance = None
     if row.get("result_report_id"):
-        raw = db.get_community_report(row["result_report_id"])
+        raw = (
+            context["reports"].get(str(row["result_report_id"]))
+            if context is not None
+            else db.get_community_report(row["result_report_id"])
+        )
         if raw and raw.get("status") == "approved":
-            result = present_report(raw)
+            result = present_report(
+                raw, identities=context["identities"] if context is not None else None
+            )
             # Never leak exact report location through a precise distance.
             distance = round(
                 haversine_km(row["lat"], row["lon"], result["lat"], result["lon"]), 1
@@ -130,10 +168,16 @@ def view(row: dict, viewer_id: str, *, names: dict[str, str] | None = None) -> d
             str(row["user_id"]), "สมาชิก ClearPath"
         ),
         "help_claim": claim,
-        "xp_enabled": xp.enabled(),
+        "xp_enabled": context["xp_enabled"] if context is not None else xp.enabled(),
         "automatic_help_enabled": registered.enabled(),
         "is_owner": owner,
-        "recipient_count": len(store.recipients(row["id"])) if owner else 0,
+        "recipient_count": (
+            context["counts"].get(str(row["id"]), 0)
+            if context is not None
+            else len(store.recipients(row["id"]))
+        )
+        if owner
+        else 0,
         "declined": bool(invitation and invitation.get("declined")),
         "matched_location_at": invitation.get("matched_location_at")
         if invitation

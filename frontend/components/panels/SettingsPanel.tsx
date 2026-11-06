@@ -6,15 +6,17 @@ import AppIcon from "@/frontend/components/ui/AppIcon";
 import styles from "@/frontend/styles/mobile-refinements.module.css";
 
 import HelperSettings from "@/frontend/components/measurement/HelperSettings";
+import AccountPrivacyPanel from "./AccountPrivacyPanel";
 import NotificationSettings from "./community/NotificationSettings";
 
-export type SettingsSection = "overview" | "notifications";
+export type SettingsSection = "overview" | "notifications" | "privacy";
 
 export default function SettingsPanel({
   section,
 }: {
   section: SettingsSection;
 }) {
+  if (section === "privacy") return <AccountPrivacyPanel />;
   if (section === "notifications") {
     return (
       <section
@@ -45,6 +47,17 @@ export default function SettingsPanel({
         <span>
           <strong>การแจ้งเตือน</strong>
           <small>ช่องทาง ระดับฝุ่น และพื้นที่รับคำขอ</small>
+        </span>
+        <AppIcon name="chevron" size={18} />
+      </Link>
+
+      <Link href="/settings/privacy" className="cp-settings-row cp-focus">
+        <span className="cp-settings-row__icon" aria-hidden="true">
+          <AppIcon name="shield" size={20} />
+        </span>
+        <span>
+          <strong>ข้อมูลบัญชี</strong>
+          <small>ดาวน์โหลดข้อมูลกิจกรรมและคำขอลบบัญชี</small>
         </span>
         <AppIcon name="chevron" size={18} />
       </Link>

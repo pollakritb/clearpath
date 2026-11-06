@@ -16,6 +16,14 @@ class ForecastGridMetadata(BaseModel):
     retrieval_started_at: str | None = None
     model_issued_at: str | None = None
     stale: bool = False
+    coverage_as_of: str | None = None
+    available_from: str | None = None
+    available_until: str | None = None
+    future_time_count: int = 0
+    past_time_count: int = 0
+    future_horizon_hours: float = 0
+    requested_horizon_hours: int = 120
+    coverage_status: Literal["complete", "partial", "unavailable"] = "unavailable"
     latitudes: list[float] = []
     longitudes: list[float] = []
     valid_times: list[str] = []

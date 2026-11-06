@@ -68,7 +68,7 @@
 - Implementation snapshot วันที่ 3 สิงหาคม 2026: เสร็จ 131/161 งาน เหลือ 30 งานที่
   ต้องใช้ owner, production account/secrets, observation window, field device,
   incident drill หรือ human/legal/health approval; ดูขั้นตอนใน
-  `CLEARPATH_REMAINING_STEPS.txt`
+  the historical `CLEARPATH_REMAINING_STEPS.txt` (removed in the 2026-11-02 cleanup; retained in Git history)
 - External evidence ของงานเปิดทั้ง 30 รายการมี JSON template และ fail-closed
   validator แล้ว รวมถึง operational-log secret/PII scanner และ baseline
   rollback verifier; เครื่องมือเหล่านี้ไม่ใช้แทน owner หรือ live evidence

@@ -1,7 +1,7 @@
 """Supabase persistence boundary for independent CAMS grid generations."""
 
 from ..core.errors import ConfigurationError, UpstreamError
-from .supabase_client import get_client
+from .store_client import get_client
 
 
 def rpc(name: str, params: dict) -> dict:
@@ -68,3 +68,13 @@ def chunks(job_id: str) -> list[dict]:
         ),
     )
     return [r["payload"] for r in rows]
+
+
+def job_start(job_id: str) -> str:
+    rows = read(
+        "cams_grid_jobs",
+        lambda q: q.select("created_at").eq("id", job_id).limit(1),
+    )
+    if not rows or not rows[0].get("created_at"):
+        raise UpstreamError("ไม่พบเวลาเริ่มเก็บกริดพยากรณ์")
+    return rows[0]["created_at"]

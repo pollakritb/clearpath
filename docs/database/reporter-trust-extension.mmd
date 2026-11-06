@@ -1,0 +1,35 @@
+erDiagram
+    %% Pending additive migrations, not a verified hosted catalog.
+    profiles ||--o{ community_reporter_audits : subject
+    community_reports ||--o{ community_reporter_audits : audited_report
+    community_reporter_audits ||--o{ community_reporter_review_requests : recheck
+    profiles ||--o{ community_reporter_review_requests : owns
+    profiles ||--o{ account_privacy_requests : requests
+    community_reporter_audits {
+        text audit_key PK
+        text case_key
+        text sample_key
+        bigint user_id FK
+        bigint report_id FK
+        integer revision
+        text outcome
+        text fault_domain
+        text evaluator_key
+        text evidence_ref
+        timestamptz evaluated_at
+    }
+    community_reporter_review_requests {
+        uuid id PK
+        bigint user_id FK
+        text audit_key FK
+        text message
+        text status
+        timestamptz created_at
+    }
+    account_privacy_requests {
+        uuid id PK
+        bigint user_id FK
+        text status
+        timestamptz created_at
+        timestamptz completed_at
+    }

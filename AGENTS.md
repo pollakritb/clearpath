@@ -34,9 +34,10 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 - Community reports ใช้ `pending` เป็นสถานะภายในชั่วคราวระหว่างบันทึกเท่านั้น; เมื่อส่งเสร็จระบบต้องอนุมัติหรือปฏิเสธอัตโนมัติทันที ห้ามรอ Admin ตัดสิน.
 - Publication policy รุ่นปัจจุบันใช้ผล OCR แบบ number-only: ถ้าอ่านตัวเลข PM2.5 ได้ให้นำค่า OCR ขึ้นทันที; ถ้าอ่านไม่ได้ให้ `rejected` พร้อมเหตุผลและให้ผู้ใช้ถ่ายใหม่. Confidence, device/display flags, burst, เวลา, ภาพคล้าย และค่าที่ผู้ใช้ยืนยันเป็น audit metadata ไม่ใช่ approval gate. Exact duplicate และ GPS >200 ม. ยังถูกกันก่อน OCR. Admin ดู log/รูป/รายละเอียดได้อย่างเดียว ไม่มีสิทธิ์อนุมัติหรือปฏิเสธรายงาน.
 - Air4Thai ที่อายุไม่เกิน 1 ชั่วโมงภายใน 5 กม. เป็นข้อมูลหลัก; community เป็น supplementary.
-- Community เข้า IDW ได้เฉพาะ approved/fresh/Trust ≥60 และ corroborated จากผู้ใช้คนละคนอย่างน้อย 2 ราย; ไม่มีทางลัดด้วยสถานะสอบเทียบเครื่อง.
+- Backend community gap-fill เข้า IDW ได้เฉพาะ approved/fresh/Trust ≥60 และ corroborated จากผู้ใช้คนละคนอย่างน้อย 2 ราย; ไม่มีทางลัดด้วยสถานะสอบเทียบเครื่อง.
+- Place IDW แยกจาก backend gap-fill: วง 2 กม., Air4Thai สด ≤1 ชม. และรายงาน approved/fresh ≤3 ชม.; ใช้ public coordinates และ distance-only inverse-square weights โดยไม่มี Trust/XP/stability multiplier.
 - Gap-fill ต้องมี GPS accuracy ≤200 ม., ไม่วัดติดแหล่งกำเนิดโดยตรง และไม่เป็นภาพซ้ำ.
-- Community gratitude แสดงเป็นคำขอบคุณพร้อมดาว 1–5; รับเฉพาะผู้ใช้ที่ส่ง GPS อยู่ภายใน 3 กม. รายงานอายุไม่เกิน 3 ชั่วโมง และเก็บ reason code ภายในที่สอดคล้องกับดาวเพื่อคำนวณ Trust.
+- UI ปัจจุบันใช้ Like/Dislike/Comment ซึ่งไม่มีผลต่อ Trust/XP; UI ดาวและการส่งปัญหาใหม่ถูกถอดแล้ว. Backend gratitude คงไว้เพื่อ compatibility: รับเฉพาะผู้ใช้ที่ส่ง GPS อยู่ภายใน 3 กม. รายงานอายุไม่เกิน 3 ชั่วโมง และเก็บ reason code ภายในที่สอดคล้องกับดาวเพื่อคำนวณ Trust.
 - Admin/Moderator dashboard เป็น read-only: ดูสถิติ รายงาน ภาพ OCR ประกาศ สถานะระบบ และ audit ได้เท่านั้น ห้ามเพิ่ม API/UI สำหรับแก้ไข ลบ เผยแพร่ เปลี่ยนบทบาท หรือยกเลิก XP. Cron และงานอัตโนมัติใช้สิทธิ์ server แยกจาก Admin.
 - พิกัดจริงเปิดเฉพาะ Admin; public coordinates ต้องผ่าน stable obfuscation 120–250 ม.
 - Fire alert ใช้ hotspot ในขอบเขตนครปฐมที่อายุไม่เกิน 12 ชั่วโมง และต้องเรียกว่า satellite hotspot ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว.
@@ -46,4 +47,4 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 
 - Dev: `uvicorn backend.main:app --reload --port 8000` + `npm run dev` (Next proxies `/api/*` → :8000).
 - `npm run format:check` · `npm run lint` · `npm run typecheck` · `npm run build`
-- `.venv/Scripts/python -m ruff format --check backend api scripts` · `.venv/Scripts/python -m ruff check backend api scripts` · `.venv/Scripts/python -m pytest`
+- `.venv/bin/python -m ruff format --check backend api scripts` · `.venv/bin/python -m ruff check backend api scripts` · `.venv/bin/python -m pytest`

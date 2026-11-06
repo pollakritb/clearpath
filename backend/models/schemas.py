@@ -4,6 +4,12 @@ Keep this module mirrored by ``frontend/types/index.ts``. Domain models live in
 small modules so routers can keep importing from one stable public boundary.
 """
 
+from .account_privacy import (
+    AccountExportPage,
+    AccountPrivacyStatus,
+    DeletionRequest,
+    PrivacyRequest,
+)
 from .air_quality import (
     HistoryPoint,
     HistoryResponse,
@@ -15,11 +21,8 @@ from .community import (
     AccountAccessResponse,
     ActivitiesResponse,
     Activity,
-    ActivityCreate,
     Announcement,
-    AnnouncementCreate,
     AnnouncementsResponse,
-    AnnouncementUpdate,
     BonusGPS,
     CaptureSessionResponse,
     CommunityDataRole,
@@ -29,8 +32,6 @@ from .community import (
     CommunityReport,
     CommunityReportsResponse,
     CommunityReportStack,
-    DataIssueCategory,
-    DataIssueCreate,
     GapFillBasis,
     LeaderboardEntry,
     LeaderboardResponse,
@@ -84,8 +85,16 @@ from .notifications import (
     OperationResponse,
     UserNotification,
 )
+from .reporter_trust import (
+    ReporterAuditHistory,
+    ReporterAuditView,
+    ReporterReviewRequest,
+    ReporterReviewResult,
+    ReporterTrust,
+)
 
 __all__ = [
+    "ReporterTrust",
     "AccountAccessResponse",
     "BonusGPS",
     "HelpClaim",
@@ -99,7 +108,6 @@ __all__ = [
     "XPLeader",
     "XPLeaderboard",
     "XPResult",
-    "XPReversalRequest",
     "XPSettings",
     "XPSummary",
     "ForecastGridMetadata",
@@ -116,10 +124,7 @@ __all__ = [
     "MeasurementPresenceUpdate",
     "ActivitiesResponse",
     "Activity",
-    "ActivityCreate",
     "Announcement",
-    "AnnouncementCreate",
-    "AnnouncementUpdate",
     "AnnouncementsResponse",
     "CaptureSessionResponse",
     "PhotoMetadata",
@@ -130,8 +135,6 @@ __all__ = [
     "CommunityReport",
     "CommunityReportStack",
     "CommunityReportsResponse",
-    "DataIssueCategory",
-    "DataIssueCreate",
     "FirePoint",
     "FirmsResponse",
     "ForecastPoint",
@@ -198,7 +201,6 @@ from .xp import (  # noqa: F401
     XPLeader,
     XPLeaderboard,
     XPResult,
-    XPReversalRequest,
     XPSettings,
     XPSummary,
 )
@@ -210,4 +212,19 @@ __all__ += [
     "ReportEvidence",
     "HistoryCheckSummary",
     "EvidenceHistory",
+]
+
+
+__all__ += [
+    "AccountExportPage",
+    "AccountPrivacyStatus",
+    "DeletionRequest",
+    "PrivacyRequest",
+]
+
+__all__ += [
+    "ReporterAuditView",
+    "ReporterAuditHistory",
+    "ReporterReviewRequest",
+    "ReporterReviewResult",
 ]

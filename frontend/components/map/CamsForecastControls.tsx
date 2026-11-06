@@ -60,7 +60,7 @@ export default function CamsForecastControls({
                 ? "ใช้ชุดข้อมูลเดิม · ตรวจเวลาอัปเดต"
                 : grid.notice
                   ? grid.notice
-                  : "CAMS · ภาพรวมระดับพื้นที่");
+                  : `CAMS · ${times.length} ช่วงเวลาที่เลือกได้`);
   return (
     <div className="cp-cams-dock">
       {requestCard}
@@ -211,6 +211,16 @@ export default function CamsForecastControls({
                 {meta?.retrieved_at
                   ? formatForecastTime(meta.retrieved_at)
                   : "—"}
+              </p>
+              <p>
+                ช่วงเวลาที่เลือกได้ {times.length} ช่วง · ถึง{" "}
+                {times.length
+                  ? formatForecastTime(times[times.length - 1])
+                  : "—"}
+              </p>
+              <p>
+                แสดงเฉพาะช่วงเวลาที่มีจริงในชุดที่เก็บไว้
+                ไม่ได้มีพยากรณ์ล่วงหน้าอีก 5 วันเสมอไป
               </p>
               <p>เวลาออกแบบจำลอง: ต้นทางไม่ได้ระบุ</p>
               <a

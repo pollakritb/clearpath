@@ -6,6 +6,19 @@ Schema รุ่น 3: PK/FK ของข้อมูลภายในใช้
 
 ## ภาพรวมตาราง
 
+รายการข้างล่างเป็น catalog ที่ตรวจในวันสร้างเอกสาร ไม่ใช่ผลตรวจ schema ปัจจุบันแบบสด
+ส่วนเสริม Reporter Trust/privacy วันที่ 6 พ.ย. ยังเป็น migration ที่รอติดตั้งและตรวจ staging:
+
+| ตารางส่วนเสริม                       | คีย์และความสัมพันธ์                                                                                                | หน้าที่และสิทธิ์                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `community_reporter_audits`          | `audit_key` text; unique `(case_key, revision)`; `user_id` → profiles, `report_id` → community_reports เป็น BIGINT | ผลตรวจอิสระแบบ append-only ผ่าน server RPC; browser/Admin เขียนไม่ได้ |
+| `community_reporter_review_requests` | UUID request id; audit_key FK; user_id BIGINT FK; unique pending ต่อ user/audit                                    | คำขอทบทวนของเจ้าของผลตรวจ; ฉบับใหม่ปิดคำขอเก่าโดยไม่แก้ audit เดิม    |
+| `account_privacy_requests`           | UUID request id; user_id BIGINT FK; unique open ต่อ user                                                           | คิวขอลบบัญชี ยังไม่ใช่ระบบลบข้อมูลจริง                                |
+
+UUID ของคิวส่วนเสริมเป็น opaque request identifiers; ไม่เปลี่ยน PK/FK หรือ readable codes ของข้อมูลธุรกิจเดิม
+RLS เปิดทุกตารางส่วนเสริม; service role อ่านได้ การเขียนผ่าน RPC ที่จำกัดหน้าที่เท่านั้น
+ดู [pending extension ERD](reporter-trust-extension.mmd) และ [ขั้นตอนติดตั้ง](../runbooks/reporter-trust-and-completion.md)
+
 | ตาราง                            | หน้าที่                                                | Primary key                              | Code                                   |
 | -------------------------------- | ------------------------------------------------------ | ---------------------------------------- | -------------------------------------- |
 | `activities`                     | กิจกรรมหรือเนื้อหาประกอบชุมชน                          | `(id)`                                   | ACT-000001                             |

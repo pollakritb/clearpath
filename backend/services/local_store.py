@@ -40,21 +40,12 @@ _LINE_NOTIFICATION_LINKS: dict[str, dict] = {}
 _LINE_WEBHOOK_EVENTS: dict[str, str] = {}
 _AUDIT_LOGS: list[dict] = []
 _PUBLIC_MAP_EVENTS: list[dict] = []
-_WEATHER_OBSERVATIONS: list[dict] = []
-_WEATHER_FORECASTS: list[dict] = []
-_FIRE_FEATURES: list[dict] = []
-_FORECAST_RUNS: list[dict] = []
-_FORECAST_PREDICTIONS: list[dict] = []
-_FORECAST_FALSE_SAFE_REVIEWS: dict[tuple[str, int, str], dict] = {}
 _DATA_ISSUES: list[dict] = []
 _FORECAST_PROVIDER_SYNC_RUNS: dict[str, dict] = {}
 _FORECAST_PROVIDER_SNAPSHOTS: list[dict] = []
-_FORECAST_CONSENSUS: dict[tuple[str, int], dict] = {}
-_FORECAST_PREDICTION_SOURCES: list[dict] = []
-_COMMUNITY_FORECAST_FEATURES: list[dict] = []
 
 
-# External forecast provider snapshots and consensus
+# Stored raw CAMS snapshots and collection runs
 
 
 def create_provider_sync_run(row: dict) -> dict:
@@ -96,15 +87,6 @@ def upsert_provider_snapshots(rows: list[dict]) -> int:
         return len(rows)
 
 
-def get_provider_snapshots(station_id: str) -> list[dict]:
-    with _LOCK:
-        return [
-            dict(row)
-            for row in _FORECAST_PROVIDER_SNAPSHOTS
-            if str(row["station_id"]) == station_id
-        ]
-
-
 def get_recent_cams_snapshots(
     station_id: str, issued_after: str, forecast_after: str
 ) -> list[dict]:
@@ -129,26 +111,6 @@ def get_provider_sync_run(run_id: str) -> dict | None:
         return dict(row) if row else None
 
 
-def delete_provider_history_before(
-    snapshot_cutoff_at: str, run_cutoff_at: str
-) -> tuple[int, int]:
-    with _LOCK:
-        snapshot_count = len(_FORECAST_PROVIDER_SNAPSHOTS)
-        _FORECAST_PROVIDER_SNAPSHOTS[:] = [
-            row
-            for row in _FORECAST_PROVIDER_SNAPSHOTS
-            if str(row.get("issued_at") or "") >= snapshot_cutoff_at
-        ]
-        expired_runs = [
-            run_id
-            for run_id, row in _FORECAST_PROVIDER_SYNC_RUNS.items()
-            if row.get("completed_at") and str(row["completed_at"]) < run_cutoff_at
-        ]
-        for run_id in expired_runs:
-            _FORECAST_PROVIDER_SYNC_RUNS.pop(run_id, None)
-        return snapshot_count - len(_FORECAST_PROVIDER_SNAPSHOTS), len(expired_runs)
-
-
 def delete_cams_history_before(
     snapshot_cutoff_at: str, run_cutoff_at: str, *, batch_size: int = 1000
 ) -> tuple[int, int]:
@@ -171,38 +133,6 @@ def delete_cams_history_before(
         for run_id in expired_runs:
             _FORECAST_PROVIDER_SYNC_RUNS.pop(run_id, None)
         return len(expired_snapshots), len(expired_runs)
-
-
-def upsert_forecast_consensus(
-    row: dict, sources: list[dict], feature: dict | None
-) -> None:
-    with _LOCK:
-        _FORECAST_CONSENSUS[(str(row["station_id"]), int(row["horizon_hours"]))] = dict(
-            row
-        )
-        _FORECAST_PREDICTION_SOURCES.extend(dict(item) for item in sources)
-        if feature:
-            _COMMUNITY_FORECAST_FEATURES.append(dict(feature))
-
-
-def get_forecast_consensus(
-    station_id: str, horizon_hours: int | None = None
-) -> list[dict]:
-    with _LOCK:
-        return [
-            dict(row)
-            for (sid, horizon), row in _FORECAST_CONSENSUS.items()
-            if sid == station_id and (horizon_hours is None or horizon == horizon_hours)
-        ]
-
-
-def list_forecast_consensus(horizon_hours: int) -> list[dict]:
-    with _LOCK:
-        return [
-            dict(row)
-            for (_station_id, horizon), row in _FORECAST_CONSENSUS.items()
-            if horizon == horizon_hours
-        ]
 
 
 def list_provider_sync_runs(limit: int = 20) -> list[dict]:
@@ -385,62 +315,6 @@ def get_map_history_readings(target_at: datetime, max_age_minutes: int) -> list[
 # Forecast evaluation and retention
 
 
-def insert_forecast_ledger(run: dict, predictions: list[dict]) -> None:
-    """Keep local demo observability without requiring a production database."""
-
-    with _LOCK:
-        _FORECAST_RUNS.append(dict(run))
-        _FORECAST_PREDICTIONS.extend(dict(row) for row in predictions)
-
-
-def delete_forecast_runs_before(cutoff_at: str, limit: int = 1000) -> int:
-    """Apply production-equivalent telemetry retention in local demo memory."""
-
-    with _LOCK:
-        expired_ids = {
-            str(row["id"])
-            for row in _FORECAST_RUNS
-            if str(row.get("generated_at") or "") < cutoff_at
-        }
-        selected = set(sorted(expired_ids)[:limit])
-        if not selected:
-            return 0
-        _FORECAST_RUNS[:] = [
-            row for row in _FORECAST_RUNS if str(row.get("id")) not in selected
-        ]
-        _FORECAST_PREDICTIONS[:] = [
-            row
-            for row in _FORECAST_PREDICTIONS
-            if str(row.get("run_id")) not in selected
-        ]
-        return len(selected)
-
-
-def list_forecast_monitoring_rows(since_at: str, until_at: str) -> list[dict]:
-    with _LOCK:
-        runs = {
-            str(row["id"]): row
-            for row in _FORECAST_RUNS
-            if since_at <= str(row.get("generated_at") or "") < until_at
-        }
-        return [
-            {**prediction, "forecast_runs": dict(runs[str(prediction["run_id"])])}
-            for prediction in _FORECAST_PREDICTIONS
-            if str(prediction.get("run_id")) in runs
-        ]
-
-
-def upsert_forecast_false_safe_review(row: dict) -> dict:
-    key = (
-        str(row["run_id"]),
-        int(row["horizon_hours"]),
-        str(row["variant"]),
-    )
-    with _LOCK:
-        _FORECAST_FALSE_SAFE_REVIEWS[key] = dict(row)
-        return dict(_FORECAST_FALSE_SAFE_REVIEWS[key])
-
-
 # User profiles, private evidence, and report drafts
 
 
@@ -484,15 +358,6 @@ def get_existing_profile(user_id: str) -> dict:
         profile = _PROFILES.get(user_id)
         if profile is None:
             raise KeyError(user_id)
-        return dict(profile)
-
-
-def update_profile_role(user_id: str, role: str, updated_at: str) -> dict:
-    with _LOCK:
-        profile = _PROFILES.get(user_id)
-        if profile is None:
-            raise KeyError(user_id)
-        profile.update({"role": role, "updated_at": updated_at})
         return dict(profile)
 
 
@@ -633,37 +498,9 @@ def list_audit_logs(
     return rows[offset : offset + limit]
 
 
-def create_data_issue(row: dict) -> dict:
-    with _LOCK:
-        _DATA_ISSUES.insert(0, dict(row))
-        return dict(row)
-
-
 def list_data_issues(limit: int) -> list[dict]:
     with _LOCK:
         return [dict(row) for row in _DATA_ISSUES[:limit]]
-
-
-def get_data_issue(issue_id: str) -> dict | None:
-    with _LOCK:
-        return next(
-            (dict(row) for row in _DATA_ISSUES if str(row.get("id")) == issue_id),
-            None,
-        )
-
-
-def update_data_issue_if_current(
-    issue_id: str, expected_updated_at: str, values: dict
-) -> dict | None:
-    with _LOCK:
-        for row in _DATA_ISSUES:
-            if str(row.get("id")) != issue_id:
-                continue
-            if str(row.get("updated_at")) != expected_updated_at:
-                return None
-            row.update(values)
-            return dict(row)
-    return None
 
 
 def create_public_map_event(row: dict) -> dict:
@@ -907,52 +744,6 @@ def notification_outbox_summary() -> dict:
 
 
 # Forecast feature inputs
-
-
-def upsert_weather_observation(row: dict) -> None:
-    with _LOCK:
-        _WEATHER_OBSERVATIONS.append(dict(row))
-
-
-def upsert_weather_forecasts(rows: list[dict]) -> None:
-    with _LOCK:
-        _WEATHER_FORECASTS.extend(dict(row) for row in rows)
-
-
-def upsert_fire_feature(row: dict) -> None:
-    with _LOCK:
-        _FIRE_FEATURES.append(dict(row))
-
-
-def get_latest_forecast_features(station_id: str) -> dict:
-    """Return the newest weather/fire inputs for neutral model inference."""
-    with _LOCK:
-        weather = [
-            row for row in _WEATHER_OBSERVATIONS if str(row["station_id"]) == station_id
-        ]
-        fire = [row for row in _FIRE_FEATURES if str(row["station_id"]) == station_id]
-        latest_weather = (
-            max(weather, key=lambda row: row["recorded_at"]) if weather else {}
-        )
-        latest_fire = max(fire, key=lambda row: row["recorded_at"]) if fire else {}
-        result = {**latest_weather, **latest_fire, "station_id": station_id}
-        if latest_weather:
-            result["weather_source_at"] = latest_weather.get(
-                "source_at"
-            ) or latest_weather.get("recorded_at")
-            result["weather_status"] = latest_weather.get("source_status", "observed")
-        else:
-            result["weather_status"] = "unavailable"
-        if latest_fire:
-            result["fire_source_at"] = latest_fire.get("source_at") or latest_fire.get(
-                "recorded_at"
-            )
-            result["fire_status"] = latest_fire.get("source_status", "observed")
-        else:
-            result["fire_status"] = "unavailable"
-        for horizon in (1, 3, 6, 12, 24):
-            result[f"forecast_weather_status_h{horizon}"] = "unavailable"
-        return result
 
 
 # Community reports, moderation, and reputation
@@ -1260,43 +1051,5 @@ def announcements() -> list[dict]:
     return [dict(row) for row in _ANNOUNCEMENTS]
 
 
-def create_announcement(row: dict) -> dict:
-    _ANNOUNCEMENTS.insert(0, dict(row))
-    return dict(row)
-
-
-def get_announcement(announcement_id: str) -> dict | None:
-    with _LOCK:
-        return next(
-            (
-                dict(row)
-                for row in _ANNOUNCEMENTS
-                if str(row.get("id")) == announcement_id
-            ),
-            None,
-        )
-
-
-def update_announcement(
-    announcement_id: str, values: dict, expected_updated_at: str | None = None
-) -> dict:
-    with _LOCK:
-        for row in _ANNOUNCEMENTS:
-            if str(row.get("id")) == announcement_id:
-                if (
-                    expected_updated_at
-                    and str(row.get("updated_at")) != expected_updated_at
-                ):
-                    raise ValueError("announcement_stale")
-                row.update(values)
-                return dict(row)
-    raise KeyError(announcement_id)
-
-
 def activities() -> list[dict]:
     return [dict(row) for row in _ACTIVITIES if row.get("active")]
-
-
-def create_activity(row: dict) -> dict:
-    _ACTIVITIES.insert(0, dict(row))
-    return dict(row)

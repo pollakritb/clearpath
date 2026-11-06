@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     community_xp_enabled: bool = False
     # Additive v2 schema and evaluated release policy are required before enabling.
     community_v2_enabled: bool = False
+    account_privacy_enabled: bool = False
+    reporter_trust_enabled: bool = False
+    reporter_trust_validation_ref: str = ""
     community_v2_demo_launch: str = "2026-11-05T00:00:00+07:00"
 
     # External APIs
@@ -26,19 +29,10 @@ class Settings(BaseSettings):
     # Public forecast mode serves stored raw CAMS values from Supabase.
     # It remains independent from the paused ClearPath model/generation pipeline.
     external_forecast_enabled: bool = True
-    # GISTDA metadata currently states no explicit data licence. Keep the
-    # adapter fail-closed until written permission/terms are recorded.
-    gistda_air_enabled: bool = False
-    gistda_license_approved: bool = False
-    # Community forecast correction remains shadow-only until field/backtest gates pass.
-    community_forecast_shadow_enabled: bool = False
     forecast_provider_max_batch_size: int = 50
-    forecast_station_min_history_points: int = 24
-    forecast_station_max_age_minutes: int = 90
     forecast_provider_snapshot_retention_days: int = 7
     forecast_provider_run_retention_days: int = 30
-    # Global maintenance gate. Keep enabled until clearpath-self-forecast-v1
-    # has a reviewed specification, backtest, and release decision.
+    # Compatibility setting only: retired routes always stay paused.
     forecast_system_paused: bool = True
     # Isolated forecast evidence collection. No production schedule is registered.
     forecast_validation_enabled: bool = False
@@ -59,8 +53,6 @@ class Settings(BaseSettings):
 
     # Private evidence can be summarized publicly only after source/window review.
     forecast_validation_public_metrics_enabled: bool = False
-    # Reserved for a future reviewed offline winner; never alters public CAMS.
-    cams_shadow_adjustment_enabled: bool = False
 
     # OCR ภาพหน้าจอเครื่องวัด (OpenAI Responses API, server only)
     openai_api_key: str = ""
@@ -99,14 +91,8 @@ class Settings(BaseSettings):
     line_official_account_url: str = ""
     app_public_url: str = "https://clearpath-gray.vercel.app"
 
-    # Production feature gates. A model must also pass its quality gate in the
-    # model registry before ML forecasts are served.
+    # Air-quality and hotspot notification jobs (legacy flag name).
     push_enabled: bool = False
-    ml_forecast_enabled: bool = False
-    ml_forecast_shadow_enabled: bool = False
-    ml_forecast_canary_percentage: int = 0
-    ml_forecast_canary_station_allowlist: str = ""
-    forecast_prediction_retention_days: int = 400
 
     @property
     def effective_capture_secret(self) -> str:
@@ -146,14 +132,6 @@ class Settings(BaseSettings):
     def current_release(self) -> str:
         """Prefer the immutable Vercel deployment SHA over a stale manual value."""
         return self.vercel_git_commit_sha or self.release_sha
-
-    @property
-    def canary_station_allowlist(self) -> list[str]:
-        return [
-            station.strip()
-            for station in self.ml_forecast_canary_station_allowlist.split(",")
-            if station.strip()
-        ]
 
 
 settings = Settings()

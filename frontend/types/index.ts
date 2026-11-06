@@ -15,3 +15,5 @@ export * from "./forecast-grid";
 export * from "./xp";
 
 export * from "./evidence";
+
+export * from "./account-privacy";

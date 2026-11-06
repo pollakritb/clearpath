@@ -15,9 +15,6 @@ from ..core.config import settings
 from ..core.errors import ConfigurationError
 from ..services import (
     air4thai,
-    forecast_data,
-    forecast_evaluation,
-    forecast_reconciliation,
     forecast_status,
     forecast_validation,
     notifications,
@@ -116,22 +113,8 @@ async def cron_sync(authorization: str | None = Header(default=None)):
         ingestion = air4thai.get_last_ingestion_diagnostics()
         upserted = await run_in_threadpool(supabase_client.upsert_stations, stations)
         inserted = await run_in_threadpool(supabase_client.insert_readings, stations)
-        if settings.forecast_system_paused:
-            forecast_inputs = forecast_status.paused_job("forecast-inputs")
-            reconciliation = forecast_status.paused_job("forecast-reconciliation")
-        else:
-            forecast_inputs = await forecast_data.collect_forecast_inputs(stations)
-            reconciliation = await run_in_threadpool(
-                forecast_reconciliation.reconcile_day
-            )
-        if reconciliation.get("alert_codes"):
-            logger.warning(
-                "forecast_ingestion_alert",
-                extra={
-                    "source": "forecast-reconciliation",
-                    "alert_codes": reconciliation["alert_codes"],
-                },
-            )
+        forecast_inputs = forecast_status.paused_job("forecast-inputs")
+        reconciliation = forecast_status.paused_job("forecast-reconciliation")
         retention_result = await run_in_threadpool(retention.cleanup_expired_reports)
         source_times = [
             str(row["recorded_at"]) for row in stations if row.get("recorded_at")
@@ -193,16 +176,7 @@ async def cron_alerts(authorization: str | None = Header(default=None)):
 @router.get("/cron/forecast-evaluation")
 async def cron_forecast_evaluation(authorization: str | None = Header(default=None)):
     _verify_cron(authorization)
-    if settings.forecast_system_paused:
-        return forecast_status.paused_job("forecast-evaluation")
-    result = await run_in_threadpool(forecast_evaluation.run_evaluation)
-    alert_codes = result.get("alerts", {}).get("alert_codes", [])
-    if alert_codes:
-        logger.warning(
-            "forecast_monitoring_alert",
-            extra={"source": "forecast-evaluation", "alert_codes": alert_codes},
-        )
-    return result
+    return forecast_status.paused_job("forecast-evaluation")
 
 
 @router.get("/cron/forecast-validation")
@@ -234,13 +208,7 @@ async def cron_openmeteo_air(
     authorization: str | None = Header(default=None), only_if_due: bool = False
 ):
     _verify_cron(authorization)
-    if settings.forecast_system_paused:
-        return forecast_status.paused_job("openmeteo_cams")
-    return await (
-        provider_sync.sync_openmeteo_if_due()
-        if only_if_due
-        else provider_sync.sync_openmeteo()
-    )
+    return forecast_status.paused_job("openmeteo_cams")
 
 
 @router.get("/cron/forecast-providers/gistda")
@@ -248,20 +216,7 @@ async def cron_gistda_air(
     authorization: str | None = Header(default=None), only_if_due: bool = False
 ):
     _verify_cron(authorization)
-    if settings.forecast_system_paused:
-        return forecast_status.paused_job("gistda")
-    if not settings.gistda_air_enabled or not settings.gistda_license_approved:
-        return {
-            "ok": True,
-            "provider": "gistda",
-            "status": "disabled",
-            "reason": "licence_or_feature_gate_disabled",
-        }
-    return await (
-        provider_sync.sync_gistda_if_due()
-        if only_if_due
-        else provider_sync.sync_gistda()
-    )
+    return forecast_status.paused_job("gistda")
 
 
 @router.get("/cron/measurement-requests")

@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from .evidence import EvidenceHistory
+from .reporter_trust import ReporterTrust
 
 
 class ParticipationRank(BaseModel):
@@ -18,6 +19,7 @@ class ParticipationRank(BaseModel):
 
 
 class XPSummary(BaseModel):
+    reporter_trust: ReporterTrust | None = None
     member_id: str
     alias: str
     hidden: bool = False
@@ -103,6 +105,7 @@ class HelpClaim(BaseModel):
 
 
 class PublicMember(BaseModel):
+    reporter_trust: ReporterTrust | None = None
     evidence_history: EvidenceHistory | None = None
     member_id: str
     alias: str
@@ -125,10 +128,6 @@ class XPAdminOverview(BaseModel):
     zero_reasons: dict[str, int]
     repeated_pairs: int
     events: list[XPAdminEvent]
-
-
-class XPReversalRequest(BaseModel):
-    reason: str = Field(min_length=10, max_length=500)
 
 
 class OwnedReportIDs(BaseModel):

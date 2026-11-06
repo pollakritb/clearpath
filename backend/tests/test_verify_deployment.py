@@ -1,21 +1,30 @@
-from scripts.verify_deployment import baseline_fallback_valid
+import httpx
+
+from scripts import verify_deployment
 
 
-def test_baseline_fallback_requires_disabled_reason_and_no_model_metadata():
-    forecast = {
-        "model_version": None,
-        "artifact_sha256": None,
-        "fallback_reason_codes": ["ml_forecast_disabled"],
-        "points": [
-            {"model_version": None, "artifact_sha256": None},
-            {"model_version": None, "artifact_sha256": None},
-        ],
-    }
-    assert baseline_fallback_valid(
-        current_status=200, forecast_status=200, forecast=forecast
+def test_smoke_checks_use_health_readiness_and_protected_admin_only(monkeypatch):
+    calls = []
+
+    def respond(request):
+        calls.append((request.method, request.url.path))
+        if request.url.path == "/api/admin/sync-runs":
+            return httpx.Response(401, json={"detail": "unauthorized"})
+        return httpx.Response(
+            200,
+            json={"status": "ready"},
+            headers={key: "enabled" for key in verify_deployment.SECURITY_HEADERS},
+        )
+
+    client = httpx.Client(
+        base_url="http://local.test", transport=httpx.MockTransport(respond)
     )
-
-    forecast["points"][1]["model_version"] = "unexpected-model"
-    assert not baseline_fallback_valid(
-        current_status=200, forecast_status=200, forecast=forecast
-    )
+    monkeypatch.setattr(verify_deployment.httpx, "Client", lambda **kwargs: client)
+    result = verify_deployment.verify("http://local.test")
+    assert result["ready"]
+    assert calls == [
+        ("GET", "/"),
+        ("GET", "/api/health"),
+        ("GET", "/api/ready"),
+        ("GET", "/api/admin/sync-runs"),
+    ]

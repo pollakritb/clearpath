@@ -4,6 +4,8 @@ import hashlib
 import hmac
 import time
 
+from backend.services import store_client
+
 from ...core.config import settings
 from ...core.errors import UpstreamError
 from .. import local_store
@@ -42,7 +44,9 @@ def read(report_id: str, expires: int, signature: str) -> bytes:
         return result[0]
     try:
         return (
-            db.get_client().storage.from_(settings.report_image_bucket).download(path)
+            store_client.get_client()
+            .storage.from_(settings.report_image_bucket)
+            .download(path)
         )
     except Exception as exc:
         raise UpstreamError("โหลดภาพรายงานไม่สำเร็จ") from exc

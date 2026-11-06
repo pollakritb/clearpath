@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from backend.services import supabase_client as store
+from backend.services import store_notifications as store
 
 
 class ExistingRows:
@@ -55,7 +55,7 @@ def test_replay_preserves_read_notification_and_successfully_sent_delivery(monke
             "attempts": 2,
         },
     }
-    monkeypatch.setattr(store, "get_client", lambda: ExistingRows(saved))
+    monkeypatch.setattr(store.db, "get_client", lambda: ExistingRows(saved))
     result = store.create_user_notification(
         {
             "id": "NTF-000099",

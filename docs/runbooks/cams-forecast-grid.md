@@ -24,16 +24,19 @@ history, nearest-reading surface, reports and measurement requests. Keep
   axes fail the whole collection. Null values remain null.
 - Source-native resolution is ~45 km / 3 hours, updated ~12 hourly. The returned
   API timestamps are hourly. ClearPath checks four six-hour UTC slots per day.
-  It does not extend the actual source horizon to guarantee 120 future hours.
+  The six-hour slot schedules work; the immutable job creation time anchors all
+  provider requests to the same current-hour window across retries. It does not
+  extend the actual source horizon to guarantee 120 future hours. Entirely-null
+  hourly frames are excluded from publication; null cells within real frames remain null.
 - Each generation is a coherent ClearPath retrieval, not a certified upstream
   model run: Open-Meteo does not supply a model-run ID here. `model_issued_at`
   remains null. Fetch start/end are separate. A repeat of the first batch before
   publication detects an upstream change during collection; discard/retry
   rather than blend it. The collection has a 20-minute lifetime.
-- Canvas samples concentration by bilinear interpolation in latitude/longitude,
-  then uses a continuous ramp derived from the central PM2.5 palette. Category
-  thresholds are unchanged; cards use the same sampler and colour function.
-  No IDW, station blending, extrapolation or filling missing corners. Opacity
+- Canvas renders the returned cells as a square grid with thin boundaries and
+  a fixed colour per PM2.5 category. Adjacent cells are not blended into a colour
+  gradient; cards use the selected source cell. No IDW, station blending,
+  extrapolation or filling missing cells. Opacity
   is 0.4. A 512 × 960 geographic Canvas raster is kept in one native Leaflet
   image overlay, so pan/zoom never clears or rebuilds it. Raster resolution
   does not increase model resolution. Missing areas remain transparent.

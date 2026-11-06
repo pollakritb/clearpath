@@ -8,6 +8,8 @@ from datetime import UTC, datetime, timedelta
 from threading import RLock
 from time import monotonic
 
+from backend.services import store_client
+
 from ...algorithms.community_xp import (
     POLICY_VERSION,
     REASONS,
@@ -47,7 +49,7 @@ def enabled() -> bool:
 
 def rpc(name: str, params: dict):
     try:
-        return db.get_client().rpc(name, params).execute().data
+        return store_client.get_client().rpc(name, params).execute().data
     except Exception as exc:
         if getattr(exc, "message", "") in {
             "request_closed",
@@ -75,7 +77,7 @@ def account(user_id: str) -> dict:
                 )
             return dict(_ACCOUNTS[user_id])
     try:
-        client = db.get_client()
+        client = store_client.get_client()
         client.table("community_xp_accounts").upsert(
             {"user_id": user_id}, on_conflict="user_id", ignore_duplicates=True
         ).execute()
@@ -100,7 +102,7 @@ def events(user_id: str, offset: int = 0, limit: int = 50) -> list[dict]:
         )[offset : offset + limit]
     try:
         return (
-            db.get_client()
+            store_client.get_client()
             .table("community_xp_events")
             .select("*")
             .eq("user_id", user_id)
@@ -119,7 +121,7 @@ def totals(user_id: str) -> dict:
     if not settings.local_demo_mode:
         try:
             rows = (
-                db.get_client()
+                store_client.get_client()
                 .rpc("community_xp_totals", {"p_user": user_id})
                 .execute()
                 .data
@@ -167,7 +169,7 @@ def summary(user_id: str) -> dict | None:
         return None
     a = account(user_id)
     t = totals(user_id)
-    from . import policy_v2
+    from . import policy_v2, reporter_trust
 
     policy = policy_v2.release()
     extra = (
@@ -184,6 +186,7 @@ def summary(user_id: str) -> dict | None:
     )
     return (
         extra
+        | {"reporter_trust": reporter_trust.summary(user_id)}
         | {key: a[key] for key in ("member_id", "alias", "hidden")}
         | dict(
             identity_mode=a.get("identity_mode", "google"),
@@ -214,7 +217,7 @@ def update_settings(user_id: str, values: dict) -> dict:
             _ACCOUNTS[user_id].update(values)
     else:
         try:
-            db.get_client().table("community_xp_accounts").update(values).eq(
+            store_client.get_client().table("community_xp_accounts").update(values).eq(
                 "user_id", user_id
             ).execute()
         except Exception as exc:
@@ -326,7 +329,7 @@ def _leaderboard_names(member_ids: list[str]) -> dict[str, str]:
                 with suppress(KeyError):
                     profiles[a["user_id"]] = db.get_existing_profile(a["user_id"])
     else:
-        client = db.get_client()
+        client = store_client.get_client()
         accounts = (
             client.table("community_xp_accounts")
             .select("user_id,member_id,alias,identity_mode")
@@ -462,7 +465,7 @@ def reward_report(report: dict) -> dict:
                 and e["kind"] in {"report", "help", "first_day", "contribution_week"}
             ]
             if settings.local_demo_mode
-            else db.get_client()
+            else store_client.get_client()
             .table("community_xp_events")
             .select("*")
             .eq("user_id", str(report["user_id"]))
@@ -480,7 +483,7 @@ def reward_report(report: dict) -> dict:
             else {
                 e["reverses"]
                 for e in (
-                    db.get_client()
+                    store_client.get_client()
                     .table("community_xp_events")
                     .select("reverses")
                     .in_("reverses", [r["id"] for r in rows])
@@ -761,7 +764,7 @@ def public_member(member_id: str) -> dict:
     else:
         try:
             rows = (
-                db.get_client()
+                store_client.get_client()
                 .table("community_xp_accounts")
                 .select("user_id")
                 .eq("member_id", member_id)
@@ -777,7 +780,10 @@ def public_member(member_id: str) -> dict:
         raise KeyError()
     s = summary(a["user_id"])
     s["alias"] = leaderboard_names([member_id]).get(member_id, s["alias"])
-    return {"evidence_history": s.get("evidence_history")} | {
+    return {
+        "evidence_history": s.get("evidence_history"),
+        "reporter_trust": s.get("reporter_trust"),
+    } | {
         key: s[key]
         for key in (
             "member_id",
@@ -798,7 +804,7 @@ def existing_claim(user_id: str, request: dict) -> dict | None:
     else:
         try:
             rows = (
-                db.get_client()
+                store_client.get_client()
                 .table("community_help_claims")
                 .select("started_at")
                 .eq("request_id", request["id"])
@@ -810,6 +816,21 @@ def existing_claim(user_id: str, request: dict) -> dict | None:
             row = rows[0] if rows else None
         except Exception as exc:
             raise UpstreamError("โหลดภารกิจช่วยวัดไม่สำเร็จ") from exc
+    return present_claim(request, row)
+
+
+def existing_claims(user_id: str, request_ids: list[str]) -> dict[str, dict]:
+    """Local-demo batch snapshot; production claims are loaded by measurement store."""
+    with _LOCK:
+        return {
+            rid: dict(row)
+            for (rid, uid), row in _CLAIMS.items()
+            if uid == user_id and rid in request_ids
+        }
+
+
+def present_claim(request: dict, row: dict | None) -> dict | None:
+    """Present a loaded claim without performing storage or control lookups."""
     if not row or request["status"] in {"cancelled", "expired"}:
         return None
     deadline = stamp(request["expires_at"])
@@ -843,7 +864,7 @@ def control() -> dict:
         return dict(_CONTROL_CACHE[2])
     try:
         rows = (
-            db.get_client()
+            store_client.get_client()
             .table("community_xp_control")
             .select("enabled,maintenance,reset_version")
             .limit(1)
@@ -871,7 +892,7 @@ def public_identities(rows: list[dict]) -> dict[str, dict]:
     if settings.local_demo_mode:
         return {uid: public_identity(uid) for uid in ids}
     try:
-        client = db.get_client()
+        client = store_client.get_client()
         accounts = (
             client.table("community_xp_accounts")
             .select("user_id,member_id,alias,hidden,identity_mode")
@@ -919,7 +940,7 @@ def admin_overview() -> dict:
         overview = rpc("community_xp_admin_overview", {})
         try:
             rows = (
-                db.get_client()
+                store_client.get_client()
                 .table("community_xp_events")
                 .select("*")
                 .order("recorded_at", desc=True)
@@ -930,7 +951,7 @@ def admin_overview() -> dict:
             )
             ids = [r["id"] for r in rows]
             rev = (
-                db.get_client()
+                store_client.get_client()
                 .table("community_xp_events")
                 .select("reverses")
                 .in_("reverses", ids)

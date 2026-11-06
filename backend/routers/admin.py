@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, Query, Response
 from starlette.concurrency import run_in_threadpool
 
 from ..core.auth import AuthenticatedUser, require_admin, require_moderator
-from ..core.config import settings
 from ..models.admin import (
     DataHealthResponse,
 )
@@ -21,9 +20,9 @@ from ..models.schemas import (
 from ..services import community as community_service
 from ..services import (
     data_health,
+    forecast_status,
     supabase_client,
 )
-from ..services.forecast_models import artifact_statuses
 
 router = APIRouter()
 
@@ -144,10 +143,7 @@ async def data_health_summary(
 async def forecast_models(
     _user: AuthenticatedUser = Depends(require_moderator),
 ):
-    if settings.forecast_system_paused:
-        return {"models": [], "count": 0, "status": "retired"}
-    models = await run_in_threadpool(artifact_statuses)
-    return {"models": models, "count": len(models)}
+    return forecast_status.retired_items("models")
 
 
 @router.get("/admin/forecast-data-quality")
@@ -155,7 +151,7 @@ async def forecast_data_quality(
     days: int = Query(7, ge=1, le=31),
     _user: AuthenticatedUser = Depends(require_admin),
 ):
-    return {"rows": [], "count": 0, "days": days, "status": "retired"}
+    return forecast_status.retired_items("rows", days=days)
 
 
 @router.get("/admin/forecast-provider-health")
@@ -170,12 +166,7 @@ async def forecast_evaluation(
     days: int = Query(14, ge=1, le=90),
     _user: AuthenticatedUser = Depends(require_admin),
 ):
-    if settings.forecast_system_paused:
-        return {"rows": [], "count": 0, "days": days, "status": "retired"}
-    rows = await run_in_threadpool(
-        supabase_client.get_forecast_evaluation_summary, days
-    )
-    return {"rows": rows, "count": len(rows), "days": days}
+    return forecast_status.retired_items("rows", days=days)
 
 
 @router.get("/admin/forecast-false-safe-cases")
@@ -184,12 +175,7 @@ async def forecast_false_safe_cases(
     limit: int = Query(100, ge=1, le=200),
     _user: AuthenticatedUser = Depends(require_admin),
 ):
-    if settings.forecast_system_paused:
-        return {"cases": [], "count": 0, "days": days, "status": "retired"}
-    rows = await run_in_threadpool(
-        supabase_client.list_forecast_false_safe_cases, days, limit
-    )
-    return {"cases": rows, "count": len(rows), "days": days}
+    return forecast_status.retired_items("cases", days=days)
 
 
 @router.get("/admin/forecast-release-decisions")
@@ -197,12 +183,7 @@ async def forecast_release_decisions(
     limit: int = Query(100, ge=1, le=200),
     _user: AuthenticatedUser = Depends(require_admin),
 ):
-    if settings.forecast_system_paused:
-        return {"decisions": [], "count": 0, "status": "retired"}
-    rows = await run_in_threadpool(
-        supabase_client.list_forecast_release_decisions, limit
-    )
-    return {"decisions": rows, "count": len(rows)}
+    return forecast_status.retired_items("decisions")
 
 
 @router.get("/admin/notification-outbox")

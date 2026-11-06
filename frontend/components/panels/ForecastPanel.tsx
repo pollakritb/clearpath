@@ -16,10 +16,6 @@ import {
   formatForecastTimelineTime,
   formatProviderTime,
 } from "@/frontend/lib/forecast-presentation";
-import {
-  FORECAST_PAUSED_MESSAGE,
-  FORECAST_SYSTEM_PAUSED,
-} from "@/frontend/lib/forecast-state";
 import type {
   ForecastResponse,
   ForecastSource,
@@ -31,88 +27,6 @@ const SOURCE_ICONS: Record<ForecastSource, AppIconName> = {
   gistda: "station",
   openmeteo_cams: "model",
 };
-
-function ForecastPausedPreview() {
-  return (
-    <div className="cp-forecast-preview cp-anim-rise" aria-live="polite">
-      <div className="cp-forecast-preview__hero">
-        <span className="cp-forecast-preview__icon" aria-hidden>
-          <AppIcon name="activity" size={22} />
-        </span>
-        <div>
-          <span>ช่วงเวลาพยากรณ์</span>
-          <strong>ยังไม่มีค่าพยากรณ์</strong>
-          <small>ค่าจริงจะแสดงเป็น µg/m³ พร้อมระดับคุณภาพอากาศ</small>
-        </div>
-        <span className="cp-forecast-preview__value" aria-hidden>
-          —
-        </span>
-      </div>
-
-      <div
-        className="cp-forecast-preview__summary"
-        aria-label="ข้อมูลประกอบพยากรณ์"
-      >
-        <div>
-          <span>ช่วงค่าที่เป็นไปได้</span>
-          <strong>— ถึง — µg/m³</strong>
-        </div>
-        <div>
-          <span>ความเชื่อมั่น</span>
-          <strong>รอข้อมูล</strong>
-        </div>
-      </div>
-
-      <div className="cp-forecast-preview__sources">
-        <div className="cp-forecast-preview__sources-heading">
-          <span>
-            <AppIcon name="layers" size={17} />
-            ข้อมูลที่จะใช้ประกอบ
-          </span>
-          <small>ยังไม่เชื่อมระบบคำนวณ</small>
-        </div>
-        <ul>
-          <li>
-            <AppIcon name="activity" size={17} />
-            <span>
-              <strong>ClearPath</strong>
-              <small>ค่าพยากรณ์หลักและช่วงความไม่แน่นอน</small>
-            </span>
-            <em>รอข้อมูล</em>
-          </li>
-          <li>
-            <AppIcon name="database" size={17} />
-            <span>
-              <strong>ข้อมูลภายนอก</strong>
-              <small>ใช้ตรวจสอบความสอดคล้องของแนวโน้ม</small>
-            </span>
-            <em>รอข้อมูล</em>
-          </li>
-          <li>
-            <AppIcon name="community" size={17} />
-            <span>
-              <strong>ข้อมูลชุมชน</strong>
-              <small>ใช้เป็นหลักฐานประกอบเมื่อผ่านเกณฑ์</small>
-            </span>
-            <em>รอข้อมูล</em>
-          </li>
-        </ul>
-      </div>
-
-      <div className="cp-forecast-preview__notice">
-        <AppIcon name="info" size={18} />
-        <span>
-          <strong>{FORECAST_PAUSED_MESSAGE}</strong>
-          <small>ระหว่างนี้ให้ใช้ค่าฝุ่นปัจจุบันและคำแนะนำสุขภาพเป็นหลัก</small>
-        </span>
-      </div>
-      <p className="cp-forecast-disclaimer">
-        เมื่อเปิดใช้งาน พยากรณ์จะแสดงแนวโน้มเพื่อช่วยวางแผน
-        ไม่ใช่ค่าตรวจวัดจริงหรือคำแนะนำทางการแพทย์
-      </p>
-    </div>
-  );
-}
 
 export default function ForecastPanel({
   station,
@@ -185,7 +99,6 @@ export default function ForecastPanel({
     data.recommended_source === "openmeteo_cams" &&
     data.provider_count === 1;
   const unavailable = data?.forecast_status === "unavailable";
-  const previewMode = FORECAST_SYSTEM_PAUSED;
   const sourceStationName = data?.provenance?.source_station_name;
   const sourceStationDistance = data?.provenance?.source_station_distance_km;
   const hasTarget = Boolean(station || areaLabel);
@@ -221,16 +134,12 @@ export default function ForecastPanel({
             </p>
           )}
         </div>
-        {(previewMode || data) && (
+        {data && (
           <span
             className="cp-forecast-quality"
-            data-state={previewMode ? "unavailable" : data?.forecast_status}
+            data-state={data?.forecast_status}
           >
-            {previewMode
-              ? "กำลังพัฒนา"
-              : externalOnly
-                ? "ข้อมูล CAMS ที่เก็บไว้"
-                : forecastStatus(data!)}
+            {externalOnly ? "ข้อมูล CAMS ที่เก็บไว้" : forecastStatus(data!)}
           </span>
         )}
       </div>
@@ -240,23 +149,23 @@ export default function ForecastPanel({
           อนุญาตตำแหน่งหรือเลือกสถานที่บนแผนที่เพื่อดูพยากรณ์
         </div>
       )}
-      {loading && !previewMode && (
+      {loading && (
         <div className="cp-forecast-empty" role="status" aria-live="polite">
           กำลังโหลดพยากรณ์จากแหล่งข้อมูลที่พร้อมใช้งาน…
         </div>
       )}
-      {error && !previewMode && (
+      {error && (
         <div className="cp-forecast-alert" role="alert">
           {error}
         </div>
       )}
-      {hasTarget && unavailable && !previewMode && (
+      {hasTarget && unavailable && (
         <div className="cp-forecast-empty" role="status">
           ยังไม่มีพยากรณ์ CAMS ที่เก็บไว้สำหรับบริเวณนี้
         </div>
       )}
 
-      {hasTarget && !previewMode && timelinePoints.length > 0 && (
+      {hasTarget && timelinePoints.length > 0 && (
         <div className="cp-forecast-timeline-wrap">
           <div
             className="cp-forecast-timeline"
@@ -323,15 +232,6 @@ export default function ForecastPanel({
         </div>
       )}
 
-      {previewMode && (
-        <div
-          className="cp-forecast-timeline-placeholder"
-          aria-label="ช่วงเวลาพยากรณ์ยังไม่พร้อม"
-        >
-          Timeline จะปรากฏเมื่อมีข้อมูลจาก CAMS/Open‑Meteo
-        </div>
-      )}
-
       {compact && data?.points.length ? (
         <p className="cp-air-outlook__source">
           ค่าพยากรณ์จากแบบจำลอง ·{" "}
@@ -344,9 +244,8 @@ export default function ForecastPanel({
           </a>
         </p>
       ) : null}
-      {previewMode && <ForecastPausedPreview />}
 
-      {data && selected && !previewMode && (
+      {data && selected && (
         <details
           className="cp-forecast-details"
           open={compact ? undefined : true}

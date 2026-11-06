@@ -40,9 +40,14 @@ async def sync() -> dict:
         return job
     job_id = job["id"]
     try:
+        # Six-hour slot controls scheduling only. Pin provider hours to the
+        # immutable job creation time so late/manual collection retains its horizon.
+        start_at = await run_in_threadpool(store.job_start, job_id)
         index = job["next_batch"]
         if index < BATCH_COUNT:
-            chunk = await openmeteo_grid.fetch_batch(batch_points(index))
+            chunk = await openmeteo_grid.fetch_batch(
+                batch_points(index), start_at=start_at
+            )
             await run_in_threadpool(
                 store.rpc,
                 "checkpoint_cams_grid",
@@ -66,7 +71,7 @@ async def sync() -> dict:
                 "batch_count": BATCH_COUNT,
             }
         chunks = await run_in_threadpool(store.chunks, job_id)
-        anchor = await openmeteo_grid.fetch_batch(batch_points(0))
+        anchor = await openmeteo_grid.fetch_batch(batch_points(0), start_at=start_at)
         if anchor != chunks[0]:
             raise ValueError("grid_upstream_changed_during_collection")
         frames, fingerprint = assemble(chunks)

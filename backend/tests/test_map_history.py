@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from backend.algorithms.map_history import select_map_history_stations
 from backend.main import create_app
 from backend.routers import history
+from backend.services import store_client
 
 
 def test_selects_latest_reading_at_or_before_target_and_ignores_future():
@@ -208,8 +209,8 @@ def test_history_query_pages_beyond_default_report_and_database_limits(monkeypat
 
             return SimpleNamespace(data=rows[self.start : self.end + 1])
 
-    monkeypatch.setattr(supabase_client.settings, "local_demo_mode", False)
-    monkeypatch.setattr(supabase_client, "get_client", lambda: Query())
+    monkeypatch.setattr(store_client.settings, "local_demo_mode", False)
+    monkeypatch.setattr(store_client, "get_client", lambda: Query())
     result = supabase_client.get_map_history_reports(
         datetime(2026, 10, 30, 17, tzinfo=UTC)
     )

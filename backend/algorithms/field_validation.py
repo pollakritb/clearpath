@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from statistics import median
 
+from ..core.aqi import pm25_category_index
 from .district import DISTRICTS
-from .forecast_baselines import evaluate_predictions
 
 REQUIRED_FIELDS = {
     "observed_pm25",
@@ -176,4 +178,32 @@ def compare_field_variants(
         "missing_or_insufficient_slices": missing_or_insufficient,
         "failed_slices": failed_slices,
         "slices": slices,
+    }
+
+
+def evaluate_predictions(actual: Sequence[float], predicted: Sequence[float]) -> dict:
+    if not actual or len(actual) != len(predicted):
+        raise ValueError("prediction_lengths_invalid")
+    errors = [
+        forecast - observed
+        for observed, forecast in zip(actual, predicted, strict=True)
+    ]
+    absolute = [abs(error) for error in errors]
+    squared = [error * error for error in errors]
+    category_matches = [
+        pm25_category_index(float(observed)) == pm25_category_index(float(forecast))
+        for observed, forecast in zip(actual, predicted, strict=True)
+    ]
+    false_safe = [
+        pm25_category_index(float(forecast)) < pm25_category_index(float(observed))
+        for observed, forecast in zip(actual, predicted, strict=True)
+    ]
+    return {
+        "rows": len(actual),
+        "mae": sum(absolute) / len(absolute),
+        "rmse": math.sqrt(sum(squared) / len(squared)),
+        "median_absolute_error": median(absolute),
+        "bias": sum(errors) / len(errors),
+        "category_accuracy": sum(category_matches) / len(category_matches),
+        "false_safe_rate": sum(false_safe) / len(false_safe),
     }

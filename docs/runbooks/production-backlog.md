@@ -1,5 +1,9 @@
 # Production backlog and dependency map
 
+Current completion work follows the [6 November plan](../superpowers/plans/2026-11-06-completion-and-reporter-trust.md) and its [execution record](../verification/2026-11-06-completion-execution.md). The task map below is a historical dependency reference, not a current production acceptance checklist.
+
+> Historical planning record: local/ML forecast and multi-provider pipelines were removed in the 2026-11-02 refactor. Use [current forecast behavior](forecast-reset.md) for the running system; commands below describe the former design.
+
 The task IDs in
 `docs/superpowers/plans/2026-09-16-clearpath-production-completion-plan.md` are
 the canonical backlog. Checkboxes in that file are authoritative; this file

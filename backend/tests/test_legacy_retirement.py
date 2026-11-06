@@ -3,20 +3,22 @@
 import asyncio
 from types import SimpleNamespace
 
+import pytest
+
 from backend.core.config import settings
 from backend.routers import admin
-from backend.services import supabase_client
+from backend.services import store_client, supabase_client
 from scripts.production_preflight import REQUIRED_TABLES
 
 
-def test_retired_admin_endpoints_do_not_open_database(monkeypatch):
-    monkeypatch.setattr(settings, "forecast_system_paused", True)
+@pytest.mark.parametrize("paused", [True, False])
+def test_retired_admin_endpoints_do_not_open_database(monkeypatch, paused):
+    monkeypatch.setattr(settings, "forecast_system_paused", paused)
 
     def unavailable():
         raise AssertionError("Retired forecast endpoints must not query dropped tables")
 
-    monkeypatch.setattr(supabase_client, "get_client", unavailable)
-    monkeypatch.setattr(admin, "artifact_statuses", unavailable)
+    monkeypatch.setattr(store_client, "get_client", unavailable)
 
     async def read_retired():
         return [
@@ -55,7 +57,7 @@ def test_provider_health_uses_retained_cams_tables_only(monkeypatch):
         def execute(self):
             return SimpleNamespace(data=[])
 
-    monkeypatch.setattr(supabase_client, "get_client", Query)
+    monkeypatch.setattr(store_client, "get_client", Query)
     result = supabase_client.forecast_provider_health()
     assert accessed == ["forecast_provider_sync_runs"]
     assert result["consensus"]["station_count"] == 0
@@ -104,7 +106,7 @@ def test_satellite_hotspot_layer_survives_feature_table_retirement(monkeypatch):
             }
         ]
 
-    monkeypatch.setattr(supabase_client, "get_client", forbidden)
+    monkeypatch.setattr(store_client, "get_client", forbidden)
     monkeypatch.setattr(firms, "get_fires", provider)
     response = asyncio.run(firms_router.firms(days=1))
     assert response.available is True

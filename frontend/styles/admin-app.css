@@ -916,14 +916,6 @@
   display: grid;
   gap: 12px;
 }
-.cp-admin-review-card {
-  display: grid;
-  gap: 12px;
-  border: 1px solid var(--cp-line);
-  border-radius: 14px;
-  padding: 14px;
-  background: var(--cp-chip);
-}
 .cp-admin-review-card__summary,
 .cp-admin-review-card__actions,
 .cp-admin-release-row {
@@ -949,56 +941,6 @@
   color: var(--cp-subink);
   font-size: 10px;
   line-height: 1.5;
-}
-.cp-admin-review-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 0;
-}
-.cp-admin-review-metrics > div {
-  border-radius: 10px;
-  padding: 9px;
-  background: #fff;
-}
-.cp-admin-review-metrics dt {
-  color: var(--cp-subink);
-  font-size: 9px;
-}
-.cp-admin-review-metrics dd {
-  margin: 3px 0 0;
-  font-size: 11px;
-  font-weight: 700;
-}
-.cp-admin-review-card label {
-  display: grid;
-  gap: 6px;
-  color: var(--cp-subink);
-  font-size: 10px;
-  font-weight: 700;
-}
-.cp-admin-review-card select,
-.cp-admin-review-card textarea {
-  width: 100%;
-  min-height: 44px;
-  border: 1px solid var(--cp-line);
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: #fff;
-  color: var(--cp-ink);
-  font: inherit;
-  font-size: 13px;
-}
-.cp-admin-review-card textarea {
-  min-height: 88px;
-  resize: vertical;
-}
-.cp-admin-review-card__actions > span {
-  color: var(--cp-subink);
-  font-size: 10px;
-}
-.cp-admin-review-card__actions .cp-admin-button {
-  min-height: 44px;
 }
 .cp-admin-release-row {
   border-radius: 11px;
@@ -1222,16 +1164,6 @@
     display: block;
     min-height: 100svh;
     padding-bottom: calc(74px + env(safe-area-inset-bottom));
-  }
-  .cp-admin-review-metrics {
-    grid-template-columns: 1fr;
-  }
-  .cp-admin-review-card__actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-  .cp-admin-review-card__actions .cp-admin-button {
-    width: 100%;
   }
   .cp-admin-release-row {
     align-items: flex-start;

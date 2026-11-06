@@ -1,338 +1,200 @@
 # ClearPath Community
 
-> **Stored CAMS forecast mode:** A six-hour job saves raw PM2.5 forecasts from
-> CAMS through Open-Meteo in Supabase. Public pages read the latest completed
-> snapshot, up to five days of available future hours. ClearPath does not blend,
-> bias-correct, or recalculate these values. The former local, ML, evaluation,
-> and provider-sync pipelines remain paused. See
-> `docs/runbooks/forecast-reset.md`.
+แพลตฟอร์มติดตามและพยากรณ์ PM2.5 พร้อมรายงานจากชุมชน ใช้ Next.js 16 / React 19,
+FastAPI และ Supabase โดย browser เรียกข้อมูลผ่าน `/api/*` เท่านั้น
 
-> พยากรณ์ PM2.5 และเครือข่ายข้อมูลคุณภาพอากาศที่ชุมชนช่วยกันตรวจสอบ
+## ระบบปัจจุบัน
 
-ClearPath ใช้ Air4Thai เป็นแหล่งข้อมูลสถานีทางการ, NASA FIRMS สำหรับจุดความร้อน
-และเปิดให้ประชาชนถ่ายภาพเครื่องวัด PM2.5 ผ่านกล้องภายในแพลตฟอร์ม เมื่อส่งภาพแล้ว
-ระบบ OCR จะอ่านเฉพาะตัวเลข PM2.5 จากภาพ ถ้าอ่านได้จะเผยแพร่ค่า OCR อัตโนมัติ
-ส่วนภาพที่อ่านเลขไม่ได้จะถูกปฏิเสธพร้อมเหตุผลและให้ผู้ใช้ถ่ายใหม่
+เอกสารนี้อธิบาย source ใน workspace; ไม่ใช้แทนการยืนยันว่า deploy แล้ว
+งานเพิ่มเติมวันที่ 6 พ.ย. (Reporter Trust, CAMS horizon, account privacy) แยกการ deploy โค้ดออกจากการเปิดนโยบาย:
+refactor/CAMS ไม่ต้องเปลี่ยน schema ส่วน Reporter Trust/account privacy ปิดโดยค่าเริ่มต้น
+ดู [ผลดำเนินงานและ gate คงเหลือ](docs/verification/2026-11-06-completion-execution.md)
+และ [runbook](docs/runbooks/reporter-trust-and-completion.md)
 
-## ฟีเจอร์หลัก
+- **ค่าปัจจุบัน:** Air4Thai บันทึกลง Supabase ผ่าน cron ทุก 30 นาที และมี GitHub backup เมื่อรอบหลักขาดหาย
+- **พยากรณ์:** อ่าน raw CAMS / Open-Meteo ที่เก็บไว้ สูงสุด 120 ชั่วโมงตามข้อมูลที่มี
+  แยก collector รายสถานีและกริด ไม่มี local model, การเฉลี่ยหลาย provider หรือการปรับค่าด้วยชุมชน
+- **รายงาน:** ถ่ายภาพหรือเลือก JPEG/PNG/WEBP/HEIC/HEIF ไม่เกิน 8 MB → private draft → OCR number-only → ส่งรายงาน
+  อ่านเลขได้เผยแพร่ค่า OCR อัตโนมัติ อ่านไม่ได้ให้ rejected และถ่ายใหม่ Admin อ่านผลย้อนหลังเท่านั้น
+- **ข้อมูลภาพ:** ภาพจากคลังต้องมีเวลาและพิกัด EXIF ที่ใช้ได้; backend ตรวจต้นฉบับเอง
+  EXIF ที่ไม่มี timezone ใช้ UTC+7 ได้เฉพาะเมื่อพิกัดอยู่ในประเทศไทย
+  เก็บต้นฉบับแบบ private และล้าง EXIF จากภาพ preview; ไม่ใช้ GPS ตอนส่งแทนพิกัดภาพเก่า
+- **ปฏิสัมพันธ์:** Like / Dislike / Comment ไม่มีผลต่อ Trust และ XP; UI ให้ดาวและฟอร์มส่งปัญหาถูกถอดแล้ว
+  backend ดาวยังคงไว้เพื่อ compatibility และรักษาพฤติกรรมคะแนนเดิม
+- **คำขอวัด:** สร้างคำขอรัศมี 1/3/5 กม. แสดงชื่อผู้ขอตาม identity preference
+  จำกัดคำขอเปิดอยู่หนึ่งรายการต่อบัญชี; หมุดแสดงเฉพาะ active/scheduled
+- **XP:** รายงาน 10 XP, ช่วยคำขอเพิ่ม 5 XP ตามหลักฐานและโควตาเดิม
+  ยศอิง lifetime XP ที่ 0/100/500/1500/5000 เท่านั้น จำนวนวันแสดงเป็นสถิติ
+- **สิ่งแวดล้อม:** อากาศปัจจุบันจาก Open-Meteo และ NASA FIRMS satellite hotspots
+  ใน polygon นครปฐม อายุไม่เกิน 12 ชั่วโมง; hotspot ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว
+- **การแจ้งเตือน:** inbox ในแอปและ LINE แบบยินยอม พร้อม outbox/retry/deduplication
+- **หน้าจอ:** ทุกอุปกรณ์ใช้ mobile frame สูงสุด 430px พร้อมการตรวจ browser text enlargement, forced contrast และ reduced motion
 
-- คำขอให้ชุมชนช่วยวัด PM2.5 รอบสถานที่ 1/3/5 กม. พร้อมติดตามผลและแจ้งเตือนในแอป/LINE แบบยินยอม; ดู [คู่มือเปิดใช้และทดสอบ](docs/runbooks/measurement-requests.md)
-- แผนที่ PM2.5 จาก Air4Thai และพื้นผิว IDW
-- พยากรณ์ PM2.5 ระยะสั้นรายสถานี พร้อมช่วงความไม่แน่นอน
-- จุดความร้อนจาก NASA FIRMS เฉพาะข้อมูลอายุไม่เกิน 12 ชั่วโมง พร้อมระดับเฝ้าระวัง/สูง
-- กล้องในแอปด้วย `getUserMedia` ไม่มีตัวเลือกอัปโหลดจากแกลเลอรี
-- Camera session และ timestamp ที่ Server ลงนาม อายุไม่เกิน 5 นาที
-- ตรวจชนิด/ความสมบูรณ์ของไฟล์ภาพ, exact hash และ perceptual hash เพื่อกันภาพซ้ำ
-- OCR อ่านเฉพาะตัวเลข PM2.5 หลังอัปโหลดเป็น draft และเผยแพร่ค่า OCR อัตโนมัติเมื่อผู้ใช้ส่งรายงาน
-- Air4Thai ภายใน 5 กม. เป็นค่าหลัก; Community Report เป็นข้อมูลเสริม
-- นอกระยะ 5 กม. รายงานต้องผ่านการตรวจอัตโนมัติ, Trust ≥60, อายุไม่เกิน 3 ชั่วโมง และผ่านกติกาหลายแหล่งก่อนเติม IDW
-- คำขอบคุณจากชุมชนพร้อมดาว 1–5 จำกัดผู้ใช้อยู่ภายใน 3 กม./GPS ≤200 ม. ดาวยังใช้ปรับ Trust เมื่อมีอย่างน้อย 3 คน และให้รางวัลเฉพาะความเห็นที่ตรง consensus
-- จุดชุมชนที่เข้า IDW ถูกรวมด้วย clustering 2 กม./60 นาทีและ weighted median ก่อนใช้งาน
-- หมุดรายงานผู้ใช้บนแผนที่รวมเฉพาะรายงานที่ระยะจริงบวกความคลาดเคลื่อน GPS ทั้งสองฝั่งไม่เกิน 300 ม. (ตรวจทุกคู่ ไม่เชื่อมเป็นสายยาว) รายการในหมุดอยู่ได้ 3 ชม.; ค่าเดียวใช้เฉพาะข้อมูล 60 นาทีล่าสุดที่ GPS ≤50 ม. และนับค่าล่าสุดเพียงหนึ่งครั้งต่อผู้ใช้ ถ้าค่าขัดแย้งจะไม่แสดงค่าเฉลี่ย พิกัดที่ส่งให้ browser ยังคงเป็นพิกัดสาธารณะที่ปกปิดแล้ว กติกานี้ไม่เปลี่ยนการรวม 2 กม. ของ IDW
-- เก็บพิกัดจริงสำหรับ Admin แต่เลื่อนตำแหน่งสาธารณะ 120–250 เมตรเพื่อลดความเสี่ยงต่อความเป็นส่วนตัว
-- ไม่จำกัดจำนวนรายงานต่อวัน; ยังจำกัดรางวัลจากคำขอบคุณที่ช่วยชุมชนไว้ 5 ครั้ง/24 ชั่วโมง
-- ข่าว/ประกาศชุมชน, กิจกรรม, คะแนน, badge และ Top Contributor 7 วัน
-- ประวัติรายสถานีและ LOOCV เปรียบเทียบ IDW/Kriging
-- มุมมองรายการ, ตัวอักษรใหญ่, high contrast และ reduced motion
-- Mobile-first UX สำหรับจอ 360–430px: หน้าแรก `/` เป็นแผนที่พร้อม status card,
-  หน้าอากาศ `/air`, ส่งข้อมูล `/report` และชุมชน `/community` แยก URL ชัดเจน,
-  ฟอร์มรายงาน 3 ขั้นตอน, ชุมชนแบบ progressive disclosure, bottom navigation,
-  touch target อย่างน้อย 44px และ input 16px ป้องกัน iOS auto-zoom
+### IDW สองบริบท
 
-## Technology stack
+| บริบท                           | ข้อมูลและเงื่อนไข                                                                                                                                              |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| เลือกสถานที่บนแผนที่            | วง 2 กม.; Air4Thai สดไม่เกิน 1 ชม. และรายงาน approved ที่วัดไม่เกิน 3 ชม.; distance-only inverse-square IDW ด้วย haversine ไม่มี Trust/XP/stability multiplier |
+| Community gap-fill ฝั่ง backend | approved/fresh, Trust ≥60, GPS ≤200 ม., ไม่ติดแหล่งกำเนิด/ภาพซ้ำ และ corroboration จากผู้ใช้ต่างคนอย่างน้อย 2 ราย; เก็บกติกา clustering/weighted median เดิม   |
 
-| ชั้นระบบ              | เทคโนโลยี                                                                                       |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
-| Web frontend          | Next.js 16 App Router, React 19, TypeScript และ semantic CSS แยก foundation/legal/user/admin    |
-| แผนที่                | Leaflet + React Leaflet, OpenStreetMap tiles และ IDW surface ที่เขียนเอง                        |
-| Backend API           | Python 3.12, FastAPI, Pydantic v2 และ HTTPX                                                     |
-| Database/Auth/Storage | Supabase PostgreSQL, Supabase Auth, private Storage bucket และ Realtime invalidation events     |
-| External data         | Air4Thai, NASA FIRMS, CAMS/Open-Meteo และ GISTDA แบบ legal-gated                                |
-| OCR/AI                | OpenAI Responses API แบบ number-only; อ่านได้เผยแพร่ทันที อ่านไม่ได้ให้ถ่ายใหม่                 |
-| Forecast              | External-first 3 แหล่ง, raw comparison, uncertainty envelope และ gated local/community fallback |
-| Notification          | In-App inbox, LINE Messaging API, signed webhook และ retryable outbox                           |
-| Testing/quality       | Pytest, Ruff, ESLint, TypeScript strict checks, Prettier และ Next production build              |
-| Deployment            | Vercel Hobby + Supabase Cron ทุก 30 นาที และ GitHub Actions สำรองเมื่อรอบหลักไม่สำเร็จ          |
+Place IDW ใช้พิกัดรายงานสาธารณะที่ obfuscate แล้ว จึงเป็นค่าประมาณ ไม่ใช่ค่าตรวจวัดตรงจุด
+เมื่อมีข้อมูลตรงพิกัดจะเลือกค่านั้นเพื่อหลีกเลี่ยงการหารด้วยศูนย์ หากไม่มีข้อมูลที่ใช้ได้จะไม่สร้างค่าแทน
+การแสดงค่าที่ใกล้ GPS ที่สุดเป็นอีกมุมมองหนึ่ง แยกจาก Place IDW และตัวกรองชั้นแผนที่
 
-## Architecture
+## โครงสร้างและลำดับอ่านโค้ด
 
 ```text
-Next.js 16 / React 19 ── /api/* ── FastAPI
-       │                              ├─ services: Air4Thai, Supabase, FIRMS, OCR
-       │                              └─ algorithms: IDW, forecast, trust, LOOCV
-       └─ Leaflet map                       │
-                                           ▼
-                                  Supabase + private image bucket
-```
-
-Frontend รู้จักเฉพาะ `/api/*`; service-role, OpenAI และ cron secret
-อยู่ฝั่ง server เท่านั้น การส่งรายงาน/ส่งคำขอบคุณพร้อมดาวใช้ Supabase Email OTP และ Admin API แบบอ่านอย่างเดียวใช้ role
-`moderator`/`admin` จากตาราง `profiles` โดยไม่รับ user id หรือ admin key จาก browser
-
-### Code layout
-
-```text
-app/                         Next.js routes/layout เท่านั้น
+app/                       URL, layout และ error boundaries
 frontend/
-  components/app/            application orchestration และ shell
-    MapChrome.tsx             ตัวควบคุม map shell; search/layers แยก component
-  components/map/            Leaflet layers/controls
-  components/panels/         feature panels แยก subcomponent ตามโดเมน
-  hooks/                      client data state
-  lib/                        API client และ pure browser utilities
-    dashboard.ts              แปลง API data เป็น view model สำหรับแผนที่
-    forecast-presentation.ts  ข้อความ/สถานะพยากรณ์ที่เป็น pure functions
-  types/                      TypeScript contracts แยกตามโดเมน
+  components/pages/        ประกอบหน้าจอ
+  components/app/          shell, map cards และแผงควบคุม
+  components/map/          Leaflet layers + MapBehaviors
+  components/panels/       รายงาน, กล้อง, พยากรณ์ และการตั้งค่า
+  components/community/    engagement, XP และโปรไฟล์สมาชิก
+  hooks/                   data hooks + useMapPage orchestration
+  lib/                     API client, cache และ pure presentation functions
+  types/                   API contracts; ui.ts สำหรับ UI-only types
+  styles/                  foundation, user-app, admin-app, legal, mobile-frame
+api/index.py               Vercel entry ของ FastAPI
 backend/
-  routers/                    HTTP validation/response boundary
-  services/                   external sources และ workflow orchestration
-    community/                draft, evidence, presenter และ rating/moderation
-  algorithms/                 pure functions ไม่มี network/database I/O
-  models/                     Pydantic contracts แยกตามโดเมน
-  core/                       config, errors, auth helpers และ AQI
-docs/assets/ui-archive/       ภาพ QA เก่า ไม่ถูกโหลดใน runtime
+  main.py                  middleware, routers และ error handling
+  routers/                 HTTP validation/authorization boundary
+  services/                workflow และ external adapters
+    community/             submission, public/privacy presentation, review และ XP
+    measurement/           lifecycle และ batch persistence ของคำขอวัด
+    store_*.py              stations/CAMS, community, notifications, operations
+    store_client.py        shared connection/retry/identifier boundary
+    supabase_client.py     stable workflow re-exports
+  algorithms/              pure calculations ไม่มี network/DB
+  models/                  Pydantic API contracts
+  tests/                   unit, integration, contract และ privacy tests
+scripts/                   current operational/evaluation/rehearsal tools
+supabase/migrations/       ประวัติ migrations; ไม่แก้ไฟล์ที่ apply แล้ว
 ```
 
-`frontend/types/index.ts` และ `backend/models/schemas.py` เป็น public contract barrels
-ที่ต้อง mirror กัน ส่วน UI-only types ไม่ export ผ่าน contract barrel
+ลำดับนำเสนอ: `app/layout.tsx` → `MapPageClient` → `useMapPage` → `api-client`
+→ router ของ feature → service → pure algorithm / persistence ของโดเมน
 
-### ลำดับอ่าน Codebase
+`frontend/types/index.ts` และ `backend/models/schemas.py` เป็น API contract barrels ที่ต้อง mirror กัน
+`store_client.py` เป็น connection เดียวของ persistence ทุกโดเมน
+`supabase_client.py` คงเป็น seam เดิมสำหรับ workflow query overrides
+ส่วน query แยกตามโดเมนแล้ว ไม่มี wrapper ส่งต่อทีละฟังก์ชันเพิ่มอีกชั้น
 
-1. เริ่มจาก `app/` เพื่อดู URL และ route entry ซึ่งตั้งใจให้บางและไม่มี business logic
-2. อ่าน `frontend/components/app/ClearPathApp.tsx` เพื่อเห็นการประกอบหน้า แล้วไล่เข้า panel
-   หรือ map component ที่สนใจ
-3. การดึงข้อมูลอยู่ใน `frontend/hooks/` และผ่าน typed wrapper เดียวคือ
-   `frontend/lib/api-client.ts`
-4. ฝั่ง API เริ่มจาก router ชื่อเดียวกับ endpoint ใน `backend/routers/`; router รับ/คืน HTTP
-   เท่านั้นและส่งงานต่อให้ service
-5. Workflow และการเชื่อมผู้ให้บริการอยู่ใน `backend/services/`; `supabase_client.py`
-   เป็น persistence facade ส่วน `local_store.py` เป็น implementation สำหรับ local demo เท่านั้น
-6. สูตรที่ไม่มี I/O เช่น IDW, trust, forecast และ validation อยู่ใน `backend/algorithms/`
-   และมี unit test คู่กันใน `backend/tests/`
-
-## Data flow
-
-### Official data
+### Data flow
 
 ```text
-Supabase Cron ทุก 30 นาที → protected /api/cron/sync บน Vercel Hobby
-                            └─ Air4Thai → Supabase stations + pm25_readings + sync_runs
-GitHub Actions นาทีที่ 7 และ 37 → backup sync เฉพาะเมื่อรอบหลักไม่สำเร็จ + alerts
-ClearPath /api/pm25/current → อ่านค่าล่าสุดจาก Supabase → แผนที่และหน้าอากาศ
-Browser ที่เปิดอยู่ → ตรวจข้อมูลล่าสุดทุก 5 นาที และเมื่อกลับมาเปิดแท็บ
+Air4Thai → sync cron → Supabase stations/history → API → map
+CAMS → bounded collectors → stored snapshots/ready grid generation → API → forecast
+image + location → private draft + OCR → automatic publication → public obfuscated report
+measurement request → invitations/claims → report matching → notification + XP
 ```
 
-### Community report
+## รันในเครื่อง
 
-```text
-server camera session → getUserMedia + GPS → private draft + OCR
-                                                │
-                                                ▼
-                               user confirms value → automatic review
-                                                ├─ numeric PM2.5 → approved map
-                                                └─ no numeric reading → rejected + reasons → retake
-                                                                     │
-                                                                     ▼
-                                                nearby users rate proximity with 1–5 stars
+ต้องมี Node.js/npm และ Python 3.12
+
+```sh
+npm ci
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+cp .env.example .env.local
 ```
 
-ระบบเผยแพร่เมื่อ OCR คืนตัวเลข PM2.5 เท่านั้น โดยใช้ค่า OCR เป็นค่าที่ตรวจแล้ว Confidence, device/display,
-burst, เวลา, ภาพคล้าย และค่าที่ผู้ใช้ยืนยันเก็บไว้สำหรับ audit แต่ไม่ขวางการเผยแพร่ หากไม่มี `OPENAI_API_KEY`
-หรือ OCR อ่านเลขไม่ได้ ระบบจะปฏิเสธพร้อมเหตุผลและไม่เปิดเผยค่า PM2.5 หรือภาพ Exact duplicate และ GPS >200 ม.
-ยังถูกปฏิเสธก่อนเรียก OCR
+Windows ใช้ `.venv/Scripts/python` แทน `.venv/bin/python`
+production dependencies อ่านจาก `requirements.txt` ทั้ง pip และ package metadata
+SciPy/PyKrige/Matplotlib ใช้ประเมินผลในเครื่องเท่านั้น ไม่รวมใน production requirements
 
-ก่อนส่ง ผู้ใช้ต้องระบุรุ่นเครื่อง, ความแม่นยำ GPS และยืนยันว่า
-วัดกลางแจ้งหลังรอค่าคงที่แล้ว จุดที่อยู่ติดแหล่งกำเนิดโดยตรง เช่น ควันบุหรี่หรือท่อไอเสีย
-ยังแสดงเป็นหลักฐานชุมชนได้ แต่จะไม่ถูกนำไปเติมพื้นผิวค่าฝุ่น
+### Local demo โดยไม่ใช้ Supabase
 
-### Official vs Community rule
+ตั้งค่าใน `.env.local`:
 
-- ถ้ามี Air4Thai ภายใน 5 กม. ค่า Air4Thai เป็นข้อมูลหลัก ส่วนค่าประชาชนแสดงแยกเป็น `Community Report`
-- สถานีรัฐถือว่าใช้เป็นข้อมูลหลักได้เมื่ออายุไม่เกิน 90 นาที; ถ้า API ต้นทางล่มใช้ snapshot ล่าสุดพร้อมสถานะ delayed/expired
-- ถ้าไม่มี Air4Thai ที่สดใหม่ภายใน 5 กม. รายงานที่ระบบอนุมัติ, Trust ≥60 และอายุไม่เกิน 3 ชั่วโมงจะเป็นผู้สมัคร `gap_fill`
-- ผู้สมัครจะเข้า IDW ได้เมื่อมีผู้รายงานคนละคนอย่างน้อย 2 คน วัดใกล้กันภายใน 2 กม./60 นาทีและค่าเข้ากันได้เท่านั้น
-- รายงานต้องมี GPS accuracy ไม่เกิน 200 เมตร, ไม่เป็นภาพซ้ำ และไม่วัดติดแหล่งกำเนิดโดยตรง จึงจะเข้า IDW ได้
-- ค่าที่ต่างจาก Air4Thai มากจะไม่ถูกซ่อน แต่แสดงเป็นความผิดปกติเฉพาะจุดและรอ community verification
-- เกณฑ์สีใช้มาตรฐาน PCD พ.ศ. 2566: 0–15, 15.1–25, 25.1–37.5, 37.6–75 และ ≥75.1 µg/m³
-- ค่าจากประชาชนติดป้ายว่าเป็น “ค่าขณะวัด” ไม่กล่าวอ้างว่าเป็นค่าเฉลี่ย 24 ชั่วโมง
-
-พิกัดจริง เวลา และภาพถูกเก็บเพื่อการตรวจสอบในหลังบ้าน ตำแหน่งที่สาธารณะเห็นเป็นพิกัดที่
-เลื่อนแบบคงที่ต่อรายงาน 120–250 เมตร พร้อมป้ายบอกความละเอียด ไม่ควรนำไปใช้ระบุตัวบ้าน
-
-## Setup
-
-```bash
-npm install
-py -3.12 -m venv .venv
-.venv/Scripts/python -m pip install -r requirements-dev.txt
+```dotenv
+LOCAL_DEMO_MODE=true
+NEXT_PUBLIC_LOCAL_DEMO_MODE=true
+CAPTURE_SESSION_SECRET=local-only-secret-at-least-32-characters
+BACKEND_ORIGIN=http://127.0.0.1:8000
 ```
 
-1. รัน `supabase/schema.sql` ใน Supabase SQL Editor
-2. รัน `supabase/migrations/20260717_production_foundation.sql` (รีเซ็ตเฉพาะข้อมูล Community
-   ชุดทดลอง ไม่ลบ `stations`/`pm25_readings`)
-3. รัน `supabase/migrations/20260722_tor_alignment.sql` ต่อจาก foundation (additive; ห้ามรัน foundation ซ้ำใน production)
-4. เปิด Email OTP ใน Supabase Auth แล้วกำหนด role ผู้ตรวจใน `profiles`
-5. คัดลอก `.env.example` เป็น `.env.local` และเติม keys
-6. seed ข้อมูลครั้งแรกด้วย `GET /api/cron/sync` พร้อม `Authorization: Bearer <CRON_SECRET>`
-
-```bash
+```sh
 # terminal 1
-.venv/Scripts/python -m uvicorn backend.main:app --reload --port 8000
-
+.venv/bin/python -m uvicorn backend.main:app --reload --port 8000
 # terminal 2
 npm run dev
 ```
 
-### Local demo without Supabase
+เปิด `http://localhost:3000` ข้อมูลชุมชน demo อยู่ในหน่วยความจำและหายเมื่อปิด backend
+station snapshot มีใน repo; ถ้าไม่มี stored CAMS จะแสดง unavailable
+demo ไม่เปิดเองใน production และไม่ได้จำลองผล OCR เมื่อไม่มี OpenAI key
+บริการค้นหาสถานที่/อากาศ/ภาพแผนที่อาจใช้ network ตาม provider ที่ตั้งค่า
 
-ถ้า Supabase project ยังไม่พร้อม ให้ตั้ง `LOCAL_DEMO_MODE=true` เฉพาะเครื่องพัฒนา
-ระบบจะใช้ station snapshot ใน repo และเก็บรายงาน/ภาพ/คะแนนไว้ในหน่วยความจำ:
+การเชื่อมฐานข้อมูลจริงให้ตรวจ [migration record](supabase/migrations/README.md)
+และ [คู่มือฐานข้อมูลปัจจุบัน](docs/runbooks/fresh-project-2026-11-01.md)
+ก่อนเสมอ ไม่รัน foundation migration ซ้ำบนฐานข้อมูลที่มีข้อมูลแล้ว
 
-```powershell
-$env:LOCAL_DEMO_MODE="true"
-$env:CAPTURE_SESSION_SECRET="local-only-secret-at-least-32-characters"
-.venv/Scripts/python -m uvicorn backend.main:app --reload --port 8011
-```
+## API และขอบเขตความปลอดภัย
 
-ตั้ง `BACKEND_ORIGIN=http://127.0.0.1:8011` แล้วรัน `npm run dev` ตามปกติ
-ข้อมูล demo จะหายเมื่อปิด Backend และโหมดนี้จะไม่เปิดเองโดยอัตโนมัติใน production
+API schema ฉบับเต็มดูที่ FastAPI `/docs` และ `/openapi.json` บน backend origin
+เช่น `http://127.0.0.1:8000/docs`
 
-### Place search on the map
+| กลุ่ม         | Endpoints หลัก                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------------- |
+| สถานี/ประวัติ | `/api/pm25/current`, `/api/history`, `/api/history/map`                                                   |
+| พยากรณ์       | `/api/forecast`, `/api/forecast-grid/metadata`, `/api/forecast-grid/frames`                               |
+| รายงาน        | `/api/community/capture-session`, `/api/community/report-drafts`, `/api/community/reports`                |
+| ปฏิสัมพันธ์   | `/api/community/reports/{id}/reaction`, `/api/community/reports/{id}/comments`                            |
+| ชุมชน/XP      | `/api/community/me`, `/api/community/me/xp`, `/api/community/me/xp-events`, `/api/community/members/{id}` |
+| คำขอวัด       | `/api/measurement-requests`                                                                               |
+| บริการ        | `/api/locations/*`, `/api/weather`, `/api/firms`, `/api/notifications/*`                                  |
+| ตรวจสถานะ     | `/api/health`, `/api/ready`, `/api/admin/*`                                                               |
 
-Place suggestions appear after typing at least three characters (450 ms debounce);
-Enter and the search button also work. The server uses Geoapify when a server-only
-`GEOAPIFY_API_KEY` is configured. Otherwise it uses the public Photon demo API
-for partial-name search in Thailand, with one-hour caching and OpenStreetMap
-attribution. Photon has no availability guarantee and may rate-limit traffic;
-configure Geoapify for reliable production scale. If the provider is unavailable,
-the bundled gazetteer is a limited fallback.
-The browser only calls `/api/locations/search` and never receives a provider key.
-The OpenStreetMap/Leaflet map is retained; this feature does not use Google
-Places results on a non-Google map.
+Admin/Moderator เป็น read-only ใช้ role ฝั่ง server ไม่รับ admin key จาก browser
+พิกัดรายงานจริงและ metadata ภาพไม่อยู่ใน public API; public pin ใช้ stable obfuscation 120–250 ม.
+ภาพรายงานอยู่ private storage และเปิดผ่านลิงก์อายุสั้น
+credentials ระดับ service-role/OpenAI/cron อยู่ฝั่ง server เท่านั้น
 
-Selecting a place enters a temporary 5 km focus mode. Its main PM2.5 value uses
-only fresh Air4Thai stations within that radius (one station as a reference,
-multiple via IDW). Community reports appear as supplementary evidence and do
-not generate a headline value on their own. Leaving focus mode restores the
-previous map layers and viewport.
+`POST /api/community/data-issues` ถูกถอดแล้ว แต่ Admin ยังอ่านประวัติปัญหาเดิมได้
+retired forecast/Admin endpoints คง empty/unavailable/paused responses เพื่อ compatibility
+ไม่มี flag ที่เปิด pipeline ที่อ้างตารางเลิกใช้กลับมาได้ ดู [forecast state](docs/runbooks/forecast-reset.md)
 
-## API
+## ตรวจคุณภาพ
 
-| Method · Path                                     | หน้าที่                                                               |
-| ------------------------------------------------- | --------------------------------------------------------------------- |
-| `GET /api/health`                                 | Liveness ของ process                                                  |
-| `GET /api/ready`                                  | Readiness ของ Supabase และความสดข้อมูลสถานี                           |
-| `GET /api/pm25/current`                           | สถานี Air4Thai ล่าสุดจาก Supabase                                     |
-| `GET /api/forecast?station_id=&hours=`            | พยากรณ์ที่เก็บใน Supabase สูงสุด 120 ชั่วโมง                          |
-| `GET /api/firms?days=`                            | จุดความร้อน NASA FIRMS ใน polygon นครปฐม                              |
-| `POST /api/community/capture-session`             | ออก camera session ที่ลงนามและหมดอายุใน 5 นาที                        |
-| `POST /api/community/report-drafts`               | อัปโหลดภาพสด + GPS และรับผล OCR ชั่วคราว                              |
-| `POST /api/community/report-drafts/{id}/submit`   | ยืนยันค่าและรับผลอนุมัติหรือปฏิเสธอัตโนมัติทันที                      |
-| `GET /api/community/reports`                      | รายงานที่อนุมัติแล้ว                                                  |
-| `GET /api/community/map-points`                   | จุดรวม weighted median สำหรับ IDW                                     |
-| `GET /api/community/review-queue?lat=&lon=`       | ข้อมูล approved ภายใน 3 กม. ที่ยังขอบคุณได้                           |
-| `POST /api/community/reports/{id}/ratings`        | ส่งคำขอบคุณพร้อมดาวความใกล้เคียง 1–5                                  |
-| `GET /api/community/reports/{id}/engagement`      | จำนวน Like/Dislike และความคิดเห็นสาธารณะ (ไม่กระทบ Trust)             |
-| `PUT/DELETE /api/community/reports/{id}/reaction` | เพิ่ม เปลี่ยน หรือยกเลิก Like/Dislike                                 |
-| `POST /api/community/reports/{id}/comments`       | เพิ่มความคิดเห็นในรายงานที่เผยแพร่แล้ว                                |
-| `GET /api/community/announcements`                | ประกาศ ClearPath + ลิงก์ข่าวคุณภาพอากาศ Google News (cache 1 ชม.)     |
-| `GET /api/community/activities`                   | กิจกรรมและรางวัล                                                      |
-| `GET /api/community/leaderboard`                  | อันดับ reputation                                                     |
-| `GET /api/community/me`                           | โปรไฟล์ คะแนน badge และประวัติของบัญชี                                |
-| `GET /api/admin/reports`                          | ประวัติผลตรวจอัตโนมัติ รูป และรายละเอียดสำหรับ audit (อ่านอย่างเดียว) |
-| `GET /api/admin/announcements`                    | ดูประวัติประกาศ (อ่านอย่างเดียว)                                      |
-| `GET /api/admin/sync-runs`                        | ประวัติ sync และ error ของแหล่งข้อมูล                                 |
-| `GET /api/admin/forecast-models`                  | สถานะ artifact/quality gate ของแต่ละ horizon                          |
-| `GET /api/admin/forecast-false-safe-cases`        | คิว false-safe ที่ Admin ต้องตรวจรายเหตุการณ์                         |
-| `GET /api/admin/forecast-release-decisions`       | ประวัติ shadow/canary/promote/rollback/reject                         |
-| `GET/PUT /api/notifications/preferences`          | พื้นที่ รัศมี และเกณฑ์แจ้งเตือนของผู้ใช้                              |
-| `GET /api/notifications`                          | กล่องแจ้งเตือนในแอป                                                   |
-| `GET/POST/DELETE /api/notifications/line`         | สถานะ สร้างรหัส และยกเลิกการเชื่อม LINE                               |
-| `POST /api/notifications/line/test`               | ส่งข้อความทดสอบเข้า LINE ที่เชื่อมไว้                                 |
-| `POST /api/notifications/line/webhook`            | รับ signed webhook จาก LINE Messaging API                             |
-| `GET /api/locations/search?q=`                    | ค้นหาตำบล/อำเภอจาก gazetteer ในระบบ                                   |
-| `GET /api/history`                                | ประวัติรายสถานี                                                       |
-| `GET /api/cron/sync`                              | Air4Thai → Supabase                                                   |
-| `GET /api/cron/alerts`                            | ตรวจ PM2.5/FIRMS และส่ง LINE แบบ deduplicate                          |
-| `GET /api/cron/forecast-evaluation`               | Settle prediction, aggregate metrics และ drift                        |
-
-## Verification
-
-```bash
+```sh
 npm run format:check
 npm run lint
 npm run typecheck
 npm run test:unit:coverage
+npm run test:grid:db
+npm run test:xp:db
+npm run test:identifiers:db
+npm run test:identifiers:cutover
 npm run build
 npm run test:e2e
-.venv/Scripts/python -m ruff format --check backend api scripts
-.venv/Scripts/python -m ruff check backend api scripts
-.venv/Scripts/python -m pytest --cov=backend --cov-report=term-missing --cov-fail-under=75
-.venv/Scripts/python -m pip check
-.venv/Scripts/python -m pip_audit -r requirements.txt
-python -m scripts.production_preflight --env-file .env.local --json --strict-features
+.venv/bin/python -m ruff format --check backend api scripts
+.venv/bin/python -m ruff check backend api scripts
+.venv/bin/python -m pytest --cov=backend --cov-report=term-missing --cov-fail-under=80
+.venv/bin/python -m pip check
 ```
 
-CI รัน quality gate ชุดเดียวกัน รวม dependency audit และ E2E ที่ viewport 360/390/430 px
-อัตโนมัติ ดูขั้นตอน deploy, backup/restore, incident และ pilot ได้ที่
-[`docs/runbooks/README.md`](docs/runbooks/README.md)
+Database rehearsals ใช้ PGlite/fixtures ในเครื่อง ไม่ใช่ production database
+Coverage thresholds เดิมยังคงไว้; map orchestration มี tests เพิ่มสำหรับ selection, deep links และการสลับโหมด
+ดู [ผล refactor](docs/refactor-2026-11-02.md), [ERD](docs/database/erd.mmd)
+และ [data dictionary](docs/database/data-dictionary.md) ประกอบการนำเสนอ
 
-## Forecast activation
+## แหล่งข้อมูลและคู่มือ
 
-ค่าเริ่มต้นใช้ deterministic baseline ที่ deploy เบา ส่วน XGBoost train แบบ offline ด้วย
-`scripts/train_forecast.py` และไม่ถูกนำเข้า production dependency โมเดลแต่ละ horizon จะทำงาน
-ต่อเมื่อมีข้อมูลอย่างน้อย 90 วัน/1,500 แถว, completeness ≥80%, MAE ดีกว่า persistence ≥5%
-และ category accuracy ไม่ถอยเกิน 2 จุดเปอร์เซ็นต์ ชุดทดสอบต้องแยกตามเวลารายสถานี มีอย่างน้อย
-300 แถว จากอย่างน้อย 3 สถานี และครอบคลุมอย่างน้อย 6 เดือน หาก artifact/feature ไม่ครบ API
-จะ fallback โดยระบุ `fallback_reason` และจะไม่แสดง `model_version` เกินจริง
+- Air4Thai — กรมควบคุมมลพิษ
+- CAMS / Open-Meteo — raw provider forecasts พร้อม attribution ใน UI
+- NASA FIRMS — VIIRS satellite hotspots ไม่ใช่การยืนยันเหตุไฟไหม้
+- OpenStreetMap — Leaflet tiles และ Photon fallback; Geoapify ใช้ server-only key เมื่อกำหนดไว้
+- [Operations runbooks](docs/runbooks/README.md)
+- [CAMS grid](docs/runbooks/cams-forecast-grid.md)
+- [Measurement requests](docs/runbooks/measurement-requests.md)
+- [OCR evaluation](docs/runbooks/ocr-evaluation.md)
 
-งานที่ต้องใช้ owner/production/field evidence ตรวจแบบ fail-closed ด้วย
-`scripts/forecast_external_evidence.py`; exported operational logs ตรวจ secret/PII
-ด้วย `scripts/audit_operational_logs.py`; และหลัง rollback ใช้
-`scripts/verify_deployment.py --expect-baseline-fallback` เพื่อยืนยันว่า API
-ไม่แสดง model/artifact identity และกลับสู่ baseline ทุกจุดจริง ส่วน
-`scripts/measure_forecast_runtime.py` เก็บ aggregate availability/fallback/latency
-โดยไม่บันทึก station ID หรือ response body; memory/cost ยังต้องยืนยันจาก Vercel
-และ `scripts/evaluate_device_colocation.py` สรุป paired reference/device samples
-แบบ de-identified โดยใช้ threshold ที่ pre-register ไว้ก่อนลงพื้นที่
+โค้ด local/ML forecast ที่เลิกใช้เก็บประวัติใน Git; การออกแบบ self-forecast ใหม่เป็นงานแยก
+และต้องมี schema, validation และ release evidence ใหม่ ไม่ใช่การเปิด flag เดิม
 
-## Production controls และงานที่ยังควรเสริม
+### Contribution and evidence v2
 
-ระบบปัจจุบันใช้ Supabase Auth/RBAC, distributed database rate limit, one-time capture,
-private signed image, audit log, retention 30 วันสำหรับ rejected/180 วันสำหรับ approved,
-notification deduplication และ fail-closed model gate แล้ว ก่อนเปิดสาธารณะยังควรเพิ่ม malware scan,
-device attestation/advanced image forensics, consent text ที่ผ่านฝ่ายกฎหมาย, incident monitoring
-และ backtest หลายฤดูกาลด้วยข้อมูลภาคสนามจริง
-
-ก่อน deploy ให้รัน production preflight และทำตาม checklist ใน runbook; script นี้อ่านอย่างเดียว
-และไม่พิมพ์ secret ออกหน้าจอ ส่วน migration foundation มีคำสั่งทำลายข้อมูล จึงต้องสำรองและตรวจ
-checksum ตาม `supabase/migrations/README.md` ก่อนทุกครั้ง
-
-## Data attribution
-
-- Air-quality observations: Air4Thai, Pollution Control Department
-- Thermal anomalies: NASA FIRMS VIIRS NRT (SNPP/NOAA-20/NOAA-21)
-- Nakhon Pathom service polygon: simplified from the Thailand Province Boundaries
-  feature layer (`ADMIN_ID1=73`, EPSG:4326); source attribution Globetech Co., Ltd. /
-  MERKATOR Co., Ltd. ระบบเก็บ polygon ใน repo เพื่อให้ validation ทำงานได้แม้ boundary service ล่ม
-
-### ภาพจากคลังและ metadata (local rollout)
-
-หน้าส่งรายงานรองรับภาพ JPEG/PNG/WEBP/HEIC/HEIF ไม่เกิน 8 MB ทั้งถ่ายใหม่และเลือกจากคลัง
-ภาพจากคลังอ่านเวลาและพิกัดจาก EXIF อัตโนมัติ ไม่มีช่องกรอกเองหรือเลือกจุดบนแผนที่
-หากข้อมูลไม่ครบ ให้เลือกต้นฉบับที่มีข้อมูลครบหรือถ่ายใหม่ผ่าน ClearPath
-เวลาส่ง เวลาแก้ไขไฟล์ และ GPS ปัจจุบันไม่ถูกใช้แทนเวลาและตำแหน่งของภาพเก่า
-EXIF ที่ไม่มี timezone ใช้ UTC+7 ได้เฉพาะเมื่อพิกัดในภาพอยู่ในประเทศไทย
-และบันทึก `exif_thailand_timezone` แยกจาก timezone ที่ฝังอยู่ในภาพ
-หลังได้ภาพและ GPS ขณะส่ง ระบบอ่าน OCR อัตโนมัติ แสดงสรุปให้กดส่ง
-ไม่มีช่องกรอกค่าฝุ่น รุ่นเครื่องวัด หรือวิธีวัด และแสดงโปรไฟล์ผู้รายงานเป็นค่าเริ่มต้น
-ผู้ใช้เลือกปิดบังตัวตนเฉพาะรายงานได้ด้วย checkbox ก่อนกดส่ง
-
-Backend อ่าน metadata จากต้นฉบับเอง เก็บต้นฉบับใน private bucket และสร้างภาพ JPEG
-ที่ล้าง EXIF สำหรับ preview/signed URL ข้อมูลไฟล์ละเอียดเปิดเฉพาะ Admin
-ไฟล์ต้นฉบับถูกลบตามวงจร retention เดียวกับหลักฐาน โดยการอนุมัติยังใช้ OCR number-only
-ตำแหน่งจากภาพไม่ถือว่าได้รับความแม่นยำ GPS ณ เวลาวัดสำหรับ gap-fill
-
-ก่อนเปิดใช้บนฐานข้อมูลจริง ต้อง apply
-`supabase/migrations/20261028_gallery_evidence_metadata.sql`
-การพัฒนา local demo ไม่ต้องเชื่อมฐานข้อมูลจริง
+Implementation, rules, tests and server-only rollout/rollback: [delivery notes](docs/superpowers/specs/2026-11-05-contribution-v2-implementation.md).
+The additive migration defaults to v1. `COMMUNITY_V2_ENABLED` prepares the code; the DB release pointer activates contribution/evidence/gap-fill together. The temporary voting radius is 500 m, including both reported GPS error radii.

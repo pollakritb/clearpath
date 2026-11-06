@@ -1,33 +1,24 @@
-"""Nationwide provider ingestion; Air4Thai remains isolated in its hourly cron."""
+"""Raw CAMS snapshot collection; independent of Air4Thai and grid collection."""
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import math
-from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 
 from ..algorithms.distance import haversine_km
 from ..algorithms.external_forecast import (
     MAX_CAMS_FORECAST_HOURS,
+    provider_sync_due,
     select_hourly_rows,
 )
-from ..algorithms.forecast_selection import provider_circuit_open, provider_sync_due
 from ..core.config import settings
-from ..core.errors import UpstreamError
-from . import gistda_air, openmeteo_air, supabase_client
-from .forecast_models import SUPPORTED_HORIZONS
-from .forecast_provider_registry import PROVIDERS
+from . import openmeteo_air, supabase_client
 from .record_keys import creation_key
 
 logger = logging.getLogger(__name__)
 
-PROVIDER_SYNC_INTERVAL_HOURS = {
-    "gistda": 3,
-    "openmeteo_cams": 12,
-}
 CAMS_SNAPSHOT_INTERVAL_HOURS = 6
 CAMS_SNAPSHOT_BATCH_COUNT = 6
 CAMS_RETENTION_BATCH_SIZE = 1000
@@ -65,47 +56,6 @@ def _safe_cleanup_cams_history() -> dict:
         return {"status": "failed"}
 
 
-async def _sync_if_due(
-    provider: str,
-    sync: Callable[[], Awaitable[dict]],
-) -> dict:
-    latest = supabase_client.get_latest_provider_sync_run(provider)
-    interval = PROVIDER_SYNC_INTERVAL_HOURS[provider]
-    if provider_circuit_open(latest):
-        return {
-            "ok": True,
-            "provider": provider,
-            "status": "circuit_open",
-            "retry_after_minutes": 60,
-            "cache_fallback": True,
-            "latest_completed_at": latest.get("completed_at") if latest else None,
-        }
-    if not provider_sync_due(latest, interval):
-        return {
-            "ok": True,
-            "provider": provider,
-            "status": "not_due",
-            "interval_hours": interval,
-            "latest_completed_at": latest.get("completed_at") if latest else None,
-        }
-    result = await sync()
-    if result.get("ok") is False:
-        raise UpstreamError(f"{provider} forecast sync failed")
-    return result
-
-
-async def sync_openmeteo_if_due() -> dict:
-    if not settings.openmeteo_air_enabled:
-        return {"ok": True, "provider": "openmeteo_cams", "status": "disabled"}
-    return await _sync_if_due("openmeteo_cams", sync_openmeteo)
-
-
-async def sync_gistda_if_due() -> dict:
-    if not settings.gistda_air_enabled or not settings.gistda_license_approved:
-        return {"ok": True, "provider": "gistda", "status": "disabled"}
-    return await _sync_if_due("gistda", sync_gistda)
-
-
 def _valid_stations() -> list[dict]:
     rows = []
     for station in supabase_client.get_stations():
@@ -131,7 +81,7 @@ def _snapshots(
     rows: list[dict],
 ) -> list[dict]:
     result = []
-    maximum_horizon = int(PROVIDERS[provider]["maximum_horizon_hours"])
+    maximum_horizon = MAX_CAMS_FORECAST_HOURS
     for row in rows:
         try:
             forecast_at = datetime.fromisoformat(
@@ -252,7 +202,9 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
     )
     run_id = str(persisted_run["id"])
     try:
-        forecasts = await openmeteo_air.get_forecasts(stations, forecast_days=5)
+        forecasts = await openmeteo_air.get_forecasts(
+            stations, forecast_hours=MAX_CAMS_FORECAST_HOURS
+        )
         snapshots = []
         incomplete_station_ids = []
         for station in stations:
@@ -340,250 +292,5 @@ async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
         supabase_client.update_provider_sync_run(
             run_id,
             {"status": "failed", "completed_at": datetime.now(UTC).isoformat()},
-        )
-        raise
-
-
-def _persist_provider_evidence(
-    *,
-    provider: str,
-    issued_at: datetime,
-    stations: list[dict],
-    snapshots: list[dict],
-) -> dict:
-    """Record provider forecasts independently of user forecast-page traffic."""
-
-    station_by_id = {str(row["id"]): row for row in stations}
-    snapshots_by_station: dict[str, dict[int, dict]] = {}
-    for snapshot in snapshots:
-        horizon = int(snapshot.get("horizon_hours") or 0)
-        if horizon not in SUPPORTED_HORIZONS:
-            continue
-        station_id = str(snapshot.get("station_id") or "")
-        # A provider should have at most one value per station/horizon. Keeping
-        # the first normalized row makes retries deterministic.
-        snapshots_by_station.setdefault(station_id, {}).setdefault(horizon, snapshot)
-
-    runs: list[dict] = []
-    predictions: list[dict] = []
-    for station_id, horizon_rows in sorted(snapshots_by_station.items()):
-        station = station_by_id.get(station_id)
-        if not station or not horizon_rows:
-            continue
-        evidence_run_id = creation_key("forecast_provider_sync_runs")
-        runs.append(
-            {
-                "id": evidence_run_id,
-                "station_id": station_id,
-                "district": station.get("district"),
-                "generated_at": issued_at.isoformat(),
-                "method": f"provider:{provider}",
-                "model_version": None,
-                "fallback_reason": None,
-                "data_quality": "sufficient",
-                "source_points": len(horizon_rows),
-                "environment": settings.app_environment,
-                "feature_version": None,
-                "artifact_sha256": None,
-                "source_recorded_at": issued_at.isoformat(),
-                "input_freshness_minutes": 0.0,
-                "feature_quality": {
-                    "source": provider,
-                    "issued_time_kind": "retrieved_at",
-                },
-                "coverage": {"coverage_target": 0.0},
-                "warnings": [],
-                "latency_ms": None,
-            }
-        )
-        baseline = station.get("pm25")
-        try:
-            baseline = float(baseline)
-            if not math.isfinite(baseline) or baseline < 0:
-                baseline = None
-        except (TypeError, ValueError):
-            baseline = None
-        for horizon, snapshot in sorted(horizon_rows.items()):
-            value = round(float(snapshot["pm25"]), 1)
-            predictions.append(
-                {
-                    "run_id": evidence_run_id,
-                    "horizon_hours": horizon,
-                    "variant": "served",
-                    "forecast_at": snapshot["forecast_at"],
-                    "pm25": value,
-                    "lower": value,
-                    "upper": value,
-                    "method": f"provider:{provider}",
-                    "model_version": None,
-                    "artifact_sha256": None,
-                    "calibration_version": "provider-point-no-interval-v1",
-                    "coverage_target": 0.0,
-                    "baseline_pm25": baseline,
-                }
-            )
-
-    if not runs:
-        return {"runs": 0, "predictions": 0, "error": None}
-    try:
-        supabase_client.insert_forecast_ledgers(runs, predictions)
-    except Exception as exc:  # evidence must never invalidate usable snapshots
-        logger.exception("Provider evidence persistence failed for %s", provider)
-        return {"runs": 0, "predictions": 0, "error": str(exc)[:200]}
-    return {"runs": len(runs), "predictions": len(predictions), "error": None}
-
-
-async def sync_gistda() -> dict:
-    """Sync GISTDA only after both feature and legal gates are enabled."""
-
-    stations = _valid_stations()
-    run_id = creation_key("forecast_provider_sync_runs")
-    issued_at = datetime.now(UTC).replace(microsecond=0)
-    persisted_run = supabase_client.create_provider_sync_run(
-        {
-            "id": run_id,
-            "provider": "gistda",
-            "status": "running",
-            "station_count": len(stations),
-            "started_at": issued_at.isoformat(),
-            "metadata": {"licence_gate": "approved"},
-        }
-    )
-    run_id = str(persisted_run["id"])
-    semaphore = asyncio.Semaphore(4)
-
-    async def fetch(station: dict) -> tuple[str, list[dict], str | None]:
-        async with semaphore:
-            try:
-                rows = await gistda_air.get_forecast(station["lat"], station["lon"])
-                return station["id"], rows, None
-            except Exception as exc:
-                return station["id"], [], str(exc)[:200]
-
-    fetched = await asyncio.gather(*(fetch(station) for station in stations))
-    snapshots = []
-    errors = []
-    station_by_id = {str(row["id"]): row for row in stations}
-    for station_id, rows, error in fetched:
-        if error:
-            errors.append({"station_id": station_id, "error": error})
-        snapshots.extend(
-            _snapshots(
-                provider="gistda",
-                run_id=run_id,
-                issued_at=issued_at,
-                station_id=station_id,
-                station_lat=float(station_by_id[station_id]["lat"]),
-                station_lon=float(station_by_id[station_id]["lon"]),
-                rows=rows,
-            )
-        )
-    count = supabase_client.upsert_provider_snapshots(snapshots)
-    evidence = _persist_provider_evidence(
-        provider="gistda",
-        issued_at=issued_at,
-        stations=stations,
-        snapshots=snapshots,
-    )
-    status = "success" if count and not errors else "partial" if count else "failed"
-    supabase_client.update_provider_sync_run(
-        run_id,
-        {
-            "status": status,
-            "snapshot_count": count,
-            "error_count": len(errors),
-            "error_message": errors[0]["error"] if errors else None,
-            "completed_at": datetime.now(UTC).isoformat(),
-            "metadata": {
-                "licence_gate": "approved",
-                "failed_station_ids": [row["station_id"] for row in errors[:100]],
-                "evidence": evidence,
-            },
-        },
-    )
-    return {
-        "ok": status != "failed",
-        "run_id": run_id,
-        "provider": "gistda",
-        "status": status,
-        "stations": len(stations),
-        "snapshots": count,
-        "errors": len(errors),
-        "evidence": evidence,
-    }
-
-
-async def sync_openmeteo() -> dict:
-    stations = _valid_stations()
-    run_id = creation_key("forecast_provider_sync_runs")
-    issued_at = datetime.now(UTC).replace(microsecond=0)
-    persisted_run = supabase_client.create_provider_sync_run(
-        {
-            "id": run_id,
-            "provider": "openmeteo_cams",
-            "status": "running",
-            "station_count": len(stations),
-            "started_at": issued_at.isoformat(),
-        }
-    )
-    run_id = str(persisted_run["id"])
-    try:
-        by_station = await openmeteo_air.get_forecasts(stations)
-        snapshots = [
-            snapshot
-            for station in stations
-            for snapshot in _snapshots(
-                provider="openmeteo_cams",
-                run_id=run_id,
-                issued_at=issued_at,
-                station_id=station["id"],
-                station_lat=float(station["lat"]),
-                station_lon=float(station["lon"]),
-                rows=by_station.get(station["id"], []),
-            )
-        ]
-        count = supabase_client.upsert_provider_snapshots(snapshots)
-        evidence = _persist_provider_evidence(
-            provider="openmeteo_cams",
-            issued_at=issued_at,
-            stations=stations,
-            snapshots=snapshots,
-        )
-        status = (
-            "success"
-            if count and len(by_station) == len(stations)
-            else "partial"
-            if count
-            else "failed"
-        )
-        supabase_client.update_provider_sync_run(
-            run_id,
-            {
-                "status": status,
-                "snapshot_count": count,
-                "error_count": max(0, len(stations) - len(by_station)),
-                "completed_at": datetime.now(UTC).isoformat(),
-                "metadata": {"evidence": evidence},
-            },
-        )
-        return {
-            "ok": status != "failed",
-            "run_id": run_id,
-            "provider": "openmeteo_cams",
-            "status": status,
-            "stations": len(stations),
-            "snapshots": count,
-            "errors": max(0, len(stations) - len(by_station)),
-            "evidence": evidence,
-        }
-    except Exception as exc:
-        supabase_client.update_provider_sync_run(
-            run_id,
-            {
-                "status": "failed",
-                "error_count": len(stations),
-                "error_message": str(exc)[:500],
-                "completed_at": datetime.now(UTC).isoformat(),
-            },
         )
         raise

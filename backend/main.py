@@ -75,7 +75,7 @@ def create_app() -> FastAPI:
             from starlette.concurrency import run_in_threadpool
 
             from .services.identifier_client import IdentifierClient
-            from .services.supabase_client import get_client
+            from .services.store_client import get_client
 
             def paused():
                 client = get_client()
@@ -172,8 +172,9 @@ def create_app() -> FastAPI:
     api.include_router(locations.router, tags=["locations"])
     api.include_router(forecast.router, tags=["forecast"])
     api.include_router(forecast_grid.router, tags=["forecast-grid"])
-    from .routers import xp
+    from .routers import account_privacy, xp
 
+    api.include_router(account_privacy.router, tags=["account-privacy"])
     api.include_router(xp.router, tags=["community-xp"])
     api.include_router(community.router, tags=["community"])
     api.include_router(measurement.router, tags=["measurement-requests"])

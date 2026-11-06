@@ -9,6 +9,14 @@ export interface ForecastGridMetadata {
   retrieval_started_at: string | null;
   model_issued_at: string | null;
   stale: boolean;
+  coverage_as_of?: string | null;
+  available_from?: string | null;
+  available_until?: string | null;
+  future_time_count?: number;
+  past_time_count?: number;
+  future_horizon_hours?: number;
+  requested_horizon_hours?: number;
+  coverage_status?: "complete" | "partial" | "unavailable";
   latitudes: number[];
   longitudes: number[];
   valid_times: string[];

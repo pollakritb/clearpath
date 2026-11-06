@@ -1,5 +1,6 @@
 "use client";
 
+import ReporterTrustCard from "@/frontend/components/community/ReporterTrustCard";
 import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
 
 import { useState } from "react";
@@ -105,6 +106,9 @@ export default function ReportStackCard({
                     report.participation_rank && (
                       <ParticipationBadge rank={report.participation_rank} />
                     )}
+                  {report.show_reporter_profile && (
+                    <ReporterTrustCard compact trust={report.reporter_trust} />
+                  )}
                   <small>
                     {reportTime(report.captured_at)} · แตะดูภาพและรายละเอียด
                   </small>

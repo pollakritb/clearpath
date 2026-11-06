@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..core.identifiers import RequestID
 from .evidence import ReportEvidence
+from .reporter_trust import ReporterTrust
 from .xp import ParticipationRank, XPResult, XPSummary
 
 ReportStatus = Literal["pending", "approved", "rejected"]
@@ -25,7 +26,6 @@ RejectionReason = Literal[
     "other",
 ]
 AnnouncementStatus = Literal["draft", "published", "archived", "expired"]
-DataIssueCategory = Literal["station", "forecast", "map", "community", "other"]
 
 
 class CaptureSessionResponse(BaseModel):
@@ -36,6 +36,8 @@ class CaptureSessionResponse(BaseModel):
 
 
 class CommunityReport(BaseModel):
+    reporter_trust: ReporterTrust | None = None
+    legacy_report_score: float | None = None
     capture_source: Literal["camera", "gallery"] = "camera"
     image_metadata: dict | None = None
     id: str
@@ -145,12 +147,6 @@ class CommunityMapPoint(BaseModel):
 class CommunityMapPointsResponse(BaseModel):
     points: list[CommunityMapPoint]
     count: int
-
-
-class DataIssueCreate(BaseModel):
-    category: DataIssueCategory
-    reference_id: str | None = Field(default=None, max_length=100)
-    message: str = Field(min_length=10, max_length=1000)
 
 
 class ReportCreateResponse(BaseModel):
@@ -316,28 +312,6 @@ class AnnouncementsResponse(BaseModel):
     announcements: list[Announcement]
 
 
-class AnnouncementCreate(BaseModel):
-    title: str
-    body: str
-    kind: Literal["news", "alert", "community"] = "community"
-    area: str | None = None
-    expires_at: str | None = None
-    status: AnnouncementStatus = "published"
-    image_path: str | None = None
-
-
-class AnnouncementUpdate(BaseModel):
-    title: str | None = Field(default=None, max_length=200)
-    body: str | None = Field(default=None, max_length=10000)
-    kind: Literal["news", "alert", "community"] | None = None
-    area: str | None = Field(default=None, max_length=200)
-    expires_at: str | None = None
-    status: AnnouncementStatus | None = None
-    image_path: str | None = None
-    reason: str | None = Field(default=None, min_length=10, max_length=500)
-    expected_updated_at: str | None = Field(default=None, min_length=10, max_length=40)
-
-
 class Activity(BaseModel):
     id: str
     title: str
@@ -350,14 +324,6 @@ class Activity(BaseModel):
 
 class ActivitiesResponse(BaseModel):
     activities: list[Activity]
-
-
-class ActivityCreate(BaseModel):
-    title: str
-    description: str
-    reward_points: int = 0
-    starts_at: str | None = None
-    ends_at: str | None = None
 
 
 class PhotoMetadata(BaseModel):

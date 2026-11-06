@@ -2,6 +2,8 @@
 
 วันที่ 5 พฤศจิกายน 2026
 
+ข้อกำหนด Trust ส่วนบุคคลได้รับการปรับตาม [แผน 6 พฤศจิกายน](../plans/2026-11-06-completion-and-reporter-trust.md) และ [ผลดำเนินงาน local](../../verification/2026-11-06-completion-execution.md); กติกาคะแนนสะสมเดิมยังคงอยู่
+
 สถานะ: ฟีเจอร์ฝั่งโค้ดเชื่อมต่อครบและทดสอบใน local แล้ว ยังไม่ได้ติดตั้ง
 migration, เปิดนโยบาย หรือ deploy ไป production ในงานรอบนี้
 
@@ -184,15 +186,3 @@ ESLint, TypeScript, Ruff, Prettier, git diff check และ Next production bui
 ใช้รายงาน/ผลโหวตจำลองใน browser และ backend local เท่านั้น
 ภาพตรวจอยู่ใน `output/playwright/ux-recheck/`
 ไม่ได้ commit, push, deploy หรือเปิดใช้ v2 บน production ในรอบนี้
-
-## ชุด release ที่แยกจากงาน refactor ค้าง
-
-เตรียม release จาก main โดยรวมเฉพาะ Contribution/Evidence v2 และ UX ที่เกี่ยวข้อง
-ไม่รวมการถอด pipeline พยากรณ์ การแยก persistence หรือการรวม CSS จากงาน refactor เดิม
-ตรวจชุดนี้โดยตรง: Backend 599 tests ผ่าน (coverage 80.96%), Frontend 307 tests ผ่าน
-(coverage statements 92.15%, branches 86.05%, functions 90.35%, lines 93.48%),
-SQL/PGlite, lint, format, typecheck และ Next production build ผ่าน
-จำนวน tests ต่างจาก workspace เพราะเก็บ source/tests ของระบบเดิมไว้ใน release
-
-การ deploy โค้ดนี้ไม่เปลี่ยน database release pointer หรือเปิด COMMUNITY_V2_ENABLED
-ยังคงรอ migration/staging rehearsal และผลประเมินอิสระจริงก่อนเปิดสูตรใหม่

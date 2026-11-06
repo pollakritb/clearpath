@@ -1,6 +1,6 @@
 import type { AppIconName } from "@/frontend/components/ui/AppIcon";
 
-export type AdminView = "overview" | "reports" | "publishing" | "operations";
+export type AdminView = "overview" | "reports" | "announcements" | "operations";
 
 export const ADMIN_NAV_ITEMS: Array<{
   id: AdminView;
@@ -24,7 +24,7 @@ export const ADMIN_NAV_ITEMS: Array<{
     icon: "shield",
   },
   {
-    id: "publishing",
+    id: "announcements",
     label: "ประกาศ",
     mobileLabel: "ประกาศ",
     description: "ข่าวสารและกิจกรรม",
@@ -48,7 +48,7 @@ export const ADMIN_PAGE_COPY: Record<
     eyebrow: "Automatic review log",
     title: "ประวัติรายงานจากผู้ใช้",
   },
-  publishing: {
+  announcements: {
     eyebrow: "Community overview",
     title: "ประวัติเนื้อหาชุมชน",
   },

@@ -1,82 +1,51 @@
-# Forecast reset and maintenance state
+# Current forecast and retired pipeline
 
-## Legacy storage retirement — 2026-10-30
+## Current behavior
 
-The twelve unused Web Push/local-forecast tables are retired by
-`supabase/migrations/20261029182957_retire_legacy_forecast_tables.sql`.
-See [the retirement record](legacy-table-retirement-2026-10-30.md) for the exact
-scope, backup and verification. Stored raw CAMS remains the public forecast.
+Public station/area forecasts serve stored raw CAMS / Open-Meteo values, up to
+120 available future hours. The station collector runs in six-hour batches;
+the independent grid collector checkpoints bounded batches and publishes a
+complete ready generation atomically. Public requests never fetch a provider
+or run a local model. Missing/stale stored data returns unavailable, without
+invented values. See [CAMS grid](cams-forecast-grid.md).
 
-The old producers below remain gated in the source for historical reference.
-Their tables are no longer available after this migration: do not re-enable
-them by changing a feature flag. A future self-forecast requires a new schema
-and implementation. Paused-mode Admin endpoints return empty retired results;
-the former false-safe review write endpoint returns HTTP 410.
+Air4Thai ingestion, current weather, satellite hotspots, community reports,
+Trust, XP, measurement requests and notifications remain independent.
 
-## Current state
+`EXTERNAL_FORECAST_ENABLED` controls stored station/area forecast reads.
+`CAMS_SNAPSHOT_COLLECTION_ENABLED` and `CAMS_GRID_COLLECTION_ENABLED` control
+the separate collectors, with the existing exact project-ref guard.
+Collector configuration is documented in `.env.example` and the grid runbook.
 
-ClearPath serves raw PM2.5 forecasts from CAMS through Open-Meteo, stored by a
-six-hour collector in Supabase. The public station endpoint reads the latest
-completed snapshot for that station, up to 120 available future hourly values.
-For an area, it uses a stored station forecast within 45 km and discloses the
-source station and distance. No public forecast request calls Open-Meteo. If no
-fresh snapshot exists, the API says unavailable without inventing values. The
-system does not blend sources, calculate a local fallback, apply bias correction,
-use community reports, run an ML artifact, or persist a forecast ledger.
+## Retired compatibility boundaries
 
-The map continues to show current Air4Thai and community data. The Today page
-and station detail show the stored CAMS timeline; the forecast map surface is
-unavailable because no stored grid is collected. Air4Thai ingestion, community reports,
-moderation, trust, current weather, satellite hotspots, and notifications remain
-operational.
+The former local/ML serving, shadow/canary/promotion, provider-selection,
+prediction-ledger and evaluation pipelines were removed from source in the
+local refactor of 2026-11-02. Their previous implementation remains in Git.
+The old model tables were already retired by existing migrations; this refactor
+does not alter tables, data, migrations, or deployment configuration.
 
-`EXTERNAL_FORECAST_ENABLED=true` enables this public external-only mode.
-`FORECAST_SYSTEM_PAUSED=true` continues to protect every legacy/local producer,
-evaluation job, and ML path. The frontend gate in
-`frontend/lib/forecast-state.ts` is disabled so the raw provider values can be
-shown.
+- `/api/cron/forecast-evaluation` and `/api/cron/forecast-providers/*` always
+  return the existing authenticated `status: paused` response without I/O.
+- Air4Thai sync keeps `forecast_inputs` and `reconciliation` compatibility
+  fields as paused responses, while official ingestion and evidence retention run.
+- Retired Admin forecast collections return empty `status: retired` responses.
+- `/api/forecast/surface` keeps its bounded validation and unavailable contract.
+  Stored map grids are read through `/api/forecast-grid/*` instead.
+- `FORECAST_SYSTEM_PAUSED` is accepted only for settings compatibility and
+  cannot reactivate a retired producer, even when set to false.
 
-An isolated CAMS snapshot collector is active in ClearPath
-Production behind `CAMS_SNAPSHOT_COLLECTION_ENABLED=true`, an exact Supabase
-project-ref guard, and a separately gated six-hour GitHub workflow. It populates
-`forecast_provider_snapshots` without enabling the legacy provider-sync,
-model, or evaluation pipeline. The collector requests five forecast days and
-stores the continuous future hourly values actually supplied, at most 120 per
-station. Its six-hour schedule is unchanged. See
-`docs/forecast-field-validation.md` for activation and quota checks.
+There is no XGBoost runtime/training dependency or dormant ML workflow.
+Do not run historical training/promotion instructions against the current schema.
 
-## Paused producers
+## Preserved evidence
 
-- Legacy Open-Meteo/CAMS provider sync. Raw CAMS snapshots are a narrow exception
-  after applying
-  `20261016_allow_raw_cams_evidence_during_forecast_reset.sql` and
-  `20261027_allow_cams_snapshot_retention.sql` and
-  `20261027_prune_cams_history_rpc.sql`; no generated forecast or
-  evaluation table is reopened.
-- GISTDA forecast provider sync
-- station and map-surface forecast generation
-- forecast evaluation and drift snapshots
-- legacy ML/XGBoost serving, shadow serving, training, and promotion
-- weather forecast input collection inside the Air4Thai cron
+Keep observations, stored CAMS, report evidence, account/workflow/notification
+records, identifier aliases and migration history. Read-only Admin access to
+historical issue/audit logs remains available. CAMS/OCR/IDW field-evaluation
+tools are retained; they are separate from the removed model-release pipeline.
 
-The protected cron routes are retained and return `status: paused` so they can
-be re-enabled deliberately later. The production scheduler continues to call
-Air4Thai sync and alerts; a separate bounded job collects raw CAMS evidence only.
-
-## Preserved data
-
-Do not clear observations or identity/workflow records during a forecast reset.
-This includes `stations`, `pm25_readings`, `weather_observations`,
-`fire_feature_snapshots`, all community/report review/trust tables, `profiles`,
-Air4Thai `sync_runs`, `forecast_data_quality_daily`, issue/audit logs,
-notification preferences and connections. The empty legacy `model_registry`
-and `forecast_release_decisions` tables are an explicit exception under the
-2026-10-30 user-authorized retirement, with their schema backed up first.
-
-## Next self forecast (not implemented)
-
-TODO: design and validate `clearpath-self-forecast-v1` as a separate change.
-That work must define the baseline, time/season features, community evidence,
-bias correction, uncertainty, backtest protocol, release gates, and monitoring
-before either maintenance gate is disabled. Do not reuse the old forecast rows
-as production output and do not enable XGBoost by default.
+The 2026-10-30 storage retirement record remains available in
+[legacy table retirement](legacy-table-retirement-2026-10-30.md).
+Future ClearPath self-forecast work needs a new reviewed specification, schema,
+backtest protocol and release policy; toggling an old environment flag is insufficient.

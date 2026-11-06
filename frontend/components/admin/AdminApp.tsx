@@ -24,7 +24,7 @@ import {
 } from "./admin-navigation";
 import AdminOperationsPanel from "./AdminOperationsPanel";
 import AdminOverview from "./AdminOverview";
-import AdminPublishingPanel from "./AdminPublishingPanel";
+import AdminAnnouncementsPanel from "./AdminAnnouncementsPanel";
 
 interface OverviewData {
   reportCount: number;
@@ -207,7 +207,9 @@ export default function AdminApp() {
             />
           )}
           {view === "reports" && <AdminPanel />}
-          {view === "publishing" && <AdminPublishingPanel isAdmin={isAdmin} />}
+          {view === "announcements" && (
+            <AdminAnnouncementsPanel isAdmin={isAdmin} />
+          )}
           {view === "operations" && (
             <AdminOperationsPanel
               runs={overview.runs}

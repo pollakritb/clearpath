@@ -2,11 +2,24 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from ..core.auth import AuthenticatedUser, require_admin, require_user
+from backend.services import store_client
+
+from ..core.auth import (
+    AuthenticatedUser,
+    require_admin,
+    require_recent_user,
+    require_user,
+)
 from ..core.identifiers import MemberID, ReportID, RequestID
 from ..models.evidence import ContributionMissions
+from ..models.reporter_trust import (
+    ReporterAuditHistory,
+    ReporterReviewRequest,
+    ReporterReviewResult,
+    ReporterTrust,
+)
 from ..models.xp import (
     HelpClaim,
     OwnedReportIDs,
@@ -36,6 +49,40 @@ def my_board(
         return xp.board(period, offset, user.id)
     except ValueError as exc:
         raise HTTPException(422, detail="เดือนอันดับไม่ถูกต้อง") from exc
+
+
+@router.get("/me/trust-audits", response_model=ReporterAuditHistory)
+def trust_history(
+    user: User, response: Response, offset: Annotated[int, Query(ge=0, le=1000000)] = 0
+):
+    from ..services.community import reporter_trust
+
+    response.headers["Cache-Control"] = "no-store"
+    return reporter_trust.audit_history(user.id, offset)
+
+
+@router.post("/me/trust-review", response_model=ReporterReviewResult, status_code=202)
+def trust_review(
+    body: ReporterReviewRequest,
+    user: Annotated[AuthenticatedUser, Depends(require_recent_user)],
+):
+    from ..services import supabase_client
+    from ..services.community import reporter_trust
+
+    if not supabase_client.take_rate_limit(user.id, "reporter_review", 86400, 5):
+        raise HTTPException(429, detail="ส่งคำขอทบทวนได้ไม่เกิน 5 ครั้งต่อวัน")
+    try:
+        return reporter_trust.request_review(user.id, body.audit_key, body.message)
+    except ValueError as exc:
+        raise HTTPException(409, detail=str(exc)) from exc
+
+
+@router.get("/me/trust", response_model=ReporterTrust | None)
+def my_reporter_trust(user: User, response: Response):
+    from ..services.community import reporter_trust
+
+    response.headers["Cache-Control"] = "no-store"
+    return reporter_trust.summary(user.id)
 
 
 @router.get("/me/xp", response_model=XPSummary | None)
@@ -86,7 +133,6 @@ def report_result(report_id: ReportID, user: User):
 def owned_ids(user: User):
     from datetime import UTC, datetime, timedelta
 
-    from ..services import supabase_client as db
     from ..services.measurement.store import pages
 
     if xp.settings.local_demo_mode:
@@ -105,7 +151,7 @@ def owned_ids(user: User):
             str(r["id"])
             for r in pages(
                 lambda: (
-                    db.get_client()
+                    store_client.get_client()
                     .table("community_reports")
                     .select("id")
                     .eq("user_id", user.id)

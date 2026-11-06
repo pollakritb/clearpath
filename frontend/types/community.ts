@@ -1,3 +1,4 @@
+import type { ReporterTrust } from "./evidence";
 import type { ReportEvidence } from "./evidence";
 import type { ParticipationRank, XPSummary, XPResult } from "./xp";
 export type ReportStatus = "pending" | "approved" | "rejected";
@@ -16,14 +17,6 @@ export type RejectionReason =
   | "duplicate"
   | "other";
 export type AnnouncementStatus = "draft" | "published" | "archived" | "expired";
-export type DataIssueCategory =
-  "station" | "forecast" | "map" | "community" | "other";
-
-export interface DataIssueCreate {
-  category: DataIssueCategory;
-  reference_id?: string | null;
-  message: string;
-}
 
 export interface CaptureSessionResponse {
   token: string;
@@ -33,6 +26,8 @@ export interface CaptureSessionResponse {
 }
 
 export interface CommunityReport {
+  reporter_trust?: ReporterTrust | null;
+  legacy_report_score?: number | null;
   member_id?: string | null;
   participation_rank?: ParticipationRank | null;
   capture_source?: "camera" | "gallery";
@@ -307,28 +302,6 @@ export interface Announcement {
   updated_at: string | null;
 }
 
-export interface AnnouncementCreate {
-  title: string;
-  body: string;
-  kind: "news" | "alert" | "community";
-  area?: string | null;
-  expires_at?: string | null;
-  status?: AnnouncementStatus;
-  image_path?: string | null;
-}
-
-export interface AnnouncementUpdate {
-  title?: string | null;
-  body?: string | null;
-  kind?: "news" | "alert" | "community" | null;
-  area?: string | null;
-  expires_at?: string | null;
-  status?: AnnouncementStatus | null;
-  image_path?: string | null;
-  reason?: string | null;
-  expected_updated_at?: string | null;
-}
-
 export interface AnnouncementsResponse {
   announcements: Announcement[];
 }
@@ -341,14 +314,6 @@ export interface Activity {
   starts_at: string | null;
   ends_at: string | null;
   active: boolean;
-}
-
-export interface ActivityCreate {
-  title: string;
-  description: string;
-  reward_points: number;
-  starts_at?: string | null;
-  ends_at?: string | null;
 }
 
 export interface ActivitiesResponse {

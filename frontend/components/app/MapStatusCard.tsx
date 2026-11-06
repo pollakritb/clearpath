@@ -1,6 +1,7 @@
 "use client";
 
 import RankEmblem from "@/frontend/components/community/RankEmblem";
+import ReporterTrustCard from "@/frontend/components/community/ReporterTrustCard";
 import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
 import { useRef, useState } from "react";
 
@@ -505,6 +506,9 @@ export default function MapStatusCard({
               </strong>
               {showReporterProfile && report.participation_rank && (
                 <ParticipationBadge rank={report.participation_rank} />
+              )}
+              {showReporterProfile && (
+                <ReporterTrustCard compact trust={report.reporter_trust} />
               )}
             </div>
           </div>

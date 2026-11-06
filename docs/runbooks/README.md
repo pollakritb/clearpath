@@ -1,5 +1,8 @@
 # ClearPath operations runbooks
 
+Current forecast source of truth: [stored CAMS and retired boundaries](forecast-reset.md).
+Historical model/promotion/provider plans below are retained as design records; their retired commands are not current operational steps.
+
 - [Replacement database](fresh-project-2026-11-01.md) — ClearPath_Final, numeric keys, 72-hour seed, fresh accounts and bounded retention.
 
 - [Production deployment](production-deployment.md) — Supabase, secrets, Vercel,
@@ -38,3 +41,5 @@
 
 The executable checks are intentionally read-only unless their command includes
 an explicit `--apply` flag.
+
+- [Reporter Trust and completion verification](reporter-trust-and-completion.md): local reporter-owned Trust, independent reviews, account privacy limitations and staged acceptance gates.

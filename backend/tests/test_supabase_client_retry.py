@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from backend.services import supabase_client
+from backend.services import store_client as supabase_client
 
 
 def test_get_client_disables_http2_for_supabase_transport(monkeypatch):

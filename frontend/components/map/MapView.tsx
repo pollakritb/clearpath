@@ -30,16 +30,16 @@ import type { MapFocusPoint, ViewportBounds } from "@/frontend/types/ui";
 import CamsCanvasLayer from "./CamsCanvasLayer";
 import RequestLocationMarker from "./RequestLocationMarker";
 import type { GridSurface } from "@/frontend/types/ui";
-import AutoResize from "./AutoResize";
-import ClickHandler from "./ClickHandler";
+import { AutoResize } from "./MapBehaviors";
+import { ClickHandler } from "./MapBehaviors";
 import FireLayer from "./FireLayer";
 import NearestHeatmap from "./NearestHeatmap";
 import MapControls from "./MapControls";
 import { CURRENT_LOCATION_ICON, REPORT_PIN_ICON } from "./map-icons";
 import ReportMarkers from "./ReportMarkers";
 import StationMarkers from "./StationMarkers";
-import ViewportController from "./ViewportController";
-import ViewportReporter from "./ViewportReporter";
+import { ViewportController } from "./MapBehaviors";
+import { ViewportReporter } from "./MapBehaviors";
 import RequestMarkers from "./RequestMarkers";
 
 export interface MapViewProps {

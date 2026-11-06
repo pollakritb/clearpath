@@ -1,7 +1,7 @@
 import L from "leaflet";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import ViewportController from "./ViewportController";
+import { ViewportController } from "./MapBehaviors";
 const map = {
   flyTo: vi.fn(),
   fitBounds: vi.fn(),

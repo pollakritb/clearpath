@@ -6,7 +6,7 @@ import logging
 
 from ...algorithms.automatic_review import evaluate_automatic_review
 from ...algorithms.trust import calculate_trust_score
-from .. import notifications, supabase_client
+from .. import notifications, store_client, supabase_client
 from .constants import AUTOMATIC_REVIEW_POLICY
 from .presenter import present_report
 
@@ -124,7 +124,7 @@ def finalize_automatic_review(
             url=f"/?report={report['id']}" if approved else "/report",
             entity_type="community_report",
             entity_id=str(report["id"]),
-            deduplication_key=f"report_status:{supabase_client.stable_identifier('community_reports', str(report['id']))}",
+            deduplication_key=f"report_status:{store_client.stable_identifier('community_reports', str(report['id']))}",
             payload={
                 "status": "approved" if approved else "rejected",
                 "verification_method": "automatic",

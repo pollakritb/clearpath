@@ -103,3 +103,8 @@ def paused_job(provider: str) -> dict:
         "status": "paused",
         "reason": FORECAST_PAUSED_REASON,
     }
+
+
+def retired_items(key: str, **metadata) -> dict:
+    """Read-only compatibility response for retired forecast collections."""
+    return {key: [], "count": 0, **metadata, "status": "retired"}

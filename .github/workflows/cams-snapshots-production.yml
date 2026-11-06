@@ -3,7 +3,8 @@ name: CAMS snapshots (ClearPath Production)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "23 0,6,12,18 * * *"
+    # UTC schedule: 01:30, 07:30, 13:30, 19:30 Asia/Bangkok.
+    - cron: "30 0,6,12,18 * * *"
 
 permissions:
   contents: read

@@ -3,22 +3,21 @@
 from datetime import UTC, datetime, timedelta
 
 from ..algorithms.cams_grid import crop_indices
+from ..algorithms.forecast_horizon import forecast_horizon
 from . import forecast_grid_store as store
 
 
 def metadata() -> dict:
     row = store.active()
     now = datetime.now(UTC)
-    if not row or not any(
-        datetime.fromisoformat(at.replace("Z", "+00:00"))
-        >= now.replace(minute=0, second=0, microsecond=0)
-        for at in row["valid_times"]
-    ):
-        return {"status": "unavailable"}
+    coverage = forecast_horizon(row["valid_times"] if row else [], now)
+    if not row or coverage["coverage_status"] == "unavailable":
+        return {"status": "unavailable", **coverage}
     grid = store.grid(row["grid_id"])
     fetched = datetime.fromisoformat(row["retrieved_at"].replace("Z", "+00:00"))
     return {
         "status": "ready",
+        **coverage,
         "generation_id": row["id"],
         "grid_version": grid["id"],
         "latitudes": grid["latitudes"],

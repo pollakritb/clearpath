@@ -1,3 +1,14 @@
+import type {
+  ReporterAuditHistory,
+  ReporterReviewRequest,
+  ReporterReviewResult,
+} from "@/frontend/types/evidence";
+import type {
+  AccountPrivacyStatus,
+  AccountExportPage,
+  PrivacyRequest,
+  DeletionRequest,
+} from "@/frontend/types/account-privacy";
 import { clearAccountData } from "@/frontend/lib/account-data-cache";
 import type { OwnedReportIDs } from "@/frontend/types/xp";
 import type { XPAdminOverview } from "@/frontend/types/xp";
@@ -31,7 +42,6 @@ import type {
   CommunityMapPointsResponse,
   CommunityReportsResponse,
   CommunityReport,
-  DataIssueCreate,
   FirmsResponse,
   ForecastResponse,
   HistoryResponse,
@@ -46,10 +56,8 @@ import type {
   ReportCommentCreate,
   ReportDraftResponse,
   ReportDraftSubmit,
-  ReportRatingRequest,
   ReportEngagementResponse,
   ReportReactionRequest,
-  RatingResult,
   LocationSearchResponse,
   StationsResponse,
   Weather,
@@ -59,12 +67,6 @@ import type {
   AuditLogsResponse,
   DataHealthResponse,
   DataIssuesResponse,
-  ForecastDataQualityResponse,
-  ForecastEvaluationResponse,
-  ForecastFalseSafeCasesResponse,
-  ForecastReleaseDecisionsResponse,
-  ForecastModelStatusesResponse,
-  ForecastProviderHealthResponse,
   NotificationOutboxSummary,
 } from "@/frontend/types/ui";
 import { getAccessToken } from "@/frontend/lib/supabase";
@@ -282,24 +284,11 @@ export const api = {
   communityMapPoints: () =>
     http<CommunityMapPointsResponse>("/api/community/map-points"),
 
-  reportDataIssue: (body: DataIssueCreate) =>
-    http<OperationResponse>("/api/community/data-issues", {
-      method: "POST",
-      body: JSON.stringify(body),
-      auth: true,
-    }),
-
   captureSession: () =>
     http<CaptureSessionResponse>("/api/community/capture-session", {
       method: "POST",
       auth: true,
     }),
-
-  reviewQueue: (lat: number, lon: number) =>
-    http<CommunityReportsResponse>(
-      `/api/community/review-queue?lat=${lat}&lon=${lon}`,
-      { auth: true },
-    ),
 
   photoMetadata: (file: File) => {
     const body = new FormData();
@@ -337,16 +326,6 @@ export const api = {
       method: "DELETE",
       auth: true,
     }),
-
-  rateReport: (reportId: string, body: ReportRatingRequest) =>
-    invalidateAfter(
-      http<RatingResult>(`/api/community/reports/${reportId}/ratings`, {
-        method: "POST",
-        body: JSON.stringify(body),
-        auth: true,
-      }),
-      PUBLIC_DATA_KEYS.reports,
-    ),
 
   reportEngagement: (reportId: string) =>
     http<ReportEngagementResponse>(
@@ -420,6 +399,33 @@ export const api = {
     http<XPAdminOverview>("/api/community/xp/admin", {
       auth: true,
       cache: "no-store",
+    }),
+  reporterAudits: (offset = 0) =>
+    http<ReporterAuditHistory>(
+      `/api/community/me/trust-audits?offset=${offset}`,
+      { auth: true, cache: "no-store" },
+    ),
+  requestTrustReview: (body: ReporterReviewRequest) =>
+    http<ReporterReviewResult>("/api/community/me/trust-review", {
+      auth: true,
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  accountPrivacy: () =>
+    http<AccountPrivacyStatus>("/api/community/me/privacy", {
+      auth: true,
+      cache: "no-store",
+    }),
+  accountExport: (section: string, offset = 0) =>
+    http<AccountExportPage>(
+      `/api/community/me/data-export?section=${encodeURIComponent(section)}&offset=${offset}`,
+      { auth: true, cache: "no-store" },
+    ),
+  requestDeletion: (body: DeletionRequest) =>
+    http<PrivacyRequest>("/api/community/me/deletion-request", {
+      auth: true,
+      method: "POST",
+      body: JSON.stringify(body),
     }),
   xpSummary: () =>
     http<XPSummary | null>("/api/community/me/xp", {
@@ -530,43 +536,6 @@ export const api = {
 
   adminDataHealth: () =>
     http<DataHealthResponse>("/api/admin/data-health", { auth: true }),
-
-  adminForecastModels: () =>
-    http<ForecastModelStatusesResponse>("/api/admin/forecast-models", {
-      auth: true,
-    }),
-
-  adminForecastDataQuality: (days = 7) =>
-    http<ForecastDataQualityResponse>(
-      `/api/admin/forecast-data-quality?days=${days}`,
-      { auth: true },
-    ),
-
-  adminForecastProviderHealth: () =>
-    http<ForecastProviderHealthResponse>(
-      "/api/admin/forecast-provider-health",
-      {
-        auth: true,
-      },
-    ),
-
-  adminForecastEvaluation: (days = 14) =>
-    http<ForecastEvaluationResponse>(
-      `/api/admin/forecast-evaluation?days=${days}`,
-      { auth: true },
-    ),
-
-  adminForecastFalseSafeCases: (days = 30, limit = 100) =>
-    http<ForecastFalseSafeCasesResponse>(
-      `/api/admin/forecast-false-safe-cases?days=${days}&limit=${limit}`,
-      { auth: true },
-    ),
-
-  adminForecastReleaseDecisions: (limit = 100) =>
-    http<ForecastReleaseDecisionsResponse>(
-      `/api/admin/forecast-release-decisions?limit=${limit}`,
-      { auth: true },
-    ),
 
   adminNotificationOutbox: () =>
     http<NotificationOutboxSummary>("/api/admin/notification-outbox", {

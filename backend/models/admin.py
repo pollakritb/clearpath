@@ -2,17 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
-
-
-class FalseSafeReviewRequest(BaseModel):
-    disposition: Literal[
-        "expected_edge_case",
-        "source_data_issue",
-        "model_issue",
-        "safety_incident",
-    ]
-    note: str = Field(min_length=10, max_length=1000)
+from pydantic import BaseModel
 
 
 class DataHealthResponse(BaseModel):
@@ -36,21 +26,3 @@ class DataHealthResponse(BaseModel):
     consecutive_sync_failures: int
     upstream_failure: bool
     alert_codes: list[str]
-
-
-class RoleChangeRequest(BaseModel):
-    role: Literal["user", "moderator", "admin"]
-    reason: str = Field(min_length=10, max_length=500)
-
-
-class RoleChangeResponse(BaseModel):
-    user_id: str
-    previous_role: Literal["user", "moderator", "admin"]
-    role: Literal["user", "moderator", "admin"]
-    changed_at: str
-
-
-class DataIssueUpdateRequest(BaseModel):
-    status: Literal["reviewing", "resolved", "dismissed"]
-    reason: str = Field(min_length=10, max_length=1000)
-    expected_updated_at: str = Field(min_length=10, max_length=40)

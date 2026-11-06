@@ -1,5 +1,7 @@
 # Forecast ownership and release decisions
 
+> Historical planning record: local/ML forecast and multi-provider pipelines were removed in the 2026-11-02 refactor. Use [current forecast behavior](forecast-reset.md) for the running system; commands below describe the former design.
+
 This file is a template, not approval evidence. Replace every `TBD` with a named
 person and a backup before staging shadow evaluation. An AI agent must not fill
 human approver fields or infer consent.

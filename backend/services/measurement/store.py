@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta, timezone
 from threading import RLock
+
+from backend.services import store_client
 
 from ...core.config import settings
 from ...core.errors import UpstreamError
@@ -29,7 +32,7 @@ def execute(operation):
 
 
 def rpc(name: str, params: dict):
-    return execute(lambda: db.get_client().rpc(name, params).execute().data)
+    return execute(lambda: store_client.get_client().rpc(name, params).execute().data)
 
 
 def pages(query):
@@ -110,7 +113,7 @@ def get(request_id: str) -> dict | None:
             return deepcopy(REQUESTS.get(request_id))
     rows = execute(
         lambda: (
-            db.get_client()
+            store_client.get_client()
             .table("measurement_requests")
             .select("*")
             .eq("id", request_id)
@@ -131,7 +134,7 @@ def presence(user_id: str, values: dict | None = None) -> dict:
             )
         rows = execute(
             lambda: (
-                db.get_client()
+                store_client.get_client()
                 .table("measurement_helper_presence")
                 .select("*")
                 .eq("user_id", user_id)
@@ -167,7 +170,7 @@ def recipient(request_id: str, user_id: str, decline: bool = False) -> dict | No
             if row and decline:
                 row["declined"] = True
             return deepcopy(row)
-    query = db.get_client().table("measurement_request_recipients")
+    query = store_client.get_client().table("measurement_request_recipients")
     query = query.update({"declined": True}) if decline else query.select("*")
     rows = execute(
         lambda: query.eq("request_id", request_id).eq("user_id", user_id).execute().data
@@ -181,7 +184,7 @@ def recipients(request_id: str) -> list[dict]:
     return list(
         pages(
             lambda: (
-                db.get_client()
+                store_client.get_client()
                 .table("measurement_request_recipients")
                 .select("*")
                 .eq("request_id", request_id)
@@ -206,7 +209,7 @@ def visible(user_id: str) -> list[dict]:
         opened = list(
             pages(
                 lambda: (
-                    db.get_client()
+                    store_client.get_client()
                     .table("measurement_requests")
                     .select("*")
                     .in_("status", ["active", "scheduled"])
@@ -219,6 +222,86 @@ def visible(user_id: str) -> list[dict]:
         {row["id"]: row for row in [*mine(user_id), *opened]}.values(),
         key=lambda row: row["created_at"],
         reverse=True,
+    )
+
+
+def view_context(rows: list[dict], user_id: str, *, xp_enabled: bool) -> dict:
+    """Batch presentation data; never issue storage queries while rendering rows."""
+    from ..community import xp
+
+    ids = [str(row["id"]) for row in rows]
+    owned_ids = [str(row["id"]) for row in rows if row["user_id"] == user_id]
+    report_ids = list(
+        {str(row["result_report_id"]) for row in rows if row.get("result_report_id")}
+    )
+    if settings.local_demo_mode:
+        with _LOCK:
+            invitations = {
+                rid: deepcopy(value)
+                for (rid, uid), value in RECIPIENTS.items()
+                if uid == user_id and rid in ids
+            }
+            counts = Counter(rid for rid, _uid in RECIPIENTS if rid in owned_ids)
+        claims = xp.existing_claims(user_id, ids) if xp_enabled else {}
+        reports = {rid: db.get_community_report(rid) for rid in report_ids}
+    else:
+
+        def read_batches(table, columns, values, key, *, viewer=False):
+            result = []
+            for offset in range(0, len(values), PAGE):
+                batch = values[offset : offset + PAGE]
+
+                def query(batch=batch):
+                    q = (
+                        store_client.get_client()
+                        .table(table)
+                        .select(columns)
+                        .in_(key, batch)
+                    )
+                    if viewer:
+                        q = q.eq("user_id", user_id)
+                    q = q.order(key)
+                    return q.order("user_id") if key == "request_id" else q
+
+                result.extend(pages(query))
+            return result
+
+        invitations = {
+            str(row["request_id"]): row
+            for row in read_batches(
+                "measurement_request_recipients", "*", ids, "request_id", viewer=True
+            )
+        }
+        claims = (
+            {
+                str(row["request_id"]): row
+                for row in read_batches(
+                    "community_help_claims",
+                    "request_id,started_at",
+                    ids,
+                    "request_id",
+                    viewer=True,
+                )
+            }
+            if xp_enabled
+            else {}
+        )
+        reports = {
+            str(row["id"]): row
+            for row in read_batches("community_reports", "*", report_ids, "id")
+        }
+        counts = Counter(
+            str(row["request_id"])
+            for row in read_batches(
+                "measurement_request_recipients", "request_id", owned_ids, "request_id"
+            )
+        )
+    return dict(
+        invitations=invitations,
+        claims=claims,
+        reports=reports,
+        counts=counts,
+        xp_enabled=xp_enabled,
     )
 
 
@@ -236,7 +319,7 @@ def mine(user_id: str) -> list[dict]:
     owned = (
         execute(
             lambda: (
-                db.get_client()
+                store_client.get_client()
                 .table("measurement_requests")
                 .select("*")
                 .eq("user_id", user_id)
@@ -251,7 +334,7 @@ def mine(user_id: str) -> list[dict]:
     invites = (
         execute(
             lambda: (
-                db.get_client()
+                store_client.get_client()
                 .table("measurement_request_recipients")
                 .select("request_id")
                 .eq("user_id", user_id)
@@ -266,7 +349,7 @@ def mine(user_id: str) -> list[dict]:
     invited = (
         execute(
             lambda: (
-                db.get_client()
+                store_client.get_client()
                 .table("measurement_requests")
                 .select("*")
                 .in_("id", [r["request_id"] for r in invites])
@@ -291,7 +374,7 @@ def touch(request_id: str, values: dict) -> None:
     else:
         execute(
             lambda: (
-                db.get_client()
+                store_client.get_client()
                 .table("measurement_requests")
                 .update(values)
                 .eq("id", request_id)
@@ -322,7 +405,7 @@ def work_rows():
     return (
         execute(
             lambda: (
-                db.get_client()
+                store_client.get_client()
                 .table("measurement_requests")
                 .select("*")
                 .or_(
@@ -352,7 +435,7 @@ def helpers(row: dict):
         )[:100]
     delta = row["radius_km"] / 110.0
     query = (
-        db.get_client()
+        store_client.get_client()
         .table("measurement_helper_presence")
         .select("*")
         .eq("enabled", True)
@@ -375,7 +458,7 @@ def reports(row: dict):
     else:
         yield from pages(
             lambda: (
-                db.get_client()
+                store_client.get_client()
                 .table("community_reports")
                 .select(
                     "id,user_id,lat,lon,status,pm25,captured_at,created_at,moderated_at"
@@ -399,7 +482,7 @@ def activate(row: dict) -> None:
     else:
         execute(
             lambda: (
-                db.get_client()
+                store_client.get_client()
                 .table("measurement_requests")
                 .update({"status": "active"})
                 .eq("id", row["id"])

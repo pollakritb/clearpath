@@ -1,6 +1,27 @@
 import json
+import subprocess
+import sys
+
+import pytest
 
 from backend.main import create_app
+
+
+@pytest.mark.parametrize(
+    "domain", ["stations", "community", "notifications", "operations"]
+)
+def test_persistence_domain_imports_independently_without_connecting(domain):
+    # A fresh interpreter catches cycles masked by importing create_app first.
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            f'from unittest.mock import patch; import importlib\nwith patch("supabase.create_client", side_effect=AssertionError("import must not connect")):\n importlib.import_module("backend.services.store_{domain}")',
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_new_product_api_surface_and_no_navigation_api():
