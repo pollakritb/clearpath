@@ -1,3 +1,4 @@
+import type { CommunityTrust } from "./community-trust";
 import type { ReporterTrust } from "./evidence";
 import type { ReportEvidence } from "./evidence";
 import type { ParticipationRank, XPSummary, XPResult } from "./xp";
@@ -26,6 +27,7 @@ export interface CaptureSessionResponse {
 }
 
 export interface CommunityReport {
+  community_trust?: CommunityTrust | null;
   reporter_trust?: ReporterTrust | null;
   legacy_report_score?: number | null;
   member_id?: string | null;
@@ -226,10 +228,22 @@ export interface ReactionLocation {
 }
 
 export interface ReportReactionRequest {
+  trust_policy_version?: "community-trust-v1";
+  request_key?: string;
   reaction: ReactionKind;
   location?: ReactionLocation | null;
   reason_code?:
-    "useful" | "image_unclear" | "context_question" | "value_question" | null;
+    | "useful"
+    | "image_unclear"
+    | "context_question"
+    | "value_question"
+    | "report_context_doubt"
+    | "image_context_doubt"
+    | "ocr_mismatch"
+    | "system_display_issue"
+    | "station_disagreement_only"
+    | "cannot_assess"
+    | null;
 }
 
 export interface ReportCommentCreate {
@@ -248,6 +262,11 @@ export interface ReportComment {
 }
 
 export interface ReportEngagementResponse {
+  community_trust_collecting?: boolean;
+  trust_eligible?: boolean;
+  trust_exclusion_reason?: string | null;
+  trust_hold_until?: string | null;
+  trust_projection_status?: string | null;
   like_count: number;
   dislike_count: number;
   comment_count: number;

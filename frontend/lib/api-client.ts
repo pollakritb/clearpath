@@ -1,4 +1,9 @@
 import type {
+  CommunityTrust,
+  CommunityTrustReview,
+  CommunityTrustReviews,
+} from "@/frontend/types/community-trust";
+import type {
   ReporterAuditHistory,
   ReporterReviewRequest,
   ReporterReviewResult,
@@ -360,10 +365,32 @@ export const api = {
       PUBLIC_DATA_KEYS.reports,
     ),
 
-  clearReportReaction: (reportId: string) =>
+  communityTrustOwnerReviews: () =>
+    http<CommunityTrustReviews>("/api/community/trust/reviews", {
+      auth: true,
+      cache: "no-store",
+    }),
+  adminCommunityTrustReviews: () =>
+    http<CommunityTrustReviews>("/api/admin/community-trust/reviews", {
+      auth: true,
+      cache: "no-store",
+    }),
+  communityTrustMe: () =>
+    http<CommunityTrust | null>("/api/community/trust/me", {
+      auth: true,
+      cache: "no-store",
+    }),
+  communityTrustReview: (body: CommunityTrustReview) =>
+    http<{ id: string; status: "pending" }>("/api/community/trust/reviews", {
+      method: "POST",
+      body: JSON.stringify(body),
+      auth: true,
+    }),
+
+  clearReportReaction: (reportId: string, requestKey?: string) =>
     invalidateAfter(
       http<ReportEngagementResponse>(
-        `/api/community/reports/${reportId}/reaction`,
+        `/api/community/reports/${reportId}/reaction${requestKey ? `?request_key=${encodeURIComponent(requestKey)}` : ""}`,
         { method: "DELETE", auth: true },
       ),
       PUBLIC_DATA_KEYS.reports,

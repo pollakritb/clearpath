@@ -37,7 +37,7 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 - Backend community gap-fill เข้า IDW ได้เฉพาะ approved/fresh/Trust ≥60 และ corroborated จากผู้ใช้คนละคนอย่างน้อย 2 ราย; ไม่มีทางลัดด้วยสถานะสอบเทียบเครื่อง.
 - Place IDW แยกจาก backend gap-fill: วง 2 กม., Air4Thai สด ≤1 ชม. และรายงาน approved/fresh ≤3 ชม.; ใช้ public coordinates และ distance-only inverse-square weights โดยไม่มี Trust/XP/stability multiplier.
 - Gap-fill ต้องมี GPS accuracy ≤200 ม., ไม่วัดติดแหล่งกำเนิดโดยตรง และไม่เป็นภาพซ้ำ.
-- UI ปัจจุบันใช้ Like/Dislike/Comment ซึ่งไม่มีผลต่อ Trust/XP; UI ดาวและการส่งปัญหาใหม่ถูกถอดแล้ว. Backend gratitude คงไว้เพื่อ compatibility: รับเฉพาะผู้ใช้ที่ส่ง GPS อยู่ภายใน 3 กม. รายงานอายุไม่เกิน 3 ชั่วโมง และเก็บ reason code ภายในที่สอดคล้องกับดาวเพื่อคำนวณ Trust.
+- UI ใช้ Like/Dislike/Comment; เมื่อเปิด community-trust-v1 เสียงใหม่ที่ผ่านเกณฑ์มีผลเฉพาะ Trust ชุมชน (ledger/เพดานรายวัน/รายคู่) แยกจาก Trust ผลตรวจอิสระเดิมและไม่มีผลต่อ XP/IDW/gap-fill; เมื่อปิดฟีเจอร์ยังเป็น social เท่านั้น ดู docs/runbooks/community-trust-v1.md; UI ดาวและการส่งปัญหาใหม่ถูกถอดแล้ว. Backend gratitude คงไว้เพื่อ compatibility: รับเฉพาะผู้ใช้ที่ส่ง GPS อยู่ภายใน 3 กม. รายงานอายุไม่เกิน 3 ชั่วโมง และเก็บ reason code ภายในที่สอดคล้องกับดาวเพื่อคำนวณ Trust.
 - Admin/Moderator dashboard เป็น read-only: ดูสถิติ รายงาน ภาพ OCR ประกาศ สถานะระบบ และ audit ได้เท่านั้น ห้ามเพิ่ม API/UI สำหรับแก้ไข ลบ เผยแพร่ เปลี่ยนบทบาท หรือยกเลิก XP. Cron และงานอัตโนมัติใช้สิทธิ์ server แยกจาก Admin.
 - พิกัดจริงเปิดเฉพาะ Admin; public coordinates ต้องผ่าน stable obfuscation 120–250 ม.
 - Fire alert ใช้ hotspot ในขอบเขตนครปฐมที่อายุไม่เกิน 12 ชั่วโมง และต้องเรียกว่า satellite hotspot ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว.

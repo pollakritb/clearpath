@@ -11,6 +11,7 @@ from ..core.auth import AuthenticatedUser, require_admin, require_moderator
 from ..models.admin import (
     DataHealthResponse,
 )
+from ..models.community_trust import CommunityTrustReviews
 from ..models.schemas import (
     Announcement,
     AnnouncementsResponse,
@@ -191,3 +192,13 @@ async def notification_outbox(
     _user: AuthenticatedUser = Depends(require_moderator),
 ):
     return await run_in_threadpool(supabase_client.notification_outbox_summary)
+
+
+@router.get("/admin/community-trust/reviews", response_model=CommunityTrustReviews)
+async def community_trust_reviews(
+    limit: int = Query(50, ge=1, le=100),
+    _user: AuthenticatedUser = Depends(require_admin),
+):
+    from ..services.community.community_trust import review_queue
+
+    return await run_in_threadpool(review_queue, limit)

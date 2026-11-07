@@ -359,6 +359,8 @@ async def set_report_reaction(
             body.reaction,
             body.location.model_dump() if body.location else None,
             body.reason_code,
+            body.request_key,
+            body.trust_policy_version,
         )
     except KeyError as exc:
         raise HTTPException(404, detail="ไม่พบรายงาน") from exc
@@ -372,11 +374,13 @@ async def set_report_reaction(
     response_model=ReportEngagementResponse,
 )
 async def clear_report_reaction(
-    report_id: str, user: AuthenticatedUser = Depends(require_user)
+    report_id: str,
+    request_key: str | None = None,
+    user: AuthenticatedUser = Depends(require_user),
 ):
     try:
         result = await run_in_threadpool(
-            community_service.clear_reaction, report_id, user.id
+            community_service.clear_reaction, report_id, user.id, request_key
         )
     except KeyError as exc:
         raise HTTPException(404, detail="ไม่พบรายงาน") from exc

@@ -1,5 +1,6 @@
 "use client";
 
+import CommunityTrustCard from "@/frontend/components/community/CommunityTrustCard";
 import Image from "next/image";
 import {
   stackReporterGroups,
@@ -114,7 +115,16 @@ export default function ReportStackCard({
                   <strong>{name}</strong>
                   <small>{readings.length} รายงาน</small>
                   {profile.show_reporter_profile && (
-                    <ReporterTrustCard compact trust={profile.reporter_trust} />
+                    <>
+                      <CommunityTrustCard
+                        compact
+                        trust={profile.community_trust}
+                      />
+                      <ReporterTrustCard
+                        compact
+                        trust={profile.reporter_trust}
+                      />
+                    </>
                   )}
                 </div>
               </header>

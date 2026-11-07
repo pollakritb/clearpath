@@ -22,14 +22,14 @@ export default function ReporterTrustCard({
   if (compact)
     return (
       <span className={styles.compact}>
-        Trust ผู้รายงาน · {label}
+        ผลตรวจอิสระผู้รายงาน · {label}
         {trust.validation_status === "candidate" ? " · ทดลอง" : ""}
       </span>
     );
   return (
-    <section className={styles.panel} aria-label="Trust ผู้รายงาน">
+    <section className={styles.panel} aria-label="ผลตรวจอิสระผู้รายงาน">
       <h3>
-        Trust ผู้รายงาน{" "}
+        ผลตรวจอิสระผู้รายงาน{" "}
         {trust.validation_status === "candidate" && (
           <span className={styles.candidate}>ทดลอง</span>
         )}
@@ -51,7 +51,7 @@ export default function ReporterTrustCard({
         </p>
         <p>สูตร: 100 × (เคสผ่าน + 2) ÷ (เคสผ่าน + เคสพบปัญหา + 4)</p>
         <p>
-          OCR ผ่าน ยอดถูกใจ และจำนวนรายงานไม่เพิ่ม Trust
+          OCR ผ่าน ยอดถูกใจ และจำนวนรายงานไม่เพิ่มคะแนนผลตรวจอิสระนี้
           คะแนนนี้ไม่ใช่เปอร์เซ็นต์ที่ค่าฝุ่นถูกต้อง
         </p>
         {trust.validation_status === "candidate" && (

@@ -1,0 +1,35 @@
+name: Community Trust transaction acceptance
+on:
+  push:
+    paths:
+      - "backend/**"
+      - "supabase/migrations/20261107112234_community_trust_v1.sql"
+      - "scripts/test_community_trust_postgres.py"
+      - ".github/workflows/community-trust-integration.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  concurrency:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: isolated-test-password
+          POSTGRES_DB: community_trust_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install 'psycopg[binary]==3.2.13'
+      - run: python -m scripts.test_community_trust_postgres
+        env:
+          COMMUNITY_TRUST_TEST_DSN: postgresql://postgres:isolated-test-password@127.0.0.1:5432/community_trust_test

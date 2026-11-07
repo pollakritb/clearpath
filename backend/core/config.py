@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     # Additive v2 schema and evaluated release policy are required before enabling.
     community_v2_enabled: bool = False
     account_privacy_enabled: bool = False
+    community_trust_collection_enabled: bool = False
+    community_trust_public_enabled: bool = False
     reporter_trust_enabled: bool = False
     reporter_trust_validation_ref: str = ""
     community_v2_demo_launch: str = "2026-11-05T00:00:00+07:00"

@@ -169,7 +169,7 @@ def summary(user_id: str) -> dict | None:
         return None
     a = account(user_id)
     t = totals(user_id)
-    from . import policy_v2, reporter_trust
+    from . import community_trust, policy_v2, reporter_trust
 
     policy = policy_v2.release()
     extra = (
@@ -186,7 +186,10 @@ def summary(user_id: str) -> dict | None:
     )
     return (
         extra
-        | {"reporter_trust": reporter_trust.summary(user_id)}
+        | {
+            "reporter_trust": reporter_trust.summary(user_id),
+            "community_trust": community_trust.summary(user_id, owner=True),
+        }
         | {key: a[key] for key in ("member_id", "alias", "hidden")}
         | dict(
             identity_mode=a.get("identity_mode", "google"),
@@ -750,6 +753,8 @@ def public_identity(user_id: str) -> dict:
 
 
 def public_member(member_id: str) -> dict:
+    from . import community_trust
+
     if not enabled():
         raise KeyError()
     if settings.local_demo_mode:
@@ -783,6 +788,11 @@ def public_member(member_id: str) -> dict:
     return {
         "evidence_history": s.get("evidence_history"),
         "reporter_trust": s.get("reporter_trust"),
+        "community_trust": s.get("community_trust")
+        if s.get("identity_mode") == "google"
+        and not s.get("hidden")
+        and community_trust.public_enabled()
+        else None,
     } | {
         key: s[key]
         for key in (

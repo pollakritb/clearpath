@@ -17,3 +17,5 @@ export * from "./xp";
 export * from "./evidence";
 
 export * from "./account-privacy";
+
+export * from "./community-trust";

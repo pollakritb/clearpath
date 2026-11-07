@@ -52,6 +52,13 @@ from .community import (
     UserReputation,
     VerificationMethod,
 )
+from .community_trust import (
+    CommunityTrust,
+    CommunityTrustDay,
+    CommunityTrustReview,
+    CommunityTrustReviewItem,
+    CommunityTrustReviews,
+)
 from .environment import FirePoint, FirmsResponse, Weather
 from .forecast import (
     ForecastCommunityContext,
@@ -232,3 +239,12 @@ __all__ += [
 
 
 __all__ += ["PlaceReportSelection"]
+
+
+__all__ += [
+    "CommunityTrust",
+    "CommunityTrustDay",
+    "CommunityTrustReview",
+    "CommunityTrustReviewItem",
+    "CommunityTrustReviews",
+]

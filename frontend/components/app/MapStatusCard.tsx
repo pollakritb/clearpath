@@ -1,9 +1,10 @@
 "use client";
 
+import CommunityTrustCard from "@/frontend/components/community/CommunityTrustCard";
 import RankEmblem from "@/frontend/components/community/RankEmblem";
 import ReporterTrustCard from "@/frontend/components/community/ReporterTrustCard";
 import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import MapBottomSheet from "./MapBottomSheet";
 import MapPanelReading from "./MapPanelReading";
 import panel from "./MapPanel.module.css";
@@ -77,6 +78,7 @@ export default function MapStatusCard({
   historicalAt = null,
 }: MapStatusCardProps) {
   const photoDialogRef = useRef<HTMLDialogElement>(null);
+  const [evidenceImage, setEvidenceImage] = useState<string | null>(null);
   const photoButtonRef = useRef<HTMLButtonElement>(null);
   const selection = report ?? station;
 
@@ -274,6 +276,8 @@ export default function MapStatusCard({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
+                onLoad={() => setEvidenceImage(report.image_url)}
+                onError={() => setEvidenceImage(null)}
                 className={panel.reportImage}
                 src={report.image_url}
                 alt="ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"
@@ -408,7 +412,10 @@ export default function MapStatusCard({
                 <ParticipationBadge rank={report.participation_rank} />
               )}
               {showReporterProfile && (
-                <ReporterTrustCard compact trust={report.reporter_trust} />
+                <>
+                  <CommunityTrustCard compact trust={report.community_trust} />
+                  <ReporterTrustCard compact trust={report.reporter_trust} />
+                </>
               )}
             </div>
           </div>
@@ -436,7 +443,13 @@ export default function MapStatusCard({
         <ReportEvidencePanel report={report} />
       )}
       {source === "individual" && report && !historicalAt && (
-        <ReportEngagement key={report.id} report={report} />
+        <ReportEngagement
+          key={report.id}
+          report={report}
+          evidenceReady={Boolean(
+            report.image_url && evidenceImage === report.image_url,
+          )}
+        />
       )}
 
       {!station && (

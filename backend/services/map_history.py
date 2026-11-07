@@ -49,13 +49,18 @@ async def get_map_history_community(
     )
 
     def present():
-        from .community import xp
+        from .community import community_trust, xp
+
+        community_scores = community_trust.summaries(
+            [str(r["user_id"]) for r in selected if r.get("show_reporter_profile")]
+        )
 
         identities = xp.public_identities(selected)
         reports = [
             present_report(
                 row,
                 identities=identities,
+                community_scores=community_scores,
                 official_stations=stations,
                 approved_reports=selected,
                 include_image=True,

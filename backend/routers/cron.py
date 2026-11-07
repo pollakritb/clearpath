@@ -254,3 +254,13 @@ async def cron_external_feeds(authorization: str | None = Header(default=None)):
     from ..services import feed_sync
 
     return await feed_sync.run()
+
+
+@router.get("/cron/community-trust")
+async def community_trust_job(
+    after: int = Query(0, ge=0), authorization: str | None = Header(default=None)
+):
+    _verify_cron(authorization)
+    from ..services.community.community_trust import reconcile
+
+    return await run_in_threadpool(reconcile, after)

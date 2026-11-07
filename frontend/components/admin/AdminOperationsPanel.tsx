@@ -1,3 +1,4 @@
+import CommunityTrustReviews from "./CommunityTrustReviews";
 import type {
   AdminSyncRun,
   AuditLogRow,
@@ -60,6 +61,7 @@ export default function AdminOperationsPanel({
 
   return (
     <section>
+      {isAdmin && <CommunityTrustReviews />}
       <div className="cp-admin-section-heading">
         <div>
           <span className="cp-eyebrow">System health</span>

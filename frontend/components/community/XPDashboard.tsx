@@ -1,4 +1,5 @@
 "use client";
+import CommunityTrustCard from "@/frontend/components/community/CommunityTrustCard";
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import {
@@ -246,6 +247,7 @@ export default function XPDashboard({
               <span>วันที่มีผลงาน</span>
             </div>
           </div>
+          <CommunityTrustCard trust={summary.community_trust} reviewable />
           <ReporterTrustCard trust={summary.reporter_trust} reviewable />
           <ContributionOverview summary={summary} active={active} />
           <div className="cp-xp-chips">

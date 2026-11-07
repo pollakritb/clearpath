@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useRef } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
@@ -33,15 +33,30 @@ function initialEngagement(report: CommunityReport): ReportEngagementResponse {
 
 export default function ReportEngagement({
   report,
+  evidenceReady = false,
 }: {
   report: CommunityReport;
+  evidenceReady?: boolean;
 }) {
   const auth = useAuth();
   const viewer = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
-  return <EngagementContent key={`${report.id}:${viewer}`} report={report} />;
+  return (
+    <EngagementContent
+      key={`${report.id}:${viewer}`}
+      report={report}
+      evidenceReady={evidenceReady}
+    />
+  );
 }
 
-function EngagementContent({ report }: { report: CommunityReport }) {
+function EngagementContent({
+  report,
+  evidenceReady,
+}: {
+  report: CommunityReport;
+  evidenceReady: boolean;
+}) {
+  const retryKey = useRef<{ intent: string; key: string } | null>(null);
   const auth = useAuth();
   const loginPrompt = useLoginPrompt();
   const [engagement, setEngagement] = useState(() => initialEngagement(report));
@@ -102,6 +117,11 @@ function EngagementContent({ report }: { report: CommunityReport }) {
     setError(null);
     try {
       const removing = engagement.viewer_reaction === kind;
+      const trustMode = engagement.community_trust_collecting;
+      const intent = `${removing ? "withdraw" : kind}:${reasonCode ?? ""}`;
+      if (trustMode && retryKey.current?.intent !== intent)
+        retryKey.current = { intent, key: crypto.randomUUID() };
+      const requestKey = trustMode ? retryKey.current?.key : undefined;
       setReactionPhase(
         !removing && engagement.location_required ? "locating" : "sending",
       );
@@ -111,12 +131,21 @@ function EngagementContent({ report }: { report: CommunityReport }) {
           : undefined;
       setReactionPhase("sending");
       const result = removing
-        ? await api.clearReportReaction(report.id)
+        ? await (requestKey
+            ? api.clearReportReaction(report.id, requestKey)
+            : api.clearReportReaction(report.id))
         : await api.setReportReaction(report.id, {
+            ...(requestKey
+              ? {
+                  request_key: requestKey,
+                  trust_policy_version: "community-trust-v1" as const,
+                }
+              : {}),
             reaction: kind,
             location,
             reason_code: kind === "like" ? "useful" : reasonCode,
           });
+      retryKey.current = null;
       setEngagement(result);
       setReasonOpen(false);
       setReasonCode(undefined);
@@ -185,7 +214,8 @@ function EngagementContent({ report }: { report: CommunityReport }) {
           disabled={
             pending ||
             (signedIn && loadStatus !== "loaded") ||
-            (engagement.location_policy_ready === false &&
+            ((engagement.location_policy_ready === false ||
+              (engagement.community_trust_collecting && !evidenceReady)) &&
               engagement.viewer_reaction !== "like")
           }
           aria-pressed={engagement.viewer_reaction === "like"}
@@ -202,7 +232,8 @@ function EngagementContent({ report }: { report: CommunityReport }) {
           disabled={
             pending ||
             (signedIn && loadStatus !== "loaded") ||
-            (engagement.location_policy_ready === false &&
+            ((engagement.location_policy_ready === false ||
+              (engagement.community_trust_collecting && !evidenceReady)) &&
               engagement.viewer_reaction !== "dislike")
           }
           aria-pressed={engagement.viewer_reaction === "dislike"}
@@ -245,6 +276,57 @@ function EngagementContent({ report }: { report: CommunityReport }) {
         </button>
       </div>
 
+      {engagement.community_trust_collecting && (
+        <div className="cp-engagement-feedback">
+          <p>
+            ถูกใจ: หลักฐานและบริบททำให้เชื่อถือการรายงานนี้ได้ · ไม่ถูกใจ:
+            มีข้อสงสัยต่อหลักฐานหรือบริบท
+          </p>
+          <p>เสียงที่ผ่านเกณฑ์มีผลต่อ Trust ชุมชน แยกจากยอดถูกใจ แต้มและยศ</p>
+          {!evidenceReady && (
+            <p role="status">
+              กรุณาเปิดภาพและข้อมูลสำคัญด้านบนให้พร้อมก่อนประเมิน
+              หากภาพเปิดไม่ได้ ยังไม่รับเป็นเสียง Trust
+            </p>
+          )}
+          {engagement.trust_exclusion_reason && (
+            <p role="status">
+              เสียงนี้ไม่เข้า Trust:{" "}
+              {(
+                {
+                  pair_day_limit: "ครบเพดาน 3 วันต่อคู่บัญชีใน 30 วัน",
+                  reason_not_trust:
+                    "เหตุผลนี้เกี่ยวกับระบบหรือยังประเมินไม่ได้",
+                  gps_invalid: "กรุณาขอตำแหน่งใหม่",
+                  gps_expired: "ตำแหน่งเกิน 2 นาที กรุณาขอใหม่",
+                  gps_uncertain:
+                    "ความคลาดเคลื่อนคร่อมขอบ 500 ม. กรุณาขอตำแหน่งใหม่",
+                  outside_area: "อยู่นอกระยะ 500 ม.",
+                  report_expired: "รายงานพ้น 3 ชั่วโมงแล้ว",
+                  evidence_unavailable: "หลักฐานเปิดไม่ได้",
+                  superseded_daily_vote:
+                    "ใช้การประเมินล่าสุดของคุณในวันนั้นแทน",
+                } as Record<string, string>
+              )[engagement.trust_exclusion_reason] ??
+                "ไม่ผ่านเงื่อนไขการประเมิน"}
+            </p>
+          )}
+          {engagement.trust_hold_until && (
+            <p role="status">
+              พักผล Trust ชั่วคราวถึง{" "}
+              {new Date(engagement.trust_hold_until).toLocaleTimeString(
+                "th-TH",
+                {
+                  timeZone: "Asia/Bangkok",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                },
+              )}{" "}
+              · ไม่ใช่ข้อสรุปว่าผิดกติกา
+            </p>
+          )}
+        </div>
+      )}
       {engagement.location_required && (
         <div className="cp-report-comments__hint">
           {engagement.location_policy_ready === false ? (
@@ -258,9 +340,9 @@ function EngagementContent({ report }: { report: CommunityReport }) {
                 โหวตใกล้จุดวัดภายใน {engagement.reaction_radius_m ?? 500} เมตร
               </summary>
               <p>
-                รัศมีชั่วคราว รวมความคลาดเคลื่อน GPS ของทั้งสองฝั่ง
-                หากคร่อมขอบเขตให้ขอตำแหน่งใหม่หรือขยับเข้าใกล้จุดวัด
-                การโหวตไม่มีผลต่อคะแนนหรือหลักฐานรายงาน
+                {engagement.community_trust_collecting
+                  ? "ใช้นโยบายทดลอง ระยะถึงจุดวัดจริงรวมความคลาดเคลื่อน GPS ของคุณต้องไม่เกิน 500 ม. ตำแหน่งต้องไม่เกิน 2 นาที GPS ตรวจเพียงความใกล้เคียง ไม่รับรองว่ามีเครื่องวัดหรือป้องกันการปลอมตำแหน่งได้ทั้งหมด"
+                  : "รัศมีชั่วคราว รวมความคลาดเคลื่อน GPS ของทั้งสองฝั่ง หากคร่อมขอบเขตให้ขอตำแหน่งใหม่ การโหวตไม่มีผลต่อแต้ม"}
               </p>
             </details>
           )}
@@ -289,6 +371,11 @@ function EngagementContent({ report }: { report: CommunityReport }) {
           }}
         >
           <label htmlFor={`reason-${reportId}`}>เหตุผลเมื่อไม่ถูกใจ</label>
+          {engagement.community_trust_collecting && (
+            <p>
+              เป็นข้อสงสัยจากชุมชน ไม่ใช่ข้อสรุปว่าผู้รายงานโกงหรือให้ข้อมูลเท็จ
+            </p>
+          )}
           <select
             autoFocus
             id={`reason-${reportId}`}
@@ -303,13 +390,44 @@ function EngagementContent({ report }: { report: CommunityReport }) {
             <option value="" disabled>
               เลือกเหตุผล
             </option>
-            <option value="image_unclear">ภาพอ่านไม่ชัด</option>
-            <option value="context_question">
-              มีข้อสงสัยเรื่องบริบทการวัด
-            </option>
-            <option value="value_question">มีข้อสงสัยเรื่องค่าที่อ่าน</option>
+            {engagement.community_trust_collecting ? (
+              <>
+                <option value="report_context_doubt">
+                  สงสัยภาพหรือข้อมูลไม่สอดคล้องกับบริบท
+                </option>
+                <option value="image_context_doubt">
+                  สงสัยภาพเก่าหรือไม่เกี่ยวข้องกับรายงาน
+                </option>
+                <option value="ocr_mismatch">
+                  ระบบอ่านตัวเลขไม่ตรงภาพ · ไม่เข้า Trust
+                </option>
+                <option value="system_display_issue">
+                  ระบบแสดงข้อมูลผิด · ไม่เข้า Trust
+                </option>
+                <option value="station_disagreement_only">
+                  ต่างจากสถานีเพียงอย่างเดียว · ไม่เข้า Trust
+                </option>
+                <option value="cannot_assess">
+                  หลักฐานยังไม่พอให้ประเมิน · ไม่เข้า Trust
+                </option>
+              </>
+            ) : (
+              <>
+                <option value="image_unclear">ภาพอ่านไม่ชัด</option>
+                <option value="context_question">
+                  มีข้อสงสัยเรื่องบริบทการวัด
+                </option>
+                <option value="value_question">
+                  มีข้อสงสัยเรื่องค่าที่อ่าน
+                </option>
+              </>
+            )}
           </select>
-          <p>ส่งเป็นข้อสงสัยเพื่อประกอบการตรวจ ไม่หักคะแนนผู้รายงานอัตโนมัติ</p>
+          <p>
+            {engagement.community_trust_collecting
+              ? "เสียงลบที่ผ่านเกณฑ์มีผลต่อค่าเฉลี่ย Trust ชุมชน แต่ไม่เปลี่ยนแต้มและยศ และไม่ใช่ผลตัดสินว่ารายงานเท็จ"
+              : "ส่งเป็นข้อสงสัยเพื่อประกอบการตรวจ ไม่หักแต้มผู้รายงานอัตโนมัติ"}
+          </p>
           <div>
             <button
               type="button"

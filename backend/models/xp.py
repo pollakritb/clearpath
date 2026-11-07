@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from .community_trust import CommunityTrust
 from .evidence import EvidenceHistory
 from .reporter_trust import ReporterTrust
 
@@ -19,6 +20,7 @@ class ParticipationRank(BaseModel):
 
 
 class XPSummary(BaseModel):
+    community_trust: CommunityTrust | None = None
     reporter_trust: ReporterTrust | None = None
     member_id: str
     alias: str
@@ -105,6 +107,7 @@ class HelpClaim(BaseModel):
 
 
 class PublicMember(BaseModel):
+    community_trust: CommunityTrust | None = None
     reporter_trust: ReporterTrust | None = None
     evidence_history: EvidenceHistory | None = None
     member_id: str

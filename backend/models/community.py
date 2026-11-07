@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from ..core.identifiers import RequestID
+from .community_trust import CommunityTrust
 from .evidence import ReportEvidence
 from .reporter_trust import ReporterTrust
 from .xp import ParticipationRank, XPResult, XPSummary
@@ -36,6 +37,7 @@ class CaptureSessionResponse(BaseModel):
 
 
 class CommunityReport(BaseModel):
+    community_trust: CommunityTrust | None = None
     reporter_trust: ReporterTrust | None = None
     legacy_report_score: float | None = None
     capture_source: Literal["camera", "gallery"] = "camera"
@@ -230,10 +232,24 @@ class ReactionLocation(BaseModel):
 
 
 class ReportReactionRequest(BaseModel):
+    trust_policy_version: Literal["community-trust-v1"] | None = None
+    request_key: str | None = Field(default=None, pattern=r"^[0-9a-fA-F-]{36}$")
     reaction: ReactionKind
     location: ReactionLocation | None = None
     reason_code: (
-        Literal["useful", "image_unclear", "context_question", "value_question"] | None
+        Literal[
+            "useful",
+            "image_unclear",
+            "context_question",
+            "value_question",
+            "report_context_doubt",
+            "image_context_doubt",
+            "ocr_mismatch",
+            "system_display_issue",
+            "station_disagreement_only",
+            "cannot_assess",
+        ]
+        | None
     ) = None
 
 
@@ -253,6 +269,11 @@ class ReportComment(BaseModel):
 
 
 class ReportEngagementResponse(BaseModel):
+    community_trust_collecting: bool = False
+    trust_eligible: bool = False
+    trust_exclusion_reason: str | None = None
+    trust_hold_until: str | None = None
+    trust_projection_status: str | None = None
     like_count: int = 0
     dislike_count: int = 0
     comment_count: int = 0

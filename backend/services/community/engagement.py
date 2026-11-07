@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from ...algorithms.reaction_location import reaction_eligibility
 from .. import supabase_client
 from ..record_keys import creation_key
-from . import policy_v2
+from . import community_trust, policy_v2
 
 
 def _approved_report(report_id: str) -> dict:
@@ -51,14 +51,29 @@ def get_engagement(
     )
     comments = supabase_client.list_report_comments(report_id, comment_limit)
     policy = policy_v2.release()
-    required = policy["active_version"] == "v2"
+    trust_collecting = community_trust.collecting()
+    trust_state = (
+        community_trust.rpc(
+            "community_trust_viewer_state", {"p_user": viewer_id, "p_report": report_id}
+        )
+        if trust_collecting and viewer_id
+        else {}
+    )
+    required = trust_collecting or policy["active_version"] == "v2"
     return {
+        **trust_state,
+        "community_trust_collecting": trust_collecting,
         "location_required": required,
-        "location_policy_ready": not required
+        "location_policy_ready": trust_collecting
+        or not required
         or bool(
             policy.get("reaction_radius_m") and policy.get("reaction_validation_ref")
         ),
-        "reaction_radius_m": policy.get("reaction_radius_m") if required else None,
+        "reaction_radius_m": 500
+        if trust_collecting
+        else policy.get("reaction_radius_m")
+        if required
+        else None,
         "like_count": int(report.get("like_count") or 0),
         "dislike_count": int(report.get("dislike_count") or 0),
         "comment_count": int(report.get("comment_count") or 0),
@@ -73,12 +88,30 @@ def set_reaction(
     reaction: str,
     location: dict | None = None,
     reason_code: str | None = None,
+    request_key: str | None = None,
+    trust_policy_version: str | None = None,
 ) -> dict:
     report = _approved_report(report_id)
     if str(report["user_id"]) == user_id:
         raise ValueError("ไม่สามารถกดถูกใจหรือไม่ถูกใจรายงานของตนเองได้")
     if reaction not in {"like", "dislike"}:
         raise ValueError("ปฏิกิริยาไม่ถูกต้อง")
+    if community_trust.collecting():
+        if trust_policy_version != "community-trust-v1":
+            raise ValueError("กรุณาอ่านนโยบาย Trust ชุมชนรุ่นใหม่และโหลดหน้ารายงานอีกครั้ง")
+        result = community_trust.reaction(
+            report, user_id, "set", reaction, reason_code, location, request_key
+        )
+        current = get_engagement(report_id, user_id)
+        return (
+            {**current, **result}
+            if result.get("trust_exclusion_reason")
+            else {
+                **result,
+                **current,
+                "trust_projection_status": result.get("trust_projection_status"),
+            }
+        )
     policy = policy_v2.release()
     metadata = {}
     if policy["active_version"] == "v2":
@@ -127,7 +160,22 @@ def set_reaction(
     return get_engagement(report_id, user_id)
 
 
-def clear_reaction(report_id: str, user_id: str) -> dict:
+def clear_reaction(
+    report_id: str, user_id: str, request_key: str | None = None
+) -> dict:
+    if community_trust.collecting():
+        report = supabase_client.get_community_report(report_id)
+        if not report:
+            raise KeyError(report_id)
+        result = community_trust.reaction(
+            report, user_id, "withdraw", None, None, None, request_key
+        )
+        current = (
+            get_engagement(report_id, user_id)
+            if report.get("status") == "approved"
+            else {}
+        )
+        return {**current, **result}
     _approved_report(report_id)
     supabase_client.delete_report_reaction(report_id, user_id)
     return get_engagement(report_id, user_id)

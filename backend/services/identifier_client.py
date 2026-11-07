@@ -103,6 +103,19 @@ REFERENCES = {
 }
 
 RPC_PARAMETERS = {
+    "community_trust_owner_reviews": {"p_user": "profiles"},
+    "community_trust_viewer_state": {
+        "p_user": "profiles",
+        "p_report": "community_reports",
+    },
+    "community_trust_react": {"p_user": "profiles", "p_report": "community_reports"},
+    "community_trust_snapshot": {"p_user": "profiles"},
+    "community_trust_store_projection": {"p_user": "profiles"},
+    "community_trust_request_review": {
+        "p_user": "profiles",
+        "p_report": "community_reports",
+    },
+    "community_trust_record_finding": {"p_user": "profiles"},
     "request_reporter_review": {"p_user": "profiles"},
     "request_account_erasure": {"p_user": "profiles"},
     "save_measurement_helper_location": {"p_user": "profiles"},

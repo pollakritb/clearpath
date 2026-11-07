@@ -1,4 +1,5 @@
 "use client";
+import CommunityTrustCard from "@/frontend/components/community/CommunityTrustCard";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
@@ -42,6 +43,7 @@ export default function MemberProfile({ memberId }: { memberId: string }) {
               {member.lifetime_xp} <small>คะแนน</small>
             </p>
             <p>มีผลงาน {member.contribution_days} วัน</p>
+            <CommunityTrustCard trust={member.community_trust} />
             <ReporterTrustCard trust={member.reporter_trust} />
             {member.evidence_history && (
               <section

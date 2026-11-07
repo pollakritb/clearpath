@@ -31,6 +31,7 @@ from .models.schemas import ReadinessResponse
 from .routers import (
     admin,
     community,
+    community_trust,
     cron,
     firms,
     forecast,
@@ -177,6 +178,7 @@ def create_app() -> FastAPI:
     api.include_router(account_privacy.router, tags=["account-privacy"])
     api.include_router(xp.router, tags=["community-xp"])
     api.include_router(community.router, tags=["community"])
+    api.include_router(community_trust.router, tags=["community-trust"])
     api.include_router(measurement.router, tags=["measurement-requests"])
     api.include_router(notifications.router, tags=["notifications"])
     api.include_router(admin.router, tags=["admin"])
