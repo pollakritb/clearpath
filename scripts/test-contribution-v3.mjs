@@ -307,6 +307,40 @@ await pg.query("select reconcile_contribution_v3()");
 assert.equal(await balance(4), 15);
 await pg.query("select reconcile_contribution_v3()");
 assert.equal(await balance(4), 15);
+// Global submission ordering protects a mission when an older user's matching is delayed.
+await pg.query(
+  "insert into community_coverage_missions(area_key,place_name,lat,lon,starts_at,expires_at,inputs,policy_version) values('delayed-order','public centre',13.8,100.1,'2026-10-30T02:50:00Z','2026-10-30T04:00:00Z','{}','contribution-v3')",
+);
+const later = await record(5, "2026-10-30T03:01:00Z", { __defer: true });
+const earlier = await record(6, "2026-10-30T03:00:00Z", { __defer: true });
+await pg.query(
+  "update measurement_report_jobs set state='done' where report_id=$1",
+  [later.id],
+);
+await pg.query("select process_community_xp(100)");
+assert.equal(
+  (
+    await pg.query(
+      "select count(*)::int n from community_xp_events where report_id=$1",
+      [later.id],
+    )
+  ).rows[0].n,
+  0,
+  "later report waits for earlier matching",
+);
+await pg.query(
+  "update measurement_report_jobs set state='done' where report_id=$1",
+  [earlier.id],
+);
+await settle();
+assert.equal(
+  (
+    await pg.query(
+      "select fulfilled_report_id from community_coverage_missions where area_key='delayed-order'",
+    )
+  ).rows[0].fulfilled_report_id,
+  earlier.id,
+);
 console.log(
   "contribution-v3 SQL: migration, legacy preservation, 55 base/day, 5-day week, cross-version cooldown/month, fixed job policy, pause/retry, PM-independent awards, reversals and role isolation passed",
 );

@@ -155,8 +155,49 @@ def main():
                 "select has_function_privilege(%s,'public.set_contribution_v3_release(boolean,timestamptz,boolean,jsonb,text)','execute')",
                 (role,),
             ).fetchone()[0]
+    # Contested mission: a later ready report must wait for an earlier matching job.
+    with psycopg.connect(dsn, autocommit=True) as db:
+        db.execute(
+            'update contribution_v3_control set missions_enabled=true,refs=\'{"coverage_validation_ref":"isolated-concurrency-fixture"}\''
+        )
+        db.execute(
+            "insert into community_coverage_missions(area_key,place_name,lat,lon,starts_at,expires_at,inputs,policy_version) values('public-concurrency-centre','public centre',13.8,100.1,'2026-10-27T02:50:00Z','2026-10-27T04:00:00Z','{}','contribution-v3')"
+        )
+    mission_at = at + timedelta(days=1)
+    earlier = submit(3, mission_at)
+    later = submit(4, mission_at + timedelta(minutes=1))
+    with psycopg.connect(dsn, autocommit=True) as db:
+        db.execute(
+            "update measurement_report_jobs set state='done' where report_id=%s",
+            (later,),
+        )
+        db.execute("select process_community_xp(100)")
+        assert (
+            db.execute(
+                "select count(*) from community_xp_events where report_id=%s", (later,)
+            ).fetchone()[0]
+            == 0
+        )
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(worker, range(8)))
+    for i in range(8):
+        worker(i)
+    with psycopg.connect(dsn, autocommit=True) as db:
+        assert (
+            db.execute(
+                "select fulfilled_report_id from community_coverage_missions where area_key='public-concurrency-centre'"
+            ).fetchone()[0]
+            == earlier
+        )
+        assert (
+            db.execute(
+                "select count(*) from community_xp_events where kind='help' and points>0 and report_id in (%s,%s)",
+                (earlier, later),
+            ).fetchone()[0]
+            == 1
+        )
     print(
-        "PostgreSQL 17: concurrent submissions, deterministic tie/order, retry, single first-day bonus, concurrent reversals and role isolation passed"
+        "PostgreSQL 17: concurrent submissions, deterministic tie/order, retry, single first-day bonus, contested mission ordering, concurrent reversals and role isolation passed"
     )
 
 

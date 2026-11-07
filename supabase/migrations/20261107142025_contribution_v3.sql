@@ -74,6 +74,10 @@ begin
   v2:=j.policy_version in ('contribution-v2','contribution-v3');
   version:=j.policy_version;
   if v2 then t:=submitted;end if;
+  if v3 and (exists(select 1 from public.community_xp_jobs earlier where earlier.state='pending' and (coalesce((earlier.report_snapshot->>'created_at')::timestamptz,earlier.occurred_at),earlier.report_id)<(submitted,j.report_id)) or exists(select 1 from public.community_reports earlier where earlier.status='pending' and (earlier.created_at,earlier.id)<(submitted,j.report_id))) then
+   -- A slower earlier matching/OCR job must not lose a contested public-area mission.
+   continue;
+  end if;
   mission:=null;
   week_start:=date_trunc('week',t at time zone 'Asia/Bangkok') at time zone 'Asia/Bangkok';
   day_start:=date_trunc('day',t at time zone 'Asia/Bangkok') at time zone 'Asia/Bangkok';
