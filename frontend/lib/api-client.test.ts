@@ -50,6 +50,41 @@ describe("api client", () => {
     }
   });
 
+  it("keeps private Trust reads authenticated and uncached without score mutation commands", async () => {
+    await api.communityTrustMe();
+    await api.communityTrustOwnerReviews();
+    await api.adminCommunityTrustReviews();
+    for (const [url, options] of vi.mocked(fetch).mock.calls) {
+      expect(String(url)).toMatch(
+        /^\/api\/(community\/trust|admin\/community-trust)\//,
+      );
+      expect(new Headers(options?.headers).get("Authorization")).toBe(
+        "Bearer access-token",
+      );
+      expect(options?.cache).toBe("no-store");
+      expect(options?.method ?? "GET").toBe("GET");
+    }
+    const scope = {
+      from_day: "2026-11-01",
+      to_day: "2026-11-07",
+      message: "Please review these assessments",
+    };
+    await api.communityTrustReview(scope);
+    const [url, options] = vi.mocked(fetch).mock.calls.at(-1)!;
+    expect(url).toBe("/api/community/trust/reviews");
+    expect(options?.method).toBe("POST");
+    expect(JSON.parse(String(options?.body))).toEqual(scope);
+    expect(new Headers(options?.headers).get("Authorization")).toBe(
+      "Bearer access-token",
+    );
+    for (const method of [
+      "setCommunityTrustScore",
+      "adminCommunityTrustFinding",
+      "adminCommunityTrustReview",
+    ])
+      expect(api).not.toHaveProperty(method);
+  });
+
   it("invalidates affected public data only after successful writes", async () => {
     await loadPublicData(PUBLIC_DATA_KEYS.reports, 60_000, async () => ({
       count: 1,
