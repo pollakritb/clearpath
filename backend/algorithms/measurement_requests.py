@@ -21,7 +21,7 @@ def request_window(
 ) -> tuple[datetime, datetime]:
     now = timestamp(now)
     if needed_by is None:
-        return now, now + timedelta(hours=1)
+        return now, now + timedelta(minutes=30)
     end = timestamp(needed_by)
     if end <= now or end > now + timedelta(hours=24):
         raise ValueError("เลือกเวลาล่วงหน้าภายใน 24 ชั่วโมง")

@@ -184,7 +184,7 @@ def helper_at(uid, **extra):
 
 def test_time_windows():
     now = datetime.now(UTC)
-    assert request_window(now, None) == (now, now + timedelta(hours=1))
+    assert request_window(now, None) == (now, now + timedelta(minutes=30))
     assert request_window(now, now + timedelta(hours=2)) == (
         now + timedelta(minutes=90),
         now + timedelta(hours=2),
