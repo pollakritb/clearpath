@@ -5,7 +5,6 @@ from scripts.production_preflight import optional_tables
 def test_disabled_new_features_need_no_unapplied_tables():
     config = Settings(
         _env_file=None,
-        reporter_trust_enabled=False,
         account_privacy_enabled=False,
         cams_grid_collection_enabled=False,
     )
@@ -15,14 +14,11 @@ def test_disabled_new_features_need_no_unapplied_tables():
 def test_enabled_features_require_their_private_storage():
     config = Settings(
         _env_file=None,
-        reporter_trust_enabled=True,
         account_privacy_enabled=True,
         cams_grid_collection_enabled=True,
     )
     tables = optional_tables(config)
     assert {
-        "community_reporter_audits",
-        "community_reporter_review_requests",
         "account_privacy_requests",
         "cams_grid_jobs",
         "cams_grid_active",

@@ -7,9 +7,9 @@ from ..core.auth import AuthenticatedUser, require_user
 from ..models.community_trust import (
     CommunityTrust,
     CommunityTrustReview,
+    CommunityTrustReviewResult,
     CommunityTrustReviews,
 )
-from ..models.reporter_trust import ReporterReviewResult
 from ..services.community import community_trust
 
 router = APIRouter()
@@ -20,7 +20,7 @@ async def mine(user: AuthenticatedUser = Depends(require_user)):
     return await run_in_threadpool(community_trust.summary, user.id, owner=True)
 
 
-@router.post("/community/trust/reviews", response_model=ReporterReviewResult)
+@router.post("/community/trust/reviews", response_model=CommunityTrustReviewResult)
 async def review(
     body: CommunityTrustReview, user: AuthenticatedUser = Depends(require_user)
 ):

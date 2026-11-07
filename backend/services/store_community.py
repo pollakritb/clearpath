@@ -514,15 +514,6 @@ def delete_community_report(report_id: str) -> None:
     db.get_client().table("community_reports").delete().eq("id", report_id).execute()
 
 
-def upsert_report_review(row: dict) -> None:
-    if settings.local_demo_mode:
-        local_store.upsert_review(row)
-        return
-    db.get_client().table("report_reviews").upsert(
-        row, on_conflict="report_id,reviewer_id"
-    ).execute()
-
-
 def get_report_reviews(report_id: str) -> list[dict]:
     if settings.local_demo_mode:
         return local_store.get_reviews(report_id)
@@ -533,22 +524,6 @@ def get_report_reviews(report_id: str) -> list[dict]:
         .eq("report_id", report_id)
         .execute()
     ).data or []
-
-
-def mark_review_rewarded(report_id: str, reviewer_id: str) -> None:
-    rewarded_at = datetime.now(UTC).isoformat()
-    if settings.local_demo_mode:
-        local_store.mark_review_rewarded(report_id, reviewer_id, rewarded_at)
-        return
-    (
-        db.get_client()
-        .table("report_reviews")
-        .update({"rewarded_at": rewarded_at})
-        .eq("report_id", report_id)
-        .eq("reviewer_id", reviewer_id)
-        .is_("rewarded_at", "null")
-        .execute()
-    )
 
 
 def upsert_report_reaction(row: dict) -> dict:

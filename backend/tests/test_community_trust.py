@@ -355,7 +355,6 @@ def test_map_score_metadata_does_not_repeat_full_daily_projection(monkeypatch):
 
     monkeypatch.setattr(xp, "enabled", lambda: True)
     from backend.services.community import community_trust as service
-    from backend.services.community import reporter_trust
     from backend.services.community.presenter import present_report
 
     monkeypatch.setattr(
@@ -368,7 +367,6 @@ def test_map_score_metadata_does_not_repeat_full_daily_projection(monkeypatch):
             "_ledger_seq": 100,
         },
     )
-    monkeypatch.setattr(reporter_trust, "summary", lambda *_: None)
     row = {
         "id": "test-public",
         "user_id": "owner",

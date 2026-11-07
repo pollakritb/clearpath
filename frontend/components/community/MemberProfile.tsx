@@ -6,7 +6,6 @@ import UserPageShell from "@/frontend/components/app/UserPageShell";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { PublicMember } from "@/frontend/types/xp";
 import ParticipationBadge from "./ParticipationBadge";
-import ReporterTrustCard from "./ReporterTrustCard";
 export default function MemberProfile({ memberId }: { memberId: string }) {
   const router = useRouter();
   const [member, setMember] = useState<PublicMember | null>(null);
@@ -44,7 +43,6 @@ export default function MemberProfile({ memberId }: { memberId: string }) {
             </p>
             <p>มีผลงาน {member.contribution_days} วัน</p>
             <CommunityTrustCard trust={member.community_trust} />
-            <ReporterTrustCard trust={member.reporter_trust} />
             {member.evidence_history && (
               <section
                 className="cp-evidence-panel"

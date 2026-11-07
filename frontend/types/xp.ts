@@ -1,5 +1,5 @@
 import type { CommunityTrust } from "./community-trust";
-import type { EvidenceHistory, ReporterTrust } from "./evidence";
+import type { EvidenceHistory } from "./evidence";
 export interface ParticipationRank {
   code: string;
   label: string;
@@ -14,7 +14,6 @@ export interface XPSummary {
   scheduled_starts_at?: string | null;
   xp_paused?: boolean;
   community_trust?: CommunityTrust | null;
-  reporter_trust?: ReporterTrust | null;
   member_id: string;
   alias: string;
   hidden: boolean;
@@ -93,7 +92,6 @@ export interface HelpClaim {
 }
 export interface PublicMember {
   community_trust?: CommunityTrust | null;
-  reporter_trust?: ReporterTrust | null;
   evidence_history?: EvidenceHistory | null;
   member_id: string;
   alias: string;

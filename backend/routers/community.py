@@ -1,4 +1,4 @@
-"""Community API — reports, gratitude/star feedback, news and leaderboard."""
+"""Community API — reports, community reactions, news and leaderboard."""
 
 from datetime import UTC, datetime, timedelta
 from typing import Literal
@@ -26,14 +26,12 @@ from ..models.schemas import (
     OperationResponse,
     PhotoMetadata,
     PlaceReportSelection,
-    RatingResult,
     ReportComment,
     ReportCommentCreate,
     ReportCreateResponse,
     ReportDraftResponse,
     ReportDraftSubmit,
     ReportEngagementResponse,
-    ReportRatingRequest,
     ReportReactionRequest,
 )
 from ..models.xp import XPLeaderboard
@@ -272,35 +270,6 @@ async def delete_report_draft(
     if not deleted:
         raise HTTPException(404, detail="ไม่พบ draft")
     return OperationResponse(ok=True, message="ลบ draft แล้ว")
-
-
-@router.post("/community/reports/{report_id}/ratings", response_model=RatingResult)
-async def rate_report(
-    report_id: str,
-    body: ReportRatingRequest,
-    user: AuthenticatedUser = Depends(require_user),
-):
-    try:
-        allowed = await run_in_threadpool(
-            supabase_client.take_rate_limit, user.id, "community_rating", 3600, 30
-        )
-        if not allowed:
-            raise HTTPException(429, detail="ส่งคำขอบคุณถี่เกินไป กรุณารอรอบถัดไป")
-        result = await run_in_threadpool(
-            community_service.rate_report,
-            report_id,
-            user.id,
-            body.rating,
-            body.note,
-            body.reviewer_lat,
-            body.reviewer_lon,
-            body.gps_accuracy_m,
-        )
-    except KeyError as exc:
-        raise HTTPException(404, detail="ไม่พบรายงาน") from exc
-    except ValueError as exc:
-        raise HTTPException(400, detail=str(exc)) from exc
-    return RatingResult(**result)
 
 
 @router.get(

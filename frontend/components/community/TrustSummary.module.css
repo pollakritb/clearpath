@@ -1,0 +1,41 @@
+.panel {
+  margin-block: 16px;
+  padding-block: 16px;
+  border-block: 1px solid var(--cp-line);
+  color: var(--cp-ink);
+  overflow-wrap: anywhere;
+}
+.panel h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.panel p {
+  margin: 6px 0;
+  line-height: 1.6;
+  font-size: 13px;
+  color: var(--cp-subink);
+}
+.panel .score {
+  font-weight: 700;
+  color: var(--cp-ink);
+  font-variant-numeric: tabular-nums;
+}
+.panel summary {
+  min-height: 44px;
+  padding-block: 12px;
+  color: var(--cp-teal);
+  font-size: 13px;
+  cursor: pointer;
+}
+.compact {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--cp-subink);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}

@@ -14,7 +14,6 @@ from .presenter import (
     list_reports,
     list_reviewable_reports,
 )
-from .reviews import rate_report
 
 __all__ = [
     "create_draft",
@@ -26,7 +25,6 @@ __all__ = [
     "list_public_map_reports",
     "list_reviewable_reports",
     "get_engagement",
-    "rate_report",
     "remove_comment",
     "set_reaction",
     "submit_draft",

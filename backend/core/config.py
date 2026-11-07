@@ -21,8 +21,6 @@ class Settings(BaseSettings):
     account_privacy_enabled: bool = False
     community_trust_collection_enabled: bool = False
     community_trust_public_enabled: bool = False
-    reporter_trust_enabled: bool = False
-    reporter_trust_validation_ref: str = ""
     community_v2_demo_launch: str = "2026-11-05T00:00:00+07:00"
 
     # External APIs

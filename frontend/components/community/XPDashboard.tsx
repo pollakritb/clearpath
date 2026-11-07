@@ -17,7 +17,6 @@ import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
 import ContributionOverview from "./ContributionOverview";
 import RankEmblem from "./RankEmblem";
 import ParticipationBadge from "./ParticipationBadge";
-import ReporterTrustCard from "./ReporterTrustCard";
 import RankDetails from "./RankDetails";
 
 type Period = string;
@@ -252,7 +251,6 @@ export default function XPDashboard({
             trust={summary.community_trust}
             reviewable
           />
-          <ReporterTrustCard trust={summary.reporter_trust} reviewable />
           <ContributionOverview summary={summary} active={active} />
           <div className="cp-xp-chips">
             {summary.achievements.map((a) => (

@@ -40,7 +40,11 @@ def test_new_product_api_surface_and_no_navigation_api():
     assert "/api/community/review-queue" in paths
     assert "/api/community/reports/{report_id}/reviews" not in paths
     assert "post" not in openapi["paths"]["/api/community/reports"]
-    assert "/api/community/reports/{report_id}/ratings" in paths
+    assert "/api/community/reports/{report_id}/ratings" not in paths
+    assert "/api/community/me/trust" not in paths
+    assert "/api/community/trust/me" in paths
+    assert "reporter_trust" not in schemas["CommunityReport"]["properties"]
+    assert "ReporterTrust" not in schemas
     assert "/api/community/reports/{report_id}/engagement" in paths
     assert "/api/community/reports/{report_id}/engagement/me" in paths
     assert "/api/community/reports/{report_id}/reaction" in paths

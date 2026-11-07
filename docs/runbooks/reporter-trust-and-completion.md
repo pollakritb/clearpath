@@ -1,3 +1,5 @@
+> **Retired November 7, 2026:** this historical runbook describes removed reporter-score and v2 activation commands. Do not execute them. Current operations use [Community Trust](community-trust-v1.md) and [XP v3](contribution-v3.md). Stored audit history remains under the existing privacy/retention process.
+
 # Reporter Trust and completion verification
 
 This runbook operates the local implementation documented in the [execution record](../verification/2026-11-06-completion-execution.md).

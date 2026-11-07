@@ -310,61 +310,12 @@ def test_complete_automatic_review_rating_reward_and_privacy_flow(
     assert (public["lat"], public["lon"]) != (13.8199, 100.0622)
     assert public["location_precision_m"] > 0
 
-    become("user", user_id=reporter.id)
-    self_rating = client.post(
-        f"/api/community/reports/{report_id}/ratings",
-        json={
-            "rating": 5,
-            "reviewer_lat": 13.8199,
-            "reviewer_lon": 100.0622,
-            "gps_accuracy_m": 10,
-        },
+    assert (
+        client.post(
+            f"/api/community/reports/{report_id}/ratings", json={"rating": 5}
+        ).status_code
+        == 404
     )
-    assert self_rating.status_code == 400
-
-    become("user")
-    far_rating = client.post(
-        f"/api/community/reports/{report_id}/ratings",
-        json={
-            "rating": 5,
-            "reviewer_lat": 13.7563,
-            "reviewer_lon": 100.5018,
-            "gps_accuracy_m": 10,
-        },
-    )
-    assert far_rating.status_code == 400
-
-    rating_result = None
-    for score in (5, 4, 5):
-        become("user")
-        response = client.post(
-            f"/api/community/reports/{report_id}/ratings",
-            json={
-                "rating": score,
-                "reviewer_lat": 13.8200,
-                "reviewer_lon": 100.0623,
-                "gps_accuracy_m": 12,
-            },
-        )
-        assert response.status_code == 200, response.text
-        rating_result = response.json()
-
-    assert rating_result is not None
-    assert rating_result["rating_count"] == 3
-    assert rating_result["rating_average"] > 4
-    assert rating_result["consensus"] == "positive"
-    assert rating_result["reward_points"] == 2
-
-    duplicate = client.post(
-        f"/api/community/reports/{report_id}/ratings",
-        json={
-            "rating": 5,
-            "reviewer_lat": 13.8200,
-            "reviewer_lon": 100.0623,
-            "gps_accuracy_m": 12,
-        },
-    )
-    assert duplicate.status_code == 400
 
     become("user", user_id=reporter.id)
     profile = client.get("/api/community/me")
@@ -375,12 +326,7 @@ def test_complete_automatic_review_rating_reward_and_privacy_flow(
 
     inbox = client.get("/api/notifications")
     assert inbox.status_code == 200
-    assert inbox.json()["unread_count"] >= 4
-    rating_notifications = [
-        item for item in inbox.json()["notifications"] if item["event_type"] == "rating"
-    ]
-    assert rating_notifications
-    assert all("ขอบคุณ" in item["title"] for item in rating_notifications)
+    assert inbox.json()["unread_count"] >= 1
     notification_id = inbox.json()["notifications"][0]["id"]
     assert client.patch(f"/api/notifications/{notification_id}/read").status_code == 200
     assert client.post("/api/notifications/read-all").status_code == 200

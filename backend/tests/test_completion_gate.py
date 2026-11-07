@@ -14,7 +14,7 @@ def test_manifest_never_accepts_simulated_or_missing_evidence(tmp_path):
                 "scope": "production-readiness",
                 "source_commit": "a" * 40,
                 "accepted_by": "owner",
-                "reporter_trust_prior": [2, 2],
+                "community_trust_policy_version": "community-trust-v1",
                 "evidence": {},
             }
         )
@@ -40,7 +40,7 @@ def test_manifest_binds_review_to_artifact_hash_and_source_commit(tmp_path):
                 "scope": "production-readiness",
                 "source_commit": "a" * 40,
                 "accepted_by": "owner",
-                "reporter_trust_prior": [2, 2],
+                "community_trust_policy_version": "community-trust-v1",
                 "evidence": {k: row for k in REQUIRED},
             }
         )

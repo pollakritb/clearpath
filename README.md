@@ -5,11 +5,7 @@ FastAPI และ Supabase โดย browser เรียกข้อมูล�
 
 ## ระบบปัจจุบัน
 
-เอกสารนี้อธิบาย source ใน workspace; ไม่ใช้แทนการยืนยันว่า deploy แล้ว
-งานเพิ่มเติมวันที่ 6 พ.ย. (Reporter Trust, CAMS horizon, account privacy) แยกการ deploy โค้ดออกจากการเปิดนโยบาย:
-refactor/CAMS ไม่ต้องเปลี่ยน schema ส่วน Reporter Trust/account privacy ปิดโดยค่าเริ่มต้น
-ดู [ผลดำเนินงานและ gate คงเหลือ](docs/verification/2026-11-06-completion-execution.md)
-และ [runbook](docs/runbooks/reporter-trust-and-completion.md)
+รุ่นปัจจุบันใช้ XP `contribution-v3` และ `community-trust-v1` เปิด production วันที่ 7 พ.ย. 2569 เวลา 23:24 น. ตามคำยืนยันของเจ้าของโครงการ ดู [หลักฐานเปิดใช้](docs/verification/2026-11-07-xp-v3-live-release.md) และ [runbook XP](docs/runbooks/contribution-v3.md). ระบบคะแนนผลตรวจอิสระผู้รายงานและดาวรุ่นเก่าถูกถอดจาก runtime แล้ว ประวัติ ledger/audit ยังคงเก็บตามนโยบาย
 
 - **ค่าปัจจุบัน:** Air4Thai บันทึกลง Supabase ผ่าน cron ทุก 30 นาที และมี GitHub backup เมื่อรอบหลักขาดหาย
 - **พยากรณ์:** อ่าน raw CAMS / Open-Meteo ที่เก็บไว้ สูงสุด 120 ชั่วโมงตามข้อมูลที่มี
@@ -19,7 +15,7 @@ refactor/CAMS ไม่ต้องเปลี่ยน schema ส่วน Rep
 - **ข้อมูลภาพ:** ภาพจากคลังต้องมีเวลาและพิกัด EXIF ที่ใช้ได้; backend ตรวจต้นฉบับเอง
   EXIF ที่ไม่มี timezone ใช้ UTC+7 ได้เฉพาะเมื่อพิกัดอยู่ในประเทศไทย
   เก็บต้นฉบับแบบ private และล้าง EXIF จากภาพ preview; ไม่ใช้ GPS ตอนส่งแทนพิกัดภาพเก่า
-- **XP:** `contribution-v3` เพิ่มโบนัสรายงานแรก/รายสัปดาห์ และเพดานรวม 70 XP/วัน (90 ในวันที่ได้โบนัสสัปดาห์) โดยเก็บคะแนน/ยศเดิม ใช้ ledger และ control แยกจาก Trust; schema/API รองรับก่อนเปิดกติกาต้นเดือน ดู [ข้อกำหนดและ gate เปิดใช้](docs/superpowers/specs/2026-11-07-contribution-v3.md)
+- **XP:** `contribution-v3` เพิ่มโบนัสรายงานแรก/รายสัปดาห์ และเพดานรวม 70 XP/วัน (90 ในวันที่ได้โบนัสสัปดาห์) โดยเก็บคะแนน/ยศเดิม ใช้ ledger และ control แยกจาก Trust; เปิดใช้กติกาปัจจุบันแล้วโดยมีวันเปลี่ยนนโยบายที่ตรวจย้อนหลังได้ ดู [ข้อกำหนดและ gate เปิดใช้](docs/superpowers/specs/2026-11-07-contribution-v3.md)
 - **ปฏิสัมพันธ์:** เมื่อเปิด `community-trust-v1` เสียง Like/Dislike ใหม่ที่ผ่านเกณฑ์ใช้คำนวณ **Trust ชุมชน** แยกจากผลตรวจอิสระเดิม แต้ม ยศ และความต่อเนื่อง ไม่มีผลต่อ XP, IDW หรือ backend gap-fill; เมื่อปิดฟีเจอร์ยังเป็น social เท่านั้น ดู [กติกาและการดูแลระบบ](docs/runbooks/community-trust-v1.md)
   backend ดาวยังคงไว้เพื่อ compatibility และรักษาพฤติกรรมคะแนนเดิม
 - **คำขอวัด:** สร้างคำขอรัศมีคงที่ 2 กม. แสดงชื่อผู้ขอตาม identity preference

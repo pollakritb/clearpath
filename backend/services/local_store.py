@@ -891,21 +891,9 @@ def delete_community_report(report_id: str) -> None:
             _REPORT_COMMENTS.pop(comment_id, None)
 
 
-def upsert_review(row: dict) -> None:
-    with _LOCK:
-        _REVIEWS[(str(row["report_id"]), str(row["reviewer_id"]))] = dict(row)
-
-
 def get_reviews(report_id: str) -> list[dict]:
     with _LOCK:
         return [dict(row) for (rid, _), row in _REVIEWS.items() if rid == report_id]
-
-
-def mark_review_rewarded(report_id: str, reviewer_id: str, rewarded_at: str) -> None:
-    with _LOCK:
-        row = _REVIEWS.get((report_id, reviewer_id))
-        if row:
-            row["rewarded_at"] = rewarded_at
 
 
 def _refresh_report_engagement(report_id: str) -> None:

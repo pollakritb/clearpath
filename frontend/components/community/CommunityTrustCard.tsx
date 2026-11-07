@@ -5,7 +5,7 @@ import type {
   CommunityTrustReviewItem,
 } from "@/frontend/types/community-trust";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
-import styles from "./ReporterTrustCard.module.css";
+import styles from "./TrustSummary.module.css";
 import formStyles from "./CommunityTrustCard.module.css";
 
 export default function CommunityTrustCard({

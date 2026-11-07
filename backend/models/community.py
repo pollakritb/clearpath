@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 from ..core.identifiers import RequestID
 from .community_trust import CommunityTrust
 from .evidence import ReportEvidence
-from .reporter_trust import ReporterTrust
 from .xp import ParticipationRank, XPResult, XPSummary
 
 ReportStatus = Literal["pending", "approved", "rejected"]
@@ -15,7 +14,6 @@ VerificationMethod = Literal["pending", "automatic", "admin"]
 CommunityDataRole = Literal["supplementary", "gap_fill"]
 CommunitySourceType = Literal["individual", "community_sensor"]
 GapFillBasis = Literal["none", "corroborated"]
-RatingDirection = Literal["negative", "neutral", "positive"]
 ReactionKind = Literal["like", "dislike"]
 RejectionReason = Literal[
     "image_unclear",
@@ -38,7 +36,6 @@ class CaptureSessionResponse(BaseModel):
 
 class CommunityReport(BaseModel):
     community_trust: CommunityTrust | None = None
-    reporter_trust: ReporterTrust | None = None
     legacy_report_score: float | None = None
     capture_source: Literal["camera", "gallery"] = "camera"
     image_metadata: dict | None = None
@@ -204,24 +201,6 @@ class ReportDraftSubmit(BaseModel):
     measurement_note: str | None = Field(default=None, max_length=300)
     averaging_period: Literal["instant", "1_minute", "5_minutes", "unknown"] = "instant"
     measurement_duration_seconds: int = Field(default=0, ge=0, le=600)
-
-
-class ReportRatingRequest(BaseModel):
-    rating: int = Field(ge=1, le=5)
-    reviewer_lat: float = Field(ge=-90, le=90)
-    reviewer_lon: float = Field(ge=-180, le=180)
-    gps_accuracy_m: float = Field(ge=0, le=200)
-    note: str | None = Field(default=None, max_length=300)
-
-
-class RatingResult(BaseModel):
-    report: CommunityReport
-    rating_count: int
-    rating_average: float
-    consensus: RatingDirection
-    reward_points: int = Field(
-        default=0, description="Legacy reputation only; never participation XP"
-    )
 
 
 class ReactionLocation(BaseModel):

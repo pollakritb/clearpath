@@ -33,7 +33,6 @@ def present_report(
     include_private_metadata: bool = False,
     reference_at: datetime | None = None,
     identities: dict[str, dict] | None = None,
-    reporter_trusts: dict[str, dict] | None = None,
     community_scores: dict[str, dict] | None = None,
     policy_snapshot: dict | None = None,
 ) -> dict:
@@ -211,18 +210,8 @@ def present_report(
             for k, v in community_score.items()
             if k != "daily" and not k.startswith("_")
         }
-    author_trust = None
-    if show_reporter_profile:
-        from . import reporter_trust
-
-        author_trust = (
-            reporter_trusts.get(str(row["user_id"]))
-            if reporter_trusts is not None
-            else reporter_trust.summary(str(row["user_id"]))
-        )
     return {
         "community_trust": community_score,
-        "reporter_trust": author_trust,
         "legacy_report_score": trust_score,
         "member_id": identity.get("member_id"),
         "participation_rank": identity.get("rank"),
@@ -362,19 +351,6 @@ def present_report(
     }
 
 
-def _reporter_trusts(rows: list[dict]) -> dict[str, dict]:
-    from . import reporter_trust
-
-    return reporter_trust.summaries(
-        [
-            str(row["user_id"])
-            for row in rows
-            if row.get("show_reporter_profile")
-            and row.get("source_type", "individual") == "individual"
-        ]
-    )
-
-
 def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
     from . import policy_v2
 
@@ -389,7 +365,6 @@ def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
     from . import xp
 
     identities = xp.public_identities(rows)
-    reporter_trusts = _reporter_trusts(rows)
     from . import community_trust
 
     community_scores = community_trust.summaries(
@@ -400,7 +375,6 @@ def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
             row,
             policy_snapshot=batch_policy,
             identities=identities,
-            reporter_trusts=reporter_trusts,
             community_scores=community_scores,
             official_stations=official,
             approved_reports=approved,
@@ -427,7 +401,6 @@ def list_public_map_reports(limit: int = 200) -> tuple[list[dict], list[dict]]:
     from . import xp
 
     identities = xp.public_identities(raw)
-    reporter_trusts = _reporter_trusts(raw)
     from . import community_trust
 
     community_scores = community_trust.summaries(
@@ -438,7 +411,6 @@ def list_public_map_reports(limit: int = 200) -> tuple[list[dict], list[dict]]:
             row,
             policy_snapshot=batch_policy,
             identities=identities,
-            reporter_trusts=reporter_trusts,
             community_scores=community_scores,
             official_stations=official,
             approved_reports=raw,
@@ -509,7 +481,6 @@ def list_map_points() -> list[dict]:
     batch_policy = policy_v2.release()
     official = supabase_client.get_stations()
     identities = xp.public_identities(raw)
-    reporter_trusts = _reporter_trusts(raw)
     from . import community_trust
 
     community_scores = community_trust.summaries(
@@ -523,7 +494,6 @@ def list_map_points() -> list[dict]:
             approved_reports=raw,
             include_image=False,
             identities=identities,
-            reporter_trusts=reporter_trusts,
             community_scores=community_scores,
         )
         | {"user_id": str(row["user_id"])}

@@ -13,7 +13,7 @@ from pathlib import Path
 
 REQUIRED = {
     "staging_migration",
-    "independent_trust_evaluation",
+    "community_trust_evaluation",
     "gap_fill_evaluation",
     "device_iphone",
     "device_android",
@@ -42,8 +42,8 @@ def validate_manifest(path: Path, expected_commit: str | None = None) -> list[st
         errors.append("reviewed_source_commit_required")
     elif expected_commit and source != expected_commit:
         errors.append("reviewed_source_commit_mismatch")
-    if data.get("reporter_trust_prior") != [2, 2]:
-        errors.append("reporter_trust_prior_mismatch")
+    if data.get("community_trust_policy_version") != "community-trust-v1":
+        errors.append("community_trust_policy_version_mismatch")
     records = data.get("evidence", {})
     if not isinstance(records, dict):
         return errors + ["evidence_must_be_object"]

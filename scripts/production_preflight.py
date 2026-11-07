@@ -47,10 +47,6 @@ def _configured(values: dict[str, str], key: str, *, minimum: int = 1) -> bool:
 
 def optional_tables(config: Settings) -> tuple[str, ...]:
     tables = []
-    if config.reporter_trust_enabled:
-        tables.extend(
-            ("community_reporter_audits", "community_reporter_review_requests")
-        )
     if config.account_privacy_enabled:
         tables.append("account_privacy_requests")
     if config.cams_grid_collection_enabled:
@@ -141,10 +137,6 @@ def run_preflight(
         except Exception as exc:
             supabase_error = type(exc).__name__
     checks["supabase_schema"] = bool(table_checks) and all(table_checks.values())
-    if runtime_settings.reporter_trust_enabled:
-        checks["reporter_trust_independent_validation"] = bool(
-            runtime_settings.reporter_trust_validation_ref.strip()
-        )
     if runtime_settings.community_v2_enabled:
         checks["community_v2_dependencies"] = (
             runtime_settings.community_xp_enabled

@@ -58,4 +58,4 @@ Review the queue regularly, record findings with reasons, monitor projection ret
 .venv/bin/python -m scripts.community_trust_ops release --stage off --refs reviewed-release.json --operator project-owner
 ```
 
-Both new feature flags default false and are independent of `REPORTER_TRUST_ENABLED`. A public release fails closed without the recorded operational references. Migration and local tests alone do not establish physical GPS accuracy, unique humans per account, scientific calibration or a completed real-world trial. Record any outstanding acceptance honestly before activation.
+Both Community Trust feature flags default false for a new installation; production is enabled. The superseded `REPORTER_TRUST_ENABLED` flag and independent-score runtime have been removed. A public release fails closed without the recorded operational references. Migration and local tests alone do not establish physical GPS accuracy, unique humans per account, scientific calibration or a completed real-world trial. Record any outstanding acceptance honestly before activation.

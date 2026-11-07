@@ -2,12 +2,8 @@ import type {
   CommunityTrust,
   CommunityTrustReview,
   CommunityTrustReviews,
+  CommunityTrustReviewResult,
 } from "@/frontend/types/community-trust";
-import type {
-  ReporterAuditHistory,
-  ReporterReviewRequest,
-  ReporterReviewResult,
-} from "@/frontend/types/evidence";
 import type {
   AccountPrivacyStatus,
   AccountExportPage,
@@ -381,7 +377,7 @@ export const api = {
       cache: "no-store",
     }),
   communityTrustReview: (body: CommunityTrustReview) =>
-    http<{ id: string; status: "pending" }>("/api/community/trust/reviews", {
+    http<CommunityTrustReviewResult>("/api/community/trust/reviews", {
       method: "POST",
       body: JSON.stringify(body),
       auth: true,
@@ -441,17 +437,6 @@ export const api = {
     http<XPAdminOverview>("/api/community/xp/admin", {
       auth: true,
       cache: "no-store",
-    }),
-  reporterAudits: (offset = 0) =>
-    http<ReporterAuditHistory>(
-      `/api/community/me/trust-audits?offset=${offset}`,
-      { auth: true, cache: "no-store" },
-    ),
-  requestTrustReview: (body: ReporterReviewRequest) =>
-    http<ReporterReviewResult>("/api/community/me/trust-review", {
-      auth: true,
-      method: "POST",
-      body: JSON.stringify(body),
     }),
   accountPrivacy: () =>
     http<AccountPrivacyStatus>("/api/community/me/privacy", {

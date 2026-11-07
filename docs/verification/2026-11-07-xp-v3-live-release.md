@@ -31,3 +31,15 @@ This is an initial operational data evaluation, not a scientific validation of t
 - Immediate-release SQL tests check missing reason/evidence rejection, server timestamp, retry immutability, audit events, role isolation and transition-month totals. PostgreSQL CI runs the new migration on both legacy and v2 foundations.
 
 The historical audit reports describe their own disabled release state; this newer release record supersedes that state once the authorized operation succeeds. Old-version cleanup is deferred until the current release is confirmed operational, as instructed by the owner.
+
+## Production activation receipt
+
+Production release `e9b2bf3770dd1375bc22fa86daef5e1f532cf539` was verified before activation. Server-assigned cutover: **2026-11-07 23:24:04.540260 Asia/Bangkok**. XP v3 is enabled, not paused, and coverage missions are enabled. Community Trust remains collecting/public with 365-day retention.
+
+The activation transaction passed ledger/account fingerprint assertions. At that point production contained **17 XP events / 125 live XP / 6 XP accounts / 13 reports**; the increase from the earlier 15/115/11 baseline was already present before activation after owner testing. Activation itself created no reward or reset. Three eligible public missions were published at 23:24:45 with 60-minute expiry. The live monthly leaderboard returned the new start timestamp, the missions API returned all three +5 tasks, and a public profile returned the current Community Trust state. Health/readiness and security smoke passed.
+
+## Superseded runtime cleanup
+
+After live release verification, the independent reporter-score algorithm/service/cards/endpoints and old star/gratitude writer were retired, along with the old v2 activation and independent-score import commands. Current Community Trust review intake has its own contract. Historical migration files, stored audits, XP events and the settlement/read helpers still required for old submissions, cross-version quotas and lifetime totals remain. Historical audit-schema privacy tests are retained under the name `test-legacy-audit-retention.mjs`; they do not activate an old score.
+
+Cleanup validation: **565 backend tests pass**, coverage **81.27%**; **386 frontend tests pass**, function coverage **91.19%**. Retired-feature tests were removed with their implementations, and the API-surface regression now asserts old endpoints/models are absent and current Community Trust remains present. The retained historical audit SQL privacy suite passes. Ruff, TypeScript, ESLint and formatting checks pass.

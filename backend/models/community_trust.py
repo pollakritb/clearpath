@@ -64,3 +64,8 @@ class CommunityTrustReviewItem(BaseModel):
 
 class CommunityTrustReviews(BaseModel):
     requests: list[CommunityTrustReviewItem] = Field(default_factory=list)
+
+
+class CommunityTrustReviewResult(BaseModel):
+    id: str
+    status: Literal["pending", "reviewed"]

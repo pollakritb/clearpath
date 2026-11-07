@@ -1,5 +1,4 @@
 import type { CommunityTrust } from "./community-trust";
-import type { ReporterTrust } from "./evidence";
 import type { ReportEvidence } from "./evidence";
 import type { ParticipationRank, XPSummary, XPResult } from "./xp";
 export type ReportStatus = "pending" | "approved" | "rejected";
@@ -7,7 +6,6 @@ export type VerificationMethod = "pending" | "automatic" | "admin";
 export type CommunityDataRole = "supplementary" | "gap_fill";
 export type CommunitySourceType = "individual" | "community_sensor";
 export type GapFillBasis = "none" | "corroborated";
-export type RatingDirection = "negative" | "neutral" | "positive";
 export type ReactionKind = "like" | "dislike";
 export type RejectionReason =
   | "image_unclear"
@@ -28,7 +26,6 @@ export interface CaptureSessionResponse {
 
 export interface CommunityReport {
   community_trust?: CommunityTrust | null;
-  reporter_trust?: ReporterTrust | null;
   legacy_report_score?: number | null;
   member_id?: string | null;
   participation_rank?: ParticipationRank | null;
@@ -201,23 +198,6 @@ export interface ReportDraftSubmit {
   measurement_note?: string | null;
   averaging_period?: "instant" | "1_minute" | "5_minutes" | "unknown";
   measurement_duration_seconds?: number;
-}
-
-export interface ReportRatingRequest {
-  rating: 1 | 2 | 3 | 4 | 5;
-  reviewer_lat: number;
-  reviewer_lon: number;
-  gps_accuracy_m: number;
-  note?: string | null;
-}
-
-export interface RatingResult {
-  report: CommunityReport;
-  rating_count: number;
-  rating_average: number;
-  consensus: RatingDirection;
-  /** Legacy reputation only; this field never awards participation XP. */
-  reward_points: number;
 }
 
 export interface ReactionLocation {

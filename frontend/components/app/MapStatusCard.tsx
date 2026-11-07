@@ -2,7 +2,6 @@
 
 import CommunityTrustCard from "@/frontend/components/community/CommunityTrustCard";
 import RankEmblem from "@/frontend/components/community/RankEmblem";
-import ReporterTrustCard from "@/frontend/components/community/ReporterTrustCard";
 import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
 import { useRef, useState } from "react";
 import MapBottomSheet from "./MapBottomSheet";
@@ -414,7 +413,6 @@ export default function MapStatusCard({
               {showReporterProfile && (
                 <>
                   <CommunityTrustCard compact trust={report.community_trust} />
-                  <ReporterTrustCard compact trust={report.reporter_trust} />
                 </>
               )}
             </div>

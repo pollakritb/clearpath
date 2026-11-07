@@ -1,3 +1,4 @@
+// Retained historical audit schema privacy/revision checks; no runtime score or ingestion is activated.
 // Local PostgreSQL rehearsal. No hosted credentials or network access.
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";

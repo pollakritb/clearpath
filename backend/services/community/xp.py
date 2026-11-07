@@ -169,7 +169,7 @@ def summary(user_id: str) -> dict | None:
         return None
     a = account(user_id)
     t = totals(user_id)
-    from . import community_trust, policy_v2, policy_v3, reporter_trust
+    from . import community_trust, policy_v2, policy_v3
 
     v3 = policy_v3.release()
     current_v3 = policy_v3.applies(policy=v3)
@@ -202,7 +202,6 @@ def summary(user_id: str) -> dict | None:
     return (
         extra
         | {
-            "reporter_trust": reporter_trust.summary(user_id),
             "community_trust": community_trust.summary(user_id, owner=True),
         }
         | {key: a[key] for key in ("member_id", "alias", "hidden")}
@@ -844,7 +843,6 @@ def public_member(member_id: str) -> dict:
     s["alias"] = leaderboard_names([member_id]).get(member_id, s["alias"])
     return {
         "evidence_history": s.get("evidence_history"),
-        "reporter_trust": s.get("reporter_trust"),
         "community_trust": s.get("community_trust")
         if s.get("identity_mode") == "google"
         and not s.get("hidden")

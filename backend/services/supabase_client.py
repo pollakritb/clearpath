@@ -48,7 +48,6 @@ from .store_community import (  # noqa: F401 - stable workflow persistence API
     list_report_comments,
     list_user_ids,
     list_user_reports,
-    mark_review_rewarded,
     moderate_report_transaction,
     purge_report_evidence,
     signed_report_image_url,
@@ -57,7 +56,6 @@ from .store_community import (  # noqa: F401 - stable workflow persistence API
     upload_report_image,
     upsert_report_evidence,
     upsert_report_reaction,
-    upsert_report_review,
 )
 from .store_notifications import (  # noqa: F401 - stable workflow persistence API
     claim_line_webhook_event,

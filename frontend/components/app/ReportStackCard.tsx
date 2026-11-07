@@ -6,7 +6,6 @@ import {
   stackReporterGroups,
   stackReporterAvatar,
 } from "@/frontend/lib/report-stack-profiles";
-import ReporterTrustCard from "@/frontend/components/community/ReporterTrustCard";
 
 import MapBottomSheet from "./MapBottomSheet";
 import MapPanelReading from "./MapPanelReading";
@@ -119,10 +118,6 @@ export default function ReportStackCard({
                       <CommunityTrustCard
                         compact
                         trust={profile.community_trust}
-                      />
-                      <ReporterTrustCard
-                        compact
-                        trust={profile.reporter_trust}
                       />
                     </>
                   )}

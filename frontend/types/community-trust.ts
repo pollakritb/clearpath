@@ -41,3 +41,8 @@ export interface CommunityTrustReviewItem {
 export interface CommunityTrustReviews {
   requests: CommunityTrustReviewItem[];
 }
+
+export interface CommunityTrustReviewResult {
+  id: string;
+  status: "pending" | "reviewed";
+}
