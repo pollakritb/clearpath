@@ -1,4 +1,5 @@
 -- Additive, dormant policy. No old reaction backfill, XP reset or public activation.
+alter table public.report_reactions add column if not exists reason_code text, add column if not exists geofence_policy text;
 create schema if not exists community_trust_private;
 revoke all on schema community_trust_private from public, anon, authenticated;
 grant usage on schema community_trust_private to service_role;
@@ -7,10 +8,10 @@ create table community_trust_private.control (
  policy_version text not null default 'community-trust-v1' check(policy_version='community-trust-v1'),
  collecting_enabled boolean not null default false,
  public_enabled boolean not null default false,
- notice_ref text, review_owner text, review_channel text, retention_days integer,
+ notice_ref text, review_owner text, review_channel text, retention_days integer check(retention_days is null or retention_days>=90),
  retention_ref text, experiment_ref text, privacy_ref text, concurrency_ref text,
  check(not collecting_enabled or coalesce(length(notice_ref)>10,false)),
- check(not public_enabled or coalesce((collecting_enabled and length(review_owner)>2 and length(review_channel)>5 and retention_days>0 and length(retention_ref)>10 and length(experiment_ref)>10 and length(privacy_ref)>10 and length(concurrency_ref)>10),false))
+ check(not public_enabled or coalesce((collecting_enabled and length(review_owner)>2 and length(review_channel)>5 and retention_days>=90 and length(retention_ref)>10 and length(experiment_ref)>10 and length(privacy_ref)>10 and length(concurrency_ref)>10),false))
 );
 insert into community_trust_private.control(singleton) values(true);
 create table community_trust_private.reactions (
@@ -125,7 +126,7 @@ begin
    end if;
   exception when others then reason:=coalesce(reason,'gps_invalid');end;
   if reason is null and p_payload->>'reaction'='dislike' and p_payload->>'reason_code' not in ('report_context_doubt','image_context_doubt') then reason:='reason_not_trust';end if;
-  audit:=jsonb_strip_nulls(jsonb_build_object('distance_m',distance,'accuracy_m',accuracy,'fix_age_seconds',fix_age,'report_age_seconds',report_age));
+  audit:=jsonb_strip_nulls(jsonb_build_object('evidence_available',coalesce((p_payload->>'evidence_available')::boolean,false),'distance_m',distance,'accuracy_m',accuracy,'fix_age_seconds',fix_age,'report_age_seconds',report_age));
   -- Admission is only attempted by otherwise eligible votes; denied days never auto-admit later.
   if reason is null then
    select d.admitted into admitted from community_trust_private.pair_days d where d.voter_id=p_user and d.reporter_id=r.user_id and d.vote_day=v_day;
@@ -184,7 +185,7 @@ begin
  watermark:=least(head,coalesce(p_watermark,head));batch_limit:=least(5000,greatest(0,p_limit));
  select coalesce(jsonb_agg(to_jsonb(e) order by seq),'[]'::jsonb),max(seq),count(*) into records,last_seq,batch_count from (select * from community_trust_private.events where reporter_id=p_user and seq>p_after and seq<=watermark order by seq limit batch_limit) e;
  result:=jsonb_build_object('ledger_seq',watermark,'events',records,'next_seq',case when batch_limit=0 and watermark>0 then 0 when batch_count=batch_limit and batch_limit>0 then last_seq else null end);
- return result||jsonb_build_object('projection',(select payload from community_trust_private.projections where reporter_id=p_user),'contribution_days_30',(select count(distinct (captured_at at time zone 'Asia/Bangkok')::date) from public.community_reports where user_id=p_user and status='approved' and not coalesce(duplicate_detected,false) and (captured_at at time zone 'Asia/Bangkok')::date between (now() at time zone 'Asia/Bangkok')::date-29 and (now() at time zone 'Asia/Bangkok')::date));
+ return result||jsonb_build_object('projection',(select payload from community_trust_private.projections where reporter_id=p_user),'contribution_days_30',(select count(distinct (created_at at time zone 'Asia/Bangkok')::date) from public.community_reports r where r.user_id=p_user and r.status='approved' and not exists(select 1 from public.community_reports d where d.image_sha256=r.image_sha256 and d.status='approved' and (d.created_at,d.id)<(r.created_at,r.id)) and (created_at at time zone 'Asia/Bangkok')::date between (now() at time zone 'Asia/Bangkok')::date-29 and (now() at time zone 'Asia/Bangkok')::date));
 end $$;
 create function public.community_trust_store_projection(p_user bigint,p_seq bigint,p_payload jsonb,p_slots jsonb default '[]'::jsonb) returns boolean
 language plpgsql security definer set search_path='' as $$
@@ -216,7 +217,8 @@ create function public.community_trust_record_finding(p_user bigint,p_key uuid,p
 language plpgsql security definer set search_path='' as $$
 declare result bigint; target bigint;
 begin
- if jsonb_typeof(p_payload->'target_sequences') is distinct from 'array' or jsonb_array_length(p_payload->'target_sequences') not between 1 and 1000 then raise exception 'finding_targets_required';end if;
+ if jsonb_typeof(p_payload->'target_sequences') is distinct from 'array' or (jsonb_array_length(p_payload->'target_sequences')>1000 or (jsonb_array_length(p_payload->'target_sequences')=0 and not (p_payload->>'outcome'='unresolved' and p_payload ? 'review_id'))) then raise exception 'finding_targets_required';end if;
+ if p_payload ? 'review_id' and not exists(select 1 from community_trust_private.review_requests where id=(p_payload->>'review_id')::uuid and reporter_id=p_user) then raise exception 'review_subject_mismatch';end if;
  if coalesce(p_payload->>'outcome','') not in ('valid','invalid','unresolved') or length(coalesce(p_payload->>'evidence_ref',''))<10 or length(coalesce(p_payload->>'operator_ref',''))<3 or length(coalesce(p_payload->>'reason',''))<10 then raise exception 'finding_evidence_required';end if;
  perform pg_advisory_xact_lock(hashtextextended('community-trust:'||p_user,0));
  for target in select value::bigint from jsonb_array_elements_text(p_payload->'target_sequences') loop
@@ -242,10 +244,11 @@ end $$;
 create function public.community_trust_viewer_state(p_user bigint,p_report bigint) returns jsonb
 language sql security definer set search_path='' as $$
  select coalesce((select e.payload->'result' || jsonb_build_object(
-  'trust_eligible',e.eligible and exists(select 1 from community_trust_private.daily_slots s where s.event_seq=e.seq),
-  'trust_exclusion_reason',case when e.eligible and not exists(select 1 from community_trust_private.daily_slots s where s.event_seq=e.seq) then 'superseded_daily_vote' else e.exclusion_reason end,
+  'trust_eligible',e.eligible and coalesce(finding.outcome<>'invalid',true) and exists(select 1 from community_trust_private.daily_slots s where s.event_seq=e.seq),
+  'trust_projection_status',case when exists(select 1 from community_trust_private.projections p where p.reporter_id=e.reporter_id and p.ledger_seq=(select max(seq) from community_trust_private.events where reporter_id=e.reporter_id) and p.payload->>'window_end'=(now() at time zone 'Asia/Bangkok')::date::text and p.payload->>'status' in ('available','insufficient')) then 'updated' else 'updating' end,
+  'trust_exclusion_reason',case when finding.outcome='invalid' then 'vote_invalidated_by_review' when e.eligible and not exists(select 1 from community_trust_private.daily_slots s where s.event_seq=e.seq) then 'superseded_daily_vote' else e.exclusion_reason end,
   'trust_hold_until',(select case when (h.payload->>'until')::timestamptz>now() then h.payload->>'until' else null end from community_trust_private.events h where h.reporter_id=e.reporter_id and h.action='hold' and h.payload->'target_sequences' @> jsonb_build_array(e.seq) order by h.seq limit 1))
- from community_trust_private.events e where e.voter_id=p_user and e.report_id=p_report and e.action in ('set','withdraw') and coalesce((e.payload->>'accepted')::boolean,true) order by seq desc limit 1),'{}'::jsonb)
+ from community_trust_private.events e left join lateral (select f.payload->>'outcome' as outcome from community_trust_private.events f where f.reporter_id=e.reporter_id and f.action='finding' and f.payload->>'outcome' in ('valid','invalid') and f.payload->'target_sequences' @> jsonb_build_array(e.seq) order by f.seq desc limit 1) finding on true where e.voter_id=p_user and e.report_id=p_report and e.action in ('set','withdraw') and coalesce((e.payload->>'accepted')::boolean,true) order by seq desc limit 1),'{}'::jsonb)
 $$;
 revoke all on function public.community_trust_viewer_state(bigint,bigint) from public,anon,authenticated;
 grant execute on function public.community_trust_viewer_state(bigint,bigint) to service_role;
@@ -288,7 +291,7 @@ language plpgsql security definer set search_path='' as $$
 declare days integer; cutoff timestamptz; n integer; counts jsonb;
 begin
  perform pg_advisory_xact_lock(hashtextextended('community-trust-release',0));
- select retention_days into days from community_trust_private.control where singleton and retention_days>90 and length(retention_ref)>10 and (retention_last_ran_at is null or retention_last_ran_at<now()-interval '1 day');
+ select retention_days into days from community_trust_private.control where singleton and retention_days>=90 and length(retention_ref)>10 and (retention_last_ran_at is null or retention_last_ran_at<now()-interval '1 day');
  if days is null then return jsonb_build_object('skipped',true);end if;
  cutoff:=now()-make_interval(days=>days);
  -- Preserve original event dates until the entire reaction is outside retention.
@@ -329,3 +332,20 @@ do $$ begin
   perform cron.schedule('clearpath-community-trust-retention','15 17 * * *','select public.community_trust_retention()');
  end if;
 end $$;
+
+alter table community_trust_private.control add column reconcile_cursor bigint not null default 0;
+create function public.community_trust_cursor(p_after bigint default null,p_expected bigint default null) returns bigint
+language plpgsql security definer set search_path='' as $$
+declare result bigint;
+begin
+ if p_after is not null then
+  perform pg_advisory_xact_lock(hashtextextended('community-trust-cursor',0));
+  update community_trust_private.control set reconcile_cursor=p_after where singleton and reconcile_cursor=p_expected;
+ end if;
+ select reconcile_cursor into result from community_trust_private.control where singleton;
+ return result;
+end $$;
+revoke all on function public.community_trust_cursor(bigint,bigint) from public,anon,authenticated;
+grant execute on function public.community_trust_cursor(bigint,bigint) to service_role;
+
+notify pgrst, 'reload schema';

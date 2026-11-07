@@ -11653,3 +11653,21 @@ dialog.cp-login-modal::backdrop {
 .cp-map:has([data-map-sheet]) .cp-mapctrls__error[role="status"] {
   display: none;
 }
+
+.cp-community-trust-notice {
+  margin: 8px 0;
+  color: var(--cp-subink);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.cp-community-trust-notice p {
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+.cp-community-trust-notice summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--cp-teal);
+  cursor: pointer;
+}

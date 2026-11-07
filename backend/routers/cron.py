@@ -258,7 +258,8 @@ async def cron_external_feeds(authorization: str | None = Header(default=None)):
 
 @router.get("/cron/community-trust")
 async def community_trust_job(
-    after: int = Query(0, ge=0), authorization: str | None = Header(default=None)
+    after: int | None = Query(None, ge=0),
+    authorization: str | None = Header(default=None),
 ):
     _verify_cron(authorization)
     from ..services.community.community_trust import reconcile

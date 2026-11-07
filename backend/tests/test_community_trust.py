@@ -280,3 +280,37 @@ def test_anonymous_report_never_calls_public_community_score(monkeypatch):
     )
     assert result["community_trust"] is None
     assert result["user_id"] != "private-account"
+
+
+def test_reconciliation_resumes_cursor_and_marks_projection_failures_retryable(
+    monkeypatch,
+):
+    from backend.services.community import community_trust as service
+
+    monkeypatch.setattr(service.settings, "community_trust_collection_enabled", True)
+    monkeypatch.setattr(service, "control", lambda: {"collecting_enabled": True})
+    calls = []
+
+    def fake_rpc(name, params=None):
+        calls.append((name, params))
+        if name == "community_trust_cursor":
+            return 100
+        if name == "community_trust_subjects":
+            return list(range(101, 201))
+        raise AssertionError(name)
+
+    monkeypatch.setattr(service, "rpc", fake_rpc)
+    monkeypatch.setattr(
+        service,
+        "summary",
+        lambda user, **_: {
+            "status": "unavailable" if user == "150" else "insufficient"
+        },
+    )
+    result = service.reconcile()
+    assert (
+        result["updated"] == 99
+        and result["retryable"] == 1
+        and result["next_cursor"] == 200
+    )
+    assert ("community_trust_cursor", {"p_after": 200, "p_expected": 100}) in calls

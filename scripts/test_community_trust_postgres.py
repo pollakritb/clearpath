@@ -28,7 +28,7 @@ def main():
             "create role anon;create role authenticated;create role service_role bypassrls"
         )
         db.execute(
-            "create table profiles(id bigint primary key);create table community_reports(id bigint primary key,user_id bigint,status text,captured_at timestamptz,image_path text,evidence_purged_at timestamptz,lat float8,lon float8,duplicate_detected boolean default false);create table report_reactions(report_id bigint,user_id bigint,reaction text,created_at timestamptz,updated_at timestamptz,reason_code text,geofence_policy text,primary key(report_id,user_id))"
+            "create table profiles(id bigint primary key);create table community_reports(id bigint primary key,user_id bigint,status text,captured_at timestamptz,image_path text,evidence_purged_at timestamptz,lat float8,lon float8,image_sha256 text,created_at timestamptz default now());create table report_reactions(report_id bigint,user_id bigint,reaction text,created_at timestamptz,updated_at timestamptz,primary key(report_id,user_id))"
         )
         db.execute(
             Path(
@@ -36,7 +36,7 @@ def main():
             ).read_text()
         )
         db.execute(
-            "insert into profiles select generate_series(1,20);update community_trust_private.control set collecting_enabled=true,notice_ref='isolated-concurrency-test-notice';insert into community_reports select n,1,'approved',now(),'test/image',null,13.8,100.1,false from generate_series(101,110) n"
+            "insert into profiles select generate_series(1,20);update community_trust_private.control set collecting_enabled=true,notice_ref='isolated-concurrency-test-notice';insert into community_reports select n,1,'approved',now(),'test/image',null,13.8,100.1,n::text from generate_series(101,110) n"
         )
 
     def vote(voter, report, key):
@@ -96,6 +96,10 @@ def main():
         assert not db.execute(
             "select community_trust_store_projection(1,0,'{\"daily\":[]}'::jsonb)"
         ).fetchone()[0]
+    with psycopg.connect(dsn, autocommit=True) as db:
+        snapshot = db.execute("select community_trust_snapshot(1)").fetchone()[0]
+        assert len(snapshot["events"]) > 10
+        assert snapshot["contribution_days_30"] == 1
     print(
         "Real PostgreSQL: concurrent retries, unique reaction, competing pair-day admissions, single hold and stale projection CAS passed"
     )

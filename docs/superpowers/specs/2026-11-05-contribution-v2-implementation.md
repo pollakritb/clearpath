@@ -1,5 +1,7 @@
 # ผลการปรับ Contribution / Evidence / Leaderboard v2
 
+> Update 2026-11-07: the new opt-in `community-trust-v1` opinion score supersedes earlier statements that all Like/Dislike feedback is social-only. Independent audit Trust, XP, IDW and gap-fill remain separate. See [current policy](../../runbooks/community-trust-v1.md).
+
 วันที่ 5 พฤศจิกายน 2026
 
 ข้อกำหนด Trust ส่วนบุคคลได้รับการปรับตาม [แผน 6 พฤศจิกายน](../plans/2026-11-06-completion-and-reporter-trust.md) และ [ผลดำเนินงาน local](../../verification/2026-11-06-completion-execution.md); กติกาคะแนนสะสมเดิมยังคงอยู่

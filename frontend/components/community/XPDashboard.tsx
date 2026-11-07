@@ -247,7 +247,11 @@ export default function XPDashboard({
               <span>วันที่มีผลงาน</span>
             </div>
           </div>
-          <CommunityTrustCard trust={summary.community_trust} reviewable />
+          <CommunityTrustCard
+            key={owner}
+            trust={summary.community_trust}
+            reviewable
+          />
           <ReporterTrustCard trust={summary.reporter_trust} reviewable />
           <ContributionOverview summary={summary} active={active} />
           <div className="cp-xp-chips">

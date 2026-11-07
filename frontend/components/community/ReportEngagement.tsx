@@ -277,12 +277,20 @@ function EngagementContent({
       </div>
 
       {engagement.community_trust_collecting && (
-        <div className="cp-engagement-feedback">
-          <p>
-            ถูกใจ: หลักฐานและบริบททำให้เชื่อถือการรายงานนี้ได้ · ไม่ถูกใจ:
-            มีข้อสงสัยต่อหลักฐานหรือบริบท
-          </p>
-          <p>เสียงที่ผ่านเกณฑ์มีผลต่อ Trust ชุมชน แยกจากยอดถูกใจ แต้มและยศ</p>
+        <div className="cp-community-trust-notice">
+          <details>
+            <summary className="cp-focus">
+              การประเมินมีผลต่อ Trust ชุมชน
+            </summary>
+            <p>
+              ถูกใจ: หลักฐานและบริบททำให้เชื่อถือการรายงานนี้ได้ · ไม่ถูกใจ:
+              มีข้อสงสัยต่อหลักฐานหรือบริบท
+            </p>
+            <p>
+              นับเฉพาะเสียงที่ผ่านเกณฑ์ แยกจากยอดถูกใจ แต้มและยศ
+              เป็นนโยบายทดลองของ ClearPath
+            </p>
+          </details>
           {!evidenceReady && (
             <p role="status">
               กรุณาเปิดภาพและข้อมูลสำคัญด้านบนให้พร้อมก่อนประเมิน
@@ -311,6 +319,11 @@ function EngagementContent({
                 "ไม่ผ่านเงื่อนไขการประเมิน"}
             </p>
           )}
+          {engagement.trust_projection_status === "updating" &&
+            engagement.viewer_reaction &&
+            !engagement.trust_hold_until && (
+              <p role="status">บันทึกปฏิกิริยาแล้ว กำลังอัปเดต Trust ชุมชน</p>
+            )}
           {engagement.trust_hold_until && (
             <p role="status">
               พักผล Trust ชั่วคราวถึง{" "}

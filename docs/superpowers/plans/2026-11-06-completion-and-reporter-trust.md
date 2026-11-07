@@ -1,5 +1,7 @@
 # ClearPath completion plan and reporter-owned Trust
 
+> Update 2026-11-07: the new opt-in `community-trust-v1` opinion score supersedes earlier statements that all Like/Dislike feedback is social-only. Independent audit Trust, XP, IDW and gap-fill remain separate. See [current policy](../../runbooks/community-trust-v1.md).
+
 วันที่ 6 พฤศจิกายน 2026 · สถานะ: ผู้ใช้อนุมัติให้ดำเนินงานแล้ว; อยู่ระหว่างพัฒนาและตรวจ local ยังไม่เปิดใช้หรือเปลี่ยน production
 ฐานอ้างอิง: production `71150fb58f471dfa793ffbb77fb99404fa6b6df8`
 

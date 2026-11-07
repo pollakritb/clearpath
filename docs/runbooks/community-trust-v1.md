@@ -4,6 +4,8 @@
 
 The owner approved full activation, with the ClearPath project owner (Pollakrit) responsible for review requests received through Profile → Trust ชุมชน → ขอทบทวน. The Admin operations queue is read-only. Findings are recorded only with the server CLI and evidence/actor/reason references. Reaction/event retention is **365 days**, agreed in this implementation session. No raw voter GPS is persisted.
 
+Participation continuity counts distinct server submission days in Asia/Bangkok over the last 30 calendar days, excluding confirmed identical image hashes; it never enters Trust.
+
 These parameters are experimental product policy: 90 Thai calendar days including today, daily weight `min(n,3)`, minimum 3 voter accounts / 3 reports / 3 days, one latest eligible assessment per voter/reporter/day and 3 admitted days per pair in 30 Thai calendar days. They are not scientific accuracy thresholds. GPS checks proximity, not sensor ownership or immunity to spoofing.
 
 ## Separation and consent
@@ -36,7 +38,7 @@ A finding file contains `target_sequences`, `outcome` (`valid`, `invalid`, `unre
 
 ## Retention and monitoring
 
-The server reconciliation job runs retention at most once per day after a retention policy reference is configured. Events/reaction tombstones and associated new-policy social reactions beyond 365 days are removed without changing the 90-day score. Expired pair admissions/holds are cleared; reviewed requests are removed after retention, pending requests remain actionable. Only counts of purged rows are logged. Keep backups and their expiry under the project's privacy process; application retention does not silently purge external backups.
+An independent database cron runs retention at most once per day, including after collection is switched off after a retention policy reference is configured. Events/reaction tombstones and associated new-policy social reactions beyond 365 days are removed without changing the 90-day score. Expired pair admissions/holds are cleared; reviewed requests are removed after retention, pending requests remain actionable. Only counts of purged rows are logged. Keep backups and their expiry under the project's privacy process; application retention does not silently purge external backups.
 
 Review the queue regularly, record findings with reasons, monitor projection retries and held-event release, and evaluate new users, small communities, popular reports and coordinated waves. Compare capped daily weighting with raw and equal-daily averages via the private `inspect` output. Reassess 90/3/3-day/500m parameters after the trial rather than presenting them as validated science.
 
@@ -46,7 +48,7 @@ Review the queue regularly, record findings with reasons, monitor projection ret
 2. Run formula, ledger, concurrent PostgreSQL and API/privacy/UI tests against isolated data. Record source/commit evidence; do not substitute browser GPS for physical-device validation.
 3. Register a real notice, reviewer/channel, retention policy and experiment/privacy/concurrency evidence references in the release control. Set `COMMUNITY_TRUST_COLLECTION_ENABLED=true`, with public flag false for shadow collection. UI explains new vote semantics.
 4. Inspect shadow/replay results, then set DB stage public and `COMMUNITY_TRUST_PUBLIC_ENABLED=true` together with this frontend/backend release. No reset of XP, ranks or leaderboard.
-5. Configure a protected server schedule for `/api/cron/community-trust` every 5 minutes. Follow `next_cursor` until null. Retry jobs are safe; held votes also release on a subsequent read without waiting for the cron.
+5. Configure a protected server schedule for `/api/cron/community-trust` every 5 minutes. The scheduled endpoint persists a compare-and-swap cursor and visits all subjects in bounded batches; manual runs can follow `next_cursor` until null. Retry jobs are safe; held votes also release on a subsequent read without waiting for the cron.
 
 ```sh
 .venv/bin/python -m scripts.community_trust_ops release --stage shadow --refs reviewed-release.json --operator project-owner

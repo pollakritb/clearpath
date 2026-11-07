@@ -13,11 +13,13 @@ from backend.services.community import community_trust as trust
 def main():
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("reconcile").add_argument("--after", type=int, default=0)
+    sub.add_parser("reconcile").add_argument("--after", type=int, default=None)
     scope = sub.add_parser("review-scope")
     scope.add_argument("--id", required=True)
     replay = sub.add_parser("inspect")
     replay.add_argument("--user", required=True)
+    events = sub.add_parser("events")
+    events.add_argument("--user", required=True)
     finding = sub.add_parser("finding")
     finding.add_argument("--user", required=True)
     finding.add_argument("--key", required=True)
@@ -38,7 +40,7 @@ def main():
             ),
             {"error": "pending_review_not_found"},
         )
-    elif args.command == "inspect":
+    elif args.command in {"inspect", "events"}:
         snapshot = trust.rpc("community_trust_snapshot", {"p_user": args.user})
         cursor = snapshot.get("next_seq")
         while cursor is not None:
@@ -52,11 +54,18 @@ def main():
             )
             snapshot["events"].extend(page["events"])
             cursor = page.get("next_seq")
+        if args.command == "events":
+            print(
+                json.dumps(
+                    snapshot["events"], ensure_ascii=False, default=str, indent=2
+                )
+            )
+            return
         value = trust.project(snapshot["events"], now=trust.datetime.now(trust.UTC))
         result = {
             "recomputed": value,
             "projection_matches": all(
-                snapshot.get("projection", {}).get(k) == value[k]
+                (snapshot.get("projection") or {}).get(k) == value[k]
                 for k in (
                     "score",
                     "evaluated_day_count",

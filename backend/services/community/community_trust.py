@@ -201,21 +201,31 @@ def record_finding(user: str, key: str, payload: dict):
     )
 
 
-def reconcile(after: int = 0) -> dict:
+def reconcile(after: int | None = None) -> dict:
     """Bounded, retryable server job; rebuild expired windows and released holds."""
-    if not collecting():
+    if not settings.community_trust_collection_enabled:
         return {"skipped": True, "reason": "disabled"}
-    ids = rpc("community_trust_subjects", {"p_after": after, "p_limit": 100})
-    updated = failed = 0
-    for uid in ids:
-        outcome = summary(str(uid), owner=True)
-        if outcome and outcome.get("status") not in {"unavailable", "updating"}:
-            updated += 1
-        else:
-            failed += 1
+    release = control()
+    if not release.get("collecting_enabled"):
+        return {"skipped": True, "reason": "disabled"}
+    cursor = rpc("community_trust_cursor") if after is None else after
+    ids = rpc("community_trust_subjects", {"p_after": cursor, "p_limit": 100})
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        outcomes = list(
+            pool.map(lambda uid: summary(str(uid), owner=True, release=release), ids)
+        )
+    updated = sum(
+        bool(outcome) and outcome.get("status") not in {"unavailable", "updating"}
+        for outcome in outcomes
+    )
+    next_cursor = max(ids) if len(ids) == 100 else 0
+    if after is None:
+        rpc("community_trust_cursor", {"p_after": next_cursor, "p_expected": cursor})
     return {
         "updated": updated,
-        "retryable": failed,
+        "retryable": len(ids) - updated,
         "next_cursor": max(ids) if len(ids) == 100 else None,
     }
 

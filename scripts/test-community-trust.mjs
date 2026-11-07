@@ -4,8 +4,8 @@ import { PGlite } from "@electric-sql/pglite";
 const pg = new PGlite();
 await pg.exec(`create role anon;create role authenticated;create role service_role bypassrls;
 create table public.profiles(id bigint primary key);
-create table public.community_reports(id bigint primary key,user_id bigint references profiles(id),status text,captured_at timestamptz,image_path text,evidence_purged_at timestamptz,lat float8,lon float8,duplicate_detected boolean default false);
-create table public.report_reactions(report_id bigint,user_id bigint,reaction text,created_at timestamptz,updated_at timestamptz,reason_code text,geofence_policy text,primary key(report_id,user_id));`);
+create table public.community_reports(id bigint primary key,user_id bigint references profiles(id),status text,captured_at timestamptz,image_path text,evidence_purged_at timestamptz,lat float8,lon float8,image_sha256 text,created_at timestamptz default now());
+create table public.report_reactions(report_id bigint,user_id bigint,reaction text,created_at timestamptz,updated_at timestamptz,primary key(report_id,user_id));`);
 await pg.exec(
   readFileSync(
     new URL(
@@ -26,7 +26,7 @@ await assert.rejects(() =>
   pg.exec("update community_trust_private.control set public_enabled=true"),
 );
 await pg.exec(
-  "insert into community_reports values(101,1,'approved',now()-interval '10 minutes','private/image',null,13.8,100.1,false),(102,1,'approved',now()-interval '10 minutes','private/image',null,13.8,100.1,false)",
+  "insert into community_reports values(101,1,'approved',now()-interval '10 minutes','private/image',null,13.8,100.1,null),(102,1,'approved',now()-interval '10 minutes','private/image',null,13.8,100.1,null)",
 );
 let number = 1;
 const key = () =>
@@ -141,6 +141,59 @@ await assert.rejects(() =>
     "select community_trust_request_review(1,101,null,null,'request a review') result",
   ),
 );
+const eventCountBefore = (
+  await q("select count(*) n from community_trust_private.events")
+)[0].n;
+const refs = {
+  notice_ref: "isolated-test-policy-notice",
+  review_owner: "test-owner",
+  review_channel: "profile-review-queue",
+  retention_days: 365,
+  retention_ref: "isolated-retention-test",
+  experiment_ref: "isolated-policy-test",
+  privacy_ref: "isolated-privacy-test",
+  concurrency_ref: "isolated-concurrency-test",
+};
+await result(
+  "select community_trust_release('public',$1,'test-operator') result",
+  [JSON.stringify(refs)],
+);
+const request = await result(
+  "select community_trust_request_review(1,101,null,null,'review evidence and vote scope') result",
+);
+const findingKey = key();
+const finding = {
+  target_sequences: [],
+  outcome: "unresolved",
+  evidence_ref: "isolated-no-events-test",
+  operator_ref: "test-operator",
+  reason: "No applicable events in the requested scope",
+  review_id: request,
+};
+await result("select community_trust_record_finding(1,$1,$2) result", [
+  findingKey,
+  JSON.stringify(finding),
+]);
+assert.equal(
+  (await result("select community_trust_owner_reviews(1) result"))[0].status,
+  "reviewed",
+);
+await result(
+  "select community_trust_release('off',$1,'test-operator') result",
+  [JSON.stringify(refs)],
+);
+assert.ok(
+  (await q("select count(*) n from community_trust_private.events"))[0].n >=
+    eventCountBefore,
+);
+assert.equal(await result("select community_trust_cursor(10,0) result"), 10);
+assert.equal(await result("select community_trust_cursor(20,0) result"), 10);
+assert.equal(await result("select community_trust_cursor(0,10) result"), 0);
+await pg.exec(
+  "update community_trust_private.control set retention_last_ran_at=null;update community_trust_private.events set created_at=now()-interval '366 days' where seq=(select min(event_seq) from community_trust_private.daily_slots where event_seq is not null)",
+);
+const purged = await result("select community_trust_retention() result");
+assert.ok(purged.events >= 1);
 console.log(
   "community trust SQL: replay inputs, retry, replacement, withdrawal, pair quota, hold, CAS, RLS and release gates passed",
 );

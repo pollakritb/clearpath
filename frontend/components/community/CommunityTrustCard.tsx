@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { CommunityTrust } from "@/frontend/types/community-trust";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import styles from "./ReporterTrustCard.module.css";
+import formStyles from "./CommunityTrustCard.module.css";
 
 export default function CommunityTrustCard({
   trust,
@@ -22,6 +23,8 @@ export default function CommunityTrustCard({
     { id: string; status: string; reason?: string | null }[] | null
   >(null);
   if (!trust) return null;
+  const supportKnown =
+    trust.status !== "unavailable" || trust.calculated_at != null;
   const label =
     trust.status === "available" && trust.score != null
       ? `${trust.score.toFixed(1)}/100`
@@ -41,11 +44,13 @@ export default function CommunityTrustCard({
       {trust.score != null && trust.status !== "available" && (
         <p>ค่าล่าสุด {trust.score.toFixed(1)}/100 · รออัปเดต</p>
       )}
-      <p>
-        บัญชีผู้ประเมิน {trust.unique_voter_accounts} บัญชี ·{" "}
-        {trust.evaluated_report_count} รายงาน · ครอบคลุม{" "}
-        {trust.evaluated_day_count} วัน
-      </p>
+      {supportKnown && (
+        <p>
+          บัญชีผู้ประเมิน {trust.unique_voter_accounts} บัญชี ·{" "}
+          {trust.evaluated_report_count} รายงาน · ครอบคลุม{" "}
+          {trust.evaluated_day_count} วัน
+        </p>
+      )}
       {trust.calculated_at && (
         <p>
           คำนวณล่าสุด{" "}
@@ -120,14 +125,17 @@ export default function CommunityTrustCard({
           )}
         </details>
       )}
-      <p>
-        ความต่อเนื่อง: ช่วยรายงาน {trust.contribution_days_30} วันใน 30
-        วันล่าสุด
-      </p>
+      {supportKnown && (
+        <p>
+          ความต่อเนื่อง: ช่วยรายงาน {trust.contribution_days_30} วันใน 30
+          วันล่าสุด
+        </p>
+      )}
       {reviewable && trust.review_available && (
         <details>
           <summary className="cp-focus">ขอทบทวนเสียงประเมิน</summary>
           <form
+            className={formStyles.review}
             onSubmit={async (e) => {
               e.preventDefault();
               setPending(true);
