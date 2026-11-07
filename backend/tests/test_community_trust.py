@@ -351,6 +351,9 @@ def test_public_contract_strips_private_ledger_materialization():
 
 
 def test_map_score_metadata_does_not_repeat_full_daily_projection(monkeypatch):
+    from backend.services.community import xp
+
+    monkeypatch.setattr(xp, "enabled", lambda: True)
     from backend.services.community import community_trust as service
     from backend.services.community import reporter_trust
     from backend.services.community.presenter import present_report
