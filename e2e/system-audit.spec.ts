@@ -46,7 +46,7 @@ test("map, refresh and settings controls have practical mobile touch targets", a
   page,
 }) => {
   for (const entry of [
-    { path: "/", name: "ย้อนหลัง" },
+    { path: "/", name: "ค้นหาสถานที่หรือสถานี" },
     { path: "/air", name: "รีเฟรชข้อมูลล่าสุด" },
     { path: "/settings", name: "ปิดการตั้งค่า" },
   ]) {

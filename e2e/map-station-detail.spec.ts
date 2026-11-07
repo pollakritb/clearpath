@@ -124,7 +124,7 @@ test("expired observations stay visibly expired when opening history at now", as
   );
   await page.goto("/");
   await expect(
-    page.getByText("Air4Thai ยังไม่มีค่าตรวจวัดใหม่ภายใน 1 ชม."),
+    page.getByRole("status", { name: "เวลาซิงก์ข้อมูล" }),
   ).toBeVisible();
   await page.locator(".cp-marker--station").first().click();
   await page.getByRole("button", { name: "ดูย้อนหลังของสถานีนี้" }).click();

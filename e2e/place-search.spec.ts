@@ -254,3 +254,84 @@ test("search keeps recent selections after reload and supports deleting or clear
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(page.viewportSize()!.width);
 });
+
+test("place time actions open separate forecast and history while keeping the radius and sources", async ({
+  page,
+}) => {
+  const place = {
+    id: "local:time-test",
+    name: "สถานที่ดูเวลา",
+    address: "นครปฐม",
+    kind: "place",
+    source: "local",
+    lat: 13.8199,
+    lon: 100.0622,
+  };
+  await page.route("**/api/locations/search?*", (route) =>
+    route.fulfill({ json: { locations: [place], coverage: "limited" } }),
+  );
+  await page.route("**/api/history/map?*", (route) =>
+    route.fulfill({
+      json: {
+        target_at: new URL(route.request().url()).searchParams.get("at"),
+        stations: [],
+        reports: [],
+        stacks: [],
+      },
+    }),
+  );
+  await page.route("**/api/forecast?*", (route) =>
+    route.fulfill({
+      json: {
+        station_id: null,
+        target_kind: "area",
+        requested_lat: place.lat,
+        requested_lon: place.lon,
+        points: [],
+        forecast_status: "unavailable",
+      },
+    }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี" }).click();
+  await page.getByRole("searchbox").fill("สถานที่ดูเวลา");
+  await page
+    .locator(".cp-map-search-results")
+    .getByRole("button", { name: /สถานที่ดูเวลา/ })
+    .click();
+  const placeSheet = page.locator(".cp-place-sheet");
+  await expect(placeSheet).toHaveAttribute("data-snap", "peek");
+  await expect(
+    placeSheet.getByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
+  ).toHaveCount(0);
+  await expect(page.locator(".cp-search-radius-label")).toContainText(
+    "รัศมี 2 กม. · ค้นหาข้อมูล",
+  );
+  await placeSheet
+    .getByRole("button", { name: "ดูพยากรณ์ของสถานที่นี้" })
+    .click();
+  const forecast = page.getByRole("region", {
+    name: "พยากรณ์ค่าฝุ่นของสถานที่",
+  });
+  await expect(forecast).toHaveAttribute("data-snap", "full");
+  await expect(
+    forecast.getByText("ยังไม่มีพยากรณ์สำหรับบริเวณนี้"),
+  ).toBeVisible();
+  await forecast.getByRole("button", { name: "กลับไปที่สถานที่" }).click();
+  await placeSheet
+    .getByRole("button", { name: "ดูย้อนหลังของสถานที่นี้" })
+    .click();
+  const history = page.getByRole("region", {
+    name: "ค่าฝุ่นย้อนหลังของสถานที่",
+  });
+  const slider = history.getByRole("slider", {
+    name: "เลือกชั่วโมงย้อนหลังของสถานที่",
+  });
+  await slider.fill("23");
+  await expect(slider).toHaveAttribute("aria-valuetext", "ย้อนหลัง 1 ชั่วโมง");
+  await expect(
+    history.getByText(/ไม่มีข้อมูลที่ใช้ประเมินได้ในวง 2 กม./),
+  ).toBeVisible();
+  await history.getByRole("button", { name: "กลับไปที่สถานที่" }).click();
+  await expect(placeSheet).toHaveAttribute("data-snap", "peek");
+});

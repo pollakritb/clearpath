@@ -11,9 +11,7 @@ import {
 } from "react";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import styles from "./MapBottomSheet.module.css";
-
-type Snap = "peek" | "half" | "full";
-const SNAPS: Snap[] = ["peek", "half", "full"];
+type Snap = "peek" | "full";
 
 export default function MapBottomSheet({
   id,
@@ -24,10 +22,9 @@ export default function MapBottomSheet({
   closeLabel = "ปิดแผงข้อมูล",
   className = "",
   style,
-  initialSnap = "half",
+  initialSnap = "peek",
   onSnapChange,
   showClose = true,
-  fillHeight = false,
 }: {
   id?: string;
   label: string;
@@ -40,55 +37,65 @@ export default function MapBottomSheet({
   initialSnap?: Snap;
   onSnapChange?: (snap: Snap) => void;
   showClose?: boolean;
-  fillHeight?: boolean;
 }) {
   const contentId = useId();
-  const root = useRef<HTMLElement>(null);
-  const heading = useRef<HTMLDivElement>(null);
-  const content = useRef<HTMLDivElement>(null);
-  const gesture = useRef<{ y: number; height: number; raw: number } | null>(
-    null,
-  );
+  const root = useRef<HTMLElement>(null),
+    scroll = useRef<HTMLDivElement>(null),
+    heading = useRef<HTMLDivElement>(null);
+  const gesture = useRef<{
+    y: number;
+    height: number;
+    raw: number;
+    origin: Snap;
+    touch?: boolean;
+  } | null>(null);
   const dragged = useRef(false);
-  const [snap, setSnap] = useState<Snap>(initialSnap);
-  const [dragHeight, setDragHeight] = useState<number | null>(null);
+  const [snap, setSnap] = useState<Snap>(initialSnap),
+    [dragHeight, setDragHeight] = useState<number | null>(null);
   const [sizes, setSizes] = useState({ peek: 180, max: 600, keyboard: 0 });
-  const heights = {
-    peek: sizes.peek,
-    half: Math.max(sizes.peek, Math.min(sizes.max, sizes.max * 0.56)),
-    full: sizes.max,
-  };
+  const current = useRef({ snap, sizes });
+  useLayoutEffect(() => {
+    current.current = { snap, sizes };
+  }, [snap, sizes]);
   function select(next: Snap) {
     setSnap(next);
     setDragHeight(null);
+    if (next === "peek" && scroll.current) scroll.current.scrollTop = 0;
     onSnapChange?.(next);
   }
+  const finishRef = useRef(() => {});
+  function finish() {
+    const drag = gesture.current;
+    if (!drag) return;
+    gesture.current = null;
+    const delta = drag.raw - drag.height;
+    select(Math.abs(delta) > 32 ? (delta > 0 ? "full" : "peek") : drag.origin);
+  }
+  useLayoutEffect(() => {
+    finishRef.current = finish;
+  });
   useLayoutEffect(() => {
     const element = root.current,
       parent = element?.closest(".cp-map") ?? element?.parentElement;
     if (!element || !parent) return;
     const measure = () => {
-      const parentHeight = parent.getBoundingClientRect().height;
-      if (!parentHeight) return;
+      const height = parent.getBoundingClientRect().height;
+      if (!height) return;
       const viewport = window.visualViewport;
       const keyboard = viewport
         ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
         : 0;
-      const bottom = parseFloat(getComputedStyle(element).bottom) || 86;
       const previousKeyboard =
         parseFloat(element.style.getPropertyValue("--sheet-keyboard")) || 0;
-      const available = Math.max(
+      const bottom = parseFloat(getComputedStyle(element).bottom) || 84;
+      const max = Math.max(
         120,
-        parentHeight - (bottom - previousKeyboard + keyboard) - 12,
+        height - (bottom - previousKeyboard + keyboard) - 8,
       );
       const peek = Math.min(
-        available,
+        max,
         heading.current?.getBoundingClientRect().height || 180,
       );
-      const total = peek + (content.current?.scrollHeight || available);
-      const max = fillHeight
-        ? available
-        : Math.min(available, Math.max(peek, total));
       setSizes((previous) =>
         previous.peek === peek &&
         previous.max === max &&
@@ -104,7 +111,6 @@ export default function MapBottomSheet({
         : new ResizeObserver(measure);
     observer?.observe(parent);
     if (heading.current) observer?.observe(heading.current);
-    if (content.current) observer?.observe(content.current);
     window.addEventListener("resize", measure);
     window.visualViewport?.addEventListener("resize", measure);
     return () => {
@@ -112,23 +118,92 @@ export default function MapBottomSheet({
       window.removeEventListener("resize", measure);
       window.visualViewport?.removeEventListener("resize", measure);
     };
-  }, [fillHeight]);
+  }, []);
+  useLayoutEffect(() => {
+    const element = scroll.current;
+    if (!element) return;
+    let startY = 0,
+      startX = 0,
+      allowed = false;
+    const start = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      const target = event.target as Element;
+      allowed = !target.closest(
+        "dialog,input,select,textarea,[data-sheet-no-drag]",
+      );
+      startY = event.touches[0].clientY;
+      startX = event.touches[0].clientX;
+      dragged.current = false;
+    };
+    const move = (event: TouchEvent) => {
+      if (!allowed || event.touches.length !== 1) return;
+      const delta = startY - event.touches[0].clientY;
+      if (Math.abs(event.touches[0].clientX - startX) > Math.abs(delta)) return;
+      const state = current.current;
+      if (!gesture.current) {
+        if (Math.abs(delta) < 8) return;
+        // In full view, native scrolling owns upward gestures and downward gestures away from the top.
+        if (state.snap === "full" && (delta > 0 || element.scrollTop > 1))
+          return;
+        gesture.current = {
+          y: startY,
+          height:
+            root.current?.getBoundingClientRect().height ?? state.sizes.peek,
+          raw: 0,
+          origin: state.snap,
+          touch: true,
+        };
+      }
+      event.preventDefault();
+      dragged.current = true;
+      gesture.current.raw = gesture.current.height + delta;
+      setDragHeight(
+        Math.max(
+          state.sizes.peek,
+          Math.min(state.sizes.max, gesture.current.raw),
+        ),
+      );
+    };
+    const end = () => {
+      allowed = false;
+      if (gesture.current?.touch) finishRef.current();
+    };
+    const cancel = () => {
+      allowed = false;
+      gesture.current = null;
+      setDragHeight(null);
+    };
+    element.addEventListener("touchstart", start, { passive: true });
+    element.addEventListener("touchmove", move, { passive: false });
+    element.addEventListener("touchend", end);
+    element.addEventListener("touchcancel", cancel);
+    return () => {
+      element.removeEventListener("touchstart", start);
+      element.removeEventListener("touchmove", move);
+      element.removeEventListener("touchend", end);
+      element.removeEventListener("touchcancel", cancel);
+    };
+  }, []);
   function start(event: PointerEvent<HTMLDivElement>) {
     if (
+      event.pointerType === "touch" ||
       event.button !== 0 ||
       (event.target as Element).closest(
-        "a,input,select,textarea,button:not([data-sheet-grip])",
+        "a,summary,input,select,textarea,button:not([data-sheet-grip]),dialog",
       )
     )
       return;
+    if (snap === "full" && scroll.current && scroll.current.scrollTop > 1)
+      return;
     dragged.current = false;
     const height =
-      root.current?.getBoundingClientRect().height || heights[snap];
-    gesture.current = { y: event.clientY, height, raw: height };
+      root.current?.getBoundingClientRect().height ||
+      sizes[snap === "peek" ? "peek" : "max"];
+    gesture.current = { y: event.clientY, height, raw: height, origin: snap };
     event.currentTarget.setPointerCapture?.(event.pointerId);
   }
   function move(event: PointerEvent<HTMLDivElement>) {
-    if (!gesture.current) return;
+    if (!gesture.current || gesture.current.touch) return;
     const delta = gesture.current.y - event.clientY;
     if (Math.abs(delta) > 6) dragged.current = true;
     gesture.current.raw = gesture.current.height + delta;
@@ -136,41 +211,10 @@ export default function MapBottomSheet({
       Math.max(sizes.peek, Math.min(sizes.max, gesture.current.raw)),
     );
   }
-  function end() {
-    const drag = gesture.current;
-    if (!drag) return;
-    gesture.current = null;
-    if (drag.raw < sizes.peek - 72) {
-      setDragHeight(null);
-      select("peek");
-      onClose();
-      return;
-    }
-    const nearest = SNAPS.reduce(
-      (best, candidate) =>
-        Math.abs(heights[candidate] - drag.raw) <
-        Math.abs(heights[best] - drag.raw)
-          ? candidate
-          : best,
-      snap,
-    );
-    select(nearest);
-  }
   function keyboard(event: KeyboardEvent<HTMLButtonElement>) {
-    const index = SNAPS.indexOf(snap);
-    const next =
-      event.key === "End"
-        ? "full"
-        : event.key === "Home"
-          ? "peek"
-          : event.key === "ArrowUp"
-            ? SNAPS[Math.min(2, index + 1)]
-            : event.key === "ArrowDown"
-              ? SNAPS[Math.max(0, index - 1)]
-              : null;
-    if (next) {
+    if (["End", "ArrowUp", "Home", "ArrowDown"].includes(event.key)) {
       event.preventDefault();
-      select(next);
+      select(event.key === "End" || event.key === "ArrowUp" ? "full" : "peek");
     }
   }
   return (
@@ -182,12 +226,12 @@ export default function MapBottomSheet({
       aria-label={label}
       className={`${styles.sheet} ${className}`}
       data-snap={snap}
-      data-expanded={snap !== "peek"}
+      data-expanded={snap === "full"}
       data-dragging={dragHeight !== null}
       style={
         {
           ...style,
-          "--sheet-height": `${dragHeight ?? heights[snap]}px`,
+          "--sheet-height": `${dragHeight ?? (snap === "full" ? sizes.max : sizes.peek)}px`,
           "--sheet-keyboard": `${sizes.keyboard}px`,
         } as CSSProperties
       }
@@ -197,60 +241,65 @@ export default function MapBottomSheet({
           !(event.target as Element).closest("dialog")
         ) {
           event.stopPropagation();
-          select("peek");
           onClose();
         }
       }}
       onClick={(event) => event.stopPropagation()}
-      onWheel={(event) => event.stopPropagation()}
-      onPointerDown={(event) => event.stopPropagation()}
+      onWheel={(event) => {
+        event.stopPropagation();
+        if (snap === "peek" && event.deltaY > 10) select("full");
+      }}
       onDoubleClick={(event) => event.stopPropagation()}
     >
       <div
-        ref={heading}
-        className={styles.header}
+        ref={scroll}
+        className={styles.scroll}
         onPointerDown={start}
         onPointerMove={move}
-        onPointerUp={end}
+        onPointerUp={finish}
         onPointerCancel={() => {
           gesture.current = null;
           setDragHeight(null);
         }}
+        onClickCapture={(event) => {
+          if (dragged.current && event.detail !== 0) {
+            event.preventDefault();
+            event.stopPropagation();
+            dragged.current = false;
+          }
+        }}
       >
-        <button
-          data-sheet-grip
-          type="button"
-          className={`${styles.grip} cp-focus`}
-          aria-label="เลื่อนแผงข้อมูลขึ้นลง"
-          aria-expanded={snap !== "peek"}
-          aria-controls={contentId}
-          onKeyDown={keyboard}
-          onClick={(event) => {
-            if (!dragged.current || event.detail === 0)
-              select(SNAPS[(SNAPS.indexOf(snap) + 1) % 3]);
-          }}
-        >
-          <span aria-hidden="true" />
-        </button>
-        {showClose && (
+        <div ref={heading} className={styles.header}>
           <button
+            data-sheet-grip
             type="button"
-            className={`${styles.close} cp-focus`}
-            aria-label={closeLabel}
-            onClick={onClose}
+            className={`${styles.grip} cp-focus`}
+            aria-label="เลื่อนแผงข้อมูลขึ้นลง"
+            aria-expanded={snap === "full"}
+            aria-controls={contentId}
+            onKeyDown={keyboard}
+            onClick={() => select(snap === "peek" ? "full" : "peek")}
           >
-            <AppIcon name="close" size={21} />
+            <span aria-hidden="true" />
           </button>
-        )}
-        <div className={styles.summary}>{header}</div>
-      </div>
-      <div
-        id={contentId}
-        className={styles.body}
-        inert={snap === "peek"}
-        aria-hidden={snap === "peek"}
-      >
-        <div ref={content} className={styles.content}>
+          {showClose && (
+            <button
+              type="button"
+              className={`${styles.close} cp-focus`}
+              aria-label={closeLabel}
+              onClick={onClose}
+            >
+              <AppIcon name="close" size={21} />
+            </button>
+          )}
+          <div className={styles.summary}>{header}</div>
+        </div>
+        <div
+          id={contentId}
+          className={styles.content}
+          inert={snap === "peek"}
+          aria-hidden={snap === "peek"}
+        >
           {children}
         </div>
       </div>

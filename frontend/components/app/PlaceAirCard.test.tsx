@@ -44,8 +44,8 @@ it("opens with a short summary and a useful action when no current data exists",
   ).toBe("peek");
   expect(screen.getByText("ยังไม่มีค่าปัจจุบัน")).toBeTruthy();
   expect(
-    screen.getByRole("button", { name: "ขอให้ช่วยวัดบริเวณนี้" }),
-  ).toBeTruthy();
+    screen.queryByRole("button", { name: "ขอให้ช่วยวัดบริเวณนี้" }),
+  ).toBeNull();
   expect(
     screen.queryByRole("heading", { name: /สถานีใกล้เคียง|รายงานจากชุมชน/ }),
   ).toBeNull();

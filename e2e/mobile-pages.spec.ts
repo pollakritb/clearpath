@@ -909,14 +909,14 @@ test("community marker opens a distinct privacy-safe report card", async ({
     name: "เปิดดูภาพเครื่องวัดจากรายงานนี้",
   });
   await expect(photoButton).toBeVisible();
-  await expect(card.locator(".cp-map-report-photo__thumb img")).toHaveCSS(
+  await expect(card.locator(".cp-map-report-photo > img")).toHaveCSS(
     "object-fit",
     "contain",
   );
   await expect
     .poll(() =>
       card
-        .locator(".cp-map-report-photo__thumb img")
+        .locator(".cp-map-report-photo > img")
         .evaluate((image) => (image as HTMLImageElement).naturalWidth),
     )
     .toBeGreaterThan(0);

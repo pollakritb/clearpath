@@ -64,7 +64,7 @@ export default function MapRequestPanel({
         key={editing ? "form" : "pick"}
         label="ขอค่าฝุ่นบนแผนที่"
         className="cp-request-picker-sheet"
-        initialSnap={editing ? "half" : "peek"}
+        initialSnap="peek"
         onClose={onClose}
         closeLabel="ปิดการขอค่าฝุ่น"
         header={

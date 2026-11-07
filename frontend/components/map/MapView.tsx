@@ -2,7 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { Circle, CircleMarker, MapContainer, TileLayer } from "react-leaflet";
+import { CircleMarker, MapContainer, TileLayer } from "react-leaflet";
 
 import {
   DEFAULT_ZOOM,
@@ -24,6 +24,7 @@ import type { MapFocusPoint, ViewportBounds } from "@/frontend/types/ui";
 
 import PriorityMarker, { MarkerPriorityProvider } from "./PriorityMarker";
 import CamsCanvasLayer from "./CamsCanvasLayer";
+import PlaceSearchRadius from "./PlaceSearchRadius";
 import RequestLocationMarker from "./RequestLocationMarker";
 import type { GridSurface } from "@/frontend/types/ui";
 import { AutoResize } from "./MapBehaviors";
@@ -164,16 +165,10 @@ export default function MapView({
         )}
         {placePoint && !(requestLocation && onMoveRequestPoint) && (
           <>
-            <Circle
-              center={[placePoint.lat, placePoint.lon]}
-              radius={placePoint.radiusKm * 1000}
-              pathOptions={{
-                color: "#35706c",
-                weight: 2,
-                dashArray: "7 6",
-                fillColor: "#d7ebe8",
-                fillOpacity: 0.13,
-              }}
+            <PlaceSearchRadius
+              lat={placePoint.lat}
+              lon={placePoint.lon}
+              radiusKm={placePoint.radiusKm}
             />
             {requestLocation ? (
               <RequestLocationMarker position={placePoint} />

@@ -238,3 +238,118 @@
 .panel :global(.cp-map-selection-meta) {
   gap: 10px;
 }
+
+.sync {
+  position: absolute;
+  left: 12px;
+  bottom: calc(var(--cp-mobile-nav-h, 76px) + 12px);
+  z-index: 1100;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: #ffffffed;
+  color: #47635d;
+  font-size: 11px;
+  box-shadow: 0 2px 6px #173b3312;
+  pointer-events: none;
+}
+.photo.photo {
+  display: block;
+  position: relative;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  background: #edf2f0;
+}
+.reportImage {
+  display: block;
+  width: 100%;
+  height: clamp(180px, 36dvh, 300px);
+  object-fit: contain;
+}
+.imageHint {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: var(--cp-ink);
+  background: #ffffffed;
+  font-size: 12px;
+}
+.fullPhoto:global(.cp-map-photo-dialog) {
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+.fullPhoto :global(.cp-map-photo-dialog__content) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.fullPhoto :global(.cp-map-photo-dialog__content > img) {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  object-fit: contain;
+}
+.panel :global(.cp-map-selection-section) {
+  margin: 0;
+  padding: 12px 0;
+}
+.panel :global(.cp-map-reporter-profile) {
+  border: 0;
+  padding: 4px 0;
+  border-radius: 0;
+  background: transparent;
+}
+.panel :global(.cp-map-selection-attribution) {
+  margin: 0;
+}
+.panel :global(.cp-map-selection-section > h2),
+.panel :global(.cp-map-report-section-heading h2) {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.panel :global(.cp-map-report-section-heading p) {
+  font-size: 12px;
+}
+.panel :global(.cp-map-report-section-heading) {
+  margin-bottom: 10px;
+}
+.panel :global(.cp-map-selection-section .cp-map-selection-meta) {
+  padding: 6px 0;
+}
+.panel .details {
+  margin-top: 8px;
+}
+
+.historyRange {
+  width: 100%;
+  height: 44px;
+  accent-color: var(--cp-teal);
+}
+.historyLabel {
+  display: block;
+  font-size: 14px;
+  margin-top: 12px;
+}
+.rangeEnds {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--cp-subink);
+  font-size: 12px;
+}
+.panel :global(.cp-map-station-forecast__heading) {
+  margin-bottom: 8px;
+}

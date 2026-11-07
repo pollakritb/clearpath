@@ -69,7 +69,6 @@ export default function MapStatusCard({
   station,
   report,
   updatedAt,
-  freshStationCount,
   onClose,
   onBackToPlace,
   backLabel = "กลับไปยังสถานที่",
@@ -81,66 +80,16 @@ export default function MapStatusCard({
   const photoButtonRef = useRef<HTMLButtonElement>(null);
   const selection = report ?? station;
 
-  if (!selection) {
+  if (!selection)
     return (
-      <MapBottomSheet
-        label="สถานะแผนที่ค่าฝุ่นปัจจุบัน"
-        className="cp-current-sheet"
-        initialSnap="peek"
-        onClose={onClose}
-        showClose={false}
-        header={
-          <div className="cp-map-current-summary">
-            <span className="cp-map-current-dock__icon" aria-hidden="true">
-              <AppIcon name="activity" size={19} />
-            </span>
-            <span className="cp-map-current-dock__copy">
-              <strong>ค่าฝุ่นปัจจุบัน</strong>
-              <small>
-                {freshStationCount === 0
-                  ? "Air4Thai ยังไม่มีค่าตรวจวัดใหม่ภายใน 1 ชม."
-                  : "Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ"}
-              </small>
-            </span>
-            <span className="cp-map-current-dock__actions">
-              <time
-                className={
-                  freshStationCount === 0
-                    ? undefined
-                    : "cp-map-current-dock__time"
-                }
-                dateTime={updatedAt ?? undefined}
-              >
-                <i aria-hidden="true" />
-                {updatedAt
-                  ? `ซิงก์ ${formatTime(updatedAt)} น.`
-                  : "กำลังอัปเดต"}
-              </time>
-              {onOpenHistory && (
-                <button
-                  type="button"
-                  className="cp-map-current-dock__history cp-focus"
-                  onClick={onOpenHistory}
-                >
-                  <AppIcon name="clock" size={15} />
-                  ย้อนหลัง
-                </button>
-              )}
-            </span>
-          </div>
-        }
-      >
-        <p>
-          เลือกหมุดสถานี รายงานจากชุมชน หรือค้นหาสถานที่
-          เพื่อดูค่าฝุ่นและเวลาตรวจวัด
-        </p>
-        <p>
-          ข้อมูล Air4Thai เป็นค่าตรวจวัดจากสถานี
-          ส่วนรายงานจากผู้ใช้เป็นข้อมูลเสริม
-        </p>
-      </MapBottomSheet>
+      <div className={panel.sync} role="status" aria-label="เวลาซิงก์ข้อมูล">
+        <time dateTime={updatedAt ?? undefined}>
+          {updatedAt
+            ? `ซิงก์ ${formatTime(updatedAt)} น.`
+            : "กำลังซิงก์ข้อมูล…"}
+        </time>
+      </div>
     );
-  }
 
   const isCommunity = report != null;
   const source = report ? communitySourceKind(report) : "official";
@@ -319,29 +268,27 @@ export default function MapStatusCard({
             <button
               ref={photoButtonRef}
               type="button"
-              className="cp-map-report-photo cp-focus"
+              className={`${panel.photo} cp-map-report-photo cp-focus`}
               aria-label="เปิดดูภาพเครื่องวัดจากรายงานนี้"
               onClick={() => photoDialogRef.current?.showModal()}
             >
-              <span className="cp-map-report-photo__thumb">
-                {/* The API exposes only a short-lived signed URL from private storage. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={report.image_url}
-                  alt="ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className={panel.reportImage}
+                src={report.image_url}
+                alt="ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"
+                width={600}
+                height={450}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+              <span className={panel.imageHint}>
+                <AppIcon name="search" size={16} /> ดูภาพเต็มจอ
               </span>
-              <span className="cp-map-report-photo__copy">
-                <strong>ดูภาพเครื่องวัดที่ส่งมา</strong>
-                <small>แตะเพื่อขยายภาพในหน้านี้</small>
-              </span>
-              <AppIcon name="chevron" size={19} />
             </button>
             <dialog
               ref={photoDialogRef}
-              className="cp-map-photo-dialog"
+              className={`cp-map-photo-dialog ${panel.fullPhoto}`}
               aria-label="ภาพเครื่องวัดจากรายงานนี้"
               onClose={() => photoButtonRef.current?.focus()}
               onClick={(event) => {

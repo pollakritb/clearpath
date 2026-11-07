@@ -21,10 +21,8 @@ describe("MapStatusCard", () => {
       />,
     );
 
-    expect(screen.getByText("ค่าฝุ่นปัจจุบัน")).not.toBeNull();
-    expect(
-      screen.getByText("Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ"),
-    ).not.toBeNull();
+    expect(screen.getByText("ซิงก์ 21:00 น.")).not.toBeNull();
+    expect(screen.queryByText("ค่าฝุ่นปัจจุบัน")).toBeNull();
     expect(screen.queryByText("ระบบพยากรณ์กำลังปรับปรุง")).toBeNull();
     expect(screen.queryByRole("button", { name: "+1ชม." })).toBeNull();
   });
@@ -39,7 +37,7 @@ describe("MapStatusCard", () => {
       />,
     );
 
-    expect(screen.getByText("ค่าฝุ่นปัจจุบัน")).not.toBeNull();
+    expect(screen.getByText("ซิงก์ 21:00 น.")).not.toBeNull();
     expect(screen.queryByRole("button", { name: "ตอนนี้" })).toBeNull();
     expect(screen.queryByRole("button", { name: /\+\d+ชม\./ })).toBeNull();
   });
@@ -83,8 +81,10 @@ describe("MapStatusCard", () => {
     expect(
       screen.getByAltText("ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"),
     ).not.toBeNull();
-    expect(screen.getByText("ดูภาพเครื่องวัดที่ส่งมา")).not.toBeNull();
-    expect(screen.getByText("แตะเพื่อขยายภาพในหน้านี้")).not.toBeNull();
+    expect(screen.getByText("ดูภาพเต็มจอ")).not.toBeNull();
+    expect(
+      screen.getByAltText("ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"),
+    ).not.toBeNull();
     const dialog = document.querySelector("dialog") as HTMLDialogElement;
     expect(dialog).not.toBeNull();
     dialog.showModal = () => dialog.setAttribute("open", "");

@@ -1,4 +1,6 @@
 "use client";
+import { useState } from "react";
+import PlaceHistoryPanel from "./PlaceHistoryPanel";
 import MapBottomSheet from "./MapBottomSheet";
 import MapPanelReading from "./MapPanelReading";
 import MapStationForecast from "./MapStationForecast";
@@ -38,6 +40,40 @@ export default function PlaceAirCard({
   dataError,
   onRequestMeasurement,
 }: PlaceAirCardProps) {
+  const [timeMode, setTimeMode] = useState<"history" | "forecast" | null>(null);
+  if (timeMode === "history")
+    return (
+      <PlaceHistoryPanel
+        place={place}
+        current={air}
+        onBack={() => setTimeMode(null)}
+        onClose={onClose}
+      />
+    );
+  if (timeMode === "forecast")
+    return (
+      <MapBottomSheet
+        key="place-forecast"
+        label="พยากรณ์ค่าฝุ่นของสถานที่"
+        className={styles.panel}
+        initialSnap="full"
+        onClose={onClose}
+        header={
+          <>
+            <button
+              type="button"
+              className={`${styles.action} cp-focus`}
+              onClick={() => setTimeMode(null)}
+            >
+              <AppIcon name="back" size={17} /> กลับไปที่สถานที่
+            </button>
+            <h1 className={styles.title}>{place.name}</h1>
+          </>
+        }
+      >
+        <MapStationForecast area={{ lat: place.lat, lon: place.lon }} />
+      </MapBottomSheet>
+    );
   const stationCount = air.contributors.filter(
     (point) => point.source === "station",
   ).length;
@@ -47,6 +83,7 @@ export default function PlaceAirCard({
   const noCurrent = air.value == null;
   return (
     <MapBottomSheet
+      key="place-current"
       label={`ค่าฝุ่นรอบ ${place.name}`}
       className={`cp-place-sheet ${styles.panel}`}
       initialSnap="peek"
@@ -75,17 +112,24 @@ export default function PlaceAirCard({
                 : `ประเมินจาก ${stationCount} สถานี · ${reportCount} รายงาน`
             }
           />
-          {noCurrent && (
-            <div className={styles.actions}>
-              <button
-                type="button"
-                className={`${styles.action} cp-focus`}
-                onClick={onRequestMeasurement}
-              >
-                <AppIcon name="community" size={17} /> ขอให้ช่วยวัดบริเวณนี้
-              </button>
-            </div>
-          )}
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={`${styles.action} cp-focus`}
+              aria-label="ดูย้อนหลังของสถานที่นี้"
+              onClick={() => setTimeMode("history")}
+            >
+              <AppIcon name="clock" size={17} /> ย้อนหลัง
+            </button>
+            <button
+              type="button"
+              className={`${styles.action} cp-focus`}
+              aria-label="ดูพยากรณ์ของสถานที่นี้"
+              onClick={() => setTimeMode("forecast")}
+            >
+              <AppIcon name="wind" size={17} /> พยากรณ์
+            </button>
+          </div>
         </>
       }
     >
@@ -158,11 +202,7 @@ export default function PlaceAirCard({
           </div>
         </section>
       )}
-      <MapStationForecast
-        area={{ lat: place.lat, lon: place.lon }}
-        hideUnavailable
-      />
-      {!noCurrent && (
+      {
         <div className={styles.actions}>
           <button
             type="button"
@@ -172,7 +212,7 @@ export default function PlaceAirCard({
             <AppIcon name="community" size={17} /> ขอให้ช่วยวัดบริเวณนี้
           </button>
         </div>
-      )}
+      }
       <p className={styles.address}>{place.address}</p>
       <details className={styles.details}>
         <summary className="cp-focus">ที่มาและวิธีประเมิน</summary>

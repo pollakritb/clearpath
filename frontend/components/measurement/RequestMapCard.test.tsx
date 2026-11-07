@@ -1,7 +1,7 @@
 import {
   cleanup,
   fireEvent,
-  render,
+  render as renderUI,
   screen,
   waitFor,
 } from "@testing-library/react";
@@ -21,6 +21,14 @@ vi.mock("@/frontend/lib/api-client", () => ({
   },
   apiErrorMessage: (_e: unknown, fallback: string) => fallback,
 }));
+const render = (...args: Parameters<typeof renderUI>) => {
+  const result = renderUI(...args);
+  fireEvent.keyDown(
+    screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+    { key: "End" },
+  );
+  return result;
+};
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 const request = {

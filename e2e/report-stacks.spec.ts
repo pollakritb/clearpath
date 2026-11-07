@@ -222,3 +222,48 @@ test("local demo report slides between summary and full details", async ({
     .press("Home");
   await expect(card).toHaveAttribute("data-snap", "peek");
 });
+
+test("touch swipes snap only to summary or full view and full content scrolls as one panel", async ({
+  page,
+}) => {
+  await page.goto("/?demo=community");
+  await page.locator(".cp-marker--individual").first().click();
+  const sheet = page.getByRole("region", { name: "รายละเอียดรายงานจากบุคคล" });
+  await expect(sheet).toHaveAttribute("data-snap", "peek");
+  const client = await page.context().newCDPSession(page);
+  async function swipe(x: number, y: number, delta: number) {
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x, y }],
+    });
+    for (let i = 1; i <= 8; i++)
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x, y: y + (delta * i) / 8 }],
+      });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  }
+  const initial = await sheet.boundingBox();
+  await swipe(initial!.x + 90, initial!.y + 90, -90);
+  await expect(sheet).toHaveAttribute("data-snap", "full");
+  await expect
+    .poll(() => sheet.evaluate((el) => el.getBoundingClientRect().height))
+    .toBeGreaterThan(page.viewportSize()!.height * 0.8);
+  const title = sheet.getByRole("heading").first();
+  const topBefore = (await title.boundingBox())!.y;
+  await sheet.evaluate((el) => {
+    el.firstElementChild!.scrollTop = 120;
+  });
+  expect((await title.boundingBox())!.y).toBeLessThan(topBefore - 60);
+  await sheet.evaluate((el) => {
+    el.firstElementChild!.scrollTop = 0;
+  });
+  const full = await sheet.boundingBox();
+  await swipe(full!.x + 90, full!.y + 85, 100);
+  await expect(sheet).toHaveAttribute("data-snap", "peek");
+  await expect(sheet).toBeVisible();
+  await client.detach();
+});

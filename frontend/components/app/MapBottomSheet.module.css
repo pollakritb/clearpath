@@ -8,7 +8,7 @@
   flex-direction: column;
   height: var(--sheet-height, 55%);
   max-height: calc(
-    100% - var(--cp-mobile-nav-h, 76px) - 20px - var(--sheet-keyboard, 0px)
+    100% - var(--cp-mobile-nav-h, 76px) - 16px - var(--sheet-keyboard, 0px)
   );
   min-height: 100px;
   overflow: hidden;
@@ -24,7 +24,7 @@
 .header {
   position: relative;
   flex: none;
-  touch-action: none;
+  touch-action: pan-y;
   user-select: none;
 }
 .grip {
@@ -60,7 +60,7 @@
 .summary {
   display: flow-root;
   min-width: 0;
-  padding: 0 16px 14px;
+  padding: 0 14px 10px;
 }
 .summary h1,
 .summary h2 {
@@ -74,19 +74,23 @@
   font-size: 13px;
   line-height: 1.5;
 }
-.body {
-  flex: 1;
-  min-height: 0;
+.scroll {
+  height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: pan-y;
 }
-.body[aria-hidden="true"] {
+.sheet[data-snap="peek"] .scroll,
+.sheet[data-dragging="true"] .scroll {
   overflow: hidden;
+}
+.sheet[data-dragging="true"] {
+  user-select: none;
 }
 .content {
   display: flow-root;
   min-width: 0;
-  padding: 0 16px calc(18px + env(safe-area-inset-bottom));
+  padding: 0 14px calc(14px + env(safe-area-inset-bottom));
 }
 .content:empty {
   padding: 0;

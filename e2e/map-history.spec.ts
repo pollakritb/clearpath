@@ -40,7 +40,8 @@ test("separate station sliders move left through Air4Thai and right through CAMS
     });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "ย้อนหลัง", exact: true }).click();
+  await page.locator(".cp-marker--station").first().click();
+  await page.getByRole("button", { name: "ดูย้อนหลังของสถานีนี้" }).click();
   const timeline = page.getByRole("region", {
     name: "ค่าตรวจวัดย้อนหลัง",
     exact: true,
@@ -59,24 +60,12 @@ test("separate station sliders move left through Air4Thai and right through CAMS
     "data-mode",
     "history",
   );
-  const markers = page.locator(".cp-marker--station");
-  await expect(markers.first()).toBeVisible();
-  const markerIndex = await markers.evaluateAll((elements) =>
-    elements.findIndex((element) => {
-      const bounds = element.getBoundingClientRect();
-      const top = document.elementFromPoint(
-        bounds.left + bounds.width / 2,
-        bounds.top + bounds.height / 2,
-      );
-      return top === element || (top !== null && element.contains(top));
-    }),
-  );
-  expect(markerIndex).toBeGreaterThanOrEqual(0);
-  await markers.nth(markerIndex).click();
+  await timeline.getByRole("button", { name: "กลับไปที่หมุดสถานี" }).click();
   const pin = page.getByRole("region", {
     name: "รายละเอียดสถานีตรวจวัดทางการ",
     exact: true,
   });
+  await pin.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }).press("End");
   await expect(pin.getByText(/รหัสสถานี/, { exact: false })).toContainText(
     "รหัสสถานี",
   );

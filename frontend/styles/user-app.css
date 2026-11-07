@@ -11634,3 +11634,17 @@ dialog.cp-login-modal::backdrop {
 .cp-helper-editor__details-body > .cp-helper-emoji-picker {
   margin-top: 20px;
 }
+
+.cp-search-radius-label.leaflet-tooltip {
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: #087c78;
+  color: white;
+  font: 650 11px var(--font-sans);
+  box-shadow: 0 2px 8px #143b3526;
+  white-space: nowrap;
+}
+.cp-search-radius-label.leaflet-tooltip-top::before {
+  border-top-color: #087c78;
+}

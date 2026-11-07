@@ -233,14 +233,9 @@ test("map focuses on current readings while forecast controls are paused", async
   page,
 }) => {
   await page.goto("/");
-  const currentDock = page.getByRole("region", {
-    name: "สถานะแผนที่ค่าฝุ่นปัจจุบัน",
-  });
+  const currentDock = page.getByRole("status", { name: "เวลาซิงก์ข้อมูล" });
   await expect(currentDock).toBeVisible();
-  await expect(currentDock.getByText("ค่าฝุ่นปัจจุบัน")).toBeVisible();
-  await expect(
-    currentDock.getByText("Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ"),
-  ).toBeVisible();
+  await expect(currentDock.locator("time")).toContainText("ซิงก์");
   await expect(
     page.getByText("ระบบพยากรณ์กำลังปรับปรุง", { exact: true }),
   ).toHaveCount(0);
