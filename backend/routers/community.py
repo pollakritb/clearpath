@@ -1,5 +1,6 @@
 """Community API — reports, gratitude/star feedback, news and leaderboard."""
 
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
@@ -481,16 +482,56 @@ def leaderboard(
 
 
 @router.get("/community/announcements", response_model=AnnouncementsResponse)
-async def announcements(response: Response):
+async def announcements(
+    response: Response,
+    offset: int = Query(0, ge=0, le=10000),
+    limit: int = Query(10, ge=1, le=100),
+):
+    from ..core.errors import UpstreamError
+    from ..services import store_feeds
+
     rows = await run_in_threadpool(supabase_client.get_announcements)
-    external_rows = await google_news.fetch_latest()
+    checked_at = None
+    sync_status = "unknown"
+    if settings.external_feed_storage_enabled and not settings.local_demo_mode:
+        try:
+            stored = await run_in_threadpool(store_feeds.news, offset + limit + 1)
+            state = await run_in_threadpool(store_feeds.state, "google_news")
+        except Exception as exc:
+            raise UpstreamError("โหลดข่าวที่จัดเก็บไว้ไม่สำเร็จ") from exc
+        external_rows = (
+            [google_news.present_stored(row) for row in stored]
+            if settings.google_news_enabled
+            else []
+        )
+        checked_at = state.get("last_success_at")
+        sync_status = (
+            "failed"
+            if state.get("last_error")
+            else "ready"
+            if checked_at
+            else "pending"
+        )
+        if checked_at and datetime.now(UTC) - datetime.fromisoformat(
+            str(checked_at).replace("Z", "+00:00")
+        ) >= timedelta(hours=3):
+            sync_status = "stale"
+    else:
+        external_rows = await google_news.fetch_latest()
     combined = [*rows, *external_rows]
-    combined.sort(key=lambda row: str(row.get("published_at") or ""), reverse=True)
-    response.headers["Cache-Control"] = (
-        "public, s-maxage=3600, stale-while-revalidate=300"
+    combined.sort(
+        key=lambda row: (str(row.get("published_at") or ""), str(row["id"])),
+        reverse=True,
     )
+    page = combined[offset : offset + limit]
+    has_more = len(combined) > offset + limit
+    response.headers["Cache-Control"] = "public, s-maxage=60, stale-while-revalidate=60"
     return AnnouncementsResponse(
-        announcements=[Announcement(**row) for row in combined[:20]]
+        announcements=[Announcement(**row) for row in page],
+        checked_at=checked_at,
+        sync_status=sync_status,
+        has_more=has_more,
+        next_offset=offset + len(page) if has_more else None,
     )
 
 

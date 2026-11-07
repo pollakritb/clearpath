@@ -375,8 +375,10 @@ export const api = {
       PUBLIC_DATA_KEYS.reports,
     ),
 
-  announcements: () =>
-    http<AnnouncementsResponse>("/api/community/announcements"),
+  announcements: (offset = 0) =>
+    http<AnnouncementsResponse>(
+      `/api/community/announcements${offset ? `?offset=${offset}` : ""}`,
+    ),
 
   activities: () => http<ActivitiesResponse>("/api/community/activities"),
 

@@ -9,8 +9,14 @@ import NotificationInbox from "./community/NotificationInbox";
 
 export default function CommunityPanel({
   announcements,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
 }: {
   announcements: Announcement[];
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 }) {
   const auth = useAuth();
   const [section, setSection] = useState<"news" | "notifications">("news");
@@ -37,7 +43,12 @@ export default function CommunityPanel({
         </button>
       </div>
       <div hidden={section !== "news"}>
-        <AnnouncementsSection announcements={announcements} />
+        <AnnouncementsSection
+          announcements={announcements}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
+          onLoadMore={onLoadMore}
+        />
       </div>
       {section === "notifications" && (
         <section className="cp-news-inbox" aria-label="การแจ้งเตือนของฉัน">

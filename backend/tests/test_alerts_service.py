@@ -20,7 +20,7 @@ def test_alerts_short_circuit_when_push_is_disabled(monkeypatch):
     }
 
 
-def test_alerts_publish_fresh_air_and_nakhon_pathom_hotspot(monkeypatch):
+def test_alerts_publish_fresh_air_and_nationwide_hotspots(monkeypatch):
     monkeypatch.setattr(settings, "push_enabled", True)
     now = datetime.now(UTC)
     recorded_at = (now - timedelta(minutes=10)).isoformat()
@@ -116,15 +116,21 @@ def test_alerts_publish_fresh_air_and_nakhon_pathom_hotspot(monkeypatch):
 
     result = asyncio.run(alerts.run_alerts())
 
-    assert result == {"ok": True, "disabled": False, "events": 2, "recipients": 2}
+    assert result == {"ok": True, "disabled": False, "events": 3, "recipients": 3}
     assert [item["kind"] for item in published] == [
         "pm25_threshold",
         "satellite_hotspot",
+        "satellite_hotspot",
     ]
-    assert [item["severity"] for item in published] == ["danger", "warning"]
-    assert all(item["recipients"] == ["near-user"] for item in published)
+    assert [item["severity"] for item in published] == ["danger", "warning", "warning"]
+    assert published[0]["recipients"] == ["near-user"]
+    assert {tuple(item["recipients"]) for item in published[1:]} == {
+        ("near-user",),
+        ("far-user",),
+    }
+    assert all("ประเทศไทย" in item["body"] for item in published[1:])
     assert "Air4Thai" in published[0]["body"]
-    assert "NASA FIRMS (VIIRS)" in published[1]["body"]
+    assert any("NASA FIRMS (VIIRS)" in item["body"] for item in published[1:])
     assert "ยังไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว" in published[1]["body"]
 
 

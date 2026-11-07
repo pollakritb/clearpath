@@ -1,11 +1,12 @@
 """NASA FIRMS satellite hotspots (VIIRS NRT) in the Thailand bounding box.
 
 ฟรี · ต้องมี MAP_KEY (สมัครรอ 1-2 วัน) · response เป็น CSV
-มี cache ในหน่วยความจำ ~30 นาที (FIRMS อัปเดตทุก 3-6 ชม. อยู่แล้ว)
+มี cache ในหน่วยความจำ ~30 นาที; NRT เผยแพร่หลังตรวจวัด ไม่ใช่รอบคงที่
 """
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import time
@@ -14,6 +15,7 @@ from datetime import UTC, datetime
 import httpx
 
 from ..algorithms.hotspot_policy import deduplicate_hotspots
+from ..algorithms.thailand_boundary import is_in_thailand
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
 
@@ -46,14 +48,15 @@ def _acquired_at(row: dict) -> str | None:
         return None
 
 
-async def get_fires(days: int = 1) -> list[dict]:
+async def get_fires(days: int = 1, *, force: bool = False) -> list[dict]:
     if not settings.firms_map_key:
         raise ConfigurationError("ยังไม่ได้ตั้งค่า FIRMS_MAP_KEY")
 
     cache_key = f"{days}"
     now = time.time()
     if (
-        _CACHE["data"] is not None
+        not force
+        and _CACHE["data"] is not None
         and _CACHE["key"] == cache_key
         and now - _CACHE["ts"] < _TTL
     ):
@@ -61,17 +64,21 @@ async def get_fires(days: int = 1) -> list[dict]:
 
     fires: list[dict] = []
     successful_sources = 0
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        for source in SOURCES:
-            url = (
-                f"{FIRMS_BASE}/{settings.firms_map_key}/{source}/{THAILAND_BBOX}/{days}"
-            )
+    async with httpx.AsyncClient(timeout=15.0) as client:
+
+        async def fetch_source(source: str):
             try:
-                resp = await client.get(url)
-                resp.raise_for_status()
+                response = await client.get(
+                    f"{FIRMS_BASE}/{settings.firms_map_key}/{source}/{THAILAND_BBOX}/{days}"
+                )
+                response.raise_for_status()
+                return response
             except httpx.HTTPError:
-                # NASA products do not always become available at the same
-                # time. Keep healthy products instead of dropping the layer.
+                return None
+
+        responses = await asyncio.gather(*(fetch_source(source) for source in SOURCES))
+        for source, resp in zip(SOURCES, responses, strict=True):
+            if resp is None:
                 continue
             successful_sources += 1
             reader = csv.DictReader(io.StringIO(resp.text))
@@ -79,7 +86,12 @@ async def get_fires(days: int = 1) -> list[dict]:
                 lat = _f(row.get("latitude"))
                 lon = _f(row.get("longitude"))
                 acquired_at = _acquired_at(row)
-                if lat is None or lon is None or acquired_at is None:
+                if (
+                    lat is None
+                    or lon is None
+                    or acquired_at is None
+                    or not is_in_thailand(lat, lon)
+                ):
                     continue
                 fires.append(
                     {

@@ -311,6 +311,10 @@ class Announcement(BaseModel):
 
 class AnnouncementsResponse(BaseModel):
     announcements: list[Announcement]
+    checked_at: str | None = None
+    sync_status: Literal["unknown", "pending", "ready", "failed", "stale"] = "unknown"
+    has_more: bool = False
+    next_offset: int | None = None
 
 
 class Activity(BaseModel):

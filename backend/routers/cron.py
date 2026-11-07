@@ -246,3 +246,11 @@ def community_xp(authorization: str | None = Header(default=None)):
     from ..services.community import xp
 
     return xp.process()
+
+
+@router.get("/cron/external-feeds")
+async def cron_external_feeds(authorization: str | None = Header(default=None)):
+    _verify_cron(authorization)
+    from ..services import feed_sync
+
+    return await feed_sync.run()

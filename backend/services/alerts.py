@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from ..algorithms.area import is_nakhon_pathom
 from ..algorithms.distance import haversine_km
 from ..algorithms.hotspot_policy import public_hotspot_state
 from ..algorithms.notification_policy import format_air_alert, format_hotspot_alert
+from ..algorithms.thailand_boundary import is_in_thailand
 from ..algorithms.trust import capture_age_minutes
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
-from . import firms, notifications, supabase_client
+from . import fire_feed, firms, notifications, supabase_client
 from .stations import get_current_stations
 
 
@@ -35,10 +35,12 @@ async def run_alerts() -> dict:
     preferences = supabase_client.list_notification_preferences()
     stations, _source = await get_current_stations()
     try:
-        fire_points = public_hotspot_state(
-            await firms.get_fires(1),
-            area_contains=is_nakhon_pathom,
-        )["fires"]
+        if settings.external_feed_storage_enabled:
+            fire_points = (await fire_feed.get_public_fires(1)).fires
+        else:
+            fire_points = public_hotspot_state(
+                await firms.get_fires(1), area_contains=is_in_thailand
+            )["fires"]
     except (ConfigurationError, UpstreamError):
         # Air-quality alerts remain useful when the independent FIRMS source
         # is temporarily unavailable. The next cron run retries automatically.
@@ -99,7 +101,7 @@ async def run_alerts() -> dict:
             continue
         message = format_hotspot_alert(
             acquired_at=str(acquired_at),
-            area="นครปฐม",
+            area="ประเทศไทย",
             satellite=str(fire.get("satellite") or "") or None,
         )
         event = notifications.publish_alert(

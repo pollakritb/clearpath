@@ -12,7 +12,7 @@ map, alerts, forecast features, and operational checks.
   invalid timestamps, and future observations.
 - Merge observations no more than 1 km and 30 minutes apart. Retain the
   strongest FRP/brightness observation and list every contributing product.
-- Publish only observations inside the checked-in Nakhon Pathom polygon and
+- Publish only observations inside the checked-in Thailand multipolygon (including islands) and
   no older than 12 hours, inclusive at the 12-hour boundary.
 - Use a satellite-shaped orange marker. PM2.5's five-level colors are reserved
   for markers that represent measured or estimated PM2.5.
@@ -38,7 +38,7 @@ hotspot. The other empty states must never be presented as “ไม่พบจ
 
 ## Alert policy
 
-- The alert cron applies the same polygon, 12-hour limit, future guard, and
+- The alert cron applies the same national boundary, 12-hour limit, future guard, and
   cross-product deduplication as the public API.
 - A recipient must have hotspot alerts enabled and the point must fall inside
   the user's configured center/radius. A missing center means nationwide.
@@ -58,7 +58,7 @@ npx playwright test e2e/mobile-pages.spec.ts --grep "satellite hotspot fixture"
 
 The fixture proves the positive API/map/notification/audit path without
 fabricating a live satellite observation. Record a live positive-event drill
-only when NASA FIRMS actually reports a qualifying Nakhon Pathom observation;
+only when NASA FIRMS actually reports a qualifying Thailand observation;
 an empty but successful live check is not evidence for that gate.
 
 ## Incident checks

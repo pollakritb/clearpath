@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     # OCR ภาพหน้าจอเครื่องวัด (OpenAI Responses API, server only)
     openai_api_key: str = ""
     openai_ocr_model: str = "gpt-5.4-mini"
+    # Enable only after the external-feed migration and cron are installed.
+    external_feed_storage_enabled: bool = False
     google_news_enabled: bool = True
     google_news_cache_seconds: int = 3600
     google_news_query: str = "(PM2.5 OR ฝุ่น OR คุณภาพอากาศ) ประเทศไทย when:7d"

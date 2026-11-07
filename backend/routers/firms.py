@@ -1,4 +1,4 @@
-"""GET /api/firms?days= — NASA FIRMS satellite hotspots in Nakhon Pathom."""
+"""GET /api/firms?days= — NASA FIRMS satellite hotspots across Thailand."""
 
 from fastapi import APIRouter, Query
 

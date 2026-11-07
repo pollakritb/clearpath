@@ -1,4 +1,5 @@
 "use client";
+import HotspotObservationTime from "./HotspotObservationTime";
 import PriorityMarker, { useMarkerPriority } from "./PriorityMarker";
 import MapSheetPortal from "./MapSheetPortal";
 import MapBottomSheet from "@/frontend/components/app/MapBottomSheet";
@@ -62,12 +63,10 @@ export default function FireLayer({
             >
               <div style={{ fontFamily: "inherit" }}>
                 {f.frp != null && <div>FRP: {f.frp} MW</div>}
-                {f.acq_date && (
-                  <div style={{ color: "#5a6664", fontSize: ".85em" }}>
-                    {f.acquired_at
-                      ? new Date(f.acquired_at).toLocaleString("th-TH")
-                      : f.acq_date}
-                  </div>
+                {(f.acquired_at || f.acq_date) && (
+                  <HotspotObservationTime
+                    value={f.acquired_at ?? f.acq_date!}
+                  />
                 )}
                 {f.confidence && (
                   <div style={{ color: "#5a6664", fontSize: ".8em" }}>

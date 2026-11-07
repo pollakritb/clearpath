@@ -306,6 +306,10 @@ export interface Announcement {
 
 export interface AnnouncementsResponse {
   announcements: Announcement[];
+  checked_at?: string | null;
+  sync_status?: "unknown" | "pending" | "ready" | "failed" | "stale";
+  has_more?: boolean;
+  next_offset?: number | null;
 }
 
 export interface Activity {

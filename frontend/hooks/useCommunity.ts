@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import {
@@ -25,7 +25,7 @@ import type {
 
 const MAP_FALLBACK_REFRESH_MS = 5 * 60_000;
 const REPORT_CACHE_MS = 2 * 60_000;
-const ANNOUNCEMENT_CACHE_MS = 10 * 60_000;
+const ANNOUNCEMENT_CACHE_MS = 60_000;
 
 const loadCommunityMapData = (force = false) =>
   loadPublicData(
@@ -169,18 +169,28 @@ export function useAnnouncements() {
     () => cachedPublicValue(PUBLIC_DATA_KEYS.announcements) === null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [feed, setFeed] = useState<AnnouncementsResponse | null>(() =>
+    cachedPublicValue<AnnouncementsResponse>(PUBLIC_DATA_KEYS.announcements),
+  );
+  const [loadingMore, setLoadingMore] = useState(false);
+  const requestVersion = useRef(0);
+  const moreInFlight = useRef(false);
 
   const refresh = useCallback(async () => {
+    const version = ++requestVersion.current;
     setLoading(true);
     setError(null);
     try {
       const response = await loadPublicData(
         PUBLIC_DATA_KEYS.announcements,
         ANNOUNCEMENT_CACHE_MS,
-        api.announcements,
+        () => api.announcements(),
         true,
       );
-      setAnnouncements(response.announcements);
+      if (version === requestVersion.current) {
+        setAnnouncements(response.announcements);
+        setFeed(response);
+      }
     } catch (cause) {
       setError(apiErrorMessage(cause, "โหลดข่าวสารไม่สำเร็จ"));
     } finally {
@@ -193,10 +203,13 @@ export function useAnnouncements() {
     void loadPublicData(
       PUBLIC_DATA_KEYS.announcements,
       ANNOUNCEMENT_CACHE_MS,
-      api.announcements,
+      () => api.announcements(),
     )
       .then((response) => {
-        if (!cancelled) setAnnouncements(response.announcements);
+        if (!cancelled) {
+          setAnnouncements(response.announcements);
+          setFeed(response);
+        }
       })
       .catch((cause) => {
         if (!cancelled) {
@@ -208,8 +221,45 @@ export function useAnnouncements() {
       });
     return () => {
       cancelled = true;
+      requestVersion.current += 1;
     };
   }, []);
 
-  return { announcements, loading, error, refresh };
+  const loadMore = useCallback(async () => {
+    if (moreInFlight.current || loading || feed?.next_offset == null) return;
+    moreInFlight.current = true;
+    const version = requestVersion.current;
+    setLoadingMore(true);
+    setError(null);
+    try {
+      const response = await api.announcements(feed.next_offset);
+      if (version !== requestVersion.current) return;
+      setAnnouncements((current) => [
+        ...new Map(
+          [...current, ...response.announcements].map((item) => [
+            item.id,
+            item,
+          ]),
+        ).values(),
+      ]);
+      setFeed(response);
+    } catch (cause) {
+      setError(apiErrorMessage(cause, "โหลดข่าวเพิ่มเติมไม่สำเร็จ"));
+    } finally {
+      moreInFlight.current = false;
+      setLoadingMore(false);
+    }
+  }, [feed, loading]);
+
+  return {
+    announcements,
+    loading,
+    error,
+    refresh,
+    loadMore,
+    loadingMore,
+    hasMore: feed?.has_more ?? false,
+    checkedAt: feed?.checked_at ?? null,
+    syncStatus: feed?.sync_status ?? "unknown",
+  };
 }

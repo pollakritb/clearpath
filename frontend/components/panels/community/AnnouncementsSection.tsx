@@ -17,16 +17,24 @@ function formatPublishedAt(value: string): string {
   return date.toLocaleDateString("th-TH", {
     day: "numeric",
     month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 export default function AnnouncementsSection({
   announcements,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
 }: {
   announcements: Announcement[];
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 }) {
   const [filter, setFilter] = useState<"all" | "announcements" | "news">("all");
-  const [limit, setLimit] = useState(6);
+  const [limit, setLimit] = useState(10);
   const filtered = announcements.filter(
     (item) =>
       filter === "all" || (filter === "news" ? item.external : !item.external),
@@ -53,7 +61,7 @@ export default function AnnouncementsSection({
             aria-pressed={filter === value}
             onClick={() => {
               setFilter(value);
-              setLimit(6);
+              setLimit(10);
             }}
           >
             {label}
@@ -70,8 +78,8 @@ export default function AnnouncementsSection({
             <AppIcon name="check" size={20} />
           </span>
           <span>
-            <strong>ยังไม่มีประกาศใหม่</strong>
-            <small>เมื่อมีข่าวสำคัญในพื้นที่ จะแสดงที่นี่ก่อน</small>
+            <strong>ยังไม่มีข่าวในรายการนี้</strong>
+            <small>ดูข่าวเพิ่มเติมหรือเลือกหมวดทั้งหมด</small>
           </span>
         </div>
       ) : (
@@ -111,13 +119,17 @@ export default function AnnouncementsSection({
           ))}
         </div>
       )}
-      {filtered.length > limit && (
+      {(filtered.length > limit || hasMore) && (
         <button
           type="button"
           className="cp-news-more cp-focus"
-          onClick={() => setLimit((value) => value + 6)}
+          disabled={loadingMore}
+          onClick={() => {
+            if (filtered.length <= limit && hasMore) onLoadMore?.();
+            setLimit((value) => value + 10);
+          }}
         >
-          ดูข่าวเพิ่มเติม
+          {loadingMore ? "กำลังโหลด…" : "ดูข่าวเพิ่มเติม"}
         </button>
       )}
     </section>

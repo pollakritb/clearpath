@@ -1,0 +1,7 @@
+.sync {
+  margin: 0;
+  padding: 0 4px;
+  color: var(--cp-text-muted, #5b7069);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
