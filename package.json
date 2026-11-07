@@ -21,7 +21,8 @@
     "test:grid:db": "node scripts/test-cams-grid.mjs",
     "test:xp:db": "node scripts/test-community-xp.mjs",
     "test:identifiers:db": "node scripts/test-database-identifiers.mjs",
-    "test:identifiers:cutover": "node scripts/test-numeric-identifiers.mjs"
+    "test:identifiers:cutover": "node scripts/test-numeric-identifiers.mjs",
+    "test:contribution:db": "node scripts/test-contribution-v3.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

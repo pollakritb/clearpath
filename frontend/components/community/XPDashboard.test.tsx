@@ -211,3 +211,15 @@ it("explains an unlaunched monthly season and links back to preserved lifetime p
   fireEvent.click(screen.getByRole("button", { name: "ดูคะแนนสะสมทั้งหมด" }));
   await waitFor(() => expect(mocks.board).toHaveBeenLastCalledWith("all"));
 });
+
+it("announces the scheduled v3 month boundary while preserving existing lifetime XP", async () => {
+  mocks.summary.mockResolvedValue({
+    ...summary,
+    scheduled_policy_version: "contribution-v3",
+    scheduled_starts_at: "2026-12-01T00:00:00+07:00",
+  });
+  render(<XPDashboard />);
+  expect(await screen.findByText(/กติกา contribution-v3 เริ่ม/)).toBeTruthy();
+  expect(screen.getByText(/คะแนนและยศเดิมยังอยู่ครบ/)).toBeTruthy();
+  expect(screen.getByText(/180\/500 คะแนน/)).toBeTruthy();
+});

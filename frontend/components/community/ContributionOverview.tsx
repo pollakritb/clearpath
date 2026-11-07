@@ -50,7 +50,10 @@ export default function ContributionOverview({
           อันดับเดือนนี้ {summary.month_rank ?? "—"}
           {summary.hidden ? " · ซ่อนจากอันดับ" : ""}
         </p>
-        <p>สัปดาห์นี้มีผลงาน {summary.week_days ?? 0} วัน</p>
+        <p>
+          สัปดาห์นี้มีผลงาน {summary.week_days ?? 0}
+          {summary.policy_version === "contribution-v3" ? "/5" : ""} วัน
+        </p>
         <progress
           value={Math.min(summary.week_days ?? 0, 5)}
           max={5}
@@ -130,7 +133,10 @@ export default function ContributionOverview({
         <h3>ช่วยเติมข้อมูลพื้นที่</h3>
         <p>
           ภารกิจที่ระบบประกาศล่วงหน้า · โบนัส +5
-          เมื่อเข้าเกณฑ์และยังไม่มีผู้ทำสำเร็จ
+          เมื่อเข้าเกณฑ์และยังไม่มีผู้ทำสำเร็จ · โบนัสบริการที่เหลือ{" "}
+          {Math.max(0, 3 - summary.today_help)}/3 วันนี้ · วัดกลางแจ้ง
+          ห่างแหล่งกำเนิด ภาพและเวลาต้องตรวจได้ GPS ไม่เกิน 200 ม. ส่งภายใน 15
+          นาทีและก่อนภารกิจหมดอายุ
         </p>
         {tasks.error && (
           <div className="cp-engagement-feedback" role="alert">

@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     measurement_registered_locations_enabled: bool = False
     community_xp_enabled: bool = False
     # Additive v2 schema and evaluated release policy are required before enabling.
+    contribution_v3_enabled: bool = False
+    contribution_v3_demo_start: str = "2026-12-01T00:00:00+07:00"
     community_v2_enabled: bool = False
     account_privacy_enabled: bool = False
     community_trust_collection_enabled: bool = False

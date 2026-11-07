@@ -34,6 +34,7 @@ jobs:
           python-version: "3.12"
       - run: node scripts/test-community-v2.mjs
       - run: node scripts/test-reporter-trust.mjs
+      - run: npm run test:contribution:db
       - run: npm run test:xp:db
       - run: npm run test:identifiers:db
       - run: npm run test:identifiers:cutover

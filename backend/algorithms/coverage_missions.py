@@ -8,7 +8,13 @@ from .distance import haversine_km
 
 
 def missing_coverage(
-    lat: float, lon: float, stations: list[dict], reports: list[dict], now: datetime
+    lat: float,
+    lon: float,
+    stations: list[dict],
+    reports: list[dict],
+    now: datetime,
+    *,
+    station_radius_km: float = 5,
 ) -> bool:
     for station in stations:
         value = station.get("pm25")
@@ -19,7 +25,8 @@ def missing_coverage(
                 and isfinite(value)
                 and value >= 0
                 and 0 <= (now - stamp(time)).total_seconds() <= 3600
-                and haversine_km(lat, lon, station["lat"], station["lon"]) <= 5
+                and haversine_km(lat, lon, station["lat"], station["lon"])
+                <= station_radius_km
             ):
                 return False
         except (KeyError, ValueError, TypeError, AttributeError):

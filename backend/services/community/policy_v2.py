@@ -145,7 +145,7 @@ def counters(user_id: str) -> dict:
             or {}
         )
     from ..measurement import registered
-    from . import xp
+    from . import policy_v3, xp
 
     now = datetime.now(UTC)
     from zoneinfo import ZoneInfo
@@ -156,7 +156,7 @@ def counters(user_id: str) -> dict:
         e
         for e in xp._EVENTS
         if e["user_id"] == user_id
-        and e.get("policy_version") == "contribution-v2"
+        and (policy_v3.applies() or e.get("policy_version") == "contribution-v2")
         and e["points"] > 0
         and not any(r.get("reverses") == e["id"] for r in xp._EVENTS)
     ]

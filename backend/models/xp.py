@@ -20,6 +20,9 @@ class ParticipationRank(BaseModel):
 
 
 class XPSummary(BaseModel):
+    scheduled_policy_version: str | None = None
+    scheduled_starts_at: str | None = None
+    xp_paused: bool = False
     community_trust: CommunityTrust | None = None
     reporter_trust: ReporterTrust | None = None
     member_id: str

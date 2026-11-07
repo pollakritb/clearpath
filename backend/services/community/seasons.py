@@ -7,7 +7,7 @@ from threading import RLock
 from ...algorithms.community_xp import rank_progress, stamp
 from ...algorithms.contribution_v2 import month_window
 from ...core.config import settings
-from . import policy_v2
+from . import policy_v2, policy_v3
 
 _FROZEN: dict[str, dict] = {}
 _LOCK = RLock()
@@ -17,6 +17,8 @@ def _local_rows(month: str) -> list[dict]:
     from . import xp
 
     start, end = month_window(month, datetime.now(UTC))
+    v3 = policy_v3.release()
+    v3_month = bool(v3.get("starts_at") and start >= stamp(v3["starts_at"]))
     reversed_ids = {e.get("reverses") for e in xp._EVENTS}
     result = []
     for uid, a in list(xp._ACCOUNTS.items()):
@@ -24,7 +26,7 @@ def _local_rows(month: str) -> list[dict]:
             e["points"]
             for e in xp._EVENTS
             if e["user_id"] == uid
-            and e.get("policy_version") == "contribution-v2"
+            and (v3_month or e.get("policy_version") == "contribution-v2")
             and e["points"] > 0
             and e["id"] not in reversed_ids
             and start <= stamp(e["occurred_at"]) < end
@@ -54,7 +56,7 @@ def _local_rows(month: str) -> list[dict]:
 
 
 def freeze_due() -> int:
-    if not policy_v2.active():
+    if not policy_v2.active() and not policy_v3.applies():
         return 0
     from . import xp
 
@@ -68,6 +70,10 @@ def freeze_due() -> int:
             .strftime("%Y-%m")
             for e in xp._EVENTS
             if e.get("policy_version") == "contribution-v2"
+            or (
+                policy_v3.applies()
+                and stamp(e["occurred_at"]) >= stamp(policy_v3.release()["starts_at"])
+            )
         }
         for month in months:
             _, end = month_window(month, now)
@@ -108,6 +114,8 @@ def board(period: str, offset: int, user_id: str | None) -> dict:
         raise ValueError("ช่วงอันดับต้องเป็นเดือนปฏิทิน") from None
     month = start.strftime("%Y-%m")
     policy = policy_v2.release()
+    if policy_v3.applies():
+        policy = policy | {"launched_at": policy_v3.release()["starts_at"]}
     metadata = dict(
         period=period,
         month=month,

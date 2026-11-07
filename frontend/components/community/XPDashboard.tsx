@@ -259,6 +259,21 @@ export default function XPDashboard({
               <span key={a}>✦ {a}</span>
             ))}
           </div>
+          {summary.scheduled_starts_at && (
+            <p className="cp-xp-note">
+              กติกา {summary.scheduled_policy_version} เริ่ม{" "}
+              {new Date(summary.scheduled_starts_at).toLocaleDateString(
+                "th-TH",
+                { timeZone: "Asia/Bangkok" },
+              )}{" "}
+              · คะแนนและยศเดิมยังอยู่ครบ
+            </p>
+          )}
+          {summary.xp_paused && (
+            <p role="status">
+              พักการให้ XP รุ่นใหม่ชั่วคราว รายงานยังส่งได้และคะแนนเดิมยังอยู่
+            </p>
+          )}
           <p className="cp-xp-note">
             วันนี้: รายงาน {summary.today_reports}/5 · โบนัสบริการ{" "}
             {summary.today_help}/3
@@ -461,7 +476,9 @@ export default function XPDashboard({
       {showProfile && (
         <details>
           <summary>กติกาคะแนน</summary>
-          {summary?.policy_version === "contribution-v2" ? (
+          {["contribution-v2", "contribution-v3"].includes(
+            summary?.policy_version ?? "",
+          ) ? (
             <>
               <p>
                 รายงานที่เข้าเกณฑ์ +10 สูงสุด 5 รายงานต่อวัน · รายงานแรกของวัน
@@ -474,7 +491,8 @@ export default function XPDashboard({
                 และโบนัสสัปดาห์อีก 20 · ทุกช่วงเวลาใช้เวลาไทย
               </p>
               <p>
-                รายงานที่รับคะแนนห่างกัน 30 นาที · ภาพใหม่ไม่เกิน 15
+                กิจกรรมที่รับแต้มรายงานหรือโบนัสบริการห่างกัน 30 นาที ·
+                รายงานส่งภายใน 3 ชั่วโมงหลังวัด และโบนัสบริการภายใน 15
                 นาทีและหลักฐานตำแหน่งครบสำหรับโบนัสบริการ ·
                 คำขอที่อยู่ในรัศมีรับผลอัตโนมัติ ไม่ต้องกดช่วยก่อน ·
                 ช่วยหลายคำขอได้โบนัสครั้งเดียว
@@ -485,8 +503,8 @@ export default function XPDashboard({
               </p>
               <p>
                 คะแนนและยศเดิมเก็บไว้ทั้งหมด ·
-                อันดับรายเดือนนับกติกาใหม่ตั้งแต่วันเริ่มใช้ ·
-                คะแนนสะสมตลอดอายุบัญชี
+                อันดับรายเดือนรวมแต้มที่ได้รับจริงทุกเวอร์ชันในเดือนนั้น ·
+                คะแนนสะสมไม่หมดอายุเพราะหยุดใช้งาน
               </p>
               <p>
                 ไลก์ ไม่ถูกใจ ความคิดเห็น และการสร้างคำขอไม่มีคะแนน ไม่เพิ่ม

@@ -9,7 +9,7 @@ from ...algorithms.coverage_missions import missing_coverage
 from ...core.config import settings
 from ...core.errors import UpstreamError
 from .. import supabase_client as db
-from . import policy_v2
+from . import policy_v2, policy_v3
 
 _LOCK = RLock()
 _LAST_CHECK: datetime | None = None
@@ -23,7 +23,11 @@ CENTRES = (
 
 def refresh() -> int:
     global _LAST_CHECK
-    if not policy_v2.active():
+    ctl = policy_v3.release()
+    if policy_v3.applies(policy=ctl):
+        if not ctl.get("missions_enabled") or ctl.get("paused"):
+            return 0
+    elif not policy_v2.active():
         return 0
     now = datetime.now(UTC)
     with _LOCK:
@@ -63,14 +67,23 @@ def refresh() -> int:
                     starts_at=now.isoformat(),
                     expires_at=(now + timedelta(minutes=60)).isoformat(),
                     inputs={
-                        "coverage_policy": "coverage-v2",
+                        "coverage_policy": "coverage-v3"
+                        if policy_v3.applies()
+                        else "coverage-v2",
                         "checked_at": now.isoformat(),
                         "station_count": len(stations),
                         "report_count": len(reports),
                     },
                 )
                 for lat, lon, name in CENTRES
-                if missing_coverage(lat, lon, stations, reports, now)
+                if missing_coverage(
+                    lat,
+                    lon,
+                    stations,
+                    reports,
+                    now,
+                    station_radius_km=2 if policy_v3.applies() else 5,
+                )
             ]
             if not settings.local_demo_mode:
                 return (
@@ -92,7 +105,12 @@ def refresh() -> int:
                     continue
                 key = str(uuid4())
                 policy_v2.DEMO_MISSIONS[key] = row | dict(
-                    id=key, radius_km=2, state="open", policy_version="contribution-v2"
+                    id=key,
+                    radius_km=2,
+                    state="open",
+                    policy_version="contribution-v3"
+                    if policy_v3.applies()
+                    else "contribution-v2",
                 )
                 created += 1
             _LAST_CHECK = now
@@ -102,7 +120,11 @@ def refresh() -> int:
 
 
 def available() -> list[dict]:
-    if not policy_v2.active():
+    ctl = policy_v3.release()
+    if policy_v3.applies(policy=ctl):
+        if not ctl.get("missions_enabled") or ctl.get("paused"):
+            return []
+    elif not policy_v2.active():
         return []
     now = datetime.now(UTC).isoformat()
     if settings.local_demo_mode:
@@ -136,6 +158,8 @@ def demo_match(report: dict, metadata: dict) -> dict | None:
     from ...algorithms.community_xp import help_eligibility
     from ...algorithms.distance import haversine_km
 
+    if policy_v3.applies(report) and not policy_v3.release().get("missions_enabled"):
+        return None
     extraction = metadata.get("evidence_extraction") or {}
     if (
         extraction.get("pm25_field_verified") is not True
@@ -149,9 +173,14 @@ def demo_match(report: dict, metadata: dict) -> dict | None:
         or report.get("clock_warning")
     ):
         return None
+    expected_version = (
+        "contribution-v3" if policy_v3.applies(report) else "contribution-v2"
+    )
     for m in sorted(
         policy_v2.DEMO_MISSIONS.values(), key=lambda row: (row["starts_at"], row["id"])
     ):
+        if m.get("policy_version", "contribution-v2") != expected_version:
+            continue
         if m["state"] != "open" or not stamp(
             m["starts_at"]
         ) <= captured <= submitted < stamp(m["expires_at"]):

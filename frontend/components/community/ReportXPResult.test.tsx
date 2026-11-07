@@ -1,5 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ReportXPResult from "./ReportXPResult";
 const reward = {
   status: "granted" as const,
@@ -11,9 +11,13 @@ const reward = {
   reason: null,
   bonus_reason: null,
 };
+const mocks = vi.hoisted(() => ({ reward: vi.fn() }));
+beforeEach(() => {
+  mocks.reward.mockResolvedValue(reward);
+});
 vi.mock("@/frontend/lib/api-client", () => ({
   api: {
-    reportXP: () => Promise.resolve(reward),
+    reportXP: mocks.reward,
     xpSummary: () => Promise.resolve(null),
   },
 }));
@@ -24,4 +28,30 @@ it("includes daily and weekly bonuses but never multiplies by fulfilled requests
   expect(screen.getByText(/รายงานแรกของวัน \+5/)).toBeTruthy();
   expect(screen.getByText(/ครบ 5 วันในสัปดาห์ \+20/)).toBeTruthy();
   expect(screen.getByText("รายงานนี้ช่วยตอบ 5 คำขอ")).toBeTruthy();
+});
+
+it("explains bonus-only XP after report quota without conflating publication", async () => {
+  const only = {
+    ...reward,
+    report_xp: 0,
+    first_day_xp: 0,
+    week_xp: 0,
+    reason: "วันนี้รับคะแนนรายงานครบแล้ว",
+  };
+  mocks.reward.mockResolvedValue(only);
+  render(<ReportXPResult reportId="RPT-bonus-only" initial={only} />);
+  expect(await screen.findByText("ได้รับ +5 คะแนน")).toBeTruthy();
+  expect(screen.getByText(/วันนี้รับคะแนนรายงานครบแล้ว/)).toBeTruthy();
+  expect(screen.getByText(/ช่วยคำขอ \+5/)).toBeTruthy();
+});
+it("retains a pending message rather than inventing zero during processing", () => {
+  mocks.reward.mockReturnValue(new Promise(() => {}));
+  render(
+    <ReportXPResult
+      reportId="RPT-pending"
+      initial={{ ...reward, status: "pending" }}
+    />,
+  );
+  expect(screen.getByText(/กำลังบันทึกคะแนน/)).toBeTruthy();
+  expect(screen.queryByText(/ไม่ได้รับคะแนน/)).toBeNull();
 });

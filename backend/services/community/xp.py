@@ -169,8 +169,10 @@ def summary(user_id: str) -> dict | None:
         return None
     a = account(user_id)
     t = totals(user_id)
-    from . import community_trust, policy_v2, reporter_trust
+    from . import community_trust, policy_v2, policy_v3, reporter_trust
 
+    v3 = policy_v3.release()
+    current_v3 = policy_v3.applies(policy=v3)
     policy = policy_v2.release()
     extra = (
         {
@@ -183,6 +185,19 @@ def summary(user_id: str) -> dict | None:
         }
         if policy.get("launched_at") is not None
         else {}
+    )
+    if current_v3:
+        extra.update(
+            policy_version="contribution-v3",
+            launched_at=v3["starts_at"],
+            **policy_v2.counters(user_id),
+        )
+    extra.update(
+        scheduled_policy_version="contribution-v3"
+        if v3.get("starts_at") and not current_v3
+        else None,
+        scheduled_starts_at=v3.get("starts_at") if not current_v3 else None,
+        xp_paused=bool(v3.get("paused")) if current_v3 else False,
     )
     return (
         extra
@@ -303,9 +318,9 @@ def _legacy_board(period: str, offset: int, user_id: str | None = None) -> dict:
 
 def board(period: str | None, offset: int, user_id: str | None = None) -> dict:
     if period is None:
-        from . import policy_v2
+        from . import policy_v2, policy_v3
 
-        period = "month" if policy_v2.active() else "all"
+        period = "month" if policy_v2.active() or policy_v3.applies() else "all"
     if period in {"all", "7d", "30d"}:
         return _legacy_board(period, offset, user_id)
     from . import seasons
@@ -412,16 +427,22 @@ def process() -> dict:
         if not settings.local_demo_mode
         else {"processed": 0}
     )
-    if policy_v2.active():
+    from . import policy_v3
+
+    if policy_v2.active() or policy_v3.applies():
         from . import missions, seasons
 
         def compensate():
             if not settings.local_demo_mode:
                 rpc("reconcile_community_v2", {})
+                if policy_v3.applies():
+                    rpc("reconcile_contribution_v3", {})
             else:
-                from .compensation import reconcile_demo
+                from .compensation import reconcile_demo, reconcile_demo_v3
 
                 reconcile_demo()
+                if policy_v3.applies():
+                    reconcile_demo_v3()
 
         for task, name in [
             (compensate, "compensation"),
@@ -451,12 +472,16 @@ def reward_report(report: dict) -> dict:
             registered.process_matches()
         if settings.local_demo_mode:
             _reward_demo(report)
-            from . import policy_v2
+            from . import policy_v2, policy_v3
 
             if policy_v2.active():
                 from .compensation import reconcile_demo
 
                 reconcile_demo()
+            if policy_v3.applies():
+                from .compensation import reconcile_demo_v3
+
+                reconcile_demo_v3()
         else:
             process()
         rows = (
@@ -535,12 +560,18 @@ def _reward_demo(report: dict):
         account(uid)
         if any(e.get("report_id") == report["id"] for e in _EVENTS):
             return
-        from . import policy_v2
+        from . import policy_v2, policy_v3
 
         policy = policy_v2.release()
-        v2 = policy["active_version"] == "v2" and stamp(report["created_at"]) >= stamp(
-            policy["launched_at"]
+        v3 = policy_v3.applies(report)
+        v2 = v3 or (
+            policy["active_version"] == "v2"
+            and stamp(report["created_at"]) >= stamp(policy["launched_at"])
         )
+        if v3:
+            policy = policy | {"launched_at": policy_v3.release()["starts_at"]}
+            if policy_v3.release().get("paused"):
+                return
         occurred = (
             report["created_at"]
             if v2
@@ -593,7 +624,10 @@ def _reward_demo(report: dict):
         req = store.get(req_id) if req_id else None
         bonus_reason = None
         if req:
-            bonus_reason = help_eligibility(
+            from ...algorithms.contribution_v3 import service_eligibility
+
+            check_service = service_eligibility if v3 else help_eligibility
+            bonus_reason = check_service(
                 report, req, _CLAIMS.get((req_id, uid)), metadata, automatic=automatic
             )
             if reason in {"not_approved", "stale", "duplicate", "cooldown"}:
@@ -618,9 +652,13 @@ def _reward_demo(report: dict):
                     bonus_reason = "pair_limit"
         mission = None
         if v2:
-            from ...algorithms.contribution_v2 import contribution_awards
+            from ...algorithms.contribution_v2 import (
+                contribution_awards as legacy_awards,
+            )
+            from ...algorithms.contribution_v3 import contribution_awards as v3_awards
             from . import missions
 
+            contribution_awards = v3_awards if v3 else legacy_awards
             if reason in {"granted", "report_limit"}:
                 mission = missions.demo_match(report, metadata)
             awards = contribution_awards(
@@ -674,13 +712,13 @@ def _reward_demo(report: dict):
                         reason=why,
                         occurred_at=occurred,
                         recorded_at=datetime.now(UTC).isoformat(),
-                        policy_version="contribution-v2",
+                        policy_version="contribution-v3" if v3 else "contribution-v2",
                         request_id=req_id if award["kind"] == "help" else None,
                         requester_id=req["user_id"]
                         if req and award["kind"] == "help" and req_id
                         else None,
                         mission_id=mission["id"]
-                        if mission and award["kind"] == "help"
+                        if mission and award["kind"] == "help" and not req_id
                         else None,
                     )
                 )

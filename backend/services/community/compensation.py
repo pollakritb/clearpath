@@ -118,3 +118,28 @@ def reconcile_demo() -> int:
                     )
                 )
         return count
+
+
+def reconcile_demo_v3() -> int:
+    """Mirror v3 dependent bonus replay without manufacturing legacy base XP."""
+    from ...algorithms.contribution_v3 import dependent_bonus_actions
+    from . import xp
+
+    with xp._LOCK:
+        actions = dependent_bonus_actions(xp._EVENTS)
+        for action in actions:
+            if action["action"] == "reverse":
+                xp.reverse_event(
+                    action["event_id"],
+                    "dependent-contribution-bonus-no-longer-earned",
+                    "automatic-contribution-v3-worker",
+                )
+            else:
+                xp._EVENTS.append(
+                    {k: v for k, v in action.items() if k != "action"}
+                    | {
+                        "id": creation_key("community_xp_events"),
+                        "recorded_at": datetime.now(UTC).isoformat(),
+                    }
+                )
+        return len(actions)

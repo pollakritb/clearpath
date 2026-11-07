@@ -1,0 +1,35 @@
+name: Contribution v3 transaction acceptance
+on:
+  push:
+    paths:
+      - "backend/**"
+      - "supabase/migrations/*contribution_v3.sql"
+      - "scripts/test_contribution_v3_postgres.py"
+      - ".github/workflows/contribution-v3-integration.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contribution-concurrency:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: isolated-test-password
+          POSTGRES_DB: contribution_v3_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install 'psycopg[binary]==3.2.13'
+      - run: python -m scripts.test_contribution_v3_postgres
+        env:
+          CONTRIBUTION_V3_TEST_DSN: postgresql://postgres:isolated-test-password@127.0.0.1:5432/contribution_v3_test

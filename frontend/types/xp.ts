@@ -10,6 +10,9 @@ export interface ParticipationRank {
   next_days: number | null;
 }
 export interface XPSummary {
+  scheduled_policy_version?: string | null;
+  scheduled_starts_at?: string | null;
+  xp_paused?: boolean;
   community_trust?: CommunityTrust | null;
   reporter_trust?: ReporterTrust | null;
   member_id: string;
