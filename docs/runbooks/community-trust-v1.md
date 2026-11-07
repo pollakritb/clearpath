@@ -2,7 +2,7 @@
 
 ## Approved policy
 
-The owner approved full activation, with the ClearPath project owner (Pollakrit) responsible for review requests received through Profile → Trust ชุมชน → ขอทบทวน. The Admin operations queue is read-only. Findings are recorded only with the server CLI and evidence/actor/reason references. Reaction/event retention is **365 days**, agreed in this implementation session. No raw voter GPS is persisted.
+The owner approved general availability (November 7, 2026), with the ClearPath project owner (Pollakrit) responsible for review requests received through Profile → Trust ชุมชน → ขอทบทวน. The Admin operations queue is read-only. Findings are recorded only with the server CLI and evidence/actor/reason references. Reaction/event retention is **365 days**, agreed in this implementation session. No raw voter GPS is persisted.
 
 Participation continuity counts distinct server submission days in Asia/Bangkok over the last 30 calendar days, excluding confirmed identical image hashes; it never enters Trust.
 
@@ -12,7 +12,7 @@ These parameters are experimental product policy: 90 Thai calendar days includin
 
 Community opinion is separate from independent reporter audits, evidence quality, contribution days, XP, ranks and leaderboards. No approval, rejection, IDW, gap-fill or voter-power changes are made. Existing reactions/audits are not backfilled. Only a new submission acknowledging `community-trust-v1` enters the ledger. Its first accepted Trust reaction day remains fixed across edits/withdrawals. Earlier social reaction timestamps are not imported as Trust history.
 
-The first Trust UI is explicitly experimental. Positive means confidence from the report's evidence/context; negative means a question about that evidence/context, never a finding of fraud. OCR/system-only issues and station disagreement do not count negatively. Invalid GPS, unavailable evidence and expired reports do not change an existing valid reaction. Pair-denied and non-Trust reason reactions remain social reactions.
+The Trust feature is generally available without a trial badge. Its policy parameters remain subject to evaluation; general availability is not a claim of completed physical-device or real-community validation. Positive means confidence from the report's evidence/context; negative means a question about that evidence/context, never a finding of fraud. OCR/system-only issues and station disagreement do not count negatively. Invalid GPS, unavailable evidence and expired reports do not change an existing valid reaction. Pair-denied and non-Trust reason reactions remain social reactions.
 
 ## Formula and replay
 

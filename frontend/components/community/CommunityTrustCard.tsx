@@ -44,14 +44,10 @@ export default function CommunityTrustCard({
           ? "โหลดคะแนนไม่ได้"
           : "เสียงประเมินยังไม่เพียงพอ";
   if (compact)
-    return (
-      <span className={styles.compact}>Trust ชุมชน · {label} · ทดลอง</span>
-    );
+    return <span className={styles.compact}>Trust ชุมชน · {label}</span>;
   return (
     <section className={styles.panel} aria-label="Trust ชุมชน">
-      <h3>
-        Trust ชุมชน <small>ทดลอง</small>
-      </h3>
+      <h3>Trust ชุมชน</h3>
       <p className={styles.score}>{label}</p>
       {trust.score != null && trust.status !== "available" && (
         <p>ค่าล่าสุด {trust.score.toFixed(1)}/100 · รออัปเดต</p>
@@ -94,12 +90,16 @@ export default function CommunityTrustCard({
         </p>
         <p>
           {trust.window_start} ถึง {trust.window_end} · น้ำหนักรวม{" "}
-          {trust.effective_day_weight} · นโยบายทดลอง {trust.policy_version}
+          {trust.effective_day_weight} · นโยบาย {trust.policy_version}
         </p>
         <p>
           ไม่นับเสียงของเจ้าของรายงาน เสียงเก่า เหตุผลเกี่ยวกับ
           OCR/ระบบ/ความต่างจากสถานีเพียงอย่างเดียว หรือเสียงที่ไม่ผ่าน
           GPS/หลักฐานและเพดานรายคู่
+        </p>
+        <p>
+          พารามิเตอร์นี้เป็นนโยบายของ ClearPath ที่จะประเมินจากการใช้งานต่อไป
+          ไม่ใช่เกณฑ์รับรองความถูกต้องทางวิทยาศาสตร์
         </p>
         <ul>
           {trust.daily.map((day) => (

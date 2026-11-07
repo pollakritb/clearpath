@@ -1,6 +1,6 @@
 # Community Trust v1 acceptance record
 
-The project owner authorized experimental public activation and accepted responsibility for review requests, with reaction/event retention of 365 days. Operational details and rollback commands are in [the runbook](community-trust-v1.md).
+The project owner initially authorized experimental public activation, then requested general availability on November 7, 2026. The feature is now generally available without trial badges. The owner accepted responsibility for review requests, with reaction/event retention of 365 days. Operational details and rollback commands are in [the runbook](community-trust-v1.md).
 
 ## Automated evidence
 
@@ -26,7 +26,7 @@ The comparison demonstrates policy behavior, not scientific correctness or calib
 
 ## Outstanding field evaluation
 
-Physical-device GPS accuracy and permission behavior still require real iOS/Android checks. Browser geolocation mocks do not establish field accuracy. No real-user trial has been completed by this implementation. Public activation is an explicitly experimental pilot authorized by the owner, rather than evidence that every original public-launch criterion has been met. Scores remain insufficient until enough new eligible accounts, reports and days exist.
+Physical-device GPS accuracy and permission behavior still require real iOS/Android checks. Browser geolocation mocks do not establish field accuracy. No real-user trial has been completed by this implementation. The owner has authorized general availability despite those outstanding field checks. This release decision is not evidence that every original public-launch criterion has been met, or that the experimental policy parameters are scientifically validated. Scores remain insufficient until enough new eligible accounts, reports and days exist.
 
 The owner should check the review queue daily, inspect projection retries/held votes, and review outcomes after 30 days, especially small communities and coordinated waves. Record evidence before changing policy parameters. Backup expiry and privacy deletion remain managed under the project's privacy process; application retention does not remove external backups.
 
