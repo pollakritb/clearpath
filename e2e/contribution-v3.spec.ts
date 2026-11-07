@@ -108,7 +108,7 @@ test("v3 reporting sends outdoor context and fresh bonus GPS without a prior hel
   ).toBeVisible();
   await page.getByRole("button", { name: "ถ่ายหน้าจอเครื่องวัด" }).click();
   await page
-    .getByLabel("บริเวณที่วัด", { exact: true })
+    .getByRole("combobox", { name: "บริเวณที่วัด", exact: true })
     .selectOption("outdoor");
   await page.getByRole("button", { name: "ส่งรายงาน", exact: true }).click();
   await expect(

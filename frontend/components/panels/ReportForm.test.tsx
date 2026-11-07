@@ -334,3 +334,26 @@ it("clears the previous account's draft and OCR reading on logout", async () => 
   expect(screen.queryByLabelText("PM2.5 42.5 µg/m³")).toBeNull();
   expect(mocks.submit).not.toHaveBeenCalled();
 });
+
+it("does not announce pending or awarded XP for a rejected submission", async () => {
+  mocks.submit.mockResolvedValue({
+    review_outcome: "automatic_rejected",
+    report: { id: "RPT-rejected", verified_pm25: null },
+    review_reasons: ["อ่านหลักฐานไม่ได้"],
+    message: "กรุณาถ่ายใหม่",
+    xp: { status: "pending" },
+  });
+  render(
+    <ReportForm
+      location={{ lat: 13.8, lon: 100.1, accuracy: 10, source: "gps" }}
+      onRequestLocation={vi.fn()}
+      onSubmitted={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "เลือกภาพทดสอบ" }));
+  await screen.findByLabelText("PM2.5 42.5 µg/m³");
+  fireEvent.click(screen.getByRole("button", { name: "ส่งรายงาน" }));
+  await screen.findByText("รายงานไม่ผ่านการตรวจอัตโนมัติ");
+  expect(screen.queryByText(/กำลังบันทึกคะแนน/)).toBeNull();
+  expect(screen.queryByText(/ได้รับ \+/)).toBeNull();
+});

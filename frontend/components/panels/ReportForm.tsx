@@ -331,10 +331,12 @@ function ReportFormContent({
               </ul>
             </div>
           ) : null}
-          <ReportXPResult
-            reportId={completed.report.id}
-            initial={completed.xp}
-          />
+          {approved && (
+            <ReportXPResult
+              reportId={completed.report.id}
+              initial={completed.xp}
+            />
+          )}
           <dl className="cp-report-success__meta">
             <div>
               <dt>สถานะ</dt>

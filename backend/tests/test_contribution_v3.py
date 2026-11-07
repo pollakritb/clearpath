@@ -343,3 +343,26 @@ def test_request_help_counts_exclude_missions_but_service_quota_keeps_both(monke
         and result["today_help"] == 2
         and result["lifetime_xp"] == 10
     )
+
+
+def test_unrewarded_rejected_report_does_not_stay_pending_forever(monkeypatch):
+    from types import SimpleNamespace
+
+    from backend.core.config import settings
+    from backend.services.community import xp
+    from backend.services.measurement import registered
+
+    class EmptyQuery:
+        def __getattr__(self, name):
+            if name == "execute":
+                return lambda: SimpleNamespace(data=[])
+            return lambda *args, **kwargs: self
+
+    monkeypatch.setattr(settings, "local_demo_mode", False)
+    monkeypatch.setattr(xp, "configured", lambda: True)
+    monkeypatch.setattr(xp, "control", lambda: {"enabled": True})
+    monkeypatch.setattr(xp, "process", lambda: {"processed": 0})
+    monkeypatch.setattr(registered, "enabled", lambda: False)
+    monkeypatch.setattr(xp.store_client, "get_client", lambda: EmptyQuery())
+    assert xp.reward_report(report(status="rejected"))["status"] == "not_eligible"
+    assert xp.reward_report(report(status="pending"))["status"] == "pending"

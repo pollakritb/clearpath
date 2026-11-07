@@ -504,6 +504,8 @@ def reward_report(report: dict) -> dict:
             or []
         )
         if not rows:
+            if report.get("status") == "rejected":
+                return {"status": "not_eligible", "reason": REASONS["not_approved"]}
             return {"status": "pending"}
         reversed_ids = (
             {e.get("reverses") for e in _EVENTS}
