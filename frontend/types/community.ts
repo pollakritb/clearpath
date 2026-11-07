@@ -344,3 +344,8 @@ export interface PhotoMetadata {
 export interface AccountAccessResponse {
   role: "user" | "moderator" | "admin";
 }
+
+export interface PlaceReportSelection {
+  report_ids: string[];
+  target_at: string;
+}

@@ -36,6 +36,7 @@ from .community import (
     LeaderboardEntry,
     LeaderboardResponse,
     PhotoMetadata,
+    PlaceReportSelection,
     RatingResult,
     ReactionKind,
     ReactionLocation,
@@ -228,3 +229,6 @@ __all__ += [
     "ReporterReviewRequest",
     "ReporterReviewResult",
 ]
+
+
+__all__ += ["PlaceReportSelection"]

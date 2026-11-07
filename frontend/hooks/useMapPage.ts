@@ -24,7 +24,7 @@ import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
 import { haversineKm } from "@/frontend/lib/distance";
 import { useOwnedReportIds } from "@/frontend/hooks/useOwnedReportIds";
 import { nearestHeatmapPoint } from "@/frontend/lib/nearest-surface";
-import { assessPlaceAir } from "@/frontend/lib/place-air";
+import { usePlaceAir } from "./usePlaceAir";
 import { countCommunitySources } from "@/frontend/lib/dashboard";
 import type {
   CommunityReport,
@@ -313,25 +313,11 @@ export function useMapPage({
           heatmapPoint.lon,
         )
       : null;
-  const placeAir = useMemo(
-    () =>
-      selectedPlace && !camsEnabled && !historyEnabled
-        ? assessPlaceAir(
-            selectedPlace.lat,
-            selectedPlace.lon,
-            serviceAreaStations,
-            community.reports,
-            new Date(placeClock),
-          )
-        : null,
-    [
-      selectedPlace,
-      serviceAreaStations,
-      community.reports,
-      placeClock,
-      camsEnabled,
-      historyEnabled,
-    ],
+  const placeAir = usePlaceAir(
+    !camsEnabled && !historyEnabled ? selectedPlace : null,
+    serviceAreaStations,
+    community.reports,
+    placeClock,
   );
   const mapStations = placeAir
     ? placeAir.stations.map(({ station }) => station)

@@ -16,6 +16,7 @@ export interface NearbyReport {
   distanceKm: number;
   ageMinutes: number | null;
   usable: boolean;
+  exclusion?: "older" | "ineligible" | "selection_unavailable";
 }
 
 export interface PlaceAir {
@@ -39,6 +40,7 @@ export function assessPlaceAir(
   stations: Station[],
   reports: CommunityReport[],
   now = new Date(),
+  selectedReportIds?: ReadonlySet<string>,
 ): PlaceAir {
   const allStations = stations
     .filter((station) => station.in_service_area)
@@ -78,6 +80,7 @@ export function assessPlaceAir(
       const capturedAt = Date.parse(report.captured_at);
       const ageMinutes = (now.getTime() - capturedAt) / 60_000;
       return {
+        exclusion: undefined as NearbyReport["exclusion"],
         report,
         distanceKm: haversineKm(lat, lon, report.lat, report.lon),
         ageMinutes: Number.isFinite(ageMinutes)
@@ -89,6 +92,28 @@ export function assessPlaceAir(
     })
     .filter((item) => item.distanceKm <= PLACE_RADIUS_KM)
     .sort((a, b) => a.distanceKm - b.distanceKm);
+
+  // The server selects private authors without publishing stable anonymous identities.
+  // Standalone callers may group public member IDs; anonymous tokens are never joined by name.
+  const seen = new Set<string>();
+  for (const item of [...nearbyReports].sort(
+    (a, b) =>
+      Date.parse(b.report.captured_at) - Date.parse(a.report.captured_at) ||
+      b.report.id.localeCompare(a.report.id),
+  )) {
+    if (!item.usable) {
+      item.exclusion = "ineligible";
+      continue;
+    }
+    const key = item.report.member_id || item.report.user_id || item.report.id;
+    const selected = selectedReportIds
+      ? selectedReportIds.has(item.report.id)
+      : !seen.has(key);
+    if (!selected) {
+      item.usable = false;
+      item.exclusion = "older";
+    } else seen.add(key);
+  }
 
   // Both sources use the same distance-only IDW. No Trust, XP or stability multiplier.
   const usable = [
@@ -124,7 +149,9 @@ export function assessPlaceAir(
   }));
 
   const value = contributors.length
-    ? contributors.reduce((sum, item) => sum + item.weight * item.pm25, 0)
+    ? contributors.length === 1
+      ? contributors[0].pm25
+      : contributors.reduce((sum, item) => sum + item.weight * item.pm25, 0)
     : null;
 
   return {

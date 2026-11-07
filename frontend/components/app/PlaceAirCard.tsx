@@ -19,6 +19,8 @@ interface PlaceAirCardProps {
   onSelectStation: (station: Station) => void;
   onSelectReport: (report: CommunityReport) => void;
   loading: boolean;
+  selectionPending?: boolean;
+  selectionError?: boolean;
   dataError: string | null;
   onRequestMeasurement: () => void;
 }
@@ -37,6 +39,8 @@ export default function PlaceAirCard({
   onSelectStation,
   onSelectReport,
   loading,
+  selectionPending = false,
+  selectionError = false,
   dataError,
   onRequestMeasurement,
 }: PlaceAirCardProps) {
@@ -82,11 +86,32 @@ export default function PlaceAirCard({
   ).length;
   const sourceSummary = [
     stationCount ? `${stationCount} สถานี` : "",
-    reportCount ? `${reportCount} รายงาน` : "",
+    reportCount ? `ผู้รายงาน ${reportCount} คน` : "",
   ]
     .filter(Boolean)
     .join(" · ");
   const noCurrent = air.value == null;
+  const single = air.contributors.length === 1 ? air.contributors[0] : null;
+  const usedIds = new Set(air.contributors.map((item) => item.id));
+  const usedStations = air.stations.filter((item) =>
+    usedIds.has(item.station.id),
+  );
+  const usedReports = air.reports.filter((item) => usedIds.has(item.report.id));
+  const unusedStations = air.stations.filter(
+    (item) => !usedIds.has(item.station.id),
+  );
+  const unusedReports = air.reports.filter(
+    (item) => !usedIds.has(item.report.id),
+  );
+  const latestAge = Math.min(
+    ...[...usedStations, ...usedReports].flatMap((item) =>
+      item.ageMinutes == null ? [] : [item.ageMinutes],
+    ),
+  );
+  const singleAge =
+    single?.source === "station"
+      ? usedStations[0]?.ageMinutes
+      : usedReports[0]?.ageMinutes;
   return (
     <MapBottomSheet
       key="place-current"
@@ -101,7 +126,8 @@ export default function PlaceAirCard({
           <MapPanelReading
             value={air.value == null ? null : Number(air.value.toFixed(1))}
             status={
-              loading && !air.stations.length && !air.reports.length
+              selectionPending ||
+              (loading && !air.stations.length && !air.reports.length)
                 ? "กำลังโหลดค่าฝุ่น…"
                 : noCurrent
                   ? "ยังไม่มีค่าปัจจุบัน"
@@ -122,7 +148,7 @@ export default function PlaceAirCard({
                 <>
                   <span>
                     {air.stations.length || air.reports.length
-                      ? "ข้อมูลใกล้เคียงไม่สด"
+                      ? "ยังไม่มีข้อมูลที่ใช้ประเมินได้"
                       : "ยังไม่มีข้อมูลใกล้จุดนี้"}
                   </span>
                   <span>รัศมี {PLACE_RADIUS_KM} กม.</span>
@@ -131,10 +157,14 @@ export default function PlaceAirCard({
                 <>
                   <span>
                     {sourceSummary
-                      ? `ประเมินจาก ${sourceSummary}`
+                      ? `${single ? "อ้างอิง" : "ประเมินจาก"} ${sourceSummary}`
                       : "ค่าประเมินพื้นที่"}
                   </span>
-                  <span>รัศมี {PLACE_RADIUS_KM} กม.</span>
+                  <span>
+                    {single
+                      ? `${age(singleAge ?? null)} · ${distance(single.distanceKm, single.source === "report")}`
+                      : `${Number.isFinite(latestAge) ? `ล่าสุด ${age(latestAge)} · ` : ""}รัศมี ${PLACE_RADIUS_KM} กม.`}
+                  </span>
                 </>
               )}
             </p>
@@ -165,13 +195,25 @@ export default function PlaceAirCard({
           อัปเดตข้อมูลไม่สำเร็จ · แสดงข้อมูลล่าสุดที่โหลดได้
         </p>
       )}
-      {!!air.stations.length && (
+      {selectionError && (
+        <p role="alert" className={styles.address}>
+          ตรวจข้อมูลผู้รายงานไม่สำเร็จ · ยังไม่รวมรายงานชุมชน
+          กรุณาปิดแล้วเปิดสถานที่อีกครั้ง
+        </p>
+      )}
+      {single && (
+        <p className={styles.address}>
+          ใช้ข้อมูลจุดเดียว ไม่ได้เฉลี่ยกับแหล่งอื่น ·
+          ค่าฝุ่นจุดอื่นในวงอาจต่างกัน
+        </p>
+      )}
+      {!!usedStations.length && (
         <section className={styles.section}>
           <h2>
-            สถานีใกล้เคียง <small>{air.stations.length} แห่ง</small>
+            สถานีที่ใช้คำนวณ <small>{usedStations.length} แห่ง</small>
           </h2>
           <div className={styles.sources}>
-            {air.stations.map(({ station, distanceKm, ageMinutes, usable }) => (
+            {usedStations.map(({ station, distanceKm, ageMinutes, usable }) => (
               <button
                 key={station.id}
                 type="button"
@@ -199,13 +241,16 @@ export default function PlaceAirCard({
           </div>
         </section>
       )}
-      {!!air.reports.length && (
+      {!!usedReports.length && (
         <section className={styles.section}>
           <h2>
-            รายงานจากชุมชน <small>{air.reports.length} รายงาน</small>
+            รายงานที่ใช้คำนวณ{" "}
+            <small>
+              {usedReports.length} คน · {usedReports.length} รายงาน
+            </small>
           </h2>
           <div className={styles.sources}>
-            {air.reports.map(({ report, distanceKm, ageMinutes, usable }) => (
+            {usedReports.map(({ report, distanceKm, ageMinutes, usable }) => (
               <button
                 key={report.id}
                 type="button"
@@ -229,6 +274,72 @@ export default function PlaceAirCard({
           </div>
         </section>
       )}
+      {(unusedStations.length > 0 || unusedReports.length > 0) && (
+        <details className={styles.details}>
+          <summary className="cp-focus">
+            ข้อมูลอื่นที่ไม่ใช้คำนวณ (
+            {unusedStations.length + unusedReports.length})
+          </summary>
+          <div className={styles.sources}>
+            {unusedStations.map(
+              ({ station, distanceKm, ageMinutes, usable }) => (
+                <button
+                  key={station.id}
+                  type="button"
+                  className={`${styles.source} cp-focus`}
+                  data-stale="true"
+                  onClick={() => onSelectStation(station)}
+                >
+                  <AppIcon name="station" size={19} />
+                  <span>
+                    <strong>
+                      {station.name_th ?? station.name_en ?? station.id}
+                    </strong>
+                    <small>
+                      {distance(distanceKm)} · {age(ageMinutes)} ·{" "}
+                      {station.pm25 == null
+                        ? "ไม่มีค่าฝุ่น"
+                        : !usable
+                          ? "ไม่ผ่านเกณฑ์ความสด/คุณภาพ"
+                          : "ใช้ค่าจุดตรงพิกัดแทน"}
+                    </small>
+                  </span>
+                  <b>{station.pm25?.toFixed(1) ?? "—"}</b>
+                </button>
+              ),
+            )}
+            {unusedReports.map(
+              ({ report, distanceKm, ageMinutes, usable, exclusion }) => (
+                <button
+                  key={report.id}
+                  type="button"
+                  className={`${styles.source} cp-focus`}
+                  data-stale="true"
+                  onClick={() => onSelectReport(report)}
+                >
+                  <AppIcon name="user" size={19} />
+                  <span>
+                    <strong>
+                      {report.display_name ?? "ผู้รายงานไม่เปิดเผยตัวตน"}
+                    </strong>
+                    <small>
+                      {distance(distanceKm, true)} · {age(ageMinutes)} ·{" "}
+                      {exclusion === "selection_unavailable"
+                        ? "ยังตรวจผู้รายงานไม่สำเร็จ"
+                        : exclusion === "older"
+                          ? "มีรายงานใหม่กว่าจากคนนี้"
+                          : !usable
+                            ? "เวลาไม่ผ่านเกณฑ์"
+                            : "ใช้ค่าจุดตรงพิกัดแทน"}
+                    </small>
+                  </span>
+                  <b>{report.pm25?.toFixed(1) ?? "—"}</b>
+                </button>
+              ),
+            )}
+          </div>
+        </details>
+      )}
       {
         <div className={styles.actions}>
           <button
@@ -244,12 +355,16 @@ export default function PlaceAirCard({
       <details className={styles.details}>
         <summary className="cp-focus">ที่มาและวิธีประเมิน</summary>
         <p>
-          วง {PLACE_RADIUS_KM} กม. คือระยะค้นหาข้อมูล
+          ค้นหาข้อมูลภายใน {PLACE_RADIUS_KM} กม.
           ไม่ใช่พื้นที่ที่ฝุ่นมีค่าเท่ากัน
         </p>
         <p>
-          ใช้สถานีสดไม่เกิน 1 ชั่วโมง และรายงานที่อนุมัติและวัดไม่เกิน 3 ชั่วโมง
-          ถ่วงน้ำหนักตามระยะทางจากพิกัดสาธารณะ
+          ใช้สถานีสดไม่เกิน 1 ชั่วโมง
+          และรายงานล่าสุดที่ผ่านเกณฑ์ต่อผู้รายงานหนึ่งคนในรัศมีค้นหา
+          โดยรายงานต้องอนุมัติและวัดไม่เกิน 3 ชั่วโมง
+          หากมีข้อมูลจุดเดียวใช้ค่านั้นโดยตรง
+          หากมีหลายจุดถ่วงน้ำหนักตามระยะทางจากพิกัดสาธารณะด้วยสูตร 1/d²
+          โดยไม่คูณ Trust หรือ XP
         </p>
         <p>
           ข้อมูลสถานที่:{" "}

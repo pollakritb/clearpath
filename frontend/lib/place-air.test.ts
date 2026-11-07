@@ -224,3 +224,89 @@ it("includes a report at exactly three hours and drops it immediately after expi
   expect(result.value).toBeNull();
   expect(result.reports[0].usable).toBe(false);
 });
+
+it("uses only the latest eligible reading per public reporter within the search area", () => {
+  const result = assessPlaceAir(
+    13.8,
+    100.105,
+    [],
+    [
+      {
+        ...freshReport,
+        id: "old",
+        member_id: "MBR-1",
+        pm25: 100,
+        captured_at: "2026-10-05T09:00:00Z",
+      },
+      { ...freshReport, id: "new", member_id: "MBR-1", pm25: 30 },
+      {
+        ...freshReport,
+        id: "outside",
+        member_id: "MBR-1",
+        lat: 15,
+        pm25: 90,
+        captured_at: "2026-10-05T10:05:00Z",
+      },
+    ],
+    reference,
+  );
+  expect(result.value).toBe(30);
+  expect(result.contributors.map((p) => p.id)).toEqual(["new"]);
+  expect(result.reports.find((p) => p.report.id === "old")?.exclusion).toBe(
+    "older",
+  );
+});
+it("honors server selection for anonymous reports without joining by display name", () => {
+  const result = assessPlaceAir(
+    13.8,
+    100.105,
+    [],
+    [
+      {
+        ...freshReport,
+        id: "old",
+        user_id: "private-token-a",
+        display_name: "same",
+        pm25: 100,
+      },
+      {
+        ...freshReport,
+        id: "new",
+        user_id: "private-token-b",
+        display_name: "same",
+        pm25: 34,
+      },
+    ],
+    reference,
+    new Set(["new"]),
+  );
+  expect(result.value).toBe(34);
+  expect(result.contributors).toHaveLength(1);
+  expect(result.contributors[0].weight).toBe(1);
+});
+it("does not join different people sharing a display name", () => {
+  const result = assessPlaceAir(
+    13.8,
+    100.105,
+    [],
+    [
+      {
+        ...freshReport,
+        id: "a",
+        user_id: "one",
+        display_name: "same",
+        pm25: 20,
+      },
+      {
+        ...freshReport,
+        id: "b",
+        user_id: "two",
+        display_name: "same",
+        pm25: 40,
+      },
+    ],
+    reference,
+  );
+  expect(result.value).toBe(30);
+  expect(result.contributors).toHaveLength(2);
+});

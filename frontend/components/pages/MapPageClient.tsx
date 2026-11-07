@@ -625,6 +625,8 @@ export default function MapPageClient(options: MapPageOptions) {
             setRequestStep("form");
           }}
           air={placeAir}
+          selectionPending={placeAir.selectionPending}
+          selectionError={placeAir.selectionError}
           onSelectStation={selectStation}
           onSelectReport={selectReport}
           loading={pm25.loading}

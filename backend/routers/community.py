@@ -25,6 +25,7 @@ from ..models.schemas import (
     CommunityReportStack,
     OperationResponse,
     PhotoMetadata,
+    PlaceReportSelection,
     RatingResult,
     ReportComment,
     ReportCommentCreate,
@@ -561,3 +562,27 @@ def public_report_image(
             "X-Content-Type-Options": "nosniff",
         },
     )
+
+
+@router.get("/community/place-report-selection")
+async def place_report_selection(
+    response: Response,
+    lat: float = Query(ge=-90, le=90),
+    lon: float = Query(ge=-180, le=180),
+    at: datetime | None = None,
+) -> PlaceReportSelection:
+    from ..services.community.place_reports import place_report_selection as select
+
+    response.headers["Cache-Control"] = "no-store"
+    now = datetime.now(UTC)
+    target = at or now
+    target = (
+        target.replace(tzinfo=UTC) if target.tzinfo is None else target.astimezone(UTC)
+    )
+    if target > now + timedelta(minutes=5) or target < now - timedelta(
+        hours=24, minutes=1
+    ):
+        raise HTTPException(422, detail="เลือกเวลาได้ภายใน 24 ชั่วโมงที่ผ่านมา")
+    target = min(target, now)
+    ids = await run_in_threadpool(select, lat, lon, target)
+    return PlaceReportSelection(report_ids=ids, target_at=target.isoformat())

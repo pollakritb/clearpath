@@ -348,3 +348,8 @@ class PhotoMetadata(BaseModel):
 
 class AccountAccessResponse(BaseModel):
     role: Literal["user", "moderator", "admin"]
+
+
+class PlaceReportSelection(BaseModel):
+    report_ids: list[str]
+    target_at: str

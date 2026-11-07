@@ -37,7 +37,10 @@ vi.mock("@/frontend/components/auth/AuthProvider", () => ({
   useCurrentUserId: () => "viewer",
 }));
 vi.mock("@/frontend/lib/api-client", () => ({
-  api: { reportDetail: data.detail },
+  api: {
+    reportDetail: data.detail,
+    placeReportSelection: vi.fn(async () => ({ report_ids: [] })),
+  },
   apiErrorMessage: (_: unknown, fallback: string) => fallback,
 }));
 vi.mock("./usePm25", () => ({ usePm25: () => data.pm25 }));

@@ -23,6 +23,25 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
     });
   });
 
+  await page.route("**/api/pm25/current", (route) =>
+    route.fulfill({
+      json: {
+        stations: [
+          {
+            id: "fixture-station",
+            name_th: "สถานีทดสอบ",
+            lat: 13.82,
+            lon: 100.0622,
+            pm25: 18,
+            recorded_at: new Date().toISOString(),
+            data_status: "fresh",
+            eligible_for_surface: true,
+            in_service_area: true,
+          },
+        ],
+      },
+    }),
+  );
   await page.goto("/");
   await page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี" }).click();
   await page
@@ -46,7 +65,7 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   await expect(card.getByLabel("ข้อมูลในรัศมี 2 กม.")).toBeVisible();
   await expect(page.locator(".cp-place-marker")).toHaveCount(1);
   await expect(
-    card.getByRole("heading", { name: /สถานีใกล้เคียง/ }),
+    card.getByRole("heading", { name: /สถานีที่ใช้คำนวณ/ }),
   ).toHaveCount(0);
   const marker = await page.locator(".cp-place-marker").boundingBox();
   const collapsedCard = await card.boundingBox();
@@ -87,7 +106,7 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
     .press("End");
   await expect(card).toHaveAttribute("data-expanded", "true");
   await expect(
-    card.getByRole("heading", { name: /สถานีใกล้เคียง/ }),
+    card.getByRole("heading", { name: /สถานีที่ใช้คำนวณ/ }),
   ).toBeVisible();
   const expandedContent = await card.evaluate((element) => {
     const body = element.querySelector<HTMLElement>("[aria-hidden='false']");
@@ -103,7 +122,7 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   );
 
   await expect(
-    card.getByRole("heading", { name: /รายงานจากชุมชน/ }),
+    card.getByRole("heading", { name: /รายงานที่ใช้คำนวณ/ }),
   ).toHaveCount(0);
   await page.screenshot({
     path: "test-results/place-focus-details-mobile.png",
@@ -381,4 +400,109 @@ test("place time actions open separate forecast and history while keeping the ra
   ).toBeVisible();
   await history.getByRole("button", { name: "กลับไปที่สถานที่" }).click();
   await expect(placeSheet).toHaveAttribute("data-snap", "peek");
+});
+
+test("place estimate counts a repeat reporter once and discloses excluded readings", async ({
+  page,
+}) => {
+  const now = Date.now();
+  const place = {
+    id: "local:single-test",
+    name: "จุดทดสอบรายงานเดียว",
+    address: "กรุงเทพมหานคร",
+    source: "local",
+    kind: "place",
+    lat: 13.8,
+    lon: 100.1,
+  };
+  await page.route("**/api/locations/search?*", (route) =>
+    route.fulfill({ json: { coverage: "nationwide", locations: [place] } }),
+  );
+  await page.route("**/api/pm25/current", (route) =>
+    route.fulfill({
+      json: {
+        stations: [
+          {
+            id: "old-station",
+            name_th: "สถานีข้อมูลเก่า",
+            lat: 13.811,
+            lon: 100.1,
+            pm25: 20.5,
+            recorded_at: new Date(now - 90 * 60000).toISOString(),
+            data_status: "delayed",
+            eligible_for_surface: false,
+            in_service_area: true,
+          },
+        ],
+      },
+    }),
+  );
+  const reports = [
+    {
+      id: "RPT-111111",
+      user_id: "anonymous-per-report-a",
+      pm25: 34,
+      captured_at: new Date(now - 120 * 60000).toISOString(),
+    },
+    {
+      id: "RPT-111112",
+      user_id: "anonymous-per-report-b",
+      pm25: 80,
+      captured_at: new Date(now - 140 * 60000).toISOString(),
+    },
+  ].map((report) => ({
+    ...report,
+    created_at: report.captured_at,
+    display_name: "ผู้รายงานไม่เปิดเผยตัวตน",
+    show_reporter_profile: false,
+    lat: 13.804,
+    lon: 100.1,
+    status: "approved",
+    source_type: "individual",
+    is_fresh: true,
+    location_precision_m: 150,
+  }));
+  await page.route("**/api/community/reports", (route) =>
+    route.fulfill({ json: { reports, stacks: [], count: 2 } }),
+  );
+  await page.route("**/api/community/place-report-selection?*", (route) =>
+    route.fulfill({
+      json: {
+        report_ids: ["RPT-111111"],
+        target_at: new Date(now).toISOString(),
+      },
+    }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี" }).click();
+  await page.getByRole("searchbox").fill(place.name);
+  await page
+    .locator(".cp-map-search-results")
+    .getByRole("button", { name: new RegExp(place.name) })
+    .click();
+  const sheet = page.locator(".cp-place-sheet");
+  await expect(sheet.getByText("34", { exact: true })).toBeVisible();
+  await expect(
+    sheet.getByText("อ้างอิง ผู้รายงาน 1 คน", { exact: true }),
+  ).toBeVisible();
+  await sheet
+    .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+    .press("End");
+  await expect(sheet.getByText(/ใช้ข้อมูลจุดเดียว ไม่ได้เฉลี่ย/)).toBeVisible();
+  await expect(
+    sheet.getByRole("heading", { name: /รายงานที่ใช้คำนวณ.*1 คน/ }),
+  ).toBeVisible();
+  await expect(
+    sheet.getByRole("button", { name: /สถานีข้อมูลเก่า/ }),
+  ).toBeHidden();
+  await sheet
+    .getByText("ข้อมูลอื่นที่ไม่ใช้คำนวณ (2)", { exact: true })
+    .click();
+  await expect(
+    sheet.getByRole("button", { name: /สถานีข้อมูลเก่า/ }),
+  ).toBeVisible();
+  await expect(sheet.getByText(/มีรายงานใหม่กว่าจากคนนี้/)).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(page.viewportSize()!.width);
 });

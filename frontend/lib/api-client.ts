@@ -41,6 +41,7 @@ import type {
   CommunityProfileResponse,
   CommunityMapPointsResponse,
   CommunityReportsResponse,
+  PlaceReportSelection,
   CommunityReport,
   FirmsResponse,
   ForecastResponse,
@@ -271,6 +272,18 @@ export const api = {
 
   communityReports: () =>
     http<CommunityReportsResponse>("/api/community/reports"),
+
+  placeReportSelection: (lat: number, lon: number, at: string) => {
+    const params = new URLSearchParams({
+      lat: String(lat),
+      lon: String(lon),
+      at,
+    });
+    return http<PlaceReportSelection>(
+      `/api/community/place-report-selection?${params}`,
+      { cache: "no-store" },
+    );
+  },
 
   reportDetail: (id: string, requestId?: string | null) =>
     http<CommunityReport>(

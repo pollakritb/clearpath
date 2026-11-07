@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import MapBottomSheet from "./MapBottomSheet";
 import MapPanelReading from "./MapPanelReading";
 import { useMapHistory } from "@/frontend/hooks/useMapHistory";
-import { assessPlaceAir, type PlaceAir } from "@/frontend/lib/place-air";
+import type { PlaceAir } from "@/frontend/lib/place-air";
+import { usePlaceAir } from "@/frontend/hooks/usePlaceAir";
 import type { LocationSuggestion } from "@/frontend/types";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import styles from "./MapPanel.module.css";
@@ -27,16 +28,18 @@ export default function PlaceHistoryPanel({
     else clear();
   }, [hours, anchor, load, clear]);
   const at = hours ? new Date(anchor - hours * 3600000) : new Date(anchor);
-  const air = hours
-    ? assessPlaceAir(
-        place.lat,
-        place.lon,
-        history.stations,
-        history.reports,
-        new Date(history.targetAt ?? at),
-      )
-    : current;
-  const unavailable = history.loading || !!history.error;
+  const historicalAir = usePlaceAir(
+    hours ? place : null,
+    history.stations,
+    history.reports,
+    history.targetAt ? Date.parse(history.targetAt) : anchor - hours * 3600000,
+  );
+  const air = hours ? historicalAir! : current;
+  const unavailable =
+    history.loading ||
+    !!history.error ||
+    historicalAir?.selectionPending ||
+    historicalAir?.selectionError;
   const format = (value: Date) =>
     value.toLocaleString("th-TH", {
       timeZone: "Asia/Bangkok",
@@ -82,6 +85,9 @@ export default function PlaceHistoryPanel({
         </>
       }
     >
+      {historicalAir?.selectionError && (
+        <p role="alert">ตรวจข้อมูลผู้รายงานไม่สำเร็จ กรุณาเลือกเวลาอีกครั้ง</p>
+      )}
       <label className={styles.historyLabel} htmlFor="place-history-hours">
         {hours ? `ย้อนหลัง ${hours} ชั่วโมง` : "ตอนนี้"}
       </label>
@@ -120,12 +126,13 @@ export default function PlaceHistoryPanel({
       ) : (
         <p className={styles.address}>
           {air.contributors.length
-            ? `ใช้ข้อมูล ${air.contributors.filter((point) => point.source === "station").length} สถานี · ${air.contributors.filter((point) => point.source === "report").length} รายงาน`
+            ? `ใช้ข้อมูล ${air.contributors.filter((point) => point.source === "station").length} สถานี · ผู้รายงาน ${air.contributors.filter((point) => point.source === "report").length} คน`
             : `ไม่มีข้อมูลที่ใช้ประเมินได้ในวง 2 กม. ${hours ? "ณ เวลาที่เลือก" : "ตอนนี้"}`}
         </p>
       )}
       <p className={styles.address}>
-        ค่าประเมินจากสถานีและรายงาน ณ เวลาที่เลือก ไม่ใช่ค่าพยากรณ์
+        ค่าประเมินจากสถานีและรายงาน ณ เวลาที่เลือก ไม่ใช่ค่าพยากรณ์ ·
+        ใช้รายงานล่าสุดที่ผ่านเกณฑ์ต่อคน
       </p>
     </MapBottomSheet>
   );
