@@ -6,11 +6,12 @@ import {
   stackReporterAvatar,
 } from "@/frontend/lib/report-stack-profiles";
 import ReporterTrustCard from "@/frontend/components/community/ReporterTrustCard";
-import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
 
-import { useState } from "react";
-
+import MapBottomSheet from "./MapBottomSheet";
+import MapPanelReading from "./MapPanelReading";
+import panel from "./MapPanel.module.css";
 import AppIcon from "@/frontend/components/ui/AppIcon";
+
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import type { CommunityReport, CommunityReportStack } from "@/frontend/types";
 
@@ -37,7 +38,6 @@ export default function ReportStackCard({
   onSelectReport: (report: CommunityReport) => void;
   onClose: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const contributingIds = new Set(stack.contributing_report_ids);
   const selectedReading = reports.find((report) =>
     contributingIds.has(report.id),
@@ -54,131 +54,107 @@ export default function ReportStackCard({
   const reporters = stackReporterGroups(stack, reports);
 
   return (
-    <section
-      className="cp-report-stack-card"
-      aria-label="รายงานค่าฝุ่นในบริเวณเดียวกัน"
-      data-expanded={expanded}
+    <MapBottomSheet
+      label="รายงานค่าฝุ่นในบริเวณเดียวกัน"
+      className={`cp-stack-sheet ${panel.panel}`}
+      initialSnap="peek"
+      onClose={onClose}
+      closeLabel="ปิดกลุ่มรายงาน"
       style={{ "--cp-stack-color": color } as React.CSSProperties}
-    >
-      <div className="cp-map-selection-card__handle" aria-hidden />
-      <button
-        type="button"
-        className="cp-map-selection-card__close cp-focus"
-        onClick={onClose}
-        aria-label="ปิดกลุ่มรายงาน"
-      >
-        <AppIcon name="close" size={19} />
-      </button>
-      <header>
-        <small>รายงานใกล้กัน · ไม่เกิน 300 ม.</small>
-        <h1>
-          {stack.report_count} รายงานจาก {stack.reporter_count} คน
-        </h1>
-      </header>
-      <div className="cp-report-stack-card__summary">
-        {stack.pm25 != null && (
-          <strong>
-            {stack.pm25} <small>µg/m³ PM2.5</small>
-          </strong>
-        )}
-        <span>{statusText}</span>
-      </div>
-      <button
-        type="button"
-        className="cp-report-stack-card__toggle cp-focus"
-        aria-expanded={expanded}
-        onClick={() => setExpanded((value) => !value)}
-      >
-        {expanded ? "ย่อรายการ" : `ดูทั้ง ${stack.report_count} รายงาน`}
-        <AppIcon
-          name="chevron"
-          size={17}
-          className={expanded ? "is-open" : ""}
-        />
-      </button>
-      {expanded && (
+      header={
         <>
-          <p className="cp-report-stack-card__note">
-            เรียงตามเวลาล่าสุด · ใช้ค่าล่าสุดคนละ 1 รายงานที่ GPS
-            คลาดเคลื่อนไม่เกิน 50 ม. หากมีหลายคนจึงแสดงค่าเฉลี่ย ·
-            ข้อมูลจากผู้ใช้เป็นข้อมูลเสริม และหมุดถูกเลื่อนเพื่อความเป็นส่วนตัว
-          </p>
-          <div className="cp-report-stack-card__list">
-            {reporters.map(({ profile, reports: readings }) => {
-              const avatar = stackReporterAvatar(profile);
-              const name = profile.display_name ?? "ไม่เปิดเผยตัวตน";
-              return (
-                <section
-                  key={readings[0].id}
-                  className="cp-report-stack-card__reporter"
-                  aria-label={`ผู้รายงาน ${name}`}
-                >
-                  <header className="cp-report-stack-card__profile">
-                    <span
-                      className="cp-report-stack-card__avatar"
-                      aria-hidden="true"
-                    >
-                      {avatar ? (
-                        <Image
-                          src={avatar}
-                          alt=""
-                          width={36}
-                          height={36}
-                          unoptimized
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <AppIcon name="user" size={22} />
-                      )}
-                    </span>
-                    <div>
-                      <strong>{name}</strong>
-                      <small>{readings.length} รายงาน</small>
-                      {profile.show_reporter_profile &&
-                        profile.participation_rank && (
-                          <ParticipationBadge
-                            rank={profile.participation_rank}
-                          />
-                        )}
-                      {profile.show_reporter_profile && (
-                        <ReporterTrustCard
-                          compact
-                          trust={profile.reporter_trust}
-                        />
-                      )}
-                    </div>
-                  </header>
-                  {readings.map((report) => (
-                    <button
-                      key={report.id}
-                      type="button"
-                      className="cp-report-stack-card__item cp-focus"
-                      aria-label={`ดูรายงานของ ${name} ${reportTime(report.captured_at)} ค่า ${report.pm25 ?? "ไม่ทราบ"}`}
-                      onClick={() => onSelectReport(report)}
-                    >
-                      <span>
-                        <small>{reportTime(report.captured_at)}</small>
-                        <small>แตะดูภาพและรายละเอียด</small>
-                        <em className="cp-report-stack-card__included">
-                          {stack.value_status === "average" &&
-                          contributingIds.has(report.id)
-                            ? "ใช้ในค่าเฉลี่ย"
-                            : report.id === readings[0].id
-                              ? "ค่าล่าสุด"
-                              : "รายงานก่อนหน้า"}
-                        </em>
-                      </span>
-                      <b>
-                        {report.pm25 ?? "—"} <small>µg/m³</small>
-                      </b>
-                    </button>
-                  ))}
-                </section>
-              );
-            })}
-          </div>
+          <h1 className={panel.title}>
+            {stack.report_count} รายงานจาก {stack.reporter_count} คน
+          </h1>
+          <MapPanelReading
+            value={stack.pm25}
+            status={stack.pm25 == null ? statusText : undefined}
+            caption={stack.pm25 != null ? statusText : undefined}
+          />
+          {stack.value_status !== "single" && (
+            <p className={panel.time}>
+              รายงานล่าสุด ·{" "}
+              <time dateTime={stack.latest_captured_at}>
+                {reportTime(stack.latest_captured_at)}
+              </time>
+            </p>
+          )}
         </>
-      )}
-    </section>
+      }
+    >
+      <div className="cp-report-stack-card__list">
+        {reporters.map(({ profile, reports: readings }) => {
+          const avatar = stackReporterAvatar(profile);
+          const name = profile.display_name ?? "ไม่เปิดเผยตัวตน";
+          return (
+            <section
+              key={readings[0].id}
+              className="cp-report-stack-card__reporter"
+              aria-label={`ผู้รายงาน ${name}`}
+            >
+              <header className="cp-report-stack-card__profile">
+                <span
+                  className="cp-report-stack-card__avatar"
+                  aria-hidden="true"
+                >
+                  {avatar ? (
+                    <Image
+                      src={avatar}
+                      alt=""
+                      width={36}
+                      height={36}
+                      unoptimized
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <AppIcon name="user" size={22} />
+                  )}
+                </span>
+                <div>
+                  <strong>{name}</strong>
+                  <small>{readings.length} รายงาน</small>
+                  {profile.show_reporter_profile && (
+                    <ReporterTrustCard compact trust={profile.reporter_trust} />
+                  )}
+                </div>
+              </header>
+              {readings.map((report) => (
+                <button
+                  key={report.id}
+                  type="button"
+                  className="cp-report-stack-card__item cp-focus"
+                  aria-label={`ดูรายงานของ ${name} ${reportTime(report.captured_at)} ค่า ${report.pm25 ?? "ไม่ทราบ"}`}
+                  onClick={() => onSelectReport(report)}
+                >
+                  <span>
+                    <small>{reportTime(report.captured_at)}</small>
+
+                    <em className="cp-report-stack-card__included">
+                      {stack.value_status === "average" &&
+                      contributingIds.has(report.id)
+                        ? "ใช้ในค่าเฉลี่ย"
+                        : report.id === readings[0].id
+                          ? "ค่าล่าสุด"
+                          : "รายงานก่อนหน้า"}
+                    </em>
+                  </span>
+                  <b>
+                    {report.pm25 ?? "—"} <small>µg/m³</small>
+                  </b>
+                </button>
+              ))}
+            </section>
+          );
+        })}
+      </div>
+      <details className={panel.details}>
+        <summary className="cp-focus">การรวมรายงานและความเป็นส่วนตัว</summary>
+        <p className="cp-report-stack-card__note">
+          รวมรายงานใกล้กันไม่เกิน 300 ม. · เรียงตามเวลาล่าสุด · ใช้ค่าล่าสุดคนละ
+          1 รายงานที่ GPS คลาดเคลื่อนไม่เกิน 50 ม. หากมีหลายคนจึงแสดงค่าเฉลี่ย ·
+          ข้อมูลจากผู้ใช้เป็นข้อมูลเสริม และหมุดถูกเลื่อนเพื่อความเป็นส่วนตัว
+        </p>
+      </details>
+    </MapBottomSheet>
   );
 }

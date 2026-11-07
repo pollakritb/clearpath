@@ -1,8 +1,21 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render as renderUI,
+  screen,
+} from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import ReportStackCard from "./ReportStackCard";
 import type { CommunityReport, CommunityReportStack } from "@/frontend/types";
 
+const render = (...args: Parameters<typeof renderUI>) => {
+  const result = renderUI(...args);
+  fireEvent.keyDown(
+    screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+    { key: "End" },
+  );
+  return result;
+};
 afterEach(cleanup);
 const stack: CommunityReportStack = {
   id: "stack:a",
@@ -41,7 +54,6 @@ it("labels the mean by independent people and keeps older readings as history", 
   expect(screen.getByText("3 รายงานจาก 2 คน")).toBeTruthy();
   expect(screen.getByText("ค่าเฉลี่ยค่าล่าสุดจาก 2 คน")).toBeTruthy();
   expect(screen.queryByText(/60 นาที/)).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }));
   expect(screen.getByText(/ใช้ค่าล่าสุดคนละ 1 รายงาน/)).toBeTruthy();
   expect(screen.getAllByText("ใช้ในค่าเฉลี่ย")).toHaveLength(2);
   fireEvent.click(screen.getAllByRole("button", { name: /Alice/ })[0]);
@@ -94,7 +106,6 @@ it("shows one profile per person while keeping all individual readings accessibl
       onClose={vi.fn()}
     />,
   );
-  fireEvent.click(screen.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }));
   expect(screen.getAllByText("Alice")).toHaveLength(1);
   expect(screen.getAllByText("Bob")).toHaveLength(1);
   expect(
@@ -122,7 +133,6 @@ it("combines per-report anonymous IDs using the server's stack-only grouping", (
       onClose={vi.fn()}
     />,
   );
-  fireEvent.click(screen.getByRole("button", { name: "ดูทั้ง 3 รายงาน" }));
   expect(screen.getAllByText("Reporter")).toHaveLength(1);
   expect(
     screen.getAllByRole("button", { name: /ดูรายงานของ Reporter/ }),
@@ -151,8 +161,7 @@ it("shows the latest value 6 and keeps the older value 4 as history for one pers
     />,
   );
   expect(screen.getByText(/^ค่าล่าสุด ·/)).toBeTruthy();
-  expect(screen.queryByText(/ค่าเฉลี่ย/)).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "ดูทั้ง 2 รายงาน" }));
+  expect(screen.queryByText(/^ค่าเฉลี่ย/)).toBeNull();
   expect(screen.getAllByText("Alice")).toHaveLength(1);
   expect(screen.getByText("ค่าล่าสุด", { exact: true })).toBeTruthy();
   expect(screen.getByText("รายงานก่อนหน้า")).toBeTruthy();

@@ -1,7 +1,9 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import PriorityMarker, { MarkerPriorityProvider } from "./PriorityMarker";
-const mocks = vi.hoisted(() => ({ map: { eachLayer: vi.fn() } }));
+const mocks = vi.hoisted(() => ({
+  map: { eachLayer: vi.fn(), on: vi.fn(), off: vi.fn() },
+}));
 vi.mock("react-leaflet", () => ({
   useMap: () => mocks.map,
   Marker: ({

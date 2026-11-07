@@ -159,8 +159,10 @@ export default function StationTimelineControls({
     <div
       className="cp-history-timeline-host cp-station-time-panel"
       hidden={paused}
+      style={{ display: paused ? "none" : "contents" }}
     >
       <MapTimelineControls
+        onClose={onClose}
         title={mode === "history" ? "ค่าตรวจวัดย้อนหลัง" : "พยากรณ์ค่าฝุ่น"}
         time={isNow ? "ตอนนี้" : at ? formatForecastTime(at) : "ตอนนี้"}
         value={position * steps}

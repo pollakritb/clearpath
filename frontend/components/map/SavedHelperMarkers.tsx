@@ -1,5 +1,7 @@
 "use client";
-import PriorityMarker from "./PriorityMarker";
+import PriorityMarker, { useMarkerPriority } from "./PriorityMarker";
+import MapSheetPortal from "./MapSheetPortal";
+import MapBottomSheet from "@/frontend/components/app/MapBottomSheet";
 import L from "leaflet";
 import { createPortal } from "react-dom";
 import { useState } from "react";
@@ -7,7 +9,7 @@ import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import { HELPER_LOCATIONS_CHANGED } from "@/frontend/lib/measurement-events";
 import HelperLocationEditor from "@/frontend/components/measurement/HelperLocationEditor";
 import type { MeasurementHelperLocationWrite } from "@/frontend/types";
-import { Popup } from "react-leaflet";
+
 import type { MeasurementHelperLocation } from "@/frontend/types";
 import { helperLocationEmoji } from "@/frontend/lib/helper-location-emoji";
 
@@ -18,6 +20,10 @@ export default function SavedHelperMarkers({
   locations: MeasurementHelperLocation[];
   onSelect?: () => void;
 }) {
+  const priority = useMarkerPriority();
+  const selected = locations.find(
+    (place) => priority?.active === `saved:${place.slot}`,
+  );
   const [editing, setEditing] = useState<MeasurementHelperLocation | null>(
     null,
   );
@@ -54,24 +60,42 @@ export default function SavedHelperMarkers({
             iconAnchor: [22, 44],
             popupAnchor: [0, -42],
           })}
-        >
-          <Popup minWidth={180} className="cp-saved-helper-popup">
-            <strong>{place.name}</strong>
-            <br />
-            สถานที่ที่บันทึก · เฉพาะคุณ
+        />
+      ))}
+      {selected && (
+        <MapSheetPortal>
+          <MapBottomSheet
+            className="cp-saved-sheet"
+            label="สถานที่ที่บันทึกไว้"
+            onClose={() => priority?.clear()}
+            header={
+              <>
+                <h2>
+                  {helperLocationEmoji(selected.emoji)} {selected.name}
+                </h2>
+                <p>สถานที่ที่บันทึก · เฉพาะคุณ</p>
+              </>
+            }
+          >
+            <p>{selected.address}</p>
+            <p>
+              {selected.enabled
+                ? "เปิดรับคำขอในพื้นที่นี้"
+                : "พักรับคำขอในพื้นที่นี้"}
+            </p>
             <button
               type="button"
               className="cp-saved-helper-popup__edit cp-focus"
               onClick={() => {
                 setError("");
-                setEditing(place);
+                setEditing(selected);
               }}
             >
-              แก้ไขสถานที่
+              แก้ไขสถานที่และสัญลักษณ์
             </button>
-          </Popup>
-        </PriorityMarker>
-      ))}
+          </MapBottomSheet>
+        </MapSheetPortal>
+      )}
       {editing &&
         createPortal(
           <HelperLocationEditor

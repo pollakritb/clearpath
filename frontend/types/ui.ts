@@ -120,3 +120,11 @@ export interface MapFocusPoint {
   pin?: boolean;
   token?: number;
 }
+
+export interface SearchHistoryEntry {
+  key: string;
+  kind: "place" | "station";
+  location: import("./locations").LocationSuggestion;
+  stationId?: string;
+  selectedAt: number;
+}

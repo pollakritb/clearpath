@@ -1,3 +1,4 @@
+import MapBottomSheet from "./MapBottomSheet";
 import Link from "next/link";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -62,25 +63,15 @@ export default function MapLayersPanel({
         : `${heatmapDistanceKm.toFixed(1)} กม.`;
 
   return (
-    <section
+    <MapBottomSheet
       id="cp-map-layers-panel"
-      className="cp-map-flyout cp-map-layers-panel"
-      aria-label="เลือกข้อมูลที่แสดงบนแผนที่"
+      className="cp-layers-sheet"
+      label="เลือกข้อมูลที่แสดงบนแผนที่"
+      onClose={onClose}
+      closeLabel="ปิดตัวเลือกข้อมูล"
+      initialSnap="full"
+      header={<h2>ข้อมูลบนแผนที่</h2>}
     >
-      <div className="cp-map-flyout__heading">
-        <div>
-          <strong>ข้อมูลบนแผนที่</strong>
-        </div>
-        <button
-          type="button"
-          className="cp-map-flyout__close cp-focus"
-          onClick={onClose}
-          aria-label="ปิดตัวเลือกข้อมูล"
-        >
-          <AppIcon name="close" size={20} />
-        </button>
-      </div>
-
       {camsEnabled && (
         <p className="cp-cams-mode-note">
           กำลังแสดงพยากรณ์ CAMS · พักชั้นค่าตรวจวัดชั่วคราว
@@ -190,7 +181,7 @@ export default function MapLayersPanel({
           การตั้งค่า
         </Link>
       </div>
-    </section>
+    </MapBottomSheet>
   );
 }
 

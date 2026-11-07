@@ -1,0 +1,240 @@
+.title {
+  margin: 0 48px 4px 0;
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.context {
+  margin: 0;
+  color: var(--cp-subink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.reading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0 4px;
+}
+.value {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.value strong {
+  color: var(--cp-ink);
+  font-size: 32px;
+  line-height: 1.2;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.value small {
+  color: var(--cp-subink);
+  font-size: 12px;
+}
+.level {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: right;
+}
+.level i {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--reading-color, var(--cp-subink));
+}
+.empty {
+  display: grid;
+  gap: 3px;
+  padding: 10px 0;
+}
+.empty strong {
+  font-size: 16px;
+}
+.empty span,
+.time {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--cp-subink);
+}
+.time {
+  display: block;
+  margin: 4px 0 0;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.action {
+  min-height: 44px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: white;
+  color: var(--cp-teal);
+  font: 650 13px var(--font-sans);
+  cursor: pointer;
+  text-decoration: none;
+}
+.action:hover {
+  background: var(--cp-teal-soft);
+}
+.primary {
+  background: var(--cp-teal);
+  border-color: var(--cp-teal);
+  color: white;
+}
+.primary:hover {
+  background: #086964;
+}
+.section {
+  padding: 16px 0;
+  border-top: 1px solid var(--cp-line);
+}
+.section h2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.section h2 small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cp-subink);
+}
+.sources {
+  display: grid;
+}
+.source {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--cp-line);
+  background: white;
+  color: var(--cp-ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.source:last-child {
+  border-bottom: 0;
+}
+.source:hover {
+  background: var(--cp-teal-soft);
+}
+.source > svg {
+  flex: none;
+  color: var(--cp-teal);
+}
+.source > span {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
+}
+.source strong {
+  font-size: 14px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.source small {
+  font-size: 12px;
+  color: var(--cp-subink);
+  line-height: 1.5;
+}
+.source b {
+  flex: none;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.source[data-stale="true"] b {
+  color: var(--cp-subink);
+  font-weight: 500;
+}
+.details {
+  margin-top: 12px;
+  border-top: 1px solid var(--cp-line);
+  color: var(--cp-subink);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.details summary {
+  min-height: 44px;
+  display: list-item;
+  align-content: center;
+  cursor: pointer;
+  color: var(--cp-teal);
+}
+.details p {
+  margin: 6px 0 12px;
+}
+.address {
+  margin: 10px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--cp-subink);
+}
+.panel :global(.cp-map-station-forecast) {
+  padding: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--cp-line);
+  border-radius: 0;
+  background: transparent;
+}
+.panel :global(.cp-map-station-forecast__heading) {
+  margin-bottom: 10px;
+}
+.panel :global(.cp-map-station-forecast__heading h2) {
+  font-size: 15px;
+}
+.panel :global(.cp-map-station-forecast__icon) {
+  display: none;
+}
+.panel :global(.cp-report-stack-card__reporter) {
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--cp-line);
+}
+.panel :global(.cp-report-stack-card__profile) {
+  padding: 12px 0;
+}
+.panel :global(.cp-report-stack-card__item) {
+  padding: 10px 0 10px 46px;
+}
+.panel :global(.cp-report-stack-card__profile .cp-participation-badge) {
+  display: none;
+}
+.panel :global(.cp-map-selection-section) {
+  padding: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--cp-line);
+  border-radius: 0;
+  background: transparent;
+}
+.panel :global(.cp-map-selection-section > h2) {
+  font-size: 15px;
+}
+.panel :global(.cp-map-selection-meta) {
+  gap: 10px;
+}

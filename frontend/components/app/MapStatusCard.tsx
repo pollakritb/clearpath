@@ -3,7 +3,10 @@
 import RankEmblem from "@/frontend/components/community/RankEmblem";
 import ReporterTrustCard from "@/frontend/components/community/ReporterTrustCard";
 import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
-import { useRef, useState } from "react";
+import { useRef } from "react";
+import MapBottomSheet from "./MapBottomSheet";
+import MapPanelReading from "./MapPanelReading";
+import panel from "./MapPanel.module.css";
 
 import Link from "next/link";
 
@@ -74,50 +77,68 @@ export default function MapStatusCard({
   onOpenForecast,
   historicalAt = null,
 }: MapStatusCardProps) {
-  const [expanded, setExpanded] = useState(false);
   const photoDialogRef = useRef<HTMLDialogElement>(null);
   const photoButtonRef = useRef<HTMLButtonElement>(null);
   const selection = report ?? station;
 
   if (!selection) {
     return (
-      <section
-        className="cp-map-current-dock"
-        aria-label="สถานะแผนที่ค่าฝุ่นปัจจุบัน"
+      <MapBottomSheet
+        label="สถานะแผนที่ค่าฝุ่นปัจจุบัน"
+        className="cp-current-sheet"
+        initialSnap="peek"
+        onClose={onClose}
+        showClose={false}
+        header={
+          <div className="cp-map-current-summary">
+            <span className="cp-map-current-dock__icon" aria-hidden="true">
+              <AppIcon name="activity" size={19} />
+            </span>
+            <span className="cp-map-current-dock__copy">
+              <strong>ค่าฝุ่นปัจจุบัน</strong>
+              <small>
+                {freshStationCount === 0
+                  ? "Air4Thai ยังไม่มีค่าตรวจวัดใหม่ภายใน 1 ชม."
+                  : "Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ"}
+              </small>
+            </span>
+            <span className="cp-map-current-dock__actions">
+              <time
+                className={
+                  freshStationCount === 0
+                    ? undefined
+                    : "cp-map-current-dock__time"
+                }
+                dateTime={updatedAt ?? undefined}
+              >
+                <i aria-hidden="true" />
+                {updatedAt
+                  ? `ซิงก์ ${formatTime(updatedAt)} น.`
+                  : "กำลังอัปเดต"}
+              </time>
+              {onOpenHistory && (
+                <button
+                  type="button"
+                  className="cp-map-current-dock__history cp-focus"
+                  onClick={onOpenHistory}
+                >
+                  <AppIcon name="clock" size={15} />
+                  ย้อนหลัง
+                </button>
+              )}
+            </span>
+          </div>
+        }
       >
-        <span className="cp-map-current-dock__icon" aria-hidden="true">
-          <AppIcon name="activity" size={19} />
-        </span>
-        <span className="cp-map-current-dock__copy">
-          <strong>ค่าฝุ่นปัจจุบัน</strong>
-          <small>
-            {freshStationCount === 0
-              ? "Air4Thai ยังไม่มีค่าตรวจวัดใหม่ภายใน 1 ชม."
-              : "Air4Thai · ข้อมูลชุมชนที่ผ่านการตรวจ"}
-          </small>
-        </span>
-        <span className="cp-map-current-dock__actions">
-          <time
-            className={
-              freshStationCount === 0 ? undefined : "cp-map-current-dock__time"
-            }
-            dateTime={updatedAt ?? undefined}
-          >
-            <i aria-hidden="true" />
-            {updatedAt ? `ซิงก์ ${formatTime(updatedAt)} น.` : "กำลังอัปเดต"}
-          </time>
-          {onOpenHistory && (
-            <button
-              type="button"
-              className="cp-map-current-dock__history cp-focus"
-              onClick={onOpenHistory}
-            >
-              <AppIcon name="clock" size={15} />
-              ย้อนหลัง
-            </button>
-          )}
-        </span>
-      </section>
+        <p>
+          เลือกหมุดสถานี รายงานจากชุมชน หรือค้นหาสถานที่
+          เพื่อดูค่าฝุ่นและเวลาตรวจวัด
+        </p>
+        <p>
+          ข้อมูล Air4Thai เป็นค่าตรวจวัดจากสถานี
+          ส่วนรายงานจากผู้ใช้เป็นข้อมูลเสริม
+        </p>
+      </MapBottomSheet>
     );
   }
 
@@ -144,293 +165,225 @@ export default function MapStatusCard({
         ? "รายละเอียดรายงานจากบุคคล"
         : "รายละเอียดสถานีตรวจวัดทางการ";
 
-  if (station || !expanded) {
+  if (station && !report) {
     return (
-      <section
-        className="cp-map-selection-card cp-map-selection-card--compact"
-        data-source={source}
-        data-expanded="false"
+      <MapBottomSheet
+        label={selectionLabel}
+        onClose={onClose}
+        closeLabel="ปิดรายละเอียดจุดบนแผนที่"
+        className={`cp-station-sheet ${panel.panel}`}
+        initialSnap="peek"
         style={
           {
             "--cp-selection-color": classification.color,
             "--cp-selection-tint": classification.tint,
           } as React.CSSProperties
         }
-        aria-label={selectionLabel}
+        header={
+          <>
+            {onBackToPlace && (
+              <button
+                type="button"
+                className="cp-map-selection-card__back cp-focus"
+                onClick={onBackToPlace}
+              >
+                ← {backLabel}
+              </button>
+            )}
+            <h1 className={panel.title}>{stationName}</h1>
+            <p className={panel.context}>
+              สถานี Air4Thai{historicalAt ? " · ย้อนหลัง" : ""}
+            </p>
+            <MapPanelReading
+              value={value}
+              stale={expired}
+              caption={
+                <>
+                  {historicalAt ? "เวลาตรวจวัด" : "ตรวจวัดล่าสุด"} ·{" "}
+                  <time dateTime={station.recorded_at ?? undefined}>
+                    {formatReportDate(station.recorded_at)}
+                  </time>
+                </>
+              }
+            />
+            {station && (onOpenHistory || onOpenForecast) && (
+              <div className="cp-pin-time-actions">
+                {onOpenHistory && (
+                  <button
+                    type="button"
+                    className="cp-focus"
+                    onClick={onOpenHistory}
+                    aria-label="ดูย้อนหลังของสถานีนี้"
+                  >
+                    <AppIcon name="clock" size={17} /> ย้อนหลัง
+                  </button>
+                )}
+                {onOpenForecast && (
+                  <button
+                    type="button"
+                    className="cp-focus"
+                    onClick={onOpenForecast}
+                    aria-label="ดูพยากรณ์ของสถานีนี้"
+                  >
+                    <AppIcon name="wind" size={17} /> พยากรณ์
+                  </button>
+                )}
+              </div>
+            )}
+          </>
+        }
       >
-        <div className="cp-map-selection-card__handle" aria-hidden />
-        <button
-          type="button"
-          className="cp-map-selection-card__close cp-focus"
-          onClick={onClose}
-          aria-label="ปิดรายละเอียดจุดบนแผนที่"
-        >
-          <AppIcon name="close" size={19} />
-        </button>
-        {onBackToPlace && (
-          <button
-            type="button"
-            className="cp-map-selection-card__back cp-focus"
-            onClick={onBackToPlace}
-          >
-            ← {backLabel}
-          </button>
-        )}
-        <div className="cp-map-compact-heading">
-          <SourceBadge kind={source} compact />
-          {historicalAt && (
-            <span className="cp-map-demo-label">
-              ย้อนหลัง · {formatTime(historicalAt)}
-            </span>
-          )}
-          {isDemo && <span className="cp-map-demo-label">ข้อมูลตัวอย่าง</span>}
-          <h1>{isCommunity ? communityArea : stationName}</h1>
-          {station && (
-            <>
-              <p className="cp-pin-station-meta">
-                {station.province ?? "ประเทศไทย"} · รหัสสถานี {station.id}
-              </p>
-              <p className="cp-pin-station-meta">
-                {historicalAt ? "เวลาตรวจวัด" : "ตรวจวัดล่าสุด"} ·{" "}
-                <time dateTime={station.recorded_at ?? undefined}>
-                  {formatReportDate(station.recorded_at)}
-                </time>
-              </p>
-            </>
-          )}
-        </div>
-        <div className="cp-map-compact-reading">
-          <div>
-            <strong>{value ?? "—"}</strong>
-            <span>
-              µg/m³ <small>PM2.5</small>
-            </span>
-          </div>
-          <span>
-            {expired
-              ? "ข้อมูลหมดอายุ"
-              : value == null
-                ? "ไม่มีข้อมูล"
-                : classification.level}
-          </span>
-        </div>
-        {station && (onOpenHistory || onOpenForecast) && (
-          <div className="cp-pin-time-actions">
-            {onOpenHistory && (
-              <button
-                type="button"
-                className="cp-focus"
-                onClick={onOpenHistory}
-                aria-label="ดูย้อนหลังของสถานีนี้"
-              >
-                <AppIcon name="clock" size={17} /> ย้อนหลัง
-              </button>
-            )}
-            {onOpenForecast && (
-              <button
-                type="button"
-                className="cp-focus"
-                onClick={onOpenForecast}
-                aria-label="ดูพยากรณ์ของสถานีนี้"
-              >
-                <AppIcon name="wind" size={17} /> พยากรณ์
-              </button>
-            )}
-          </div>
-        )}
-        {!station && (
-          <button
-            type="button"
-            className="cp-map-compact-open cp-focus"
-            onClick={() => {
-              setExpanded(true);
-            }}
-            aria-label={
-              isCommunity
-                ? "ดูรายละเอียดรายงานและผู้รายงาน"
-                : "ดูรายละเอียดสถานี"
-            }
-          >
-            <span>{isCommunity ? "ดูรายงานและผู้รายงาน" : "รายละเอียด"}</span>
-            <AppIcon name="chevron" size={18} />
-          </button>
-        )}
-      </section>
+        <section className={panel.section}>
+          <h2>ข้อมูลสถานี</h2>
+          <p className={panel.address}>
+            {station.province ?? "ประเทศไทย"} · รหัสสถานี {station.id}
+          </p>
+          <SourceBadge kind="official" compact />
+          <p className={panel.address}>
+            ค่าตรวจวัดจาก Air4Thai ตามเวลาที่ระบุบนรายงาน
+          </p>
+        </section>
+      </MapBottomSheet>
     );
   }
 
   return (
-    <section
-      className="cp-map-selection-card"
-      data-source={source}
-      data-expanded="true"
+    <MapBottomSheet
+      label={selectionLabel}
+      onClose={onClose}
+      closeLabel="ปิดรายละเอียดจุดบนแผนที่"
+      className={`cp-user-report-sheet ${panel.panel}`}
+      initialSnap="peek"
       style={
         {
           "--cp-selection-color": classification.color,
           "--cp-selection-tint": classification.tint,
         } as React.CSSProperties
       }
-      aria-label={selectionLabel}
-      aria-live="polite"
-    >
-      <div className="cp-map-selection-card__handle" aria-hidden />
-      <button
-        type="button"
-        className="cp-map-selection-card__collapse cp-focus"
-        onClick={() => setExpanded(false)}
-      >
-        ← กลับไปแผนที่
-      </button>
-      {onBackToPlace && (
-        <button
-          type="button"
-          className="cp-map-selection-card__back cp-focus"
-          onClick={onBackToPlace}
-        >
-          ← {backLabel}
-        </button>
-      )}
-      <button
-        type="button"
-        className="cp-map-selection-card__close cp-focus"
-        onClick={onClose}
-        aria-label="ปิดรายละเอียดจุดบนแผนที่"
-      >
-        <AppIcon name="close" size={19} />
-      </button>
-
-      <header className="cp-map-selection-card__heading">
-        <SourceBadge kind={source} />
-        {isDemo && <span className="cp-map-demo-label">ข้อมูลตัวอย่าง</span>}
-        <h1>{isCommunity ? communityArea : stationName}</h1>
-        <p>รายงาน PM2.5 จากภาพเครื่องวัด · ไม่ใช่สถานีทางการ</p>
-      </header>
-
-      <div className="cp-map-selection-reading">
-        <div>
-          <span className="cp-map-selection-reading__caption">
-            ค่าจากรายงานนี้
-          </span>
-          <strong>{value ?? "—"}</strong>
-          <span>µg/m³</span>
-          <small>PM2.5</small>
-        </div>
-        <span className="cp-map-selection-reading__level">
-          <i aria-hidden>{classification.glyph}</i>
-          <strong>{expired ? "ข้อมูลหมดอายุ" : classification.level}</strong>
-        </span>
-      </div>
-
-      {source === "individual" && report && (
-        <p className="cp-map-report-freshness">
-          <AppIcon name="clock" size={16} />
-          {historicalAt
-            ? "รายงาน ณ เวลาย้อนหลัง"
-            : report.is_fresh
-              ? "รายงานล่าสุด"
-              : "รายงานเก่า"}{" "}
-          · ตรวจวัด
-          {report.age_minutes == null
-            ? "ไม่ทราบเวลา"
-            : `${Math.round(report.age_minutes)} นาที${historicalAt ? "ก่อนเวลาที่เลือก" : "ที่แล้ว"}`}
-        </p>
-      )}
-
-      {
-        <section
-          className="cp-map-selection-section cp-map-report-evidence"
-          aria-label="ข้อมูลรายงานค่าฝุ่น"
-        >
-          <div className="cp-map-report-section-heading">
-            <div>
-              <h2>หลักฐานและการตรวจวัด</h2>
-              <p>
-                ตัวเลข PM2.5 ที่ระบบอ่านจากภาพเครื่องวัด ·{" "}
-                {report?.capture_source === "gallery"
-                  ? "ภาพจากคลัง"
-                  : "ถ่ายภาพใหม่"}
-              </p>
-            </div>
-            <span>
-              {report?.verification_method === "automatic"
-                ? "อ่านด้วย OCR"
-                : "ข้อมูลระบบเดิม"}
-            </span>
-          </div>
-          {source === "individual" && report?.image_url && (
-            <>
-              <button
-                ref={photoButtonRef}
-                type="button"
-                className="cp-map-report-photo cp-focus"
-                aria-label="เปิดดูภาพเครื่องวัดจากรายงานนี้"
-                onClick={() => photoDialogRef.current?.showModal()}
-              >
-                <span className="cp-map-report-photo__thumb">
-                  {/* The API exposes only a short-lived signed URL from private storage. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={report.image_url}
-                    alt="ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
-                </span>
-                <span className="cp-map-report-photo__copy">
-                  <strong>ดูภาพเครื่องวัดที่ส่งมา</strong>
-                  <small>แตะเพื่อขยายภาพในหน้านี้</small>
-                </span>
-                <AppIcon name="chevron" size={19} />
-              </button>
-              <dialog
-                ref={photoDialogRef}
-                className="cp-map-photo-dialog"
-                aria-label="ภาพเครื่องวัดจากรายงานนี้"
-                onClose={() => photoButtonRef.current?.focus()}
-                onClick={(event) => {
-                  if (event.target === event.currentTarget) {
-                    photoDialogRef.current?.close();
-                  }
-                }}
-              >
-                <div className="cp-map-photo-dialog__content">
-                  <div className="cp-map-photo-dialog__header">
-                    <div>
-                      <strong>ภาพเครื่องวัดจากรายงาน</strong>
-                      <small>
-                        PM2.5 {report.pm25 ?? "—"} µg/m³ ·{" "}
-                        {formatReportDate(report.captured_at)}
-                      </small>
-                    </div>
-                    <button
-                      type="button"
-                      className="cp-map-photo-dialog__close cp-focus"
-                      aria-label="ปิดภาพเครื่องวัด"
-                      onClick={() => photoDialogRef.current?.close()}
-                    >
-                      <AppIcon name="close" size={20} />
-                    </button>
-                  </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={report.image_url}
-                    alt="ภาพเครื่องวัด PM2.5 ฉบับเต็มจากผู้รายงาน"
-                    referrerPolicy="no-referrer"
-                  />
-                  <p>ภาพประกอบรายงานจากผู้ใช้ ไม่ใช่ภาพจากสถานีทางการ</p>
-                </div>
-              </dialog>
-            </>
+      header={
+        <>
+          {onBackToPlace && (
+            <button
+              type="button"
+              className="cp-map-selection-card__back cp-focus"
+              onClick={onBackToPlace}
+            >
+              ← {backLabel}
+            </button>
           )}
+          <h1 className={panel.title}>{communityArea}</h1>
+          <p className={panel.context}>
+            <span>{SOURCE_LABELS[source].label}</span>
+            {source === "individual" &&
+              ` · ${showReporterProfile ? (report?.display_name ?? "สมาชิก ClearPath") : "ไม่เปิดเผยตัวตน"}`}
+            {isDemo && <span> · ข้อมูลตัวอย่าง</span>}
+          </p>
+          <MapPanelReading
+            value={value}
+            stale={expired}
+            caption={
+              <>
+                วัด ·{" "}
+                <time dateTime={report?.captured_at}>
+                  {formatReportDate(report?.captured_at ?? null)}
+                </time>
+                {historicalAt ? " · ย้อนหลัง" : ""}
+              </>
+            }
+          />
+        </>
+      }
+    >
+      <section
+        className="cp-map-selection-section cp-map-report-evidence"
+        aria-label="ข้อมูลรายงานค่าฝุ่น"
+      >
+        <div className="cp-map-report-section-heading">
+          <div>
+            <h2>หลักฐานและการตรวจวัด</h2>
+            <p>
+              ตัวเลข PM2.5 ที่ระบบอ่านจากภาพเครื่องวัด ·{" "}
+              {report?.capture_source === "gallery"
+                ? "ภาพจากคลัง"
+                : "ถ่ายภาพใหม่"}
+            </p>
+          </div>
+          <span>
+            {report?.verification_method === "automatic"
+              ? "อ่านด้วย OCR"
+              : "ข้อมูลระบบเดิม"}
+          </span>
+        </div>
+        {source === "individual" && report?.image_url && (
+          <>
+            <button
+              ref={photoButtonRef}
+              type="button"
+              className="cp-map-report-photo cp-focus"
+              aria-label="เปิดดูภาพเครื่องวัดจากรายงานนี้"
+              onClick={() => photoDialogRef.current?.showModal()}
+            >
+              <span className="cp-map-report-photo__thumb">
+                {/* The API exposes only a short-lived signed URL from private storage. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={report.image_url}
+                  alt="ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              </span>
+              <span className="cp-map-report-photo__copy">
+                <strong>ดูภาพเครื่องวัดที่ส่งมา</strong>
+                <small>แตะเพื่อขยายภาพในหน้านี้</small>
+              </span>
+              <AppIcon name="chevron" size={19} />
+            </button>
+            <dialog
+              ref={photoDialogRef}
+              className="cp-map-photo-dialog"
+              aria-label="ภาพเครื่องวัดจากรายงานนี้"
+              onClose={() => photoButtonRef.current?.focus()}
+              onClick={(event) => {
+                if (event.target === event.currentTarget) {
+                  photoDialogRef.current?.close();
+                }
+              }}
+            >
+              <div className="cp-map-photo-dialog__content">
+                <div className="cp-map-photo-dialog__header">
+                  <div>
+                    <strong>ภาพเครื่องวัดจากรายงาน</strong>
+                    <small>
+                      PM2.5 {report.pm25 ?? "—"} µg/m³ ·{" "}
+                      {formatReportDate(report.captured_at)}
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    className="cp-map-photo-dialog__close cp-focus"
+                    aria-label="ปิดภาพเครื่องวัด"
+                    onClick={() => photoDialogRef.current?.close()}
+                  >
+                    <AppIcon name="close" size={20} />
+                  </button>
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={report.image_url}
+                  alt="ภาพเครื่องวัด PM2.5 ฉบับเต็มจากผู้รายงาน"
+                  referrerPolicy="no-referrer"
+                />
+                <p>ภาพประกอบรายงานจากผู้ใช้ ไม่ใช่ภาพจากสถานีทางการ</p>
+              </div>
+            </dialog>
+          </>
+        )}
+        <details className={panel.details}>
+          <summary className="cp-focus">
+            ข้อมูลเครื่องวัดและการตรวจข้อมูล
+          </summary>
           <div className="cp-map-selection-meta">
-            <span>
-              <strong>เวลาที่ตรวจวัด</strong>
-              <small>
-                {report?.captured_at
-                  ? `${formatReportDate(report.captured_at)} น.`
-                  : "ไม่ทราบเวลาตรวจวัด"}
-              </small>
-            </span>
             <span>
               <strong>อุปกรณ์</strong>
               <small>{report?.device_model ?? "ไม่ระบุรุ่น"}</small>
@@ -457,8 +410,8 @@ export default function MapStatusCard({
               {report.location_precision_m} ม.
             </p>
           )}
-        </section>
-      }
+        </details>
+      </section>
 
       {source === "individual" && report && (
         <section className="cp-map-selection-section" aria-label="ผู้รายงาน">
@@ -552,6 +505,6 @@ export default function MapStatusCard({
           <AppIcon name="chevron" size={19} />
         </Link>
       )}
-    </section>
+    </MapBottomSheet>
   );
 }

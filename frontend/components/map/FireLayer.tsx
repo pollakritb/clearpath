@@ -1,8 +1,9 @@
 "use client";
-import PriorityMarker from "./PriorityMarker";
+import PriorityMarker, { useMarkerPriority } from "./PriorityMarker";
+import MapSheetPortal from "./MapSheetPortal";
+import MapBottomSheet from "@/frontend/components/app/MapBottomSheet";
 
 import L from "leaflet";
-import { Popup } from "react-leaflet";
 
 import type { FirePoint } from "@/frontend/types";
 
@@ -18,7 +19,14 @@ function hotspotIcon(size: number) {
   });
 }
 
-export default function FireLayer({ fires }: { fires: FirePoint[] }) {
+export default function FireLayer({
+  fires,
+  onSelect,
+}: {
+  fires: FirePoint[];
+  onSelect?: () => void;
+}) {
+  const priority = useMarkerPriority();
   return (
     <>
       {fires.map((f) => {
@@ -28,17 +36,30 @@ export default function FireLayer({ fires }: { fires: FirePoint[] }) {
           <PriorityMarker
             priorityId={`hotspot:${f.id}`}
             key={f.id}
+            eventHandlers={{ click: () => onSelect?.() }}
             position={[f.lat, f.lon]}
             icon={hotspotIcon(size)}
             title={`จุดความร้อนจากดาวเทียม ${f.frp ?? "ไม่ระบุ"} MW`}
             alt={`จุดความร้อนจากดาวเทียม ${f.frp ?? "ไม่ระบุ"} MW`}
-          >
-            <Popup>
+          />
+        );
+      })}
+      {fires
+        .filter((f) => priority?.active === `hotspot:${f.id}`)
+        .map((f) => (
+          <MapSheetPortal key={f.id}>
+            <MapBottomSheet
+              className="cp-hotspot-sheet"
+              label="จุดความร้อนจากดาวเทียม"
+              onClose={() => priority?.clear()}
+              header={
+                <>
+                  <h2>จุดความร้อนจากดาวเทียม</h2>
+                  <p>NASA FIRMS · {f.satellite ?? "ไม่ระบุดาวเทียม"}</p>
+                </>
+              }
+            >
               <div style={{ fontFamily: "inherit" }}>
-                <div style={{ fontWeight: 700 }}>จุดความร้อนจากดาวเทียม</div>
-                <div style={{ color: "#5a6664", fontSize: ".82em" }}>
-                  NASA FIRMS · {f.satellite ?? "ไม่ระบุดาวเทียม"}
-                </div>
                 {f.frp != null && <div>FRP: {f.frp} MW</div>}
                 {f.acq_date && (
                   <div style={{ color: "#5a6664", fontSize: ".85em" }}>
@@ -75,10 +96,9 @@ export default function FireLayer({ fires }: { fires: FirePoint[] }) {
                   ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว
                 </div>
               </div>
-            </Popup>
-          </PriorityMarker>
-        );
-      })}
+            </MapBottomSheet>
+          </MapSheetPortal>
+        ))}
     </>
   );
 }

@@ -373,8 +373,12 @@ test("satellite hotspot fixture is distinct and never presented as a confirmed f
   const marker = page.locator('[title^="จุดความร้อนจากดาวเทียม"]');
   await expect(marker).toBeVisible();
   await marker.click();
-  const popup = page.locator(".leaflet-popup");
+  const popup = page.getByRole("region", {
+    name: "จุดความร้อนจากดาวเทียม",
+    exact: true,
+  });
   await expect(popup).toBeVisible();
+  await expect(popup).toHaveAttribute("data-snap", "half");
   await expect(popup).toContainText("จุดความร้อนจากดาวเทียม");
   await expect(popup).toContainText("ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว");
 });
@@ -890,8 +894,8 @@ test("community marker opens a distinct privacy-safe report card", async ({
   await expect(card).toBeVisible();
   await expect(card.getByText(/Trust/i)).toHaveCount(0);
   await card
-    .getByRole("button", { name: "ดูรายละเอียดรายงานและผู้รายงาน" })
-    .click();
+    .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+    .press("End");
   await expect(card.getByText("รายงานจากบุคคล", { exact: true })).toBeVisible();
   await expect(
     card.getByRole("heading", {
@@ -928,9 +932,13 @@ test("community marker opens a distinct privacy-safe report card", async ({
   ).toBeVisible();
   await photoDialog.getByRole("button", { name: "ปิดภาพเครื่องวัด" }).click();
   await expect(photoDialog).not.toBeVisible();
+  await card
+    .locator("summary")
+    .filter({ hasText: "ข้อมูลเครื่องวัดและการตรวจข้อมูล" })
+    .click();
   await expect(card.getByText(/เลื่อนจากจุดจริงราว 180 ม./)).toBeVisible();
   const readingComesFirst = await card.evaluate((element) => {
-    const reading = element.querySelector(".cp-map-selection-reading");
+    const reading = element.querySelector("[data-pm25-reading]");
     const profile = element.querySelector(".cp-map-reporter-profile");
     return Boolean(
       reading &&

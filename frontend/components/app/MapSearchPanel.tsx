@@ -2,10 +2,14 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
+import MapBottomSheet from "./MapBottomSheet";
+import historyStyles from "./MapSearchHistory.module.css";
+import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
+import { useSearchHistory } from "@/frontend/hooks/useSearchHistory";
+import type { SearchHistoryEntry } from "@/frontend/types/ui";
 import styles from "@/frontend/styles/mobile-refinements.module.css";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api } from "@/frontend/lib/api-client";
-import { PLACE_RADIUS_KM } from "@/frontend/lib/place-air";
 import type { LocationSuggestion, Station } from "@/frontend/types";
 
 interface MapSearchPanelProps {
@@ -32,6 +36,7 @@ export default function MapSearchPanel({
   onLocationSelect,
   onStationSelect,
 }: MapSearchPanelProps) {
+  const history = useSearchHistory(useCurrentUserId());
   const searchId = useId();
   const [query, setQuery] = useState("");
   const [locations, setLocations] = useState<LocationSuggestion[]>([]);
@@ -103,12 +108,38 @@ export default function MapSearchPanel({
   }
 
   function selectStation(station: Station) {
+    history.remember({
+      key: `station:${station.id}`,
+      kind: "station",
+      stationId: station.id,
+      location: {
+        id: `station:${station.id}`,
+        name: station.name_th ?? station.name_en ?? station.id,
+        address: `Air4Thai${station.province ? ` · ${station.province}` : ""}`,
+        kind: "station",
+        source: "local",
+        lat: station.lat,
+        lon: station.lon,
+      },
+    });
     onStationSelect(station);
     onClose();
   }
 
   function selectLocation(location: LocationSuggestion) {
+    history.remember({ key: `place:${location.id}`, kind: "place", location });
     onLocationSelect(location);
+    onClose();
+  }
+
+  function selectRecent(entry: SearchHistoryEntry) {
+    history.remember(entry);
+    const station =
+      entry.kind === "station"
+        ? stations.find((station) => station.id === entry.stationId)
+        : null;
+    if (station) onStationSelect(station);
+    else onLocationSelect(entry.location);
     onClose();
   }
 
@@ -122,61 +153,28 @@ export default function MapSearchPanel({
     setSearchFailed(false);
   }
 
-  return (
-    <section
-      id={embedded ? undefined : "cp-map-search-panel"}
-      className={
-        embedded
-          ? `cp-measure-card cp-measure-search${locationPicker ? " cp-location-search" : ""}`
-          : "cp-map-flyout cp-map-search-panel"
-      }
-      aria-label={
-        embedded
-          ? purpose === "helper"
-            ? "ค้นหาพื้นที่รับคำขอ"
-            : "เลือกสถานที่เพื่อขอค่าฝุ่น"
-          : "ค้นหาสถานที่หรือสถานี"
-      }
-    >
-      {!locationPicker && (
-        <div className="cp-map-flyout__heading">
-          <div>
-            <strong>
-              {embedded
-                ? purpose === "helper"
-                  ? "ค้นหาพื้นที่ที่ช่วยวัดได้"
-                  : "ขอค่าฝุ่นจากชุมชน"
-                : "ค้นหาสถานที่"}
-            </strong>
-            <small>
-              {embedded
-                ? purpose === "helper"
-                  ? "ค้นหาบ้านหรือที่ทำงาน แล้วปรับจุดให้ตรงบนแผนที่"
-                  : "ค้นหาชื่อสถานที่หรือที่อยู่ แล้วเลือกผลลัพธ์เพื่อปรับจุดบนแผนที่"
-                : forecastMode
-                  ? "ดูพยากรณ์ CAMS ของบริเวณที่เลือก"
-                  : `ดูค่าฝุ่นและแหล่งข้อมูลในระยะ ${PLACE_RADIUS_KM} กม.`}
-            </small>
-          </div>
-          {!embedded && (
-            <button
-              type="button"
-              className="cp-map-flyout__close cp-focus"
-              onClick={onClose}
-              aria-label="ปิดการค้นหา"
-            >
-              <AppIcon name="close" size={20} />
-            </button>
-          )}
-        </div>
-      )}
-
-      <label className={styles.searchLabel} htmlFor={searchId}>
+  const searchForm = (
+    <>
+      <label
+        className={embedded ? styles.searchLabel : historyStyles.hiddenLabel}
+        htmlFor={searchId}
+      >
         {locationPicker ? "สถานที่หรือที่อยู่" : "ค้นหาสถานที่หรือสถานี"}
       </label>
       <form className="cp-map-search-form" onSubmit={submitSearch}>
         <div className={`cp-map-search-field ${styles.searchField}`}>
-          <AppIcon name="search" size={19} />
+          {!embedded ? (
+            <button
+              type="button"
+              className={`${historyStyles.back} cp-focus`}
+              aria-label="ปิดการค้นหา"
+              onClick={onClose}
+            >
+              <AppIcon name="back" size={20} />
+            </button>
+          ) : (
+            <AppIcon name="search" size={19} />
+          )}
           <input
             ref={searchRef}
             id={searchId}
@@ -206,7 +204,7 @@ export default function MapSearchPanel({
             </button>
           )}
         </div>
-        {!locationPicker && (
+        {embedded && !locationPicker && (
           <button
             type="submit"
             className="cp-map-search-submit cp-focus"
@@ -216,6 +214,81 @@ export default function MapSearchPanel({
           </button>
         )}
       </form>
+    </>
+  );
+  const searchContent = (
+    <>
+      {embedded && !locationPicker && (
+        <div className="cp-map-flyout__heading">
+          <div>
+            <strong>
+              {purpose === "helper"
+                ? "ค้นหาพื้นที่ที่ช่วยวัดได้"
+                : "ขอค่าฝุ่นจากชุมชน"}
+            </strong>
+            <small>
+              {purpose === "helper"
+                ? "ค้นหาบ้านหรือที่ทำงาน แล้วปรับจุดให้ตรงบนแผนที่"
+                : "ค้นหาชื่อสถานที่หรือที่อยู่ แล้วเลือกผลลัพธ์เพื่อปรับจุดบนแผนที่"}
+            </small>
+          </div>
+        </div>
+      )}
+      {!embedded && forecastMode && !query.trim() && (
+        <p className="cp-map-search-panel__hint">
+          ดูพยากรณ์ CAMS ของบริเวณที่เลือก
+        </p>
+      )}
+
+      {embedded && searchForm}
+
+      {!query.trim() && history.entries.length > 0 && (
+        <section className={historyStyles.history} aria-label="ประวัติการค้นหา">
+          <header>
+            <h2>ล่าสุด</h2>
+            <button
+              type="button"
+              className={`${historyStyles.clear} cp-focus`}
+              onClick={() => history.remove()}
+            >
+              ล้างประวัติทั้งหมด
+            </button>
+          </header>
+          {history.entries.slice(0, embedded ? 4 : 10).map((entry) => (
+            <div key={entry.key} className={historyStyles.row}>
+              <button
+                type="button"
+                className={`${historyStyles.select} cp-focus`}
+                onClick={() => selectRecent(entry)}
+              >
+                <AppIcon name="clock" size={20} />
+                <span>
+                  <strong>{entry.location.name}</strong>
+                  <small>{entry.location.address}</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`${historyStyles.remove} cp-focus`}
+                aria-label={`ลบ ${entry.location.name} จากประวัติ`}
+                onClick={() => history.remove(entry.key)}
+              >
+                <AppIcon name="close" size={17} />
+              </button>
+            </div>
+          ))}
+          <p className={historyStyles.note}>
+            ประวัติบนอุปกรณ์นี้ · แยกตามบัญชีของคุณ
+          </p>
+        </section>
+      )}
+      {!query.trim() && !history.entries.length && !embedded && (
+        <p className={historyStyles.empty}>
+          ค้นหาชื่อสถานที่ ที่อยู่ หรือสถานี
+          <br />
+          สถานที่ที่เลือกจะแสดงในรายการล่าสุด
+        </p>
+      )}
       {!searchedQuery && canSearch && !stationMatches.length && (
         <p className="cp-map-search-panel__hint">
           พิมพ์ชื่อสถานที่บางส่วน แล้วเลือกจากคำแนะนำ
@@ -313,6 +386,31 @@ export default function MapSearchPanel({
             : "Powered by Geoapify"}
         </a>
       )}
+    </>
+  );
+  return embedded ? (
+    <section
+      className={`cp-measure-card cp-measure-search${locationPicker ? " cp-location-search" : ""}`}
+      aria-label={
+        purpose === "helper"
+          ? "ค้นหาพื้นที่รับคำขอ"
+          : "เลือกสถานที่เพื่อขอค่าฝุ่น"
+      }
+    >
+      {searchContent}
     </section>
+  ) : (
+    <MapBottomSheet
+      id="cp-map-search-panel"
+      label="ค้นหาสถานที่หรือสถานี"
+      className="cp-search-sheet"
+      initialSnap="full"
+      fillHeight
+      onClose={onClose}
+      showClose={false}
+      header={searchForm}
+    >
+      {searchContent}
+    </MapBottomSheet>
   );
 }

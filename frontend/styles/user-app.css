@@ -10662,7 +10662,7 @@
   text-decoration: none;
   cursor: pointer;
 }
-.cp-map:has(.cp-map-request-panel[data-editing="false"]) .leaflet-container {
+.cp-map:has(.cp-map-request-flow[data-editing="false"]) .leaflet-container {
   height: max(
     160px,
     calc(
@@ -10673,15 +10673,15 @@
   bottom: auto;
 }
 
-.cp-map:has(.cp-map-request-panel[data-editing="false"]) .cp-map-topbar,
-.cp-map:has(.cp-map-request-panel[data-editing="false"]) .cp-map-actions,
-.cp-map:has(.cp-map-request-panel[data-editing="false"]) .cp-mapctrls__overview,
-.cp-map:has(.cp-map-request-panel[data-editing="false"]) .cp-mapctrls__zoom,
-.cp-map:has(.cp-map-request-panel[data-editing="false"])
+.cp-map:has(.cp-map-request-flow[data-editing="false"]) .cp-map-topbar,
+.cp-map:has(.cp-map-request-flow[data-editing="false"]) .cp-map-actions,
+.cp-map:has(.cp-map-request-flow[data-editing="false"]) .cp-mapctrls__overview,
+.cp-map:has(.cp-map-request-flow[data-editing="false"]) .cp-mapctrls__zoom,
+.cp-map:has(.cp-map-request-flow[data-editing="false"])
   .cp-mapctrls__error[role="status"] {
   display: none;
 }
-.cp-map:has(.cp-map-request-panel[data-editing="false"]) .cp-mapctrls {
+.cp-map:has(.cp-map-request-flow[data-editing="false"]) .cp-mapctrls {
   top: 12px;
   bottom: auto;
   right: 12px;

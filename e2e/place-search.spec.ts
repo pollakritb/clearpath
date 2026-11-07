@@ -33,9 +33,9 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   ).toBeVisible();
   await page.getByRole("button", { name: /สถานที่ทดสอบ/ }).click();
 
-  const card = page.locator(".cp-place-card");
+  const card = page.locator(".cp-place-sheet");
   await expect(card).toBeVisible();
-  await expect(card).toHaveAttribute("data-expanded", "false");
+  await expect(card).toHaveAttribute("data-snap", "peek");
   await expect(card.getByText("สถานที่ทดสอบ")).toBeVisible();
   await expect(
     page.getByRole("region", { name: "ขอค่าฝุ่นบนแผนที่", exact: true }),
@@ -43,13 +43,11 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   await expect(
     page.getByRole("button", { name: "ใช้จุดนี้เพื่อขอค่าฝุ่น" }),
   ).toHaveCount(0);
-  await expect(card.locator(".cp-place-card__eyebrow")).toContainText(
-    "วง 2 กม.",
-  );
+  await expect(card.getByText("ค่าฝุ่นรอบจุดนี้ · ภายใน 2 กม.")).toBeVisible();
   await expect(page.locator(".cp-place-marker")).toHaveCount(1);
   await expect(
-    card.getByRole("heading", { name: "สถานีตรวจวัด" }),
-  ).toBeHidden();
+    card.getByRole("heading", { name: /สถานีใกล้เคียง/ }),
+  ).toHaveCount(0);
   const marker = await page.locator(".cp-place-marker").boundingBox();
   const collapsedCard = await card.boundingBox();
   expect(marker).not.toBeNull();
@@ -58,22 +56,15 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   await page.screenshot({ path: "test-results/place-focus-mobile.png" });
 
   await card
-    .getByRole("button", { name: /ดูรายละเอียดค่าฝุ่นและแหล่งข้อมูล/ })
-    .click();
+    .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+    .press("End");
   await expect(card).toHaveAttribute("data-expanded", "true");
-  await expect(card.locator(".cp-place-card__radius")).toContainText(
-    "วง 2 กม.",
-  );
   await expect(
-    card.getByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
-  ).toBeVisible();
-  await expect(card.locator('a[href^="/air"]')).toHaveCount(0);
-  await expect(
-    card.getByRole("heading", { name: "สถานีตรวจวัด" }),
+    card.getByRole("heading", { name: /สถานีใกล้เคียง/ }),
   ).toBeVisible();
   await expect(
-    card.getByRole("heading", { name: "รายงานจากบุคคล" }),
-  ).toBeVisible();
+    card.getByRole("heading", { name: /รายงานจากชุมชน/ }),
+  ).toHaveCount(0);
   await page.screenshot({
     path: "test-results/place-focus-details-mobile.png",
   });
@@ -88,9 +79,11 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   await expect(card).toHaveAttribute("data-expanded", "true");
   const expandedBounds = await card.boundingBox();
   expect(expandedBounds).not.toBeNull();
-  expect(expandedBounds!.height).toBeGreaterThan(1100);
+  expect(expandedBounds!.height).toBeGreaterThan(collapsedCard!.height);
   await page.screenshot({ path: "test-results/place-focus-details-680.png" });
-  await card.getByRole("button", { name: "กลับไปดูแบบย่อ" }).click();
+  await card
+    .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+    .press("Home");
   const compactBounds = await card.boundingBox();
   const navBounds = await page.locator(".cp-mobile-nav").boundingBox();
   expect(compactBounds).not.toBeNull();
@@ -100,13 +93,9 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   expect(compactBounds!.y + compactBounds!.height).toBeLessThan(navBounds!.y);
   await page.screenshot({ path: "test-results/place-focus-compact-680.png" });
   await card
-    .getByRole("button", { name: /ดูรายละเอียดค่าฝุ่นและแหล่งข้อมูล/ })
-    .click();
-  await expect(
-    card.getByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
-  ).toBeVisible();
-
-  await card.getByRole("button", { name: "กลับสู่แผนที่รวม" }).last().click();
+    .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+    .press("End");
+  await card.getByRole("button", { name: "ปิดสถานที่ที่เลือก" }).click();
   await expect(card).toHaveCount(0);
   await expect(page.locator(".cp-place-marker")).toHaveCount(0);
 
@@ -127,13 +116,38 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   await page.getByRole("button", { name: /สถานที่ทดสอบ/ }).click();
   await expect(page.locator(".cp-map-request-panel")).toHaveCount(0);
   await expect(
-    page.locator(".cp-place-card").getByText("สถานที่ทดสอบ", { exact: true }),
+    page.locator(".cp-place-sheet").getByText("สถานที่ทดสอบ", { exact: true }),
   ).toBeVisible();
 });
 
 test("OpenStreetMap place keeps its PM2.5 reading and credits the place source", async ({
   page,
 }) => {
+  await page.route("**/api/pm25/current", (route) =>
+    route.fulfill({
+      json: {
+        updated_at: new Date().toISOString(),
+        count: 1,
+        fresh_count: 1,
+        delayed_count: 0,
+        expired_count: 0,
+        stations: [
+          {
+            id: "81t",
+            name_th: "สถานีทดสอบ",
+            lat: 13.8199,
+            lon: 100.0622,
+            pm25: 18.5,
+            recorded_at: new Date().toISOString(),
+            data_status: "fresh",
+            age_minutes: 1,
+            eligible_for_surface: true,
+            in_service_area: true,
+          },
+        ],
+      },
+    }),
+  );
   await page.route("**/api/locations/search?*", (route) =>
     route.fulfill({
       contentType: "application/json",
@@ -159,14 +173,84 @@ test("OpenStreetMap place keeps its PM2.5 reading and credits the place source",
     .getByPlaceholder("ชื่อสถานที่ ที่อยู่ หรือสถานี")
     .fill("สถานที่ทด");
   await page.getByRole("button", { name: /สถานที่ทดสอบ OSM/ }).click();
-  const card = page.locator(".cp-place-card");
+  const card = page.locator(".cp-place-sheet");
   await card
-    .getByRole("button", { name: /ดูรายละเอียดค่าฝุ่นและแหล่งข้อมูล/ })
+    .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+    .press("End");
+  await expect(card.getByText("18.5", { exact: true }).first()).toBeVisible();
+  await card
+    .locator("summary")
+    .filter({ hasText: "ที่มาและวิธีประเมิน" })
     .click();
-  await expect(card.locator(".cp-place-card__reading strong")).toContainText(
-    /\d+\.\d/,
-  );
   await expect(
     card.getByRole("link", { name: "© OpenStreetMap contributors" }),
   ).toBeVisible();
+});
+
+test("search keeps recent selections after reload and supports deleting or clearing history", async ({
+  page,
+}) => {
+  const locations = [
+    {
+      id: "local:park",
+      name: "สวนทดสอบ",
+      address: "นครปฐม",
+      kind: "park",
+      source: "local",
+      lat: 13.8199,
+      lon: 100.0622,
+    },
+    {
+      id: "local:school",
+      name: "โรงเรียนทดสอบ",
+      address: "นครปฐม",
+      kind: "school",
+      source: "local",
+      lat: 13.82,
+      lon: 100.06,
+    },
+  ];
+  await page.route("**/api/locations/search?*", (route) =>
+    route.fulfill({ json: { locations, coverage: "limited" } }),
+  );
+  await page.goto("/");
+  for (const location of locations) {
+    await page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี" }).click();
+    await page.getByRole("searchbox").fill("ทดสอบ");
+    await page
+      .locator(".cp-map-search-results")
+      .getByRole("button", { name: new RegExp(location.name) })
+      .click();
+    const sheet = page.locator(".cp-place-sheet");
+    await expect(sheet).toHaveAttribute("data-snap", "peek");
+    // Exercise the actual pointer gesture, rather than an expand button.
+    const grip = await sheet
+      .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+      .boundingBox();
+    await page.mouse.move(grip!.x + grip!.width / 2, grip!.y + 22);
+    await page.mouse.down();
+    await page.mouse.move(grip!.x + grip!.width / 2, 12, { steps: 12 });
+    await page.mouse.up();
+    await expect(sheet).toHaveAttribute("data-snap", "full");
+    await sheet.getByRole("button", { name: "ปิดสถานที่ที่เลือก" }).click();
+  }
+  await page.reload();
+  await page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี" }).click();
+  const recent = page.getByRole("region", { name: "ประวัติการค้นหา" });
+  await expect(recent.getByText("สวนทดสอบ", { exact: true })).toBeVisible();
+  await expect(
+    recent.getByText("โรงเรียนทดสอบ", { exact: true }),
+  ).toBeVisible();
+  await recent.getByRole("button", { name: "ลบ สวนทดสอบ จากประวัติ" }).click();
+  await expect(recent.getByText("สวนทดสอบ", { exact: true })).toHaveCount(0);
+  await recent.getByRole("button", { name: "ล้างประวัติทั้งหมด" }).click();
+  await expect(recent).toHaveCount(0);
+  await page.reload();
+  await page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี" }).click();
+  await expect(
+    page.getByRole("region", { name: "ประวัติการค้นหา" }),
+  ).toHaveCount(0);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(page.viewportSize()!.width);
 });

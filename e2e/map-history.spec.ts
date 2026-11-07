@@ -77,9 +77,9 @@ test("separate station sliders move left through Air4Thai and right through CAMS
     name: "รายละเอียดสถานีตรวจวัดทางการ",
     exact: true,
   });
-  await expect(
-    pin.locator(".cp-pin-station-meta").filter({ hasText: "รหัสสถานี" }),
-  ).toContainText("รหัสสถานี");
+  await expect(pin.getByText(/รหัสสถานี/, { exact: false })).toContainText(
+    "รหัสสถานี",
+  );
   await expect(
     pin.getByRole("button", { name: "ดูรายละเอียดสถานี" }),
   ).toHaveCount(0);

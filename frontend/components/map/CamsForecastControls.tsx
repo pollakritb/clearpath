@@ -61,54 +61,95 @@ export default function CamsForecastControls({
                 : grid.notice
                   ? grid.notice
                   : `CAMS · ${times.length} ช่วงเวลาที่เลือกได้`);
+  if (requestCard) return <>{requestCard}</>;
   return (
-    <div className="cp-cams-dock">
-      {requestCard}
-      {!requestCard && point && (
-        <section
-          className="cp-cams-point"
-          aria-label="ค่าพยากรณ์บริเวณที่เลือก"
-        >
-          <div>
-            <strong>{point.name ?? "บริเวณที่เลือก"} · พยากรณ์</strong>
-            <button
-              type="button"
-              className="cp-focus"
-              aria-label="ปิดรายละเอียดพยากรณ์"
-              onClick={onClosePoint}
-            >
-              ×
-            </button>
-          </div>
-          <p>
-            <b
-              data-message={outside || value == null ? "true" : undefined}
-              style={{ color: cls.color }}
-            >
-              {outside
-                ? "นอกขอบเขตข้อมูลกริด"
-                : loading
-                  ? "…"
-                  : value == null
-                    ? "ไม่มีข้อมูล"
-                    : value.toFixed(1)}
-            </b>
-            {value != null && <> µg/m³ · {cls.level}</>}
-          </p>
-          <small>{at ? formatForecastTime(at) : ""} · CAMS</small>
-          {!outside && point && isInThailand(point.lat, point.lon) && (
-            <button
-              type="button"
-              className="cp-cams-point__request cp-focus"
-              onClick={onRequest}
-            >
-              ขอให้ชุมชนช่วยวัดบริเวณนี้ →
-            </button>
-          )}
-        </section>
-      )}
+    <>
       <MapTimelineControls
+        onClose={onExit}
         title="พยากรณ์ PM2.5 · CAMS"
+        detail={
+          <>
+            {point && (
+              <section
+                className="cp-cams-point"
+                aria-label="ค่าพยากรณ์บริเวณที่เลือก"
+              >
+                <div>
+                  <strong>{point.name ?? "บริเวณที่เลือก"} · พยากรณ์</strong>
+                  <button
+                    type="button"
+                    className="cp-focus"
+                    aria-label="ปิดรายละเอียดพยากรณ์"
+                    onClick={onClosePoint}
+                  >
+                    ×
+                  </button>
+                </div>
+                <p>
+                  <b
+                    data-message={outside || value == null ? "true" : undefined}
+                    style={{ color: cls.color }}
+                  >
+                    {outside
+                      ? "นอกขอบเขตข้อมูลกริด"
+                      : loading
+                        ? "…"
+                        : value == null
+                          ? "ไม่มีข้อมูล"
+                          : value.toFixed(1)}
+                  </b>
+                  {value != null && <> µg/m³ · {cls.level}</>}
+                </p>
+                <small>{at ? formatForecastTime(at) : ""} · CAMS</small>
+                {!outside && point && isInThailand(point.lat, point.lon) && (
+                  <button
+                    type="button"
+                    className="cp-cams-point__request cp-focus"
+                    onClick={onRequest}
+                  >
+                    ขอให้ชุมชนช่วยวัดบริเวณนี้ →
+                  </button>
+                )}
+              </section>
+            )}
+          </>
+        }
+        footer={
+          <>
+            <div
+              className="cp-cams-ramp"
+              aria-hidden="true"
+              style={{ display: "flex" }}
+            >
+              {AQI_LEGEND.map((band) => (
+                <span
+                  key={band.range}
+                  style={{ flex: 1, background: band.color }}
+                />
+              ))}
+            </div>
+            <div
+              className="cp-cams-legend"
+              aria-label="ระดับ PM2.5 หน่วยไมโครกรัมต่อลูกบาศก์เมตร"
+            >
+              {AQI_LEGEND.map((band) => (
+                <span key={band.range}>
+                  <i style={{ background: band.color }} />
+                  {band.range}
+                </span>
+              ))}
+            </div>
+            {(error || grid.noFrame) && (
+              <div className="cp-cams-footer">
+                {(error || grid.noFrame) && (
+                  <button type="button" onClick={grid.retry}>
+                    ลองใหม่
+                  </button>
+                )}
+              </div>
+            )}
+          </>
+        }
         endAction={
           <button
             type="button"
@@ -237,35 +278,6 @@ export default function CamsForecastControls({
           </details>
         }
       />
-      <div
-        className="cp-cams-ramp"
-        aria-hidden="true"
-        style={{ display: "flex" }}
-      >
-        {AQI_LEGEND.map((band) => (
-          <span key={band.range} style={{ flex: 1, background: band.color }} />
-        ))}
-      </div>
-      <div
-        className="cp-cams-legend"
-        aria-label="ระดับ PM2.5 หน่วยไมโครกรัมต่อลูกบาศก์เมตร"
-      >
-        {AQI_LEGEND.map((band) => (
-          <span key={band.range}>
-            <i style={{ background: band.color }} />
-            {band.range}
-          </span>
-        ))}
-      </div>
-      {(error || grid.noFrame) && (
-        <div className="cp-cams-footer">
-          {(error || grid.noFrame) && (
-            <button type="button" onClick={grid.retry}>
-              ลองใหม่
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+    </>
   );
 }

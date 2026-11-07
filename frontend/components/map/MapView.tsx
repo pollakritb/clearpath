@@ -40,6 +40,7 @@ import SavedHelperMarkers from "./SavedHelperMarkers";
 import RequestMarkers from "./RequestMarkers";
 
 export interface MapViewProps {
+  toolsOpen?: boolean;
   dataMode?: string;
   camsSurface?: GridSurface | null;
   camsPreload?: GridSurface[];
@@ -80,6 +81,7 @@ export interface MapViewProps {
 }
 
 export default function MapView({
+  toolsOpen = false,
   dataMode = "current",
   camsSurface = null,
   camsPreload,
@@ -129,7 +131,7 @@ export default function MapView({
       className="cp-fill-container"
       scrollWheelZoom
     >
-      <MarkerPriorityProvider>
+      <MarkerPriorityProvider toolsOpen={toolsOpen}>
         <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} noWrap />
 
         <SavedHelperMarkers
@@ -211,7 +213,9 @@ export default function MapView({
             selectedStackId={selectedReportStackId}
           />
         )}
-        {fires.length > 0 && <FireLayer fires={fires} />}
+        {fires.length > 0 && (
+          <FireLayer fires={fires} onSelect={onSelectSavedLocation} />
+        )}
         <RequestMarkers
           requests={measurementRequests}
           selectedId={selectedRequestId}

@@ -72,9 +72,9 @@ describe("MapStatusCard", () => {
     );
 
     expect(screen.getByText("42")).not.toBeNull();
-    expect(screen.queryByRole("region", { name: "ผู้รายงาน" })).toBeNull();
-    fireEvent.click(
-      screen.getByRole("button", { name: "ดูรายละเอียดรายงานและผู้รายงาน" }),
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+      { key: "End" },
     );
     const photo = screen.getByRole("button", {
       name: "เปิดดูภาพเครื่องวัดจากรายงานนี้",
@@ -111,7 +111,10 @@ describe("MapStatusCard", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: /กลับไปแผนที่/ }));
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+      { key: "Home" },
+    );
     expect(screen.queryByRole("region", { name: "ผู้รายงาน" })).toBeNull();
   });
 
@@ -179,9 +182,6 @@ it.each([true, false])(
         updatedAt="2026-11-01T12:00:00Z"
         onClose={vi.fn()}
       />,
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "ดูรายละเอียดรายงานและผู้รายงาน" }),
     );
     expect(
       Boolean(

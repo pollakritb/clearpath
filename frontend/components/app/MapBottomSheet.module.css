@@ -1,0 +1,160 @@
+.sheet {
+  position: absolute;
+  z-index: 1600;
+  right: 8px;
+  left: 8px;
+  bottom: calc(var(--cp-mobile-nav-h, 76px) + 8px + var(--sheet-keyboard, 0px));
+  display: flex;
+  flex-direction: column;
+  height: var(--sheet-height, 55%);
+  max-height: calc(
+    100% - var(--cp-mobile-nav-h, 76px) - 20px - var(--sheet-keyboard, 0px)
+  );
+  min-height: 100px;
+  overflow: hidden;
+  border-radius: 24px 24px 18px 18px;
+  background: white;
+  color: var(--cp-ink);
+  box-shadow: 0 8px 28px #173b3326;
+  transition: height 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.sheet[data-dragging="true"] {
+  transition: none;
+}
+.header {
+  position: relative;
+  flex: none;
+  touch-action: none;
+  user-select: none;
+}
+.grip {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: ns-resize;
+}
+.grip > span {
+  width: 40px;
+  height: 5px;
+  border-radius: 4px;
+  background: #b4c6c0;
+}
+.close {
+  position: absolute;
+  top: 38px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 14px;
+  background: #f0f5f3;
+  color: var(--cp-teal);
+  cursor: pointer;
+}
+.summary {
+  display: flow-root;
+  min-width: 0;
+  padding: 0 16px 14px;
+}
+.summary h1,
+.summary h2 {
+  margin: 6px 44px 10px 0;
+  font-size: 18px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.summary p {
+  margin: 6px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.body[aria-hidden="true"] {
+  overflow: hidden;
+}
+.content {
+  display: flow-root;
+  min-width: 0;
+  padding: 0 16px calc(18px + env(safe-area-inset-bottom));
+}
+.content:empty {
+  padding: 0;
+}
+.content > p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.content :global(.cp-place-card__heading) {
+  padding: 0;
+}
+.content :global(.cp-map-selection-section) {
+  margin-top: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    transition: none;
+  }
+}
+
+/* Only the active tool/overlay owns the sheet area. */
+:global(.cp-map:has(.cp-search-sheet, .cp-layers-sheet))
+  .sheet:not(:global(.cp-search-sheet), :global(.cp-layers-sheet)) {
+  display: none;
+}
+:global(.cp-map:has(.cp-saved-sheet, .cp-hotspot-sheet)):not(
+    :global(:has(.cp-search-sheet, .cp-layers-sheet))
+  )
+  .sheet:not(:global(.cp-saved-sheet), :global(.cp-hotspot-sheet)) {
+  display: none;
+}
+.sheet:global(.cp-timeline-sheet) .summary {
+  padding-right: 16px;
+}
+.sheet:global(.cp-timeline-sheet) :global(.cp-map-history-dock__heading) {
+  grid-template-columns: 44px minmax(0, 1fr) auto 44px;
+  gap: 7px;
+}
+.sheet:global(.cp-timeline-sheet)
+  :global(.cp-map-history-dock__heading strong) {
+  font-size: 15px;
+}
+.sheet:global(.cp-timeline-sheet) :global(.cp-map-history-dock__heading small) {
+  font-size: 11px;
+}
+.sheet:global(.cp-timeline-sheet) :global(.cp-map-timeline__sub) {
+  flex-wrap: wrap;
+}
+.sheet:global(.cp-search-sheet) :global(.cp-map-search-results) {
+  max-height: none;
+  overflow: visible;
+}
+
+.sheet:global(.cp-current-sheet) :global(.cp-map-current-summary) {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.sheet:global(.cp-current-sheet) .summary {
+  padding: 0 12px 12px;
+}
+.sheet:global(.cp-current-sheet) :global(.cp-map-current-dock__copy strong) {
+  font-size: 13px;
+}
+
+.sheet:global(.cp-timeline-sheet)
+  :global(.cp-map-history-dock__heading button) {
+  min-width: 44px;
+  min-height: 44px;
+}

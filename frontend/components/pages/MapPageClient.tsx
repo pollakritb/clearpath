@@ -256,6 +256,7 @@ export default function MapPageClient(options: MapPageOptions) {
         </div>
       )}
       <MapView
+        toolsOpen={panelOpen || requestStep !== "idle"}
         dataMode={mode}
         camsSurface={
           camsEnabled && !(timelineOpen && historyStation) ? cams.surface : null

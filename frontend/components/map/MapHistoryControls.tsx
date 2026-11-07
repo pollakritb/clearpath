@@ -40,8 +40,13 @@ export default function MapHistoryControls({
     return () => clearTimeout(timer);
   }, [offsetHours, onOffsetChange, playing, paused, loading, error]);
   return (
-    <div className="cp-history-timeline-host" hidden={paused}>
+    <div
+      className="cp-history-timeline-host"
+      hidden={paused}
+      style={{ display: paused ? "none" : "contents" }}
+    >
       <MapTimelineControls
+        onClose={onReturnCurrent}
         title="ค่าตรวจวัดย้อนหลัง"
         time={
           targetAt ? formatForecastTime(targetAt) : "กำลังเตรียมข้อมูลย้อนหลัง"

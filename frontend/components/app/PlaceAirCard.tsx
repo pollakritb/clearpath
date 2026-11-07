@@ -1,19 +1,15 @@
 "use client";
-
-import ParticipationBadge from "@/frontend/components/community/ParticipationBadge";
-
+import MapBottomSheet from "./MapBottomSheet";
+import MapPanelReading from "./MapPanelReading";
 import MapStationForecast from "./MapStationForecast";
-import { useState } from "react";
-
+import styles from "./MapPanel.module.css";
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import { classifyPm25 } from "@/frontend/lib/aqi";
 import { PLACE_RADIUS_KM, type PlaceAir } from "@/frontend/lib/place-air";
 import type {
   CommunityReport,
   LocationSuggestion,
   Station,
 } from "@/frontend/types";
-
 interface PlaceAirCardProps {
   place: LocationSuggestion;
   air: PlaceAir;
@@ -24,17 +20,14 @@ interface PlaceAirCardProps {
   dataError: string | null;
   onRequestMeasurement: () => void;
 }
-
 const distance = (km: number, approximate = false) =>
   `${approximate ? "ประมาณ " : ""}${km < 1 ? `${Math.round(km * 1000)} ม.` : `${km.toFixed(1)} กม.`}`;
-
 const age = (minutes: number | null) =>
   minutes == null
     ? "ไม่ทราบเวลาวัด"
     : minutes < 60
       ? `${Math.round(minutes)} นาทีที่แล้ว`
       : `${Math.round(minutes / 60)} ชม.ที่แล้ว`;
-
 export default function PlaceAirCard({
   place,
   air,
@@ -45,290 +38,175 @@ export default function PlaceAirCard({
   dataError,
   onRequestMeasurement,
 }: PlaceAirCardProps) {
-  const [expanded, setExpanded] = useState(false);
-  const classification = classifyPm25(air.value);
   const stationCount = air.contributors.filter(
     (point) => point.source === "station",
   ).length;
   const reportCount = air.contributors.filter(
     (point) => point.source === "report",
   ).length;
-
-  const readingStyle = {
-    "--place-color": air.value == null ? "#476b69" : classification.color,
-    "--place-tint": air.value == null ? "#edf4f2" : classification.tint,
-  } as React.CSSProperties;
-
-  if (!expanded) {
-    return (
-      <section
-        className="cp-place-card cp-place-card--compact"
-        aria-label={`ค่าฝุ่นรอบ ${place.name}`}
-        data-expanded="false"
-        style={readingStyle}
-      >
-        <div className="cp-map-selection-card__handle" aria-hidden />
-        <button
-          type="button"
-          className="cp-map-selection-card__close cp-focus"
-          onClick={onClose}
-          aria-label="ปิดสถานที่ที่เลือก"
-        >
-          <AppIcon name="close" size={19} />
-        </button>
-        <div className="cp-place-card__heading">
-          <span className="cp-place-card__eyebrow">
-            <AppIcon name="location" size={15} /> สถานที่ที่เลือก · วง{" "}
-            {PLACE_RADIUS_KM} กม.
-          </span>
-          <h1>{place.name}</h1>
-        </div>
-        <div className="cp-place-card__compact-reading" aria-live="polite">
-          {loading && air.stations.length === 0 && air.reports.length === 0 ? (
-            <strong>กำลังโหลดค่าฝุ่น…</strong>
-          ) : air.value == null ? (
-            <>
-              <strong>ยังไม่มีค่าฝุ่นที่ประเมินได้</strong>
-              <span>ไม่มีสถานีหรือรายงานข้อมูลสดในวง</span>
-            </>
-          ) : (
-            <>
-              <strong className="cp-place-card__compact-value">
-                {air.value.toFixed(1)} <small>µg/m³</small>
-              </strong>
-              <span>{classification.level} · ค่าฝุ่นโดยประมาณ</span>
-            </>
-          )}
-        </div>
-        <button
-          type="button"
-          className="cp-place-card__open cp-focus"
-          onClick={() => setExpanded(true)}
-          aria-label={`ดูรายละเอียดค่าฝุ่นและแหล่งข้อมูลรอบ ${place.name}`}
-        >
-          <span>
-            ดูรายละเอียด · {air.stations.length} สถานี · {air.reports.length}{" "}
-            รายงาน
-          </span>
-          <AppIcon name="chevron" size={18} />
-        </button>
-        <button
-          type="button"
-          className="cp-measure-primary cp-place-request cp-focus"
-          onClick={onRequestMeasurement}
-        >
-          ขอให้ช่วยวัดบริเวณนี้
-        </button>
-      </section>
-    );
-  }
-
+  const noCurrent = air.value == null;
   return (
-    <section
-      className="cp-place-card"
-      aria-label={`รายละเอียดค่าฝุ่นรอบ ${place.name}`}
-      data-expanded="true"
-      style={readingStyle}
+    <MapBottomSheet
+      label={`ค่าฝุ่นรอบ ${place.name}`}
+      className={`cp-place-sheet ${styles.panel}`}
+      initialSnap="peek"
+      onClose={onClose}
+      closeLabel="ปิดสถานที่ที่เลือก"
+      header={
+        <>
+          <h1 className={styles.title}>{place.name}</h1>
+          <p className={styles.context}>
+            ค่าฝุ่นรอบจุดนี้ · ภายใน {PLACE_RADIUS_KM} กม.
+          </p>
+          <MapPanelReading
+            value={air.value == null ? null : Number(air.value.toFixed(1))}
+            status={
+              loading && !air.stations.length && !air.reports.length
+                ? "กำลังโหลดค่าฝุ่น…"
+                : noCurrent
+                  ? "ยังไม่มีค่าปัจจุบัน"
+                  : undefined
+            }
+            caption={
+              noCurrent
+                ? air.stations.length || air.reports.length
+                  ? "ข้อมูลใกล้เคียงยังไม่สดพอใช้ประเมิน"
+                  : "ยังไม่มีข้อมูลตรวจวัดใกล้จุดนี้"
+                : `ประเมินจาก ${stationCount} สถานี · ${reportCount} รายงาน`
+            }
+          />
+          {noCurrent && (
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={`${styles.action} cp-focus`}
+                onClick={onRequestMeasurement}
+              >
+                <AppIcon name="community" size={17} /> ขอให้ช่วยวัดบริเวณนี้
+              </button>
+            </div>
+          )}
+        </>
+      }
     >
-      <div className="cp-map-selection-card__handle" aria-hidden />
-      <button
-        type="button"
-        className="cp-map-selection-card__collapse cp-focus"
-        onClick={() => setExpanded(false)}
-      >
-        ← กลับไปดูแบบย่อ
-      </button>
-      <button
-        type="button"
-        className="cp-map-selection-card__close cp-focus"
-        onClick={onClose}
-        aria-label="กลับสู่แผนที่รวม"
-      >
-        <AppIcon name="close" size={19} />
-      </button>
-      <div className="cp-place-card__heading">
-        <span className="cp-place-card__eyebrow">
-          <AppIcon name="location" size={15} /> สถานที่ที่เลือก
-        </span>
-        <h1>{place.name}</h1>
-        <p>{place.address}</p>
-      </div>
-
-      <div className="cp-place-card__reading" aria-live="polite">
-        {loading && air.stations.length === 0 && air.reports.length === 0 ? (
-          <strong>กำลังโหลดข้อมูลค่าฝุ่น…</strong>
-        ) : air.value == null ? (
-          <>
-            <strong>ยังไม่มีค่าฝุ่นที่ประเมินได้</strong>
-            <span>
-              ไม่มีสถานีหรือรายงานที่ใช้ประเมินได้ภายใน {PLACE_RADIUS_KM} กม.
-            </span>
-          </>
-        ) : (
-          <>
-            <small>
-              ค่าฝุ่นโดยประมาณ · {stationCount} สถานี · {reportCount} รายงาน
-            </small>
-            <strong>
-              {air.value.toFixed(1)} <span>µg/m³</span>
-            </strong>
-            <span>PM2.5 · {classification.level}</span>
-          </>
-        )}
-      </div>
-
       {dataError && (
-        <p className="cp-place-card__error" role="alert">
-          อัปเดตข้อมูลสถานีไม่สำเร็จ · โปรดลองอีกครั้ง
+        <p role="alert" className={styles.address}>
+          อัปเดตข้อมูลไม่สำเร็จ · แสดงข้อมูลล่าสุดที่โหลดได้
         </p>
       )}
-
-      <p className="cp-place-card__radius">
-        <AppIcon name="info" size={16} /> วง {PLACE_RADIUS_KM} กม.
-        คือระยะค้นหาข้อมูล ไม่ใช่พื้นที่ที่ฝุ่นมีค่าเท่ากัน
-      </p>
-
-      <MapStationForecast area={{ lat: place.lat, lon: place.lon }} />
-
-      <div className="cp-place-card__details">
-        <h2 className="cp-place-card__details-title">
-          แหล่งข้อมูลในวง {PLACE_RADIUS_KM} กม.
-          <small>
-            {air.stations.length} สถานี · {air.reports.length} รายงาน
-          </small>
-        </h2>
-        <div className="cp-place-card__sources">
+      {!!air.stations.length && (
+        <section className={styles.section}>
           <h2>
-            สถานีตรวจวัด <small>{air.stations.length} แห่งในวง</small>
+            สถานีใกล้เคียง <small>{air.stations.length} แห่ง</small>
           </h2>
-          {air.stations.length ? (
-            air.stations.map(({ station, distanceKm, ageMinutes, usable }) => (
+          <div className={styles.sources}>
+            {air.stations.map(({ station, distanceKm, ageMinutes, usable }) => (
               <button
                 key={station.id}
                 type="button"
-                className="cp-place-card__source cp-focus"
+                className={`${styles.source} cp-focus`}
+                data-stale={!usable}
                 onClick={() => onSelectStation(station)}
               >
-                <span
-                  className="cp-place-card__source-icon"
-                  data-kind="official"
-                >
-                  <AppIcon name="station" size={17} />
-                </span>
-                <span className="cp-place-card__source-copy">
+                <AppIcon name="station" size={19} />
+                <span>
                   <strong>
                     {station.name_th ?? station.name_en ?? station.id}
                   </strong>
                   <small>
-                    {distance(distanceKm)} · {age(ageMinutes)} ·{" "}
-                    {usable
-                      ? air.contributors.some(
-                          (point) =>
-                            point.source === "station" &&
-                            point.id === station.id,
-                        )
-                        ? "ใช้ประเมิน"
-                        : "ผ่านเกณฑ์ · ใช้ข้อมูลที่ตรงจุดแทน"
-                      : station.pm25 == null
-                        ? "ไม่มีค่าฝุ่น"
-                        : "ข้อมูลไม่สด"}
+                    {distance(distanceKm)} · {age(ageMinutes)}
+                    {station.pm25 == null
+                      ? " · ไม่มีค่าฝุ่น"
+                      : !usable
+                        ? " · ข้อมูลไม่สด"
+                        : ""}
                   </small>
                 </span>
                 <b>{station.pm25 == null ? "—" : station.pm25.toFixed(1)}</b>
               </button>
-            ))
-          ) : (
-            <p className="cp-place-card__empty">
-              ไม่มีสถานีในวงนี้
-              {air.nearestStation
-                ? ` · ใกล้สุด ${distance(air.nearestStation.distanceKm)}`
-                : ""}
-            </p>
-          )}
-
+            ))}
+          </div>
+        </section>
+      )}
+      {!!air.reports.length && (
+        <section className={styles.section}>
           <h2>
-            รายงานจากบุคคล <small>{air.reports.length} รายงานในวง</small>
+            รายงานจากชุมชน <small>{air.reports.length} รายงาน</small>
           </h2>
-          <p className="cp-place-card__note">
-            รายงานที่อนุมัติและวัดไม่เกิน 3 ชั่วโมง ใช้ IDW สูตรเดียวกับสถานี ·
-            ระยะจากพิกัดสาธารณะโดยประมาณ
-          </p>
-          {air.reports.length ? (
-            air.reports.map(({ report, distanceKm, ageMinutes, usable }) => (
+          <div className={styles.sources}>
+            {air.reports.map(({ report, distanceKm, ageMinutes, usable }) => (
               <button
                 key={report.id}
                 type="button"
-                className="cp-place-card__source cp-focus"
+                className={`${styles.source} cp-focus`}
+                data-stale={!usable}
                 onClick={() => onSelectReport(report)}
               >
-                <span className="cp-place-card__source-icon" data-kind="report">
-                  <AppIcon name="user" size={17} />
-                </span>
-                <span className="cp-place-card__source-copy">
+                <AppIcon name="user" size={19} />
+                <span>
                   <strong>
                     {report.display_name ?? "ผู้รายงานไม่เปิดเผยตัวตน"}
                   </strong>
-                  {report.show_reporter_profile &&
-                    report.participation_rank && (
-                      <ParticipationBadge rank={report.participation_rank} />
-                    )}
                   <small>
-                    {distance(distanceKm, true)} · {age(ageMinutes)} ·
-                    {usable
-                      ? air.contributors.some(
-                          (point) =>
-                            point.source === "report" && point.id === report.id,
-                        )
-                        ? "ใช้ประเมิน"
-                        : "ผ่านเกณฑ์ · ใช้ข้อมูลที่ตรงจุดแทน"
-                      : "ไม่ใช้ประเมิน · ข้อมูลไม่สดหรือไม่มีเวลาวัด"}
-                    {" · "}ดูภาพและรายละเอียด
+                    {distance(distanceKm, true)} · {age(ageMinutes)}
+                    {!usable ? " · ข้อมูลไม่สด" : ""}
                   </small>
                 </span>
-                <b>{report.pm25?.toFixed(1)}</b>
+                <b>{report.pm25?.toFixed(1) ?? "—"}</b>
               </button>
-            ))
-          ) : (
-            <p className="cp-place-card__empty">ไม่มีรายงานที่เผยแพร่ในวงนี้</p>
-          )}
+            ))}
+          </div>
+        </section>
+      )}
+      <MapStationForecast
+        area={{ lat: place.lat, lon: place.lon }}
+        hideUnavailable
+      />
+      {!noCurrent && (
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={`${styles.action} cp-focus`}
+            onClick={onRequestMeasurement}
+          >
+            <AppIcon name="community" size={17} /> ขอให้ช่วยวัดบริเวณนี้
+          </button>
         </div>
-        <button
-          type="button"
-          className="cp-place-card__reset cp-focus"
-          onClick={onClose}
-        >
-          กลับสู่แผนที่รวม
-        </button>
-      </div>
-      <small className="cp-place-card__attribution">
-        ข้อมูลสถานที่:{" "}
-        {place.source === "geoapify" ? (
-          <a
-            href="https://www.geoapify.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Powered by Geoapify
-          </a>
-        ) : place.source === "openstreetmap" ? (
-          <a
-            href="https://www.openstreetmap.org/copyright"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            © OpenStreetMap contributors
-          </a>
-        ) : (
-          "ข้อมูลท้องถิ่น ClearPath"
-        )}
-      </small>
-      <button
-        type="button"
-        className="cp-measure-primary cp-place-request cp-focus"
-        onClick={onRequestMeasurement}
-      >
-        ขอให้ช่วยวัดบริเวณนี้
-      </button>
-    </section>
+      )}
+      <p className={styles.address}>{place.address}</p>
+      <details className={styles.details}>
+        <summary className="cp-focus">ที่มาและวิธีประเมิน</summary>
+        <p>
+          วง {PLACE_RADIUS_KM} กม. คือระยะค้นหาข้อมูล
+          ไม่ใช่พื้นที่ที่ฝุ่นมีค่าเท่ากัน
+        </p>
+        <p>
+          ใช้สถานีสดไม่เกิน 1 ชั่วโมง และรายงานที่อนุมัติและวัดไม่เกิน 3 ชั่วโมง
+          ถ่วงน้ำหนักตามระยะทางจากพิกัดสาธารณะ
+        </p>
+        <p>
+          ข้อมูลสถานที่:{" "}
+          {place.source === "geoapify" ? (
+            <a
+              href="https://www.geoapify.com/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Powered by Geoapify
+            </a>
+          ) : place.source === "openstreetmap" || place.source === "photon" ? (
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noreferrer"
+            >
+              © OpenStreetMap contributors
+            </a>
+          ) : (
+            "ข้อมูลท้องถิ่น ClearPath"
+          )}
+        </p>
+      </details>
+    </MapBottomSheet>
   );
 }

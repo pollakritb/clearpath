@@ -42,6 +42,7 @@ test("station popup contains metadata and returns from its own history without c
     name: "รายละเอียดสถานีตรวจวัดทางการ",
   });
   await expect(pin.getByText("18.5", { exact: true })).toBeVisible();
+  await pin.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }).press("End");
   await expect(pin.getByText(/รหัสสถานี 103t/)).toBeVisible();
   await expect(pin.locator("time")).toHaveAttribute(
     "datetime",

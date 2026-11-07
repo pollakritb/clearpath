@@ -2,6 +2,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ComponentProps,
@@ -12,16 +13,36 @@ import { Marker, useMap } from "react-leaflet";
 
 const Priority = createContext<{
   active: string | null;
+  clear: () => void;
   select: (id: string, marker: L.Marker) => void;
 } | null>(null);
 
 /** One shared selection order, independent of marker type or screen latitude. */
-export function MarkerPriorityProvider({ children }: { children: ReactNode }) {
+export function MarkerPriorityProvider({
+  children,
+  toolsOpen = false,
+}: {
+  children: ReactNode;
+  toolsOpen?: boolean;
+}) {
   const map = useMap();
   const [active, setActive] = useState<string | null>(null);
+  useEffect(() => {
+    const clear = () => setActive(null);
+    map.on("click", clear);
+    return () => {
+      map.off("click", clear);
+    };
+  }, [map]);
+  useEffect(() => {
+    if (!toolsOpen) return;
+    const frame = requestAnimationFrame(() => setActive(null));
+    return () => cancelAnimationFrame(frame);
+  }, [toolsOpen]);
   const value = useMemo(
     () => ({
       active,
+      clear: () => setActive(null),
       select(id: string, marker: L.Marker) {
         map.eachLayer((layer) => {
           if (layer instanceof L.Marker && layer !== marker) layer.closePopup();
@@ -32,6 +53,10 @@ export function MarkerPriorityProvider({ children }: { children: ReactNode }) {
     [active, map],
   );
   return <Priority.Provider value={value}>{children}</Priority.Provider>;
+}
+
+export function useMarkerPriority() {
+  return useContext(Priority);
 }
 
 export default function PriorityMarker({

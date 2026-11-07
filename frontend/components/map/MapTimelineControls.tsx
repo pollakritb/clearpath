@@ -1,10 +1,11 @@
 "use client";
-import styles from "@/frontend/styles/mobile-refinements.module.css";
+import MapBottomSheet from "@/frontend/components/app/MapBottomSheet";
 import type { ReactNode } from "react";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 
 /** One timeline shell shared by observation history and CAMS forecast. */
 export default function MapTimelineControls({
+  onClose,
   title,
   time,
   value,
@@ -23,9 +24,11 @@ export default function MapTimelineControls({
   extra,
   info,
   endAction,
+  footer,
   detail,
   leadingAction,
 }: {
+  onClose?: () => void;
   title: string;
   time: string;
   value: number;
@@ -44,37 +47,48 @@ export default function MapTimelineControls({
   extra?: ReactNode;
   info?: ReactNode;
   endAction?: ReactNode;
+  footer?: ReactNode;
   detail?: ReactNode;
   leadingAction?: ReactNode;
 }) {
   return (
-    <section
-      className={`cp-map-history-dock cp-map-timeline ${styles.timeline}`}
-      aria-label={title}
-      data-paused={disabled}
-      onPointerDown={(e) => e.stopPropagation()}
-      onDoubleClick={(e) => e.stopPropagation()}
-      onTouchStart={(e) => e.stopPropagation()}
+    <MapBottomSheet
+      label={title}
+      className="cp-timeline-sheet"
+      initialSnap="full"
+      onClose={onClose ?? onNow}
+      showClose={false}
+      header={
+        <header className="cp-map-history-dock__heading">
+          {leadingAction ?? (
+            <span aria-hidden>
+              <AppIcon name="clock" size={18} />
+            </span>
+          )}
+          <div>
+            <small>{title}</small>
+            <strong>{time}</strong>
+          </div>
+          <button
+            type="button"
+            className="cp-map-history-dock__current cp-focus"
+            onClick={onNow}
+          >
+            ตอนนี้
+          </button>
+          {endAction ?? (
+            <button
+              type="button"
+              className="cp-station-time-close cp-focus"
+              aria-label="ปิดแถบเวลา"
+              onClick={onClose ?? onNow}
+            >
+              <AppIcon name="close" size={20} />
+            </button>
+          )}
+        </header>
+      }
     >
-      <header className="cp-map-history-dock__heading">
-        {leadingAction ?? (
-          <span aria-hidden>
-            <AppIcon name="clock" size={18} />
-          </span>
-        )}
-        <div>
-          <small>{title}</small>
-          <strong>{time}</strong>
-        </div>
-        <button
-          type="button"
-          className="cp-map-history-dock__current cp-focus"
-          onClick={onNow}
-        >
-          ตอนนี้
-        </button>
-        {endAction}
-      </header>
       <div className="cp-map-timeline__sub">
         <span role="status">{error ?? summary}</span>
         {extra}
@@ -106,6 +120,7 @@ export default function MapTimelineControls({
         <span>{startLabel}</span>
         <span>{endLabel}</span>
       </div>
-    </section>
+      {footer}
+    </MapBottomSheet>
   );
 }

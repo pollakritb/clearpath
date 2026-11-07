@@ -15,9 +15,11 @@ import {
 export default function MapStationForecast({
   stationId,
   area,
-}:
+  hideUnavailable = false,
+}: { hideUnavailable?: boolean } & (
   | { stationId: string; area?: never }
-  | { stationId?: never; area: { lat: number; lon: number } }) {
+  | { stationId?: never; area: { lat: number; lon: number } }
+)) {
   const { data, loading, error, load } = useForecast();
   const [selectedAt, setSelectedAt] = useState<string | null>(null);
   const timeline = useRef<HTMLDivElement>(null);
@@ -80,6 +82,7 @@ export default function MapStationForecast({
   const unavailable =
     current?.forecast_status === "unavailable" || points.length === 0;
 
+  if (hideUnavailable && !loading && !error && unavailable) return null;
   return (
     <section
       className="cp-map-station-forecast"

@@ -11,9 +11,13 @@ test("demo user report shows evidence and opens its photo in-page", async ({
     name: "รายละเอียดรายงานจากบุคคล",
   });
   await card
-    .getByRole("button", { name: "ดูรายละเอียดรายงานและผู้รายงาน" })
-    .click();
+    .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+    .press("End");
   await expect(card.getByText("หลักฐานและการตรวจวัด")).toBeVisible();
+  await card
+    .locator("summary")
+    .filter({ hasText: "ข้อมูลเครื่องวัดและการตรวจข้อมูล" })
+    .click();
   await expect(card.getByText("ช่วงเวลาของค่า")).toBeVisible();
   await expect(card.getByText("ผู้รายงาน", { exact: true })).toBeVisible();
 
