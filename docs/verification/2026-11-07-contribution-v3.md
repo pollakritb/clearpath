@@ -13,7 +13,7 @@ Schema compatibility is tested for both existing v2 and legacy production schema
 - Mobile Chromium: **230 pass / 6 intentional viewport skips**, 320/360/390/430px. Includes v3 profile/rules/quota views, existing accessibility/touch sheets, Trust/report and submission flows.
 - Ruff, ESLint, TypeScript, Prettier and production build pass. Visual checks reviewed the v3 320px/390px browser artifacts.
 - Numeric-schema SQL tests cover base/service/day/week awards, shared caps, service-only reports, pair limits, overlapping missions, delayed older matching, retry, rollback/pause, cross-version monthly scores and dependent reversal/compensation.
-- Actual PostgreSQL 17 CI: [legacy schema without v2](https://github.com/pollakritb/clearpath/actions/runs/42381803722/job/128430817137), [existing v2 schema](https://github.com/pollakritb/clearpath/actions/runs/42381803722/job/128430816893). Both passed concurrent submissions/workers, deterministic ties and job order, single first-day bonus, contested mission ordering and concurrent reversal uniqueness. Trust concurrency also passed independently.
+- Actual PostgreSQL 17 CI: [legacy schema without v2](https://github.com/pollakritb/clearpath/actions/runs/42382731278/job/128433589311), [existing v2 schema](https://github.com/pollakritb/clearpath/actions/runs/42382731278/job/128433589112). Both passed concurrent submissions/workers, deterministic ties and job order, single first-day bonus, contested mission ordering and concurrent reversal uniqueness. Trust concurrency also passed independently.
 
 ## Production schema receipt
 
@@ -29,4 +29,4 @@ Physical iPhone/Android GPS/permission/camera/gallery and help-request flow vali
 
 Use the [runbook](../runbooks/contribution-v3.md) for release evidence, independent app flag, immutable month boundary, pause/resume and reconciliation. Enabling general production v3 or coverage bonuses is a separate operational step once those gates are met.
 
-A follow-up migration aligns v3 coverage bonuses with the same camera/verified-time/GPS protocol used for request-service bonuses. It does not require retired OCR field/unit flags in addition to number-only publication; legacy v2 rules remain unchanged. SQL and PostgreSQL mission tests explicitly run with those flags false. Fresh eligible v3 reports suppress coverage tasks using that same provenance/15-minute protocol.
+The follow-up migration was also applied to production with preservation assertions passing and the release still disabled. It aligns v3 coverage bonuses with the same camera/verified-time/GPS protocol used for request-service bonuses. It does not require retired OCR field/unit flags in addition to number-only publication; legacy v2 rules remain unchanged. SQL and PostgreSQL mission tests explicitly run with those flags false. Fresh eligible v3 reports suppress coverage tasks using that same provenance/15-minute protocol.
