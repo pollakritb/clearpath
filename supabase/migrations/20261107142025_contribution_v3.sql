@@ -29,7 +29,8 @@ begin
  select * into previous from public.contribution_v3_control where singleton for update;
  if length(coalesce(p_operator,''))<3 then raise exception 'operator_required';end if;
  if previous.starts_at is not null and p_starts_at is distinct from previous.starts_at then raise exception 'launch_timestamp_immutable';end if;
- if p_enabled and previous.starts_at is null and (p_starts_at is null or p_starts_at<=now() or p_starts_at<>(date_trunc('month',p_starts_at at time zone 'Asia/Bangkok') at time zone 'Asia/Bangkok')) then raise exception 'future_thai_month_boundary_required';end if;
+ if previous.starts_at is null and p_starts_at is not null and (p_starts_at<=now() or p_starts_at<>(date_trunc('month',p_starts_at at time zone 'Asia/Bangkok') at time zone 'Asia/Bangkok')) then raise exception 'future_thai_month_boundary_required';end if;
+ if p_enabled and p_starts_at is null then raise exception 'future_thai_month_boundary_required';end if;
  if p_enabled and (coalesce(length(p_refs->>'notice_ref'),0)<10 or coalesce(length(p_refs->>'concurrency_ref'),0)<10 or coalesce(length(p_refs->>'preservation_ref'),0)<10 or coalesce(length(p_refs->>'device_validation_ref'),0)<10) then raise exception 'release_evidence_required';end if;
  update public.contribution_v3_control set enabled=p_enabled,paused=not p_enabled,starts_at=p_starts_at,missions_enabled=p_missions,refs=p_refs,updated_at=now() where singleton returning to_jsonb(contribution_v3_control.*) into result;
  insert into public.contribution_v3_release_events(operator_ref,configuration) values(p_operator,result);
@@ -97,14 +98,16 @@ begin
    v_request:=null;
    select q.* into req from public.measurement_report_matches link join public.measurement_requests q on q.id=link.request_id
     where link.report_id=j.report_id and q.user_id<>j.user_id
-    and not exists(select 1 from public.community_xp_events ev where ev.user_id=j.user_id and ev.request_id=q.id and ev.kind='help' and ev.points>0)
-    and not exists(select 1 from public.community_xp_events ev where ev.user_id=j.user_id and ev.requester_id=q.user_id and ev.kind='help' and ev.points>0 and ev.occurred_at>=day_start and ev.occurred_at<day_start+interval '1 day')
-    and (select count(*) from public.community_xp_events ev where ev.user_id=j.user_id and ev.requester_id=q.user_id and ev.kind='help' and ev.points>0 and ev.occurred_at>t-interval '7 days' and ev.occurred_at<=t)<3
-    order by q.created_at,q.id limit 1;
+    and (v3 or not exists(select 1 from public.community_xp_events ev where ev.user_id=j.user_id and ev.request_id=q.id and ev.kind='help' and ev.points>0))
+    and (v3 or not exists(select 1 from public.community_xp_events ev where ev.user_id=j.user_id and ev.requester_id=q.user_id and ev.kind='help' and ev.points>0 and ev.occurred_at>=day_start and ev.occurred_at<day_start+interval '1 day'))
+    and (v3 or (select count(*) from public.community_xp_events ev where ev.user_id=j.user_id and ev.requester_id=q.user_id and ev.kind='help' and ev.points>0 and ev.occurred_at>t-interval '7 days' and ev.occurred_at<=t)<3)
+    order by case when not exists(select 1 from public.community_xp_events ev where ev.user_id=j.user_id and ev.kind='help' and ev.points>0 and (ev.request_id=q.id or (ev.requester_id=q.user_id and ev.occurred_at>=day_start and ev.occurred_at<day_start+interval '1 day'))) and (select count(*) from public.community_xp_events ev where ev.user_id=j.user_id and ev.requester_id=q.user_id and ev.kind='help' and ev.points>0 and ev.occurred_at>t-interval '7 days' and ev.occurred_at<=t)<3 then 0 else 1 end,q.created_at,q.id limit 1;
    if found then
     v_request:=req.id;
     gps_lat:=(m->'bonus_gps_at_submission'->>'lat')::float8; gps_lon:=(m->'bonus_gps_at_submission'->>'lon')::float8; accuracy:=(m->'bonus_gps_at_submission'->>'accuracy_m')::float8;
     if base_reason in ('not_approved','duplicate','stale','cooldown') then bonus_reason:=base_reason;
+    elsif v3 and exists(select 1 from public.community_xp_events ev where ev.user_id=j.user_id and ev.request_id=req.id and ev.kind='help' and ev.points>0) then bonus_reason:='already_rewarded';
+    elsif v3 and (exists(select 1 from public.community_xp_events ev where ev.user_id=j.user_id and ev.requester_id=req.user_id and ev.kind='help' and ev.points>0 and ev.occurred_at>=day_start and ev.occurred_at<day_start+interval '1 day') or (select count(*) from public.community_xp_events ev where ev.user_id=j.user_id and ev.requester_id=req.user_id and ev.kind='help' and ev.points>0 and ev.occurred_at>t-interval '7 days' and ev.occurred_at<=t)>=3) then bonus_reason:='pair_limit';
     elsif v3 and (captured<req.starts_at or captured>req.expires_at or submitted>case when req.status='fulfilled' then least(req.expires_at,req.updated_at+interval '15 minutes') else req.expires_at end or (req.status='cancelled' and submitted>=req.updated_at) or private.measurement_distance(req.lat,req.lon,(r->>'lat')::float8,(r->>'lon')::float8)>2) then bonus_reason:='request_closed';
     elsif captured>submitted or submitted-captured>interval '15 minutes' or accuracy is null or accuracy not between 0 and 200 or gps_lat is null or gps_lon is null or gps_lat not between -90 and 90 or gps_lon not between -180 and 180 or (v3 and (r->>'capture_source' is null or coalesce((r->>'clock_warning')::boolean,false)))
      or not (coalesce(r->>'capture_source','camera')='camera' or (m->>'exif_captured_at' is not null and m->'exif_gps' is not null))
@@ -121,6 +124,7 @@ begin
    if c.user_id is null then bonus_reason:='no_claim';
    elsif (req.status='cancelled' and t>=req.updated_at) or submitted>deadline then bonus_reason:='request_closed';
    elsif base_reason in ('not_approved','duplicate','stale','cooldown') then bonus_reason:=base_reason;
+   elsif v3 and private.measurement_distance(req.lat,req.lon,(r->>'lat')::float8,(r->>'lon')::float8)>2 then bonus_reason:='invalid_evidence';
    elsif req.user_id=j.user_id or c.started_at>captured or captured>req.expires_at or captured<req.starts_at or captured>submitted or submitted-captured>interval '15 minutes'
     or accuracy is null or accuracy not between 0 and 200 or gps_lat is null or gps_lon is null or gps_lat not between -90 and 90 or gps_lon not between -180 and 180 or (v3 and (r->>'capture_source' is null or coalesce((r->>'clock_warning')::boolean,false)))
     or not (coalesce(r->>'capture_source','camera')='camera' or (m->>'exif_captured_at' is not null and m->'exif_gps' is not null))

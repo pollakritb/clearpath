@@ -234,6 +234,15 @@ await help(1, 150);
 assert.equal(await balance(5), 60, "bonus-only after five base reports");
 await help(1, 180);
 assert.equal(await balance(5), 60, "same requester once a day");
+assert.equal(
+  (
+    await pg.query(
+      "select reason from community_xp_events where user_id=5 and kind='help' and points=0 order by occurred_at limit 1",
+    )
+  ).rows[0].reason,
+  "pair_limit",
+  "non-award explanation is stored even when all matched request pairs are exhausted",
+);
 await help(2, 210);
 await help(3, 240);
 assert.equal(await balance(5), 70, "maximum normal day");

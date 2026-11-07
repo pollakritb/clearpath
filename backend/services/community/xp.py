@@ -599,6 +599,7 @@ def _reward_demo(report: dict):
             candidates = [
                 store.get(rid) for rid in registered.MATCHES.get(report["id"], [])
             ]
+            fallback_candidates = [r for r in candidates if r and r["user_id"] != uid]
             candidates = [
                 r
                 for r in candidates
@@ -619,6 +620,8 @@ def _reward_demo(report: dict):
                 )
                 < 3
             ]
+            if v3 and not candidates:
+                candidates = fallback_candidates
             candidates.sort(key=lambda r: (r["created_at"], r["id"]))
             req_id = candidates[0]["id"] if candidates else None
         req = store.get(req_id) if req_id else None
@@ -667,6 +670,10 @@ def _reward_demo(report: dict):
                 service_eligible=bonus_reason == "granted" or mission is not None,
                 launched_at=policy["launched_at"],
             )
+            if v3 and req and not any(a["kind"] == "help" for a in awards):
+                awards.append(
+                    {"kind": "help", "points": 0, "reason": bonus_reason or "no_claim"}
+                )
             if mission:
                 mission.update(
                     state="fulfilled",
