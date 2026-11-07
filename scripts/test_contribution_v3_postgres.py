@@ -40,7 +40,13 @@ def main():
         db.execute("update private.identifier_control set maintenance=false")
         db.execute(migration("registered_measurement_locations"))
         db.execute("update measurement_request_control set registered_enabled=true")
-        db.execute(migration("contribution_evidence_v2"))
+        if os.environ.get("CONTRIBUTION_V3_FOUNDATION_PRESENT") == "true":
+            db.execute(migration("contribution_evidence_v2"))
+        else:
+            db.execute(
+                "alter table report_reactions add column reason_code text;alter table report_reactions add column geofence_policy text"
+            )
+        db.execute(migration("contribution_v3_prerequisites"))
         db.execute(migration("measurement_request_radius_2km"))
         db.execute(migration("contribution_v3"))
         db.execute(

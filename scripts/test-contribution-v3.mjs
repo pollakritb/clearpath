@@ -46,7 +46,10 @@ await pg.exec("commit");
 await pg.exec("update private.identifier_control set maintenance=false");
 await pg.exec(migration("registered_measurement_locations"));
 await pg.exec("update measurement_request_control set registered_enabled=true");
-await pg.exec(migration("contribution_evidence_v2"));
+await pg.exec(
+  "alter table report_reactions add column reason_code text;alter table report_reactions add column geofence_policy text",
+);
+await pg.exec(migration("contribution_v3_prerequisites"));
 
 await pg.exec(migration("measurement_request_radius_2km"));
 await pg.exec(migration("contribution_v3"));

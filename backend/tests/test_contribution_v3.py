@@ -208,3 +208,42 @@ def test_fifth_day_can_reach_ninety_without_sixth_day_repeating_week_bonus():
         ]
     assert sum(e["points"] for e in friday) == 90
     assert sum(e["kind"] == "contribution_week" for e in friday) == 1
+
+
+def test_demo_v3_preserves_balance_and_assigns_report_policy_by_server_submission(
+    monkeypatch,
+):
+    from backend.core.config import settings
+    from backend.services.community import policy_v2, policy_v3, xp
+
+    monkeypatch.setattr(settings, "local_demo_mode", True)
+    monkeypatch.setattr(settings, "contribution_v3_enabled", True)
+    monkeypatch.setattr(settings, "contribution_v3_demo_start", LAUNCH)
+    monkeypatch.setattr(settings, "community_v2_enabled", False)
+    monkeypatch.setattr(xp, "_EVENTS", [])
+    monkeypatch.setattr(xp, "_ACCOUNTS", {})
+    monkeypatch.setattr(xp, "_CLAIMS", {})
+    monkeypatch.setattr(policy_v2, "DEMO_MISSIONS", {})
+    monkeypatch.setattr(xp.db, "get_report_evidence", lambda _: {})
+    old = report(
+        id="old-policy",
+        created_at="2026-09-29T03:00:00Z",
+        captured_at="2026-09-29T03:00:00Z",
+        moderated_at="2026-09-29T03:00:00Z",
+    )
+    assert xp.reward_report(old)["policy_version"] == "xp-v1"
+    new = report(
+        id="new-policy",
+        created_at="2026-10-26T03:00:00Z",
+        captured_at="2026-10-26T03:00:00Z",
+    )
+    result = xp.reward_report(new)
+    assert (
+        result["policy_version"] == "contribution-v3"
+        and result["report_xp"] == 10
+        and result["first_day_xp"] == 5
+    )
+    assert xp.totals("helper")["lifetime_xp"] == 25
+    assert xp.reward_report(new) == result
+    assert xp.totals("helper")["lifetime_xp"] == 25
+    assert policy_v3.applies(new) and not policy_v3.applies(old)

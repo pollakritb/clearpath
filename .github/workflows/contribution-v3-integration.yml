@@ -3,7 +3,7 @@ on:
   push:
     paths:
       - "backend/**"
-      - "supabase/migrations/*contribution_v3.sql"
+      - "supabase/migrations/*contribution_v3*.sql"
       - "scripts/test_contribution_v3_postgres.py"
       - ".github/workflows/contribution-v3-integration.yml"
   workflow_dispatch:
@@ -12,6 +12,9 @@ permissions:
 jobs:
   contribution-concurrency:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        foundation: ["true", "false"]
     services:
       postgres:
         image: postgres:17
@@ -32,4 +35,5 @@ jobs:
       - run: pip install 'psycopg[binary]==3.2.13'
       - run: python -m scripts.test_contribution_v3_postgres
         env:
+          CONTRIBUTION_V3_FOUNDATION_PRESENT: ${{ matrix.foundation }}
           CONTRIBUTION_V3_TEST_DSN: postgresql://postgres:isolated-test-password@127.0.0.1:5432/contribution_v3_test
