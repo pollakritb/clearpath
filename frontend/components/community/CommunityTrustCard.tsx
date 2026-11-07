@@ -22,6 +22,16 @@ export default function CommunityTrustCard({
   const [reviewUpdates, setReviewUpdates] = useState<
     { id: string; status: string; reason?: string | null }[] | null
   >(null);
+  const [reviewError, setReviewError] = useState("");
+  async function loadReviews() {
+    setReviewError("");
+    try {
+      const result = await api.communityTrustOwnerReviews();
+      setReviewUpdates(result.requests);
+    } catch {
+      setReviewError("โหลดผลทบทวนไม่สำเร็จ กรุณาลองอีกครั้ง");
+    }
+  }
   if (!trust) return null;
   const supportKnown =
     trust.status !== "unavailable" || trust.calculated_at != null;
@@ -34,7 +44,9 @@ export default function CommunityTrustCard({
           ? "โหลดคะแนนไม่ได้"
           : "เสียงประเมินยังไม่เพียงพอ";
   if (compact)
-    return <span className={styles.compact}>Trust ชุมชน · {label}</span>;
+    return (
+      <span className={styles.compact}>Trust ชุมชน · {label} · ทดลอง</span>
+    );
   return (
     <section className={styles.panel} aria-label="Trust ชุมชน">
       <h3>
@@ -102,16 +114,21 @@ export default function CommunityTrustCard({
         <details
           onToggle={(e) => {
             if (e.currentTarget.open && reviewUpdates === null)
-              void api
-                .communityTrustOwnerReviews()
-                .then((r) => setReviewUpdates(r.requests))
-                .catch(() =>
-                  setFeedback("โหลดผลทบทวนไม่สำเร็จ กรุณาปิดแล้วเปิดใหม่"),
-                );
+              void loadReviews();
           }}
         >
           <summary className="cp-focus">ติดตามคำขอทบทวน</summary>
-          {reviewUpdates?.length ? (
+          {reviewError && <p role="alert">{reviewError}</p>}
+          <button
+            className="cp-focus cp-btn"
+            type="button"
+            onClick={() => void loadReviews()}
+          >
+            โหลดคำขอใหม่
+          </button>
+          {reviewUpdates === null ? (
+            !reviewError && <p role="status">กำลังโหลดคำขอทบทวน…</p>
+          ) : reviewUpdates.length ? (
             <ul>
               {reviewUpdates.map((r) => (
                 <li key={r.id}>
@@ -121,7 +138,7 @@ export default function CommunityTrustCard({
               ))}
             </ul>
           ) : (
-            <p>ยังไม่มีคำขอทบทวนที่โหลดได้</p>
+            <p>ยังไม่มีคำขอทบทวน</p>
           )}
         </details>
       )}
@@ -147,6 +164,7 @@ export default function CommunityTrustCard({
                   message,
                 });
                 setFeedback("บันทึกคำขอทบทวนแล้ว");
+                void loadReviews();
               } catch (error) {
                 setFeedback(apiErrorMessage(error, "ส่งคำขอไม่สำเร็จ"));
               } finally {

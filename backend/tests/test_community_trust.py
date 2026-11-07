@@ -318,7 +318,9 @@ def test_reconciliation_resumes_cursor_and_marks_projection_failures_retryable(
 
 def test_reaction_requires_new_policy_ack_without_importing_old_likes(monkeypatch):
     import pytest
-    from backend.services.community import engagement, community_trust as service
+
+    from backend.services.community import community_trust as service
+    from backend.services.community import engagement
 
     monkeypatch.setattr(
         engagement,
@@ -346,3 +348,144 @@ def test_public_contract_strips_private_ledger_materialization():
     assert value["_slots"]
     public = CommunityTrust.model_validate(value).model_dump()
     assert "_slots" not in public and "voter_id" not in str(public)
+
+
+def test_map_score_metadata_does_not_repeat_full_daily_projection(monkeypatch):
+    from backend.services.community import community_trust as service
+    from backend.services.community import reporter_trust
+    from backend.services.community.presenter import present_report
+
+    monkeypatch.setattr(
+        service,
+        "summary",
+        lambda *_: {
+            "score": 78.6,
+            "status": "available",
+            "daily": [{"day": "2026-11-07"}],
+            "_ledger_seq": 100,
+        },
+    )
+    monkeypatch.setattr(reporter_trust, "summary", lambda *_: None)
+    row = {
+        "id": "test-public",
+        "user_id": "owner",
+        "status": "approved",
+        "lat": 13.8,
+        "lon": 100.1,
+        "pm25": 34,
+        "captured_at": NOW.isoformat(),
+        "created_at": NOW.isoformat(),
+        "show_reporter_profile": True,
+    }
+    result = present_report(
+        row,
+        reference_at=NOW,
+        include_image=False,
+        identities={"owner": {"member_id": "MBR-000001"}},
+        policy_snapshot={"active_version": "v1"},
+    )
+    assert result["community_trust"] == {"score": 78.6, "status": "available"}
+
+
+def test_location_reasons_and_nontrust_categories_are_explicit():
+    report = {
+        "user_id": "owner",
+        "status": "approved",
+        "captured_at": NOW.isoformat(),
+        "lat": 13.8,
+        "lon": 100.1,
+    }
+    fix = {"lat": 13.8, "lon": 100.1, "accuracy_m": 10, "observed_at": NOW.isoformat()}
+    cases = [
+        ({}, "gps_invalid"),
+        (fix | {"accuracy_m": -1}, "gps_invalid"),
+        (fix | {"observed_at": NOW.replace(tzinfo=None).isoformat()}, "gps_invalid"),
+        (
+            fix | {"observed_at": (NOW + timedelta(seconds=1)).isoformat()},
+            "gps_clock_invalid",
+        ),
+        (fix | {"lat": 14}, "outside_area"),
+    ]
+    for location, reason in cases:
+        assert (
+            vote_eligibility(
+                report,
+                "voter",
+                location,
+                "like",
+                "useful",
+                now=NOW,
+                evidence_available=True,
+            )[0]
+            == reason
+        )
+    assert (
+        vote_eligibility(
+            report | {"captured_at": (NOW - timedelta(minutes=181)).isoformat()},
+            "voter",
+            fix,
+            "like",
+            "useful",
+            now=NOW,
+            evidence_available=True,
+        )[0]
+        == "report_expired"
+    )
+    for reason in ("report_context_doubt", "image_context_doubt"):
+        assert (
+            vote_eligibility(
+                report,
+                "voter",
+                fix,
+                "dislike",
+                reason,
+                now=NOW,
+                evidence_available=True,
+            )[0]
+            is None
+        )
+    for reason in (
+        "ocr_mismatch",
+        "system_display_issue",
+        "station_disagreement_only",
+        "cannot_assess",
+    ):
+        assert (
+            vote_eligibility(
+                report,
+                "voter",
+                fix,
+                "dislike",
+                reason,
+                now=NOW,
+                evidence_available=True,
+            )[0]
+            == "reason_not_trust"
+        )
+
+
+def test_new_routes_require_auth_and_admin_has_no_finding_or_score_mutation(
+    monkeypatch,
+):
+    from fastapi.testclient import TestClient
+
+    from backend.core.config import settings
+    from backend.main import create_app
+
+    monkeypatch.setattr(settings, "local_demo_mode", False)
+    client = TestClient(create_app())
+    assert client.get("/api/community/trust/me").status_code == 401
+    assert client.get("/api/community/trust/reviews").status_code == 401
+    assert (
+        client.post(
+            "/api/community/trust/reviews",
+            json={
+                "message": "review feedback",
+                "from_day": "2026-11-01",
+                "to_day": "2026-11-07",
+            },
+        ).status_code
+        == 401
+    )
+    assert client.post("/api/admin/community-trust/reviews", json={}).status_code == 405
+    assert client.post("/api/admin/community-trust/score", json={}).status_code == 404

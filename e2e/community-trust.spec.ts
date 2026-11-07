@@ -129,3 +129,94 @@ test("community assessment requires evidence, reuses a retry key and explains no
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(page.viewportSize()!.width);
 });
+
+test("owner can read the formula and submit a review in a narrow mobile profile", async ({
+  page,
+}) => {
+  let submitted = false;
+  await page.route("**/api/community/me/xp", async (route) => {
+    const response = await route.fetch();
+    const value = await response.json();
+    await route.fulfill({
+      json: {
+        ...value,
+        community_trust: {
+          policy_version: "community-trust-v1",
+          status: "available",
+          score: 78.5714285714,
+          window_start: "2026-08-10",
+          window_end: "2026-11-07",
+          unique_voter_accounts: 8,
+          evaluated_report_count: 12,
+          evaluated_day_count: 6,
+          effective_day_weight: 18,
+          last_feedback_at: new Date().toISOString(),
+          calculated_at: new Date().toISOString(),
+          contribution_days_30: 8,
+          review_available: true,
+          daily: [
+            {
+              day: "2026-11-07",
+              positive: 2,
+              negative: 1,
+              count: 3,
+              value: 66.666666,
+              weight: 3,
+            },
+          ],
+        },
+      },
+    });
+  });
+  await page.route("**/api/community/trust/reviews", async (route) => {
+    if (route.request().method() === "POST") {
+      const body = route.request().postDataJSON();
+      expect(Object.keys(body).sort()).toEqual([
+        "from_day",
+        "message",
+        "to_day",
+      ]);
+      submitted = true;
+      await route.fulfill({
+        json: { id: "00000000-0000-4000-8000-000000000001", status: "pending" },
+      });
+    } else
+      await route.fulfill({
+        json: {
+          requests: submitted
+            ? [
+                {
+                  id: "00000000-0000-4000-8000-000000000001",
+                  status: "pending",
+                  created_at: new Date().toISOString(),
+                  reason: null,
+                },
+              ]
+            : [],
+        },
+      });
+  });
+  await page.goto("/profile");
+  const card = page.getByRole("region", { name: "Trust ชุมชน", exact: true });
+  await expect(card.getByText("78.6/100", { exact: true })).toBeVisible();
+  await expect(card.getByText(/ช่วยรายงาน 8 วันใน 30/)).toBeVisible();
+  await card.getByText("สูตรและข้อมูลรองรับ", { exact: true }).click();
+  await expect(card.getByText(/น้ำหนักรวม 18/)).toBeVisible();
+  await card.getByText("ติดตามคำขอทบทวน", { exact: true }).click();
+  await card.getByText("ขอทบทวนเสียงประเมิน", { exact: true }).click();
+  await card.getByLabel("ตั้งแต่วันที่", { exact: true }).fill("2026-11-01");
+  await card.getByLabel("ถึงวันที่", { exact: true }).fill("2026-11-07");
+  await card
+    .getByLabel("เหตุผลขอทบทวน", { exact: true })
+    .fill("ขอทบทวนเสียงประเมินในช่วงวันที่เลือก");
+  await card.getByRole("button", { name: "ส่งคำขอทบทวน", exact: true }).click();
+  await expect(card.getByText("บันทึกคำขอทบทวนแล้ว")).toBeVisible();
+  expect(submitted).toBe(true);
+  await expect(card.getByText("รอทบทวน", { exact: true })).toBeVisible();
+  await page.screenshot({
+    path: `output/playwright/community-trust-profile-${page.viewportSize()!.width}.png`,
+  });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(page.viewportSize()!.width);
+});

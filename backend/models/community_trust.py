@@ -3,7 +3,7 @@
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class CommunityTrustDay(BaseModel):
@@ -35,11 +35,19 @@ class CommunityTrust(BaseModel):
 
 
 class CommunityTrustReview(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     report_id: str | None = None
     from_day: date | None = None
     to_day: date | None = None
     message: str = Field(min_length=10, max_length=1000)
+
+    @model_validator(mode="after")
+    def valid_scope(self):
+        if self.report_id is None and (self.from_day is None or self.to_day is None):
+            raise ValueError("ระบุรายงานหรือช่วงวันที่ที่ต้องการทบทวน")
+        if self.from_day and self.to_day and self.from_day > self.to_day:
+            raise ValueError("วันเริ่มต้นต้องไม่เกินวันสิ้นสุด")
+        return self
 
 
 class CommunityTrustReviewItem(BaseModel):

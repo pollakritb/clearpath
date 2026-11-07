@@ -205,6 +205,12 @@ def present_report(
         if show_reporter_profile and identity.get("member_id")
         else None
     )
+    if community_score is not None:
+        community_score = {
+            k: v
+            for k, v in community_score.items()
+            if k != "daily" and not k.startswith("_")
+        }
     author_trust = None
     if show_reporter_profile:
         from . import reporter_trust
