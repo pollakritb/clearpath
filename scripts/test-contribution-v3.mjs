@@ -54,6 +54,7 @@ await pg.exec(migration("contribution_v3_prerequisites"));
 await pg.exec(migration("measurement_request_radius_2km"));
 await pg.exec(migration("contribution_v3"));
 await pg.exec(migration("contribution_v3_service_evidence"));
+await pg.exec(migration("contribution_v3_audit_fixes"));
 await pg.exec(
   "update community_xp_control set enabled=true;update contribution_v3_control set starts_at='2026-10-01T00:00:00+07:00',enabled=true",
 );
@@ -353,6 +354,63 @@ assert.equal(
     )
   ).rows[0].fulfilled_report_id,
   earlier.id,
+);
+// Completing useful coverage after the service cap is still recorded, with the correct zero-bonus reason.
+await pg.query(
+  "insert into community_coverage_missions(area_key,place_name,lat,lon,starts_at,expires_at,inputs,policy_version) values('capped-service','public centre',13.8,100.1,'2026-10-26T07:50:00Z','2026-10-26T09:00:00Z','{}','contribution-v3')",
+);
+const beforeCapped = await balance(5);
+const capped = await record(5, "2026-10-26T08:00:00Z", { __number_only: true });
+await settle();
+const cappedBonus = (
+  await pg.query(
+    "select points,reason from community_xp_events where report_id=$1 and kind='help'",
+    [capped.id],
+  )
+).rows[0];
+assert.deepEqual(cappedBonus, { points: 0, reason: "help_limit" });
+assert.equal(await balance(5), beforeCapped, "no reward after shared cap");
+assert.equal(
+  (await pg.query("select helped from community_xp_totals(6)")).rows[0].helped,
+  0,
+  "coverage awards do not claim request-help achievements",
+);
+assert.equal(
+  (await pg.query("select helped from community_xp_totals(5)")).rows[0].helped,
+  5,
+  "actual rewarded request help stays counted",
+);
+// V3 publication retires old open work before inserting a current-version mission for the same area.
+await pg.query(
+  "insert into community_coverage_missions(area_key,place_name,lat,lon,starts_at,expires_at,inputs,policy_version) values('cutover-area','public centre',14,100,now()-interval '10 minutes',now()+interval '45 minutes','{}','contribution-v2')",
+);
+await pg.exec("update contribution_v3_control set missions_checked_at=null");
+await pg.query("select publish_community_missions($1::jsonb)", [
+  JSON.stringify([
+    {
+      area_key: "cutover-area",
+      place_name: "public centre",
+      lat: 14,
+      lon: 100,
+      inputs: {},
+    },
+  ]),
+]);
+assert.equal(
+  (
+    await pg.query(
+      "select state from community_coverage_missions where area_key='cutover-area' and policy_version='contribution-v2'",
+    )
+  ).rows[0].state,
+  "expired",
+);
+assert.equal(
+  (
+    await pg.query(
+      "select state from community_coverage_missions where area_key='cutover-area' and policy_version='contribution-v3'",
+    )
+  ).rows[0].state,
+  "open",
 );
 console.log(
   "contribution-v3 SQL: migration, legacy preservation, 55 base/day, 5-day week, cross-version cooldown/month, fixed job policy, pause/retry, PM-independent awards, reversals and role isolation passed",

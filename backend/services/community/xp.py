@@ -142,7 +142,7 @@ def totals(user_id: str) -> dict:
         lifetime_xp=sum(e["points"] for e in live),
         days=len({thai_day(e["occurred_at"]) for e in live if e["kind"] == "report"}),
         reports=sum(e["kind"] == "report" for e in live),
-        helped=sum(e["kind"] == "help" for e in live),
+        helped=sum(e["kind"] == "help" and not e.get("mission_id") for e in live),
         today_reports=sum(
             e["kind"] == "report" and thai_day(e["occurred_at"]) == thai_day(now)
             for e in quota
@@ -670,9 +670,15 @@ def _reward_demo(report: dict):
                 service_eligible=bonus_reason == "granted" or mission is not None,
                 launched_at=policy["launched_at"],
             )
-            if v3 and req and not any(a["kind"] == "help" for a in awards):
+            if v3 and (req or mission) and not any(a["kind"] == "help" for a in awards):
                 awards.append(
-                    {"kind": "help", "points": 0, "reason": bonus_reason or "no_claim"}
+                    {
+                        "kind": "help",
+                        "points": 0,
+                        "reason": "help_limit"
+                        if mission
+                        else bonus_reason or "no_claim",
+                    }
                 )
             if mission:
                 mission.update(
@@ -701,12 +707,16 @@ def _reward_demo(report: dict):
                         }
                 if bonus_reason != "granted":
                     req_id = None
-                    bonus_reason = "coverage_mission"
+                    bonus_reason = (
+                        "coverage_mission"
+                        if any(a["kind"] == "help" and a["points"] > 0 for a in awards)
+                        else "help_limit"
+                    )
             before_rank = rank_progress(totals(uid)["lifetime_xp"])["code"]
             for award in awards:
                 why = (
                     bonus_reason
-                    if award["kind"] == "help" and mission
+                    if award["kind"] == "help" and mission and award["points"] > 0
                     else award["reason"]
                 )
                 _EVENTS.append(

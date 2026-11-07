@@ -122,17 +122,21 @@ def refresh() -> int:
 
 def available() -> list[dict]:
     ctl = policy_v3.release()
-    if policy_v3.applies(policy=ctl):
+    v3_active = policy_v3.applies(policy=ctl)
+    if v3_active:
         if not ctl.get("missions_enabled") or ctl.get("paused"):
             return []
     elif not policy_v2.active():
         return []
     now = datetime.now(UTC).isoformat()
+    version = "contribution-v3" if v3_active else "contribution-v2"
     if settings.local_demo_mode:
         rows = [
             m
             for m in policy_v2.DEMO_MISSIONS.values()
-            if m["state"] == "open" and m["expires_at"] > now
+            if m["state"] == "open"
+            and m["expires_at"] > now
+            and m.get("policy_version", "contribution-v2") == version
         ]
     else:
         try:
@@ -141,6 +145,7 @@ def available() -> list[dict]:
                 .table("community_coverage_missions")
                 .select("id,place_name,lat,lon,radius_km,starts_at,expires_at")
                 .eq("state", "open")
+                .eq("policy_version", version)
                 .gt("expires_at", now)
                 .order("starts_at")
                 .limit(50)

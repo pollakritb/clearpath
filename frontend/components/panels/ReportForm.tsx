@@ -42,7 +42,13 @@ const OCR_STATUS_MESSAGES: Record<ReportDraftResponse["ocr_status"], string> = {
   ready: "ระบบอ่านตัวเลข PM2.5 ได้ และจะเผยแพร่ค่านี้เมื่อส่งรายงาน",
 };
 
-export default function ReportForm({
+export default function ReportForm(props: ReportFormProps) {
+  const auth = useAuth();
+  const owner = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
+  return <ReportFormContent key={owner} {...props} />;
+}
+
+function ReportFormContent({
   location,
   locationError,
   measurementRequestId,
@@ -71,7 +77,7 @@ export default function ReportForm({
   const [participation, setParticipation] = useState<{
     owner: string;
     alias: string;
-    v2: boolean;
+    supportsContext: boolean;
   } | null>(null);
   const owner = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
   const publicAlias =
@@ -86,7 +92,9 @@ export default function ReportForm({
           setParticipation({
             owner,
             alias: profile.alias,
-            v2: profile.policy_version === "contribution-v2",
+            supportsContext: ["contribution-v2", "contribution-v3"].includes(
+              profile.policy_version ?? "",
+            ),
           });
       })
       .catch(() => undefined);
@@ -220,7 +228,10 @@ export default function ReportForm({
             .catch(() => false)
         : false;
       const bonusGPS =
-        (measurementRequestId || automaticHelp) && navigator.geolocation
+        (measurementRequestId ||
+          automaticHelp ||
+          participation?.supportsContext) &&
+        navigator.geolocation
           ? await new Promise<{
               lat: number;
               lon: number;
@@ -248,7 +259,7 @@ export default function ReportForm({
         ...(measurementRequestId
           ? { measurement_request_id: measurementRequestId }
           : {}),
-        ...(participation?.v2
+        ...(participation?.supportsContext
           ? {
               measurement_environment: measurementEnvironment,
               device_model: deviceModel.trim() || null,
@@ -524,9 +535,13 @@ export default function ReportForm({
                     </p>
                   )}
                 </div>
-                {participation?.v2 && (
+                {participation?.supportsContext && (
                   <fieldset className="cp-report-context">
                     <legend>บริบทที่วัด</legend>
+                    <p>
+                      สำหรับโบนัสบริการ ระบบจะขอตำแหน่งใหม่ขณะส่ง
+                      หากตรวจโบนัสไม่ได้ ยังส่งรายงานได้ตามปกติ
+                    </p>
                     <label>
                       รุ่นเครื่องวัด (ไม่บังคับ)
                       <input

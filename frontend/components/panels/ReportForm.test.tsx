@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   draft: vi.fn(),
   submit: vi.fn(),
   summary: vi.fn(),
+  auth: vi.fn(),
 }));
 vi.mock("@/frontend/lib/api-client", () => ({
   api: {
@@ -25,7 +26,7 @@ vi.mock("@/frontend/lib/api-client", () => ({
   apiErrorMessage: (_error: unknown, fallback: string) => fallback,
 }));
 vi.mock("@/frontend/components/auth/AuthProvider", () => ({
-  useAuth: () => ({ user: null, localDemo: true }),
+  useAuth: mocks.auth,
 }));
 vi.mock("@/frontend/components/auth/LoginPromptProvider", () => ({
   useLoginPrompt: () => ({ openLoginPrompt: () => false }),
@@ -56,6 +57,7 @@ afterEach(() => {
 });
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.auth.mockReturnValue({ user: null, localDemo: true });
   mocks.summary.mockResolvedValue(null);
   mocks.draft.mockResolvedValue({
     id: "draft",
@@ -280,4 +282,55 @@ it("keeps the OCR zero reading explicit and offers map completion plus a fresh r
     screen.queryByRole("link", { name: "เสร็จสิ้นและกลับไปแผนที่" }),
   ).toBeNull();
   expect(screen.getByRole("button", { name: "เลือกภาพทดสอบ" })).toBeTruthy();
+});
+
+it("collects v3 outdoor context and fresh bonus GPS without requiring a help claim", async () => {
+  mocks.summary.mockResolvedValue({
+    alias: "ชุมชน",
+    policy_version: "contribution-v3",
+  });
+  const gps = vi.fn((success: PositionCallback) =>
+    success({
+      coords: { latitude: 13.8, longitude: 100.1, accuracy: 10 },
+    } as GeolocationPosition),
+  );
+  vi.stubGlobal("navigator", { geolocation: { getCurrentPosition: gps } });
+  const submitted = vi.fn();
+  render(
+    <ReportForm
+      location={{ lat: 13.8, lon: 100.1, accuracy: 10, source: "gps" }}
+      onRequestLocation={vi.fn()}
+      onSubmitted={submitted}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "เลือกภาพทดสอบ" }));
+  await screen.findByLabelText("บริเวณที่วัด");
+  fireEvent.change(screen.getByLabelText("บริเวณที่วัด"), {
+    target: { value: "outdoor" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "ส่งรายงาน" }));
+  await waitFor(() => expect(submitted).toHaveBeenCalledOnce());
+  expect(gps).toHaveBeenCalledOnce();
+  expect(mocks.submit).toHaveBeenCalledWith(
+    "draft",
+    expect.objectContaining({
+      measurement_environment: "outdoor",
+      near_emission_source: false,
+      bonus_gps: { lat: 13.8, lon: 100.1, accuracy_m: 10 },
+    }),
+  );
+});
+it("clears the previous account's draft and OCR reading on logout", async () => {
+  const props = {
+    location: { lat: 13.8, lon: 100.1, accuracy: 10, source: "gps" as const },
+    onRequestLocation: vi.fn(),
+    onSubmitted: vi.fn(),
+  };
+  const view = render(<ReportForm {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "เลือกภาพทดสอบ" }));
+  await screen.findByLabelText("PM2.5 42.5 µg/m³");
+  mocks.auth.mockReturnValue({ user: null, localDemo: false });
+  view.rerender(<ReportForm {...props} />);
+  expect(screen.queryByLabelText("PM2.5 42.5 µg/m³")).toBeNull();
+  expect(mocks.submit).not.toHaveBeenCalled();
 });

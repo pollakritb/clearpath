@@ -2,14 +2,22 @@
 import { useEffect, useState } from "react";
 import { api } from "@/frontend/lib/api-client";
 import type { XPResult, XPSummary } from "@/frontend/types/xp";
-export default function ReportXPResult({
-  reportId,
-  initial,
-}: {
-  reportId: string;
-  initial?: XPResult | null;
-}) {
-  const [result, setResult] = useState(initial);
+type ReportXPResultProps = { reportId: string; initial?: XPResult | null };
+
+export default function ReportXPResult(props: ReportXPResultProps) {
+  return <ReportXPResultContent key={props.reportId} {...props} />;
+}
+
+function ReportXPResultContent({ reportId, initial }: ReportXPResultProps) {
+  const [result, setResult] = useState<XPResult>(
+    initial ?? {
+      status: "pending",
+      report_xp: 0,
+      help_xp: 0,
+      reason: null,
+      bonus_reason: null,
+    },
+  );
   const [summary, setSummary] = useState<XPSummary | null>(null);
   const [rankUp, setRankUp] = useState(false);
   useEffect(() => {

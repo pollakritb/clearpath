@@ -278,3 +278,68 @@ def test_v3_coverage_uses_service_provenance_not_retired_ocr_field_flags():
             station_radius_km=2,
             require_evidence_v2=False,
         )
+
+
+def test_available_missions_only_advertise_the_effective_policy(monkeypatch):
+    from backend.core.config import settings
+    from backend.services.community import missions, policy_v2, policy_v3
+
+    monkeypatch.setattr(settings, "local_demo_mode", True)
+    monkeypatch.setattr(
+        policy_v3, "release", lambda: {"starts_at": LAUNCH, "missions_enabled": True}
+    )
+    now = datetime.now(UTC)
+    fields = dict(
+        place_name="public area",
+        lat=14,
+        lon=100,
+        radius_km=2,
+        starts_at=(now - timedelta(minutes=5)).isoformat(),
+        expires_at=(now + timedelta(minutes=55)).isoformat(),
+        state="open",
+    )
+    monkeypatch.setattr(
+        policy_v2,
+        "DEMO_MISSIONS",
+        {
+            "old": fields | {"id": "old", "policy_version": "contribution-v2"},
+            "new": fields | {"id": "new", "policy_version": "contribution-v3"},
+        },
+    )
+    assert [m["id"] for m in missions.available()] == ["new"]
+
+
+def test_request_help_counts_exclude_missions_but_service_quota_keeps_both(monkeypatch):
+    from backend.core.config import settings
+    from backend.services.community import xp
+
+    monkeypatch.setattr(settings, "local_demo_mode", True)
+    now = datetime.now(UTC).isoformat()
+    monkeypatch.setattr(
+        xp,
+        "_EVENTS",
+        [
+            dict(
+                id="help",
+                user_id="helper",
+                kind="help",
+                points=5,
+                occurred_at=now,
+                mission_id=None,
+            ),
+            dict(
+                id="mission",
+                user_id="helper",
+                kind="help",
+                points=5,
+                occurred_at=now,
+                mission_id="area",
+            ),
+        ],
+    )
+    result = xp.totals("helper")
+    assert (
+        result["helped"] == 1
+        and result["today_help"] == 2
+        and result["lifetime_xp"] == 10
+    )

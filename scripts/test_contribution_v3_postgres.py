@@ -50,6 +50,7 @@ def main():
         db.execute(migration("measurement_request_radius_2km"))
         db.execute(migration("contribution_v3"))
         db.execute(migration("contribution_v3_service_evidence"))
+        db.execute(migration("contribution_v3_audit_fixes"))
         db.execute(
             "update community_xp_control set enabled=true;update contribution_v3_control set enabled=true,starts_at='2026-10-01T00:00:00+07:00'"
         )
@@ -196,6 +197,14 @@ def main():
                 (earlier, later),
             ).fetchone()[0]
             == 1
+        )
+    with psycopg.connect(dsn, autocommit=True) as db:
+        assert (
+            db.execute("select helped from community_xp_totals(3)").fetchone()[0] == 0
+        )
+        assert (
+            db.execute("select lifetime_xp from community_xp_totals(3)").fetchone()[0]
+            == 20
         )
     print(
         "PostgreSQL 17: concurrent submissions, deterministic tie/order, retry, single first-day bonus, contested mission ordering, concurrent reversals and role isolation passed"

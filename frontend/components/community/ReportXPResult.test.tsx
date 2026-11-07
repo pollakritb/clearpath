@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ReportXPResult from "./ReportXPResult";
 const reward = {
@@ -52,6 +52,37 @@ it("retains a pending message rather than inventing zero during processing", () 
       initial={{ ...reward, status: "pending" }}
     />,
   );
+  expect(screen.getByText(/กำลังบันทึกคะแนน/)).toBeTruthy();
+  expect(screen.queryByText(/ไม่ได้รับคะแนน/)).toBeNull();
+});
+
+it("does not display a previous report award while the next report is pending", async () => {
+  let finishOld!: (value: typeof reward) => void;
+  const old = new Promise<typeof reward>((resolve) => {
+    finishOld = resolve;
+  });
+  mocks.reward
+    .mockReturnValueOnce(old)
+    .mockReturnValueOnce(new Promise(() => {}));
+  const view = render(<ReportXPResult reportId="RPT-old" initial={reward} />);
+  expect(screen.getByText("ได้รับ +40 คะแนน")).toBeTruthy();
+  view.rerender(
+    <ReportXPResult
+      reportId="RPT-new"
+      initial={{ ...reward, status: "pending" }}
+    />,
+  );
+  expect(screen.queryByText("ได้รับ +40 คะแนน")).toBeNull();
+  expect(screen.getByText(/กำลังบันทึกคะแนน/)).toBeTruthy();
+  await act(async () => {
+    finishOld(reward);
+    await old;
+  });
+  expect(screen.queryByText("ได้รับ +40 คะแนน")).toBeNull();
+});
+it("shows pending feedback when no initial XP response is available", () => {
+  mocks.reward.mockReturnValue(new Promise(() => {}));
+  render(<ReportXPResult reportId="RPT-awaiting" />);
   expect(screen.getByText(/กำลังบันทึกคะแนน/)).toBeTruthy();
   expect(screen.queryByText(/ไม่ได้รับคะแนน/)).toBeNull();
 });
