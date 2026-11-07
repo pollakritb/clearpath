@@ -55,6 +55,70 @@ await pg.exec(migration("measurement_request_radius_2km"));
 await pg.exec(migration("contribution_v3"));
 await pg.exec(migration("contribution_v3_service_evidence"));
 await pg.exec(migration("contribution_v3_audit_fixes"));
+await pg.exec(migration("contribution_v3_immediate_release"));
+
+const launchRefs = {
+  notice_ref: "isolated-owner-notice",
+  concurrency_ref: "isolated-concurrency-test",
+  preservation_ref: "isolated-preservation-test",
+  device_validation_ref: "isolated-device-fixture",
+  release_mode: "immediate",
+  immediate_reason: "Owner explicitly requests immediate cutover",
+};
+await assert.rejects(
+  pg.query(
+    "select set_contribution_v3_release(true,null,false,'{\"release_mode\":\"immediate\"}', 'fixture-owner')",
+  ),
+  /immediate_release_reason_required/,
+);
+await assert.rejects(
+  pg.query(
+    "select set_contribution_v3_release(true,null,false,$1::jsonb,'fixture-owner')",
+    [
+      JSON.stringify({
+        release_mode: "immediate",
+        immediate_reason: launchRefs.immediate_reason,
+      }),
+    ],
+  ),
+  /release_evidence_required/,
+);
+await pg.exec("begin");
+const opened = (
+  await pg.query(
+    "select set_contribution_v3_release(true,null,false,$1::jsonb,'fixture-owner') as value",
+    [JSON.stringify(launchRefs)],
+  )
+).rows[0].value;
+assert.equal(opened.enabled, true);
+assert.ok(Math.abs(Date.now() - Date.parse(opened.starts_at)) < 30000);
+const retried = (
+  await pg.query(
+    "select set_contribution_v3_release(true,null,false,$1::jsonb,'fixture-owner') as value",
+    [JSON.stringify(launchRefs)],
+  )
+).rows[0].value;
+assert.equal(
+  retried.starts_at,
+  opened.starts_at,
+  "retry cannot move the cutover",
+);
+await pg.exec("savepoint immutable");
+await assert.rejects(
+  pg.query(
+    "select set_contribution_v3_release(true,now()-interval '1 day',false,$1::jsonb,'fixture-owner')",
+    [JSON.stringify(launchRefs)],
+  ),
+  /launch_timestamp_immutable/,
+);
+await pg.exec("rollback to savepoint immutable");
+assert.equal(
+  (await pg.query("select count(*)::int n from contribution_v3_release_events"))
+    .rows[0].n,
+  2,
+);
+await pg.exec("rollback");
+
 await pg.exec(
   "update community_xp_control set enabled=true;update contribution_v3_control set starts_at='2026-10-01T00:00:00+07:00',enabled=true",
 );
@@ -412,6 +476,21 @@ assert.equal(
   ).rows[0].state,
   "open",
 );
+await pg.exec(
+  "begin;update contribution_v3_control set starts_at='2026-10-15T00:00:00+07:00'",
+);
+const expectedMonth = (
+  await pg.query(
+    "select coalesce(sum(e.points),0)::int n from community_xp_events e where e.user_id=5 and e.points>0 and e.occurred_at >= '2026-10-01T00:00:00+07:00' and e.occurred_at < '2026-11-01T00:00:00+07:00' and not exists(select 1 from community_xp_events r where r.reverses=e.id)",
+  )
+).rows[0].n;
+assert.equal(
+  (await pg.query("select community_v2_month_points('2026-10',5)::int n"))
+    .rows[0].n,
+  expectedMonth,
+  "midmonth launch includes actual all-version awards",
+);
+await pg.exec("rollback");
 console.log(
   "contribution-v3 SQL: migration, legacy preservation, 55 base/day, 5-day week, cross-version cooldown/month, fixed job policy, pause/retry, PM-independent awards, reversals and role isolation passed",
 );

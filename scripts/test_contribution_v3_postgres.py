@@ -51,6 +51,7 @@ def main():
         db.execute(migration("contribution_v3"))
         db.execute(migration("contribution_v3_service_evidence"))
         db.execute(migration("contribution_v3_audit_fixes"))
+        db.execute(migration("contribution_v3_immediate_release"))
         db.execute(
             "update community_xp_control set enabled=true;update contribution_v3_control set enabled=true,starts_at='2026-10-01T00:00:00+07:00'"
         )

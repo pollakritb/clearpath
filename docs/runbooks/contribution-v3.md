@@ -24,7 +24,7 @@ The authorized operator prepares a server-side JSON file with `notice_ref`, `con
 # Add --missions only with actual coverage-validation evidence.
 ```
 
-The setter rejects missing evidence, moving a previously fixed start and an initial date outside a future Thai month boundary. UI can announce the scheduled date once the control exists and the app flag is on. Before that date, old policies continue. At/after cutover the job's version remains fixed even across retries/rollback.
+The scheduled setter rejects missing evidence, moving a previously fixed start and an initial date outside a future Thai month boundary. An explicitly authorized immediate launch instead uses `--now --release-reason`, with the initial timestamp assigned by the server and the reason retained in the release audit. Evidence gates remain required. UI can announce the scheduled date once the control exists and the app flag is on. Before that date, old policies continue. At/after cutover the job's version remains fixed even across retries/rollback.
 
 ## Reconciliation and rollback
 
@@ -52,3 +52,15 @@ There is no score-edit argument or Admin write endpoint. Review the evidence fir
 Check pending jobs, zero-award reasons, service/pair limits, retries, season revisions and the share of service awards going to actual coverage gaps. Review whether quotas suppress legitimate help or encourage duplicate submissions. Changes to parameters need a new version/notice rather than a silent recalculation of historical base awards.
 
 A normal day can earn 70 XP; weekly-bonus day 90. Historical v1's 65 XP cap excludes the later +5 first-day bonus. Ranks remain 0/100/500/1500/5000, lifetime XP alone. A published report can legitimately receive no XP; pending computation must stay pending, not be presented as zero.
+
+## Owner-authorized immediate release
+
+The owner chose immediate activation after mobile acceptance on November 7. See [live-release evidence](../verification/2026-11-07-xp-v3-live-release.md). Apply `20261107161748_contribution_v3_immediate_release.sql` before using:
+
+```sh
+.venv/bin/python -m scripts.contribution_v3_ops release \
+  --now --release-reason 'Owner requests immediate launch after mobile acceptance' \
+  --refs reviewed-xp-release.json --operator project-owner --missions
+```
+
+The command cannot backdate a launch. Retrying immediate mode reuses the fixed start, including pause/resume. The transition month includes actual prior-version awards without creating retrospective XP.

@@ -18,7 +18,7 @@ def _local_rows(month: str) -> list[dict]:
 
     start, end = month_window(month, datetime.now(UTC))
     v3 = policy_v3.release()
-    v3_month = bool(v3.get("starts_at") and start >= stamp(v3["starts_at"]))
+    v3_month = bool(v3.get("starts_at") and end > stamp(v3["starts_at"]))
     reversed_ids = {e.get("reverses") for e in xp._EVENTS}
     result = []
     for uid, a in list(xp._ACCOUNTS.items()):

@@ -35,3 +35,7 @@ A policy timestamp, once assigned, cannot move. Reports before cutover retain th
 Pure tests, actual numeric-schema SQL tests, PostgreSQL 17 concurrency CI, API/TypeScript checks, mobile 320/360/390/430px flows and existing regressions cover the code. Database fixture tests are isolated and do not cast real votes or create fake production rewards. Physical iPhone/Android help/GPS checks and real coverage parameter evaluation remain required before enabling production v3. Browser geolocation mocks are not physical-device proof.
 
 References supplied by the owner: [Waze points](https://support.google.com/waze/answer/6273662?hl=en), [Local Guides points](https://support.google.com/maps/answer/6225851?hl=en), [Duolingo features](https://blog.duolingo.com/duolingo-101-how-to-learn-a-language-on-duolingo/). These sources do not validate ClearPath's point values.
+
+## Authorized timing update
+
+After owner-reported completion of the mobile acceptance checklist on November 7, the owner explicitly requested immediate activation instead of the recommended month-boundary target. Immediate mode uses a server-assigned immutable start and requires the same evidence references and audit. The transition month includes actual awarded XP from all versions; no old events or ranks are reset and no retrospective grants are created. See the [release evidence](../../verification/2026-11-07-xp-v3-live-release.md).

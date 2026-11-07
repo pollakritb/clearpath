@@ -366,3 +366,38 @@ def test_unrewarded_rejected_report_does_not_stay_pending_forever(monkeypatch):
     monkeypatch.setattr(xp.store_client, "get_client", lambda: EmptyQuery())
     assert xp.reward_report(report(status="rejected"))["status"] == "not_eligible"
     assert xp.reward_report(report(status="pending"))["status"] == "pending"
+
+
+def test_midmonth_launch_ranks_actual_awards_without_rewriting_legacy_events(
+    monkeypatch,
+):
+    from backend.services.community import policy_v3, seasons, xp
+
+    monkeypatch.setattr(
+        policy_v3, "release", lambda: {"starts_at": "2026-10-15T00:00:00+07:00"}
+    )
+    monkeypatch.setattr(
+        xp, "_ACCOUNTS", {"helper": {"member_id": "MEM-test", "alias": "tester"}}
+    )
+    events = [
+        dict(
+            id="legacy",
+            user_id="helper",
+            points=15,
+            policy_version="xp-v1",
+            occurred_at="2026-10-02T03:00:00Z",
+        ),
+        dict(
+            id="new",
+            user_id="helper",
+            points=10,
+            policy_version="contribution-v3",
+            occurred_at="2026-10-20T03:00:00Z",
+        ),
+    ]
+    original = [dict(row) for row in events]
+    monkeypatch.setattr(xp, "_EVENTS", events)
+    monkeypatch.setattr(xp, "totals", lambda _: {"lifetime_xp": 25, "days": 2})
+    assert seasons._local_rows("2026-10")[0]["xp"] == 25
+    assert seasons._local_rows("2026-09") == []
+    assert events == original

@@ -13,7 +13,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["status", "release", "reconcile", "reverse"])
     parser.add_argument("--refs", type=Path)
-    parser.add_argument("--start", type=datetime.fromisoformat)
+    timing = parser.add_mutually_exclusive_group()
+    timing.add_argument("--start", type=datetime.fromisoformat)
+    timing.add_argument("--now", action="store_true")
+    parser.add_argument("--release-reason")
     parser.add_argument("--operator")
     parser.add_argument("--pause", action="store_true")
     parser.add_argument("--missions", action="store_true")
@@ -26,18 +29,23 @@ def main():
     if args.action == "status":
         result = db.rpc("contribution_v3_release", {}).execute().data
     elif args.action == "release":
-        if not args.refs or not args.start or not args.operator:
-            parser.error("--refs --start --operator are required")
-        if args.start.tzinfo is None:
+        if not args.refs or not (args.start or args.now) or not args.operator:
+            parser.error("--refs, --start or --now, and --operator are required")
+        if args.start and args.start.tzinfo is None:
             parser.error("--start must include a timezone")
+        refs = json.loads(args.refs.read_text())
+        if args.now:
+            if not args.release_reason or len(args.release_reason) < 10:
+                parser.error("--now requires --release-reason (at least 10 characters)")
+            refs.update(release_mode="immediate", immediate_reason=args.release_reason)
         result = (
             db.rpc(
                 "set_contribution_v3_release",
                 {
                     "p_enabled": not args.pause,
-                    "p_starts_at": args.start.isoformat(),
+                    "p_starts_at": args.start.isoformat() if args.start else None,
                     "p_missions": args.missions,
-                    "p_refs": json.loads(args.refs.read_text()),
+                    "p_refs": refs,
                     "p_operator": args.operator,
                 },
             )
