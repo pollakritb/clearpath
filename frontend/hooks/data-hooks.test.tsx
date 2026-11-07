@@ -299,6 +299,92 @@ describe("data hooks", () => {
     expect(apiMocks.forecast).toHaveBeenCalledTimes(2);
   });
 
+  it("paginates stored news without duplicating items and stops at the last page", async () => {
+    apiMocks.announcements.mockResolvedValueOnce({
+      announcements: [{ id: "one" }],
+      has_more: true,
+      next_offset: 10,
+      checked_at: "2026-11-07T04:00:00Z",
+      sync_status: "ready",
+    });
+    const { result } = renderHook(() => useAnnouncements());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.checkedAt).toBe("2026-11-07T04:00:00Z");
+    expect(result.current.hasMore).toBe(true);
+    apiMocks.announcements.mockResolvedValueOnce({
+      announcements: [{ id: "one" }, { id: "two" }],
+      has_more: false,
+      next_offset: null,
+    });
+    await act(async () => result.current.loadMore());
+    expect(apiMocks.announcements).toHaveBeenLastCalledWith(10);
+    expect(result.current.announcements.map((item) => item.id)).toEqual([
+      "one",
+      "two",
+    ]);
+    expect(result.current.hasMore).toBe(false);
+    await act(async () => result.current.loadMore());
+    expect(apiMocks.announcements).toHaveBeenCalledTimes(2);
+  });
+
+  it("retains existing news when the next page fails and allows retry", async () => {
+    apiMocks.announcements.mockResolvedValueOnce({
+      announcements: [{ id: "one" }],
+      has_more: true,
+      next_offset: 10,
+    });
+    const { result } = renderHook(() => useAnnouncements());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    apiMocks.announcements.mockRejectedValueOnce(new Error("page unavailable"));
+    await act(async () => result.current.loadMore());
+    expect(result.current.error).toBe("page unavailable");
+    expect(result.current.announcements.map((item) => item.id)).toEqual([
+      "one",
+    ]);
+    expect(result.current.loadingMore).toBe(false);
+    apiMocks.announcements.mockResolvedValueOnce({
+      announcements: [{ id: "two" }],
+      has_more: false,
+    });
+    await act(async () => result.current.loadMore());
+    expect(result.current.error).toBe(null);
+    expect(result.current.announcements).toHaveLength(2);
+  });
+
+  it("ignores an old pagination response after refreshing the news feed", async () => {
+    apiMocks.announcements.mockResolvedValueOnce({
+      announcements: [{ id: "old" }],
+      has_more: true,
+      next_offset: 10,
+    });
+    const { result } = renderHook(() => useAnnouncements());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    let resolvePage!: (value: { announcements: { id: string }[] }) => void;
+    apiMocks.announcements.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolvePage = resolve;
+      }),
+    );
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.loadMore();
+    });
+    await act(async () => result.current.loadMore());
+    expect(apiMocks.announcements).toHaveBeenCalledTimes(2);
+    apiMocks.announcements.mockResolvedValueOnce({
+      announcements: [{ id: "new" }],
+      has_more: false,
+    });
+    await act(async () => result.current.refresh());
+    await act(async () => {
+      resolvePage({ announcements: [{ id: "stale" }] });
+      await pending;
+    });
+    expect(result.current.announcements.map((item) => item.id)).toEqual([
+      "new",
+    ]);
+  });
+
   it("loads announcements defensively", async () => {
     apiMocks.announcements.mockResolvedValueOnce({
       announcements: [{ id: "announcement-1" }],
