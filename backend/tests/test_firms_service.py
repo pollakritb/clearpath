@@ -108,3 +108,31 @@ def test_firms_parsers_reject_invalid_values():
     assert firms._f(None) is None
     assert firms._f("bad") is None
     assert firms._acquired_at({"acq_date": "bad", "acq_time": "bad"}) is None
+
+
+@pytest.mark.parametrize("body", ["Invalid MAP_KEY.", "<html>Unavailable</html>", ""])
+def test_firms_http_200_provider_error_is_not_a_clear_observation(monkeypatch, body):
+    _reset_cache()
+    monkeypatch.setattr(settings, "firms_map_key", "map-key")
+    calls = []
+    responses = [_Response(body) for _ in firms.SOURCES]
+    monkeypatch.setattr(
+        firms.httpx, "AsyncClient", lambda **_kwargs: _Client(responses, calls)
+    )
+    with pytest.raises(UpstreamError):
+        asyncio.run(firms.get_fires())
+    assert firms._CACHE["data"] is None
+
+
+def test_firms_accepts_valid_empty_csv_and_ignores_malformed_product(monkeypatch):
+    _reset_cache()
+    monkeypatch.setattr(settings, "firms_map_key", "map-key")
+    responses = [
+        _Response("Invalid MAP_KEY."),
+        _Response("latitude,longitude,acq_date,acq_time\n"),
+        _Response("", fail=True),
+    ]
+    monkeypatch.setattr(
+        firms.httpx, "AsyncClient", lambda **_kwargs: _Client(responses, [])
+    )
+    assert asyncio.run(firms.get_fires()) == []

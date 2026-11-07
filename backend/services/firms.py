@@ -80,8 +80,14 @@ async def get_fires(days: int = 1, *, force: bool = False) -> list[dict]:
         for source, resp in zip(SOURCES, responses, strict=True):
             if resp is None:
                 continue
+            reader = csv.DictReader(io.StringIO(resp.text.lstrip("\ufeff")))
+            if not {"latitude", "longitude", "acq_date", "acq_time"}.issubset(
+                set(reader.fieldnames or [])
+            ):
+                # FIRMS can return a provider error as text with HTTP 200.
+                # Only a valid CSV (including header-only CSV) proves a check.
+                continue
             successful_sources += 1
-            reader = csv.DictReader(io.StringIO(resp.text))
             for row in reader:
                 lat = _f(row.get("latitude"))
                 lon = _f(row.get("longitude"))
