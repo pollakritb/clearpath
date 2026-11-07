@@ -15,6 +15,15 @@ await pg.exec(
     "utf8",
   ),
 );
+await pg.exec(
+  readFileSync(
+    new URL(
+      "../supabase/migrations/20261107123554_community_trust_gps_clock.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+);
 const q = async (sql, args = []) => (await pg.query(sql, args)).rows;
 const result = async (sql, args = []) => (await q(sql, args))[0].result;
 for (let id = 1; id <= 15; id++)

@@ -3,7 +3,7 @@ on:
   push:
     paths:
       - "backend/**"
-      - "supabase/migrations/20261107112234_community_trust_v1.sql"
+      - "supabase/migrations/*community_trust*.sql"
       - "scripts/test_community_trust_postgres.py"
       - ".github/workflows/community-trust-integration.yml"
   workflow_dispatch:

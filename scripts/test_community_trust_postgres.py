@@ -36,6 +36,11 @@ def main():
             ).read_text()
         )
         db.execute(
+            Path(
+                "supabase/migrations/20261107123554_community_trust_gps_clock.sql"
+            ).read_text()
+        )
+        db.execute(
             "insert into profiles select generate_series(1,20);update community_trust_private.control set collecting_enabled=true,notice_ref='isolated-concurrency-test-notice';insert into community_reports select n,1,'approved',now(),'test/image',null,13.8,100.1,n::text from generate_series(101,110) n"
         )
 

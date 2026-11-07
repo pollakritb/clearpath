@@ -59,7 +59,9 @@ def vote_eligibility(
             return "gps_invalid", audit
         fix_age = (now - stamp(fix["observed_at"])).total_seconds()
         audit.update(accuracy_m=accuracy, fix_age_seconds=fix_age)
-        if not 0 <= fix_age <= 120:
+        if fix_age < 0:
+            return "gps_clock_invalid", audit
+        if fix_age > 120:
             return "gps_expired", audit
         distance = 1000 * haversine_km(
             lat, lon, float(report["lat"]), float(report["lon"])

@@ -314,3 +314,35 @@ def test_reconciliation_resumes_cursor_and_marks_projection_failures_retryable(
         and result["next_cursor"] == 200
     )
     assert ("community_trust_cursor", {"p_after": 200, "p_expected": 100}) in calls
+
+
+def test_reaction_requires_new_policy_ack_without_importing_old_likes(monkeypatch):
+    import pytest
+    from backend.services.community import engagement, community_trust as service
+
+    monkeypatch.setattr(
+        engagement,
+        "_approved_report",
+        lambda _: {"id": "RPT-1", "user_id": "owner", "status": "approved"},
+    )
+    monkeypatch.setattr(service, "collecting", lambda: True)
+    monkeypatch.setattr(
+        service,
+        "reaction",
+        lambda *_: (_ for _ in ()).throw(
+            AssertionError("must not ingest old reactions")
+        ),
+    )
+    with pytest.raises(ValueError, match="นโยบาย Trust"):
+        engagement.set_reaction("RPT-1", "voter", "like")
+
+
+def test_public_contract_strips_private_ledger_materialization():
+    from backend.models.community_trust import CommunityTrust
+
+    value = project(
+        [event(1, "2026-11-07", "private-voter")], now=NOW, include_private=True
+    )
+    assert value["_slots"]
+    public = CommunityTrust.model_validate(value).model_dump()
+    assert "_slots" not in public and "voter_id" not in str(public)
