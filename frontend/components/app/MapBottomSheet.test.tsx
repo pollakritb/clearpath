@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import MapBottomSheet from "./MapBottomSheet";
 afterEach(() => {
@@ -78,4 +84,67 @@ it("expands a touch swipe from content and lets full-view content scroll before 
   fireEvent.touchEnd(scroll, { touches: [] });
   expect(sheet.getAttribute("data-snap")).toBe("peek");
   expect(close).not.toHaveBeenCalled();
+});
+
+it("fits short details and caps asynchronously growing content to the map viewport", () => {
+  let contentHeight = 120;
+  let resize = () => {};
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(callback: () => void) {
+        resize = callback;
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+    function (this: HTMLElement) {
+      const height = this.classList.contains("cp-map")
+        ? 800
+        : this.firstElementChild?.hasAttribute("data-sheet-grip")
+          ? 96
+          : 0;
+      return {
+        x: 0,
+        y: 0,
+        width: 390,
+        height,
+        top: 0,
+        left: 0,
+        right: 390,
+        bottom: height,
+        toJSON() {},
+      };
+    },
+  );
+  vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockImplementation(
+    function (this: HTMLElement) {
+      return this.hasAttribute("aria-hidden") && this.hasAttribute("id")
+        ? contentHeight
+        : 0;
+    },
+  );
+  render(
+    <div className="cp-map">
+      <MapBottomSheet
+        label="Content-sized sheet"
+        header={<h2>Place</h2>}
+        onClose={vi.fn()}
+      >
+        <p>Details loaded asynchronously</p>
+      </MapBottomSheet>
+    </div>,
+  );
+  const sheet = screen.getByRole("region", { name: "Content-sized sheet" });
+  const grip = screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" });
+  fireEvent.keyDown(grip, { key: "End" });
+  expect(sheet.style.getPropertyValue("--sheet-height")).toBe("216px");
+  contentHeight = 1000;
+  act(() => resize());
+  expect(sheet.style.getPropertyValue("--sheet-height")).toBe("708px");
+  contentHeight = 120;
+  act(() => resize());
+  expect(sheet.style.getPropertyValue("--sheet-height")).toBe("216px");
 });

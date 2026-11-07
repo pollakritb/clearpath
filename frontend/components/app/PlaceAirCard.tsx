@@ -80,21 +80,24 @@ export default function PlaceAirCard({
   const reportCount = air.contributors.filter(
     (point) => point.source === "report",
   ).length;
+  const sourceSummary = [
+    stationCount ? `${stationCount} สถานี` : "",
+    reportCount ? `${reportCount} รายงาน` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const noCurrent = air.value == null;
   return (
     <MapBottomSheet
       key="place-current"
       label={`ค่าฝุ่นรอบ ${place.name}`}
-      className={`cp-place-sheet ${styles.panel}`}
+      className={`cp-place-sheet ${styles.panel} ${styles.placePanel}`}
       initialSnap="peek"
       onClose={onClose}
       closeLabel="ปิดสถานที่ที่เลือก"
       header={
         <>
           <h1 className={styles.title}>{place.name}</h1>
-          <p className={styles.context}>
-            ค่าฝุ่นรอบจุดนี้ · ภายใน {PLACE_RADIUS_KM} กม.
-          </p>
           <MapPanelReading
             value={air.value == null ? null : Number(air.value.toFixed(1))}
             status={
@@ -104,31 +107,55 @@ export default function PlaceAirCard({
                   ? "ยังไม่มีค่าปัจจุบัน"
                   : undefined
             }
-            caption={
-              noCurrent
-                ? air.stations.length || air.reports.length
-                  ? "ข้อมูลใกล้เคียงยังไม่สดพอใช้ประเมิน"
-                  : "ยังไม่มีข้อมูลตรวจวัดใกล้จุดนี้"
-                : `ประเมินจาก ${stationCount} สถานี · ${reportCount} รายงาน`
-            }
           />
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={`${styles.action} cp-focus`}
-              aria-label="ดูย้อนหลังของสถานที่นี้"
-              onClick={() => setTimeMode("history")}
+          <div className={styles.placeFooter}>
+            <p
+              className={styles.placeMeta}
+              aria-label={`ข้อมูลในรัศมี ${PLACE_RADIUS_KM} กม.`}
+              title={
+                noCurrent
+                  ? "ไม่มีข้อมูลสดพอใช้ประเมิน"
+                  : "ค่าประเมินจากแหล่งข้อมูลใกล้เคียง ไม่ใช่การวัดที่จุดนี้โดยตรง"
+              }
             >
-              <AppIcon name="clock" size={17} /> ย้อนหลัง
-            </button>
-            <button
-              type="button"
-              className={`${styles.action} cp-focus`}
-              aria-label="ดูพยากรณ์ของสถานที่นี้"
-              onClick={() => setTimeMode("forecast")}
-            >
-              <AppIcon name="wind" size={17} /> พยากรณ์
-            </button>
+              {noCurrent ? (
+                <>
+                  <span>
+                    {air.stations.length || air.reports.length
+                      ? "ข้อมูลใกล้เคียงไม่สด"
+                      : "ยังไม่มีข้อมูลใกล้จุดนี้"}
+                  </span>
+                  <span>รัศมี {PLACE_RADIUS_KM} กม.</span>
+                </>
+              ) : (
+                <>
+                  <span>
+                    {sourceSummary
+                      ? `ประเมินจาก ${sourceSummary}`
+                      : "ค่าประเมินพื้นที่"}
+                  </span>
+                  <span>รัศมี {PLACE_RADIUS_KM} กม.</span>
+                </>
+              )}
+            </p>
+            <div className={`${styles.actions} ${styles.placeActions}`}>
+              <button
+                type="button"
+                className={`${styles.action} cp-focus`}
+                aria-label="ดูย้อนหลังของสถานที่นี้"
+                onClick={() => setTimeMode("history")}
+              >
+                <AppIcon name="clock" size={17} /> ย้อนหลัง
+              </button>
+              <button
+                type="button"
+                className={`${styles.action} cp-focus`}
+                aria-label="ดูพยากรณ์ของสถานที่นี้"
+                onClick={() => setTimeMode("forecast")}
+              >
+                <AppIcon name="wind" size={17} /> พยากรณ์
+              </button>
+            </div>
           </div>
         </>
       }

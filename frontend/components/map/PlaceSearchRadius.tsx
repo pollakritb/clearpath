@@ -1,5 +1,5 @@
 "use client";
-import { Circle, Polyline, Tooltip } from "react-leaflet";
+import { Circle, CircleMarker, Polyline, Tooltip } from "react-leaflet";
 /** A labelled search boundary: its fill never represents a PM2.5 reading. */
 export default function PlaceSearchRadius({
   lat,
@@ -45,17 +45,22 @@ export default function PlaceSearchRadius({
           dashArray: "4 5",
           interactive: false,
         }}
+      />
+      <CircleMarker
+        center={[lat + radiusKm / 111.32, lon]}
+        radius={0}
+        pathOptions={{ opacity: 0, fillOpacity: 0, interactive: false }}
       >
         <Tooltip
           permanent
-          direction="top"
-          position={edge}
+          direction="bottom"
+          offset={[0, 4]}
           className="cp-search-radius-label"
           opacity={1}
         >
           รัศมี {radiusKm} กม. · ค้นหาข้อมูล
         </Tooltip>
-      </Polyline>
+      </CircleMarker>
     </>
   );
 }

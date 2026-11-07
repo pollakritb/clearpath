@@ -41,7 +41,8 @@ export default function MapBottomSheet({
   const contentId = useId();
   const root = useRef<HTMLElement>(null),
     scroll = useRef<HTMLDivElement>(null),
-    heading = useRef<HTMLDivElement>(null);
+    heading = useRef<HTMLDivElement>(null),
+    content = useRef<HTMLDivElement>(null);
   const gesture = useRef<{
     y: number;
     height: number;
@@ -88,13 +89,17 @@ export default function MapBottomSheet({
       const previousKeyboard =
         parseFloat(element.style.getPropertyValue("--sheet-keyboard")) || 0;
       const bottom = parseFloat(getComputedStyle(element).bottom) || 84;
-      const max = Math.max(
+      const available = Math.max(
         120,
         height - (bottom - previousKeyboard + keyboard) - 8,
       );
       const peek = Math.min(
-        max,
+        available,
         heading.current?.getBoundingClientRect().height || 180,
+      );
+      const max = Math.min(
+        available,
+        Math.max(peek, peek + (content.current?.scrollHeight ?? 0)),
       );
       setSizes((previous) =>
         previous.peek === peek &&
@@ -111,6 +116,7 @@ export default function MapBottomSheet({
         : new ResizeObserver(measure);
     observer?.observe(parent);
     if (heading.current) observer?.observe(heading.current);
+    if (content.current) observer?.observe(content.current);
     window.addEventListener("resize", measure);
     window.visualViewport?.addEventListener("resize", measure);
     return () => {
@@ -296,6 +302,7 @@ export default function MapBottomSheet({
         </div>
         <div
           id={contentId}
+          ref={content}
           className={styles.content}
           inert={snap === "peek"}
           aria-hidden={snap === "peek"}

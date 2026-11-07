@@ -11645,6 +11645,11 @@ dialog.cp-login-modal::backdrop {
   box-shadow: 0 2px 8px #143b3526;
   white-space: nowrap;
 }
-.cp-search-radius-label.leaflet-tooltip-top::before {
-  border-top-color: #087c78;
+.cp-search-radius-label.leaflet-tooltip-bottom::before {
+  border-bottom-color: #087c78;
+}
+
+/* A selected point already provides a usable location; keep passive GPS fallback copy from stacking above its sheet. Explicit locate errors remain visible. */
+.cp-map:has([data-map-sheet]) .cp-mapctrls__error[role="status"] {
+  display: none;
 }

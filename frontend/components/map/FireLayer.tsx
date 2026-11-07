@@ -56,6 +56,7 @@ export default function FireLayer({
                 <>
                   <h2>จุดความร้อนจากดาวเทียม</h2>
                   <p>NASA FIRMS · {f.satellite ?? "ไม่ระบุดาวเทียม"}</p>
+                  <p>ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว</p>
                 </>
               }
             >
@@ -93,7 +94,6 @@ export default function FireLayer({
                   }}
                 >
                   จุดความร้อนจากดาวเทียมอาจมีได้หลายสาเหตุ
-                  ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว
                 </div>
               </div>
             </MapBottomSheet>

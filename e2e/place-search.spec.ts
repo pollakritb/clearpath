@@ -43,7 +43,7 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   await expect(
     page.getByRole("button", { name: "ใช้จุดนี้เพื่อขอค่าฝุ่น" }),
   ).toHaveCount(0);
-  await expect(card.getByText("ค่าฝุ่นรอบจุดนี้ · ภายใน 2 กม.")).toBeVisible();
+  await expect(card.getByLabel("ข้อมูลในรัศมี 2 กม.")).toBeVisible();
   await expect(page.locator(".cp-place-marker")).toHaveCount(1);
   await expect(
     card.getByRole("heading", { name: /สถานีใกล้เคียง/ }),
@@ -53,6 +53,33 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   expect(marker).not.toBeNull();
   expect(collapsedCard).not.toBeNull();
   expect(marker!.y + marker!.height).toBeLessThan(collapsedCard!.y);
+  await expect(page.locator('.cp-mapctrls__error[role="status"]')).toBeHidden();
+  // The summary should leave the map visible while controls remain touchable.
+  expect(collapsedCard!.height).toBeLessThanOrEqual(180);
+  // Read both rectangles together so an in-flight height transition cannot skew the comparison.
+  await expect
+    .poll(() =>
+      card.evaluate((element) => {
+        const title = element.querySelector("h1")!.getBoundingClientRect();
+        const handle = element
+          .querySelector("[data-sheet-grip]")!
+          .getBoundingClientRect();
+        return title.top - handle.bottom;
+      }),
+    )
+    .toBeGreaterThanOrEqual(0);
+  for (const label of [
+    "ดูย้อนหลังของสถานที่นี้",
+    "ดูพยากรณ์ของสถานที่นี้",
+    "ปิดสถานที่ที่เลือก",
+  ]) {
+    const target = await card
+      .getByRole("button", { name: label, exact: true })
+      .boundingBox();
+    expect(target!.height).toBeGreaterThanOrEqual(44);
+    expect(target!.width).toBeGreaterThanOrEqual(44);
+  }
+
   await page.screenshot({ path: "test-results/place-focus-mobile.png" });
 
   await card
@@ -62,6 +89,19 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   await expect(
     card.getByRole("heading", { name: /สถานีใกล้เคียง/ }),
   ).toBeVisible();
+  const expandedContent = await card.evaluate((element) => {
+    const body = element.querySelector<HTMLElement>("[aria-hidden='false']");
+    return {
+      height: element.getBoundingClientRect().height,
+      summaryHeight:
+        body?.previousElementSibling?.getBoundingClientRect().height ?? 0,
+      bodyHeight: body?.getBoundingClientRect().height ?? 0,
+    };
+  });
+  expect(expandedContent.height).toBeLessThanOrEqual(
+    expandedContent.summaryHeight + expandedContent.bodyHeight + 2,
+  );
+
   await expect(
     card.getByRole("heading", { name: /รายงานจากชุมชน/ }),
   ).toHaveCount(0);
@@ -306,6 +346,13 @@ test("place time actions open separate forecast and history while keeping the ra
   ).toHaveCount(0);
   await expect(page.locator(".cp-search-radius-label")).toContainText(
     "รัศมี 2 กม. · ค้นหาข้อมูล",
+  );
+  const radiusLabel = await page
+    .locator(".cp-search-radius-label")
+    .boundingBox();
+  expect(radiusLabel!.x).toBeGreaterThanOrEqual(0);
+  expect(radiusLabel!.x + radiusLabel!.width).toBeLessThanOrEqual(
+    page.viewportSize()!.width,
   );
   await placeSheet
     .getByRole("button", { name: "ดูพยากรณ์ของสถานที่นี้" })

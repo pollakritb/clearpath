@@ -378,9 +378,16 @@ test("satellite hotspot fixture is distinct and never presented as a confirmed f
     exact: true,
   });
   await expect(popup).toBeVisible();
-  await expect(popup).toHaveAttribute("data-snap", "half");
+  await expect(popup).toHaveAttribute("data-snap", "peek");
   await expect(popup).toContainText("จุดความร้อนจากดาวเทียม");
-  await expect(popup).toContainText("ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว");
+  await expect(
+    popup.getByText("ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว", { exact: true }),
+  ).toBeVisible();
+  await popup
+    .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+    .press("End");
+  await expect(popup).toHaveAttribute("data-snap", "full");
+  await expect(popup.getByText("FRP: 25 MW", { exact: true })).toBeVisible();
 });
 
 test("news page loads no map, rewards, or leaderboard data by default", async ({

@@ -71,7 +71,7 @@ it("keeps old station readings distinct from a current estimate and omits empty 
       {...callbacks}
     />,
   );
-  expect(screen.getByText("ข้อมูลใกล้เคียงยังไม่สดพอใช้ประเมิน")).toBeTruthy();
+  expect(screen.getByText("ข้อมูลใกล้เคียงไม่สด")).toBeTruthy();
   fireEvent.keyDown(
     screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
     { key: "End" },
