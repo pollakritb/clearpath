@@ -1,6 +1,9 @@
 "use client";
-import { useState } from "react";
-import type { CommunityTrust } from "@/frontend/types/community-trust";
+import { useRef, useState } from "react";
+import type {
+  CommunityTrust,
+  CommunityTrustReviewItem,
+} from "@/frontend/types/community-trust";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import styles from "./ReporterTrustCard.module.css";
 import formStyles from "./CommunityTrustCard.module.css";
@@ -20,16 +23,23 @@ export default function CommunityTrustCard({
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [reviewUpdates, setReviewUpdates] = useState<
-    { id: string; status: string; reason?: string | null }[] | null
+    CommunityTrustReviewItem[] | null
   >(null);
   const [reviewError, setReviewError] = useState("");
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const reviewRequest = useRef(0);
   async function loadReviews() {
+    const request = ++reviewRequest.current;
     setReviewError("");
+    setReviewsLoading(true);
     try {
       const result = await api.communityTrustOwnerReviews();
-      setReviewUpdates(result.requests);
+      if (request === reviewRequest.current) setReviewUpdates(result.requests);
     } catch {
-      setReviewError("โหลดผลทบทวนไม่สำเร็จ กรุณาลองอีกครั้ง");
+      if (request === reviewRequest.current)
+        setReviewError("โหลดผลทบทวนไม่สำเร็จ กรุณาลองอีกครั้ง");
+    } finally {
+      if (request === reviewRequest.current) setReviewsLoading(false);
     }
   }
   if (!trust) return null;
@@ -121,10 +131,11 @@ export default function CommunityTrustCard({
           {reviewError && <p role="alert">{reviewError}</p>}
           <button
             className="cp-focus cp-btn"
+            disabled={reviewsLoading}
             type="button"
             onClick={() => void loadReviews()}
           >
-            โหลดคำขอใหม่
+            {reviewsLoading ? "กำลังโหลด…" : "โหลดคำขอใหม่"}
           </button>
           {reviewUpdates === null ? (
             !reviewError && <p role="status">กำลังโหลดคำขอทบทวน…</p>
@@ -132,6 +143,12 @@ export default function CommunityTrustCard({
             <ul>
               {reviewUpdates.map((r) => (
                 <li key={r.id}>
+                  {r.from_day && r.to_day && (
+                    <p>
+                      ช่วงวันที่ {r.from_day} ถึง {r.to_day}
+                    </p>
+                  )}
+                  {r.message && <p>{r.message}</p>}
                   {r.status === "reviewed" ? "ทบทวนแล้ว" : "รอทบทวน"}
                   {r.reason && <p>{r.reason}</p>}
                 </li>

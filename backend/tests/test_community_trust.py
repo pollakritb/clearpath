@@ -492,3 +492,55 @@ def test_new_routes_require_auth_and_admin_has_no_finding_or_score_mutation(
     )
     assert client.post("/api/admin/community-trust/reviews", json={}).status_code == 405
     assert client.post("/api/admin/community-trust/score", json={}).status_code == 404
+
+
+def test_projection_fallback_and_write_conflict_never_return_private_cache_fields(
+    monkeypatch,
+):
+    from backend.core.errors import UpstreamError
+    from backend.services.community import community_trust as service
+
+    monkeypatch.setattr(service.settings, "community_trust_collection_enabled", True)
+    monkeypatch.setattr(service, "control", lambda: {"collecting_enabled": True})
+    previous = {
+        "score": 78.6,
+        "status": "updating",
+        "calculated_at": "2026-11-06T00:00:00Z",
+        "_ledger_seq": 4,
+        "_slots": [{"voter_id": "private-account"}],
+        "comparison": {"raw": 99.0},
+    }
+    for fail in (False, True):
+
+        def fake_rpc(name, params=None, *, fail=fail):
+            if name == "community_trust_snapshot":
+                return {"events": [], "ledger_seq": 4, "projection": previous}
+            if fail:
+                raise UpstreamError("test unavailable")
+            return False
+
+        monkeypatch.setattr(service, "rpc", fake_rpc)
+        value = service.summary("owner", owner=True)
+        assert value["status"] == "updating" and value["score"] == 78.6
+        assert value["calculated_at"] == previous["calculated_at"]
+        assert "private-account" not in str(value)
+        assert "_ledger_seq" not in value and "comparison" not in value
+
+
+def test_review_report_scope_rejects_wrong_entity_and_malformed_identifiers():
+    import pytest
+    from pydantic import ValidationError
+
+    from backend.models.community_trust import CommunityTrustReview
+
+    for report_id in ("USR-000001", "not-a-report", "", "RPT-0"):
+        with pytest.raises(ValidationError):
+            CommunityTrustReview(
+                report_id=report_id, message="Please review these votes"
+            )
+    assert (
+        CommunityTrustReview(
+            report_id="12", message="Please review these votes"
+        ).report_id
+        == "RPT-000012"
+    )

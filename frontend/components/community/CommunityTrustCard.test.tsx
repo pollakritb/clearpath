@@ -1,8 +1,19 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 import CommunityTrustCard from "./CommunityTrustCard";
 import type { CommunityTrust } from "@/frontend/types/community-trust";
-afterEach(cleanup);
+import { api } from "@/frontend/lib/api-client";
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 const trust: CommunityTrust = {
   policy_version: "community-trust-v1",
   status: "insufficient",
@@ -53,4 +64,67 @@ it("keeps the last score labeled when a projection is updating", () => {
 it("hides the whole score surface when feature or identity is private", () => {
   const { container } = render(<CommunityTrustCard trust={null} />);
   expect(container.textContent).toBe("");
+});
+
+it("keeps fresh review results when an earlier request resolves after submission", async () => {
+  let resolveOld!: (value: { requests: never[] }) => void;
+  const old = new Promise<{ requests: never[] }>((resolve) => {
+    resolveOld = resolve;
+  });
+  const fresh = {
+    requests: [
+      {
+        id: "new",
+        status: "pending",
+        created_at: "2026-11-07T01:00:00Z",
+        from_day: "2026-11-01",
+        to_day: "2026-11-07",
+        message: "Please review these votes",
+      },
+    ],
+  };
+  const read = vi
+    .spyOn(api, "communityTrustOwnerReviews")
+    .mockReturnValueOnce(old)
+    .mockResolvedValueOnce(fresh);
+  vi.spyOn(api, "communityTrustReview").mockResolvedValue({
+    id: "new",
+    status: "pending",
+  });
+  render(
+    <CommunityTrustCard
+      trust={{ ...trust, review_available: true }}
+      reviewable
+    />,
+  );
+  const details = screen.getByText("ติดตามคำขอทบทวน").closest("details")!;
+  act(() => {
+    details.open = true;
+  });
+  await waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+  expect(
+    (
+      (await screen.findByRole("button", {
+        name: "กำลังโหลด…",
+      })) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+  fireEvent.change(screen.getByLabelText("ตั้งแต่วันที่"), {
+    target: { value: "2026-11-01" },
+  });
+  fireEvent.change(screen.getByLabelText("ถึงวันที่"), {
+    target: { value: "2026-11-07" },
+  });
+  fireEvent.change(screen.getByLabelText("เหตุผลขอทบทวน"), {
+    target: { value: "Please review these votes" },
+  });
+  fireEvent.submit(screen.getByLabelText("เหตุผลขอทบทวน").closest("form")!);
+  await screen.findByText("รอทบทวน");
+  expect(screen.getByText("ช่วงวันที่ 2026-11-01 ถึง 2026-11-07")).toBeTruthy();
+  await act(async () => {
+    resolveOld({ requests: [] });
+    await old;
+  });
+  expect(screen.getByText("รอทบทวน")).toBeTruthy();
+  expect(screen.queryByText("ยังไม่มีคำขอทบทวน")).toBeNull();
 });

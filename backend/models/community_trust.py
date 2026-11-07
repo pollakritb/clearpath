@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from ..core.identifiers import ReportID
+
 
 class CommunityTrustDay(BaseModel):
     day: str
@@ -36,7 +38,7 @@ class CommunityTrust(BaseModel):
 
 class CommunityTrustReview(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-    report_id: str | None = None
+    report_id: ReportID | None = None
     from_day: date | None = None
     to_day: date | None = None
     message: str = Field(min_length=10, max_length=1000)

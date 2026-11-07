@@ -95,6 +95,13 @@ def reaction(
     return result
 
 
+def _public_projection(value: dict) -> dict:
+    """Apply the response contract even on stale-cache and failed-write paths."""
+    from ...models.community_trust import CommunityTrust
+
+    return CommunityTrust.model_validate(value).model_dump(mode="json")
+
+
 def summary(
     user: str, *, owner: bool = False, release: dict | None = None
 ) -> dict | None:
@@ -166,14 +173,16 @@ def summary(
             },
         )
         if not saved:
-            return {**(previous or value), "status": "updating"}
+            return _public_projection({**(previous or value), "status": "updating"})
         return value
     except UpstreamError:
-        return {
-            **(previous or {}),
-            "policy_version": POLICY,
-            "status": "updating" if previous else "unavailable",
-        }
+        return _public_projection(
+            {
+                **(previous or {}),
+                "policy_version": POLICY,
+                "status": "updating" if previous else "unavailable",
+            }
+        )
 
 
 def request_review(user: str, payload: dict) -> dict:
