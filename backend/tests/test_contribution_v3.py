@@ -247,3 +247,34 @@ def test_demo_v3_preserves_balance_and_assigns_report_policy_by_server_submissio
     assert xp.reward_report(new) == result
     assert xp.totals("helper")["lifetime_xp"] == 25
     assert policy_v3.applies(new) and not policy_v3.applies(old)
+
+
+def test_v3_coverage_uses_service_provenance_not_retired_ocr_field_flags():
+    row = report(
+        created_at=START.isoformat(),
+        captured_at=START.isoformat(),
+        lat=14,
+        lon=100,
+        measurement_environment="outdoor",
+        gps_accuracy_m=20,
+        near_emission_source=False,
+    )
+    assert not missing_coverage(
+        14, 100, [], [row], START, station_radius_km=2, require_evidence_v2=False
+    )
+    assert missing_coverage(14, 100, [], [row], START)
+    for changed in [
+        {"clock_warning": True},
+        {"status": "rejected"},
+        {"near_emission_source": True},
+        {"capture_source": None},
+    ]:
+        assert missing_coverage(
+            14,
+            100,
+            [],
+            [row | changed],
+            START,
+            station_radius_km=2,
+            require_evidence_v2=False,
+        )

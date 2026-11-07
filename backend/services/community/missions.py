@@ -50,7 +50,7 @@ def refresh() -> int:
                             db.get_client()
                             .table("community_reports")
                             .select(
-                                "id,lat,lon,pm25,status,captured_at,measurement_environment,near_emission_source,duplicate_of_report_id,gps_accuracy_m,evidence_v2,current_evidence_issues"
+                                "id,lat,lon,pm25,status,captured_at,created_at,capture_source,clock_warning,measurement_environment,near_emission_source,duplicate_of_report_id,gps_accuracy_m,evidence_v2,current_evidence_issues"
                             )
                             .eq("status", "approved")
                             .gte("captured_at", (now - timedelta(hours=1)).isoformat())
@@ -83,6 +83,7 @@ def refresh() -> int:
                     reports,
                     now,
                     station_radius_km=2 if policy_v3.applies() else 5,
+                    require_evidence_v2=not policy_v3.applies(),
                 )
             ]
             if not settings.local_demo_mode:
@@ -161,7 +162,7 @@ def demo_match(report: dict, metadata: dict) -> dict | None:
     if policy_v3.applies(report) and not policy_v3.release().get("missions_enabled"):
         return None
     extraction = metadata.get("evidence_extraction") or {}
-    if (
+    if not policy_v3.applies(report) and (
         extraction.get("pm25_field_verified") is not True
         or extraction.get("unit_verified") is not True
     ):
@@ -195,10 +196,12 @@ def demo_match(report: dict, metadata: dict) -> dict | None:
             lon=m["lon"],
             radius_km=2,
         )
-        if (
-            help_eligibility(report, request, None, metadata, automatic=True)
-            != "granted"
-        ):
+        from ...algorithms.contribution_v3 import service_eligibility
+
+        check_service = (
+            service_eligibility if policy_v3.applies(report) else help_eligibility
+        )
+        if check_service(report, request, None, metadata, automatic=True) != "granted":
             continue
         if any(
             prior["state"] == "fulfilled"

@@ -15,6 +15,7 @@ def missing_coverage(
     now: datetime,
     *,
     station_radius_km: float = 5,
+    require_evidence_v2: bool = True,
 ) -> bool:
     for station in stations:
         value = station.get("pm25")
@@ -33,14 +34,27 @@ def missing_coverage(
             continue
     for report in reports:
         try:
+            evidence_ready = (
+                report.get("evidence_v2") is not None
+                and not report["evidence_v2"].get("blockers", ["unknown"])
+                if require_evidence_v2
+                else (
+                    report.get("capture_source") in {"camera", "upload", "gallery"}
+                    and not report.get("clock_warning")
+                    and 0
+                    <= (
+                        stamp(report["created_at"]) - stamp(report["captured_at"])
+                    ).total_seconds()
+                    <= 900
+                )
+            )
             if (
                 report.get("status") == "approved"
                 and isinstance(report.get("pm25"), (int, float))
                 and isfinite(report["pm25"])
                 and report["pm25"] >= 0
                 and report.get("measurement_environment") == "outdoor"
-                and report.get("evidence_v2") is not None
-                and not report["evidence_v2"].get("blockers", ["unknown"])
+                and evidence_ready
                 and not report.get("near_emission_source")
                 and not report.get("current_evidence_issues")
                 and not report.get("duplicate_of_report_id")

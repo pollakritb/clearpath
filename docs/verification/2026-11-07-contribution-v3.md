@@ -8,7 +8,7 @@ Schema compatibility is tested for both existing v2 and legacy production schema
 
 ## Validation evidence
 
-- Backend: **582 tests pass**, coverage **81.63%** (80% gate).
+- Backend: **583 tests pass**, coverage **81.63%** (80% gate).
 - Frontend: **385 tests pass**, function coverage **90.75%**.
 - Mobile Chromium: **230 pass / 6 intentional viewport skips**, 320/360/390/430px. Includes v3 profile/rules/quota views, existing accessibility/touch sheets, Trust/report and submission flows.
 - Ruff, ESLint, TypeScript, Prettier and production build pass. Visual checks reviewed the v3 320px/390px browser artifacts.
@@ -28,3 +28,5 @@ At schema deployment, `enabled=false`, `starts_at=null`, `missions_enabled=false
 Physical iPhone/Android GPS/permission/camera/gallery and help-request flow validation is still outstanding. Real coverage input/parameter evaluation is also outstanding; isolated PostgreSQL tests are staging-like test evidence, not a completed live Supabase/user field trial. Do not claim these gates passed or invent their reference values. Browser mocks and synthesized touch are not physical-device proof.
 
 Use the [runbook](../runbooks/contribution-v3.md) for release evidence, independent app flag, immutable month boundary, pause/resume and reconciliation. Enabling general production v3 or coverage bonuses is a separate operational step once those gates are met.
+
+A follow-up migration aligns v3 coverage bonuses with the same camera/verified-time/GPS protocol used for request-service bonuses. It does not require retired OCR field/unit flags in addition to number-only publication; legacy v2 rules remain unchanged. SQL and PostgreSQL mission tests explicitly run with those flags false. Fresh eligible v3 reports suppress coverage tasks using that same provenance/15-minute protocol.

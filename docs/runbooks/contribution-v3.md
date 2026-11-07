@@ -6,9 +6,10 @@ The complete policy is in [the v3 specification](../superpowers/specs/2026-11-07
 
 1. Apply `20261107141950_contribution_v3_prerequisites.sql`. It installs dormant v2-compatible foundations only when absent; existing v2 installations are left intact. Both paths are tested against the numeric schema.
 2. Apply `20261107142025_contribution_v3.sql`. It adds the separate release control, policy-at-submission trigger, transactional worker safeguards, all-version monthly views after cutover and compensated dependent bonuses. Default: disabled, no start timestamp, missions disabled.
-3. Deploy matching Python/TypeScript/UI contracts. Keep `CONTRIBUTION_V3_ENABLED=false` until release evidence is complete.
-4. Compare account and ledger fingerprints, balances/ranks and report/Trust counts before/after. No new reward/backfill should exist from migration alone.
-5. Run the isolated SQL tests and the PostgreSQL 17 CI matrix (existing/missing v2). Run mobile/browser checks and physical-device validation separately.
+3. Apply `20261107143805_contribution_v3_service_evidence.sql` to keep v3 mission evidence aligned with the request-service protocol (v2 OCR field/unit gates remain unchanged).
+4. Deploy matching Python/TypeScript/UI contracts. Keep `CONTRIBUTION_V3_ENABLED=false` until release evidence is complete.
+5. Compare account and ledger fingerprints, balances/ranks and report/Trust counts before/after. No new reward/backfill should exist from migration alone.
+6. Run the isolated SQL tests and the PostgreSQL 17 CI matrix (existing/missing v2). Run mobile/browser checks and physical-device validation separately.
 
 ## Enable only with real evidence
 

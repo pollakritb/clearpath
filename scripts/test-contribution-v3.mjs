@@ -53,6 +53,7 @@ await pg.exec(migration("contribution_v3_prerequisites"));
 
 await pg.exec(migration("measurement_request_radius_2km"));
 await pg.exec(migration("contribution_v3"));
+await pg.exec(migration("contribution_v3_service_evidence"));
 await pg.exec(
   "update community_xp_control set enabled=true;update contribution_v3_control set starts_at='2026-10-01T00:00:00+07:00',enabled=true",
 );
@@ -71,7 +72,10 @@ const record = async (user, submitted, values = {}) => {
   ).rows[0];
   const evidence = {
     image_metadata: {
-      evidence_extraction: { pm25_field_verified: true, unit_verified: true },
+      evidence_extraction: {
+        pm25_field_verified: !values.__number_only,
+        unit_verified: !values.__number_only,
+      },
       bonus_gps_at_submission: { lat: 13.8, lon: 100.1, accuracy_m: 20 },
     },
   };
@@ -257,7 +261,7 @@ for (let i = 0; i < 2; i++)
     "insert into community_coverage_missions(area_key,place_name,lat,lon,starts_at,expires_at,inputs,policy_version) values($1,'public centre',13.8,100.1,'2026-10-28T02:50:00Z','2026-10-28T04:00:00Z','{}','contribution-v3')",
     ["v3-overlap-" + i],
   );
-const winner = await record(6, "2026-10-28T03:00:00Z");
+const winner = await record(6, "2026-10-28T03:00:00Z", { __number_only: true });
 await settle();
 assert.equal(await balance(6), 20);
 assert.equal(

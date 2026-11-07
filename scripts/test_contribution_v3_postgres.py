@@ -49,6 +49,7 @@ def main():
         db.execute(migration("contribution_v3_prerequisites"))
         db.execute(migration("measurement_request_radius_2km"))
         db.execute(migration("contribution_v3"))
+        db.execute(migration("contribution_v3_service_evidence"))
         db.execute(
             "update community_xp_control set enabled=true;update contribution_v3_control set enabled=true,starts_at='2026-10-01T00:00:00+07:00'"
         )
@@ -69,8 +70,8 @@ def main():
             evidence = {
                 "image_metadata": {
                     "evidence_extraction": {
-                        "pm25_field_verified": True,
-                        "unit_verified": True,
+                        "pm25_field_verified": False,
+                        "unit_verified": False,
                     },
                     "bonus_gps_at_submission": {
                         "lat": 13.8,
