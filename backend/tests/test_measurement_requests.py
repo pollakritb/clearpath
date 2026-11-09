@@ -309,11 +309,11 @@ def test_concurrent_duplicate_creation_and_quota(env):
     with ThreadPoolExecutor(max_workers=8) as pool:
         rows = list(pool.map(lambda _: create(owner), range(8)))
     assert len({row["id"] for row in rows}) == 1
-    with pytest.raises(ValueError, match="มีคำขอที่เปิดอยู่แล้ว"):
-        create(owner, lat=13.801)
+    second = create(owner, lat=13.801)
+    with pytest.raises(ValueError, match="ครบ 2 คำขอ"):
+        create(owner, lat=13.802)
     first = rows[0]
     service.cancel(first["id"], owner)
-    second = create(owner, lat=13.801)
     store.finish(second["id"], "fulfilled")
     third = create(owner, lat=13.802)
     service.cancel(third["id"], owner)
@@ -516,14 +516,15 @@ def test_open_requests_visible_without_consent_but_closed_history_stays_private(
 def test_expired_clock_releases_slot_even_before_worker(env):
     owner, *_ = env
     req = create(owner)
+    create(owner, lat=13.801)
     store.REQUESTS[req["id"]]["expires_at"] = (
         datetime.now(UTC) - timedelta(seconds=1)
     ).isoformat()
     assert not store.is_open(store.get(req["id"]))
-    assert create(owner, lat=13.801)["id"] != req["id"]
+    assert create(owner, lat=13.802)["id"] != req["id"]
 
 
-def test_different_simultaneous_requests_only_one_open_slot(env):
+def test_different_simultaneous_requests_only_two_open_slots(env):
     owner, *_ = env
 
     def attempt(i):
@@ -534,8 +535,8 @@ def test_different_simultaneous_requests_only_one_open_slot(env):
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         results = list(pool.map(attempt, range(8)))
-    assert sum(row is not None for row in results) == 1
-    assert len(store.REQUESTS) == 1
+    assert sum(row is not None for row in results) == 2
+    assert len(store.REQUESTS) == 2
 
 
 def test_open_slot_is_per_requester_and_not_a_global_limit(env):
@@ -545,9 +546,10 @@ def test_open_slot_is_per_requester_and_not_a_global_limit(env):
     third = create(other, needed_by=datetime.now(UTC) + timedelta(hours=2))
     assert len({first["id"], second["id"], third["id"]}) == 3
     for uid in (owner, helper, other):
-        with pytest.raises(ValueError, match="มีคำขอที่เปิดอยู่แล้ว"):
-            create(uid, lat=13.801)
-    assert len(store.visible(owner)) == 3
+        create(uid, lat=13.801)
+        with pytest.raises(ValueError, match="ครบ 2 คำขอ"):
+            create(uid, lat=13.802)
+    assert len(store.visible(owner)) == 6
 
 
 def test_requester_name_uses_chosen_alias_and_never_returns_account_id(env):
@@ -614,3 +616,21 @@ def test_two_km_boundary_applies_to_saved_addresses_and_reports(
         "moderated_at": now,
     }
     assert qualifying_report(req, report) is expected
+
+
+@pytest.mark.parametrize("terminal", ["cancelled", "fulfilled"])
+def test_scheduled_and_active_share_two_slots_and_terminal_frees_one(env, terminal):
+    owner, *_ = env
+    first = create(owner)
+    second = create(owner, lat=13.801, needed_by=datetime.now(UTC) + timedelta(hours=2))
+    assert second["status"] == "scheduled"
+    with pytest.raises(ValueError, match="ครบ 2 คำขอ"):
+        create(owner, lat=13.802)
+    if terminal == "cancelled":
+        service.cancel(first["id"], owner)
+    else:
+        store.finish(first["id"], "fulfilled")
+    assert create(owner, lat=13.802)["id"] != second["id"]
+    service.cancel(second["id"], owner)
+    with pytest.raises(ValueError, match="ต่อวัน"):
+        create(owner, lat=13.803)

@@ -508,4 +508,45 @@ assert(
 console.log(
   "Per-account active slots: multiple requesters coexist and only their own second request is blocked.",
 );
+// Current policy increases the combined active/scheduled limit to two.
+await pg.exec(migration("measurement_requests_two_open"));
+const secondOpen = (
+  await makeRequest({
+    ...requestRow(922, independentOwner),
+    status: "scheduled",
+    starts_at: new Date(Date.now() + 600000).toISOString(),
+  })
+).row;
+assert(secondOpen);
+assert.equal(
+  (await makeRequest(requestRow(924, independentOwner))).error,
+  "active_limit",
+);
+assert.equal(
+  (await makeRequest(requestRow(922, independentOwner))).row.id,
+  secondOpen.id,
+);
+await pg.query("select finish_measurement_request($1,'cancelled')", [
+  secondOpen.id,
+]);
+assert((await makeRequest(requestRow(924, independentOwner))).row);
+assert.equal(
+  (await makeRequest(requestRow(926, independentOwner))).error,
+  "daily_limit",
+);
+assert.equal(
+  (await makeRequest(requestRow(922, independentOwner))).row.id,
+  secondOpen.id,
+);
+assert.equal(
+  (
+    await pg.query(
+      "select has_function_privilege('authenticated','public.create_measurement_request(jsonb)','execute') allowed",
+    )
+  ).rows[0].allowed,
+  false,
+);
+console.log(
+  "Two-open policy: active/scheduled slots, third rejection, cancellation release, retry, daily cap and service-only RPC passed.",
+);
 await pg.close();

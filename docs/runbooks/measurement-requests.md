@@ -69,7 +69,8 @@ Authenticated `/api/measurement-requests`: POST create (UUID idempotency key),
 GET own/invited list, GET `/{id}` detail, POST `/{id}/cancel` (owner only), POST
 `/{id}/decline` (recipient only). GET/PUT `/helper` returns consent and last sample
 age only; PUT `/presence` accepts a fresh GPS reading, throttled to five minutes.
-Creation limits are 3/day in Asia/Bangkok, 2 active requests; duplicate immediate
+Creation limits are 3/day in Asia/Bangkok, 2 open requests per account
+(active and scheduled combined, with a future deadline); duplicate immediate
 requests for the same coordinates/radius return the existing row. No quota is
 consumed by retrying the same idempotency key.
 

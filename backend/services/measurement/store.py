@@ -20,6 +20,7 @@ RECIPIENTS: dict[tuple[str, str], dict] = {}
 NOTIFIED: set[str] = set()
 LEASES: dict[str, datetime] = {}
 PAGE = 250
+MAX_OPEN_REQUESTS = 2
 
 
 def execute(operation):
@@ -92,7 +93,7 @@ def create(row: dict) -> dict:
                     and datetime.fromisoformat(r["expires_at"]) > now
                     for r in owned
                 )
-                >= 1
+                >= MAX_OPEN_REQUESTS
             ):
                 result = {"error": "active_limit"}
             else:
@@ -102,7 +103,7 @@ def create(row: dict) -> dict:
         raise ValueError(
             "บัญชีของคุณขอได้ไม่เกิน 3 ครั้งต่อวัน"
             if result["error"] == "daily_limit"
-            else "บัญชีของคุณมีคำขอที่เปิดอยู่แล้ว กรุณารอให้สำเร็จ ยกเลิก หรือหมดอายุก่อนสร้างใหม่"
+            else "บัญชีของคุณมีคำขอที่เปิดอยู่แล้วครบ 2 คำขอ กรุณารอให้สำเร็จ ยกเลิก หรือหมดอายุก่อนสร้างใหม่"
         )
     return result["row"]
 
