@@ -82,6 +82,10 @@ export default function AQICard({
       : "รายงานชุมชน"
     : "สถานี Air4Thai";
   const measuredAt = report?.captured_at ?? station?.recorded_at;
+  const ageMinutes = report?.age_minutes ?? station?.age_minutes;
+  const current = report
+    ? report.is_fresh === true && (ageMinutes ?? Infinity) <= 180
+    : station?.data_status === "fresh" && (ageMinutes ?? Infinity) <= 60;
 
   return (
     <section
@@ -95,7 +99,11 @@ export default function AQICard({
     >
       {/* colored header */}
       <div
-        style={{ background: cls.color, color: "#fff", padding: ".9em 1em" }}
+        style={{
+          background: current ? cls.tint : T.chip,
+          color: T.ink,
+          padding: ".9em 1em",
+        }}
       >
         <div
           style={{
@@ -144,7 +152,9 @@ export default function AQICard({
             }}
           >
             <span aria-hidden>{cls.glyph}</span>
-            <span>{cls.level}</span>
+            <span>
+              {current ? cls.level : "ข้อมูลเก่าหรือยังยืนยันเวลาไม่ได้"}
+            </span>
           </div>
         </div>
         <div
@@ -193,7 +203,11 @@ export default function AQICard({
             size={17}
             style={{ flex: "none" }}
           />
-          <span>{cls.advice}</span>
+          <span>
+            {current
+              ? cls.advice
+              : "ค่าล่าสุดนี้ไม่ใช่ข้อมูลอากาศปัจจุบัน โปรดตรวจเวลาวัดหรือเลือกจุดข้อมูลใหม่ก่อนตัดสินใจ"}
+          </span>
         </div>
 
         {!report && (

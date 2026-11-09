@@ -100,6 +100,10 @@ it("deletes only the selected slot and refreshes settings", async () => {
   const changed = vi.fn();
   render(<RegisteredHelperSettings settings={settings} onChange={changed} />);
   fireEvent.click(screen.getByRole("button", { name: "ลบสถานที่ ที่ทำงาน" }));
+  expect(mocks.remove).not.toHaveBeenCalled();
+  fireEvent.click(
+    screen.getByRole("button", { name: "ยืนยันลบสถานที่ ที่ทำงาน" }),
+  );
   await waitFor(() => expect(mocks.remove).toHaveBeenCalledWith(2));
   await waitFor(() => expect(changed).toHaveBeenCalledWith(settings));
 });

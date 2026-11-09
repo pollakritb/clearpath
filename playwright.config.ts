@@ -64,7 +64,9 @@ export default defineConfig({
       grepInvert: /@camera-390|@stateful-360/,
       use: {
         ...devices["Desktop Chrome"],
-        viewport: { width: 320, height: 720 },
+        isMobile: true,
+        hasTouch: true,
+        viewport: { width: 320, height: 568 },
       },
     },
     {
@@ -72,7 +74,9 @@ export default defineConfig({
       grepInvert: /@camera-390/,
       use: {
         ...devices["Desktop Chrome"],
-        viewport: { width: 360, height: 800 },
+        isMobile: true,
+        hasTouch: true,
+        viewport: { width: 360, height: 640 },
       },
     },
     {
@@ -80,6 +84,8 @@ export default defineConfig({
       grepInvert: /@stateful-360/,
       use: {
         ...devices["Desktop Chrome"],
+        isMobile: true,
+        hasTouch: true,
         viewport: { width: 390, height: 844 },
       },
     },
@@ -88,6 +94,8 @@ export default defineConfig({
       grepInvert: /@camera-390|@stateful-360/,
       use: {
         ...devices["Desktop Chrome"],
+        isMobile: true,
+        hasTouch: true,
         viewport: { width: 430, height: 932 },
       },
     },

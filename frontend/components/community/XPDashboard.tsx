@@ -108,6 +108,7 @@ export default function XPDashboard({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [eventsLoadingMore, setEventsLoadingMore] = useState(false);
   const [notice, setNotice] = useState("");
   const validAlias =
     alias.trim().length >= 3 &&
@@ -505,8 +506,9 @@ export default function XPDashboard({
                 คะแนนสะสมไม่หมดอายุเพราะหยุดใช้งาน
               </p>
               <p>
-                ไลก์ ไม่ถูกใจ ความคิดเห็น และการสร้างคำขอไม่มีคะแนน ไม่เพิ่ม
-                Trust หรือเปลี่ยนค่าฝุ่น
+                ไลก์ ไม่ถูกใจ ความคิดเห็น และการสร้างคำขอไม่มี XP
+                เสียงประเมินที่ผ่านเงื่อนไขมีผลต่อ Trust ชุมชนแยกต่างหาก
+                และไม่เปลี่ยนค่าฝุ่น
               </p>
             </>
           ) : (
@@ -530,11 +532,15 @@ export default function XPDashboard({
             <div className="cp-xp-event" key={event.id}>
               <span>
                 <strong>
-                  {event.kind === "help"
-                    ? "ช่วยคำขอ"
-                    : event.kind === "reversal"
-                      ? "ยกเลิกคะแนน"
-                      : "รายงานค่าฝุ่น"}
+                  {(
+                    {
+                      report: "รายงานค่าฝุ่น",
+                      help: "โบนัสบริการ",
+                      first_day: "โบนัสรายงานแรกของวัน",
+                      contribution_week: "โบนัสมีส่วนร่วมครบ 5 วัน",
+                      reversal: "ย้อนคืนคะแนน",
+                    } as Record<string, string>
+                  )[event.kind] ?? "กิจกรรม"}
                 </strong>
                 <small>
                   {event.reason} ·{" "}
@@ -550,18 +556,29 @@ export default function XPDashboard({
           {events?.next_offset != null && (
             <button
               type="button"
+              disabled={eventsLoadingMore}
               onClick={() => {
+                if (eventsLoadingMore) return;
+                setEventsLoadingMore(true);
                 void api
                   .xpEvents(events.next_offset!)
                   .then((next) =>
                     setEvents({
                       ...next,
-                      events: [...events.events, ...next.events],
+                      events: [
+                        ...new Map(
+                          [...events.events, ...next.events].map((event) => [
+                            event.id,
+                            event,
+                          ]),
+                        ).values(),
+                      ],
                     }),
                   )
                   .catch((e) =>
                     setError(apiErrorMessage(e, "โหลดประวัติไม่สำเร็จ")),
-                  );
+                  )
+                  .finally(() => setEventsLoadingMore(false));
               }}
             >
               ประวัติเพิ่มเติม

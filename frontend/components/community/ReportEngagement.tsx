@@ -280,7 +280,7 @@ function EngagementContent({
         <div className="cp-community-trust-notice">
           <details>
             <summary className="cp-focus">
-              การประเมินมีผลต่อ Trust ชุมชน
+              เสียงที่ผ่านเงื่อนไขมีผลต่อ Trust ชุมชน
             </summary>
             <p>
               ถูกใจ: หลักฐานและบริบททำให้เชื่อถือการรายงานนี้ได้ · ไม่ถูกใจ:

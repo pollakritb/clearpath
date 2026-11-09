@@ -1,6 +1,7 @@
 "use client";
 import {
   useId,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -25,6 +26,7 @@ export default function MapBottomSheet({
   initialSnap = "peek",
   onSnapChange,
   showClose = true,
+  ownsFocus = false,
 }: {
   id?: string;
   label: string;
@@ -37,12 +39,49 @@ export default function MapBottomSheet({
   initialSnap?: Snap;
   onSnapChange?: (snap: Snap) => void;
   showClose?: boolean;
+  ownsFocus?: boolean;
 }) {
   const contentId = useId();
   const root = useRef<HTMLElement>(null),
     scroll = useRef<HTMLDivElement>(null),
     heading = useRef<HTMLDivElement>(null),
     content = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  useLayoutEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+  useEffect(() => {
+    const sheet = root.current;
+    if (!ownsFocus || !sheet) return;
+    const trigger =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const map = sheet.closest(".cp-map");
+    const backgrounds = [...(map?.children ?? [])].filter(
+      (child) => !child.contains(sheet) && child !== sheet,
+    ) as HTMLElement[];
+    const previous = backgrounds.map((element) => element.inert);
+    backgrounds.forEach((element) => {
+      element.inert = true;
+    });
+    if (!sheet.contains(document.activeElement))
+      sheet.querySelector<HTMLElement>("input, button")?.focus();
+    const escape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape" && sheet.getClientRects().length > 0) {
+        event.preventDefault();
+        closeRef.current();
+      }
+    };
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("keydown", escape);
+      backgrounds.forEach((element, i) => {
+        element.inert = previous[i];
+      });
+      if (trigger?.isConnected && !trigger.closest("[inert]")) trigger.focus();
+    };
+  }, [ownsFocus]);
   const gesture = useRef<{
     y: number;
     height: number;
@@ -233,6 +272,7 @@ export default function MapBottomSheet({
       className={`${styles.sheet} ${className}`}
       data-snap={snap}
       data-expanded={snap === "full"}
+      data-owns-focus={ownsFocus}
       data-dragging={dragHeight !== null}
       style={
         {
@@ -242,6 +282,27 @@ export default function MapBottomSheet({
         } as CSSProperties
       }
       onKeyDown={(event) => {
+        if (ownsFocus && event.key === "Tab") {
+          const controls = [
+            ...event.currentTarget.querySelectorAll<HTMLElement>(
+              "button:not(:disabled), input:not(:disabled), a[href], select, textarea, summary, [tabindex='0']",
+            ),
+          ].filter(
+            (element) =>
+              element.getClientRects().length > 0 &&
+              getComputedStyle(element).visibility !== "hidden" &&
+              !element.closest("[inert]"),
+          );
+          const first = controls[0],
+            last = controls.at(-1);
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last?.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first?.focus();
+          }
+        }
         if (
           event.key === "Escape" &&
           !(event.target as Element).closest("dialog")
@@ -288,16 +349,7 @@ export default function MapBottomSheet({
           >
             <span aria-hidden="true" />
           </button>
-          {showClose && (
-            <button
-              type="button"
-              className={`${styles.close} cp-focus`}
-              aria-label={closeLabel}
-              onClick={onClose}
-            >
-              <AppIcon name="close" size={21} />
-            </button>
-          )}
+
           <div className={styles.summary}>{header}</div>
         </div>
         <div
@@ -310,6 +362,16 @@ export default function MapBottomSheet({
           {children}
         </div>
       </div>
+      {showClose && (
+        <button
+          type="button"
+          className={`${styles.close} cp-focus`}
+          aria-label={closeLabel}
+          onClick={onClose}
+        >
+          <AppIcon name="close" size={21} />
+        </button>
+      )}
     </section>
   );
 }

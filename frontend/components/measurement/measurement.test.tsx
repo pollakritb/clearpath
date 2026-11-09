@@ -96,8 +96,10 @@ it("lists own and invited requests without location search or creation controls"
     ],
   });
   render(<RequestsPage />);
-  fireEvent.click(screen.getByRole("button", { name: "กลับ" }));
-  expect(mocks.back).toHaveBeenCalledOnce();
+  expect(
+    screen.getByRole("link", { name: "← กลับ" }).getAttribute("href"),
+  ).toBe("/");
+  expect(mocks.back).not.toHaveBeenCalled();
   await screen.findByText("สถานที่ B");
   expect(
     screen
@@ -123,6 +125,8 @@ it("moves a cancelled request into history and removes its map link", async () =
   mocks.cancel.mockResolvedValue(cancelled);
   render(<RequestsPage />);
   fireEvent.click(await screen.findByRole("button", { name: "ยกเลิกคำขอ" }));
+  expect(mocks.cancel).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "ยืนยันยกเลิกคำขอ" }));
   fireEvent.click(screen.getByRole("button", { name: "ประวัติคำขอ" }));
   const history = screen.getByRole("region", { name: "ประวัติคำขอ" });
   await waitFor(() =>

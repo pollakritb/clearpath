@@ -30,7 +30,7 @@ export default function CommunityTrustReviews() {
   }, [reload]);
   return (
     <section className="cp-admin-card">
-      <h3>คำขอทบทวน Trust ชุมชน</h3>
+      <h2>คำขอทบทวน Trust ชุมชน</h2>
       <p>
         อ่านอย่างเดียว · บันทึกข้อสรุปผ่านเครื่องมือฝั่งเซิร์ฟเวอร์ที่มี audit
         log

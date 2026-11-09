@@ -36,17 +36,41 @@ const DEFAULTS: NotificationPreferences = {
 const ALERT_OPTIONS = [
   ["air_alerts", "PM2.5 จาก Air4Thai", "ข้อมูลหลักจากสถานีทางการ"],
   ["hotspot_alerts", "จุดความร้อนจากดาวเทียม", "NASA FIRMS อายุไม่เกิน 12 ชม."],
-  ["report_status_alerts", "สถานะรายงานของฉัน", "อนุมัติ ปฏิเสธ หรือรอตรวจ"],
-  ["rating_alerts", "คำขอบคุณจากชุมชน", "เมื่อมีคนขอบคุณข้อมูลของฉัน"],
+  [
+    "report_status_alerts",
+    "สถานะรายงานของฉัน",
+    "ผลเผยแพร่หรือเหตุผลที่รายงานไม่ผ่าน",
+  ],
+  [
+    "rating_alerts",
+    "เสียงประเมินจากชุมชน",
+    "เมื่อมีเสียงประเมินต่อรายงานของฉัน",
+  ],
   ["reward_alerts", "คะแนนและเหรียญ", "รางวัลจากการช่วยชุมชน"],
-  ["leaderboard_alerts", "อันดับประจำสัปดาห์", "เมื่ออันดับของฉันเปลี่ยน"],
+  ["leaderboard_alerts", "อันดับประจำเดือน", "เมื่ออันดับของฉันเปลี่ยน"],
   ["announcement_alerts", "ประกาศสำคัญ", "ข่าวสารที่ควรรู้จาก ClearPath"],
 ] as const;
 
 export default function NotificationSettings() {
   const auth = useAuth();
+  return (
+    <NotificationSettingsContent
+      key={auth.user?.id ?? (auth.localDemo ? "local" : "guest")}
+    />
+  );
+}
+
+function NotificationSettingsContent() {
+  const auth = useAuth();
   const loginPrompt = useLoginPrompt();
   const [preferences, setPreferences] = useState(DEFAULTS);
+  const [persisted, setPersisted] = useState<NotificationPreferences | null>(
+    null,
+  );
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
+  const [reload, setReload] = useState(0);
   const [editingConditions, setEditingConditions] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,11 +78,28 @@ export default function NotificationSettings() {
 
   useEffect(() => {
     if (!auth.user && !auth.localDemo) return;
+    let active = true;
     void api
       .notificationPreferences()
-      .then(setPreferences)
-      .catch(() => undefined);
-  }, [auth.user, auth.localDemo]);
+      .then((value) => {
+        if (!active) return;
+        setPreferences(value);
+        setPersisted(value);
+        setLoadState("ready");
+        setError(null);
+      })
+      .catch(() => {
+        if (active) {
+          setLoadState("error");
+          setError(
+            "โหลดเงื่อนไขแจ้งเตือนไม่สำเร็จ ค่าที่บันทึกไว้ยังไม่เปลี่ยน",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [auth.user, auth.localDemo, reload]);
 
   const activeAlertCount = useMemo(
     () => ALERT_OPTIONS.filter(([key]) => preferences[key]).length,
@@ -80,10 +121,12 @@ export default function NotificationSettings() {
   }
 
   async function savePreferences() {
+    if (!persisted || loadState !== "ready" || saving) return;
     setSaving(true);
     setError(null);
     try {
       await api.updateNotificationPreferences(preferences);
+      setPersisted({ ...preferences });
       setMessage("บันทึกเงื่อนไขแจ้งเตือนแล้ว");
       setEditingConditions(false);
     } catch (cause) {
@@ -113,6 +156,29 @@ export default function NotificationSettings() {
       </section>
     );
   }
+
+  if (loadState !== "ready")
+    return (
+      <section aria-label="ช่องทางและเงื่อนไขแจ้งเตือน">
+        {loadState === "loading" ? (
+          <p role="status">กำลังโหลดเงื่อนไขแจ้งเตือน…</p>
+        ) : (
+          <div role="alert">
+            <p>{error}</p>
+            <button
+              type="button"
+              className="cp-focus cp-btn"
+              onClick={() => {
+                setLoadState("loading");
+                setReload((n) => n + 1);
+              }}
+            >
+              ลองโหลดเงื่อนไขใหม่
+            </button>
+          </div>
+        )}
+      </section>
+    );
 
   return (
     <section
@@ -180,7 +246,16 @@ export default function NotificationSettings() {
           className="cp-focus cp-notification-conditions__toggle"
           aria-expanded={editingConditions}
           aria-controls="notification-condition-editor"
-          onClick={() => setEditingConditions((current) => !current)}
+          onClick={() => {
+            if (editingConditions && persisted) {
+              setPreferences({ ...persisted });
+              setMessage("ปิดการแก้ไขแล้ว ยังใช้เงื่อนไขที่บันทึกไว้เดิม");
+            } else {
+              setMessage(null);
+              setError(null);
+            }
+            setEditingConditions((current) => !current);
+          }}
         >
           <AppIcon name={editingConditions ? "close" : "settings"} size={17} />
           {editingConditions ? "ปิดการแก้ไข" : "แก้ไขเงื่อนไข"}
@@ -191,6 +266,7 @@ export default function NotificationSettings() {
             id="notification-condition-editor"
             className="cp-notification-condition-editor"
           >
+            <p role="status">การแก้ไขจะมีผลเมื่อกดบันทึกเงื่อนไข</p>
             <fieldset className="cp-notification-range-group">
               <legend>ระดับและพื้นที่</legend>
               <label>

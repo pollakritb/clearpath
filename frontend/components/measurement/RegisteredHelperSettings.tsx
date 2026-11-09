@@ -1,4 +1,5 @@
 "use client";
+import ConfirmAction from "@/frontend/components/ui/ConfirmAction";
 import { useState } from "react";
 import Link from "next/link";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
@@ -132,17 +133,14 @@ export default function RegisteredHelperSettings({
               >
                 แก้ไขชื่อ / สัญลักษณ์ / จุด
               </button>
-              <button
-                type="button"
-                className="cp-focus"
+              <ConfirmAction
+                label={`ลบสถานที่ ${place.name}`}
+                description={`ลบพื้นที่รับคำขอ “${place.name}”? คุณสามารถเพิ่มพื้นที่ใหม่ภายหลังได้`}
                 disabled={busy}
-                aria-label={`ลบสถานที่ ${place.name}`}
-                onClick={() =>
+                onConfirm={() =>
                   void run(() => api.deleteMeasurementLocation(place.slot))
                 }
-              >
-                ลบ
-              </button>
+              />
             </div>
           </article>
         ))}

@@ -14,9 +14,11 @@ type Sort = "low" | "high";
 export default function ListView({
   stations,
   onSelectStation,
+  onClose,
 }: {
   stations: Station[];
   onSelectStation: (s: Station) => void;
+  onClose?: () => void;
 }) {
   const [sort, setSort] = useState<Sort>("low");
 
@@ -63,6 +65,15 @@ export default function ListView({
         padding: "5em 1.5em 2em",
       }}
     >
+      {onClose && (
+        <button
+          type="button"
+          className="cp-focus cp-list-back"
+          onClick={onClose}
+        >
+          <AppIcon name="back" size={18} /> กลับไปแผนที่
+        </button>
+      )}
       <div style={{ maxWidth: "760px", margin: "0 auto" }}>
         <h2
           style={{

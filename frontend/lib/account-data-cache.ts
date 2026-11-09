@@ -1,3 +1,4 @@
+import { clearPrivateDrafts } from "./private-draft-memory";
 /** Browser memory only. Account data never goes into public cache or storage. */
 export interface AccountSnapshot<T> {
   data?: T;
@@ -46,7 +47,8 @@ export function updateAccountData<T>(
       : update;
   if (data !== undefined) publish(key, { data, updatedAt: Date.now() });
 }
-export function clearAccountData() {
+export function clearAccountData(discardDrafts = false) {
+  if (discardDrafts) clearPrivateDrafts();
   generation++;
   entries.clear();
   listeners.forEach((listener) => listener());

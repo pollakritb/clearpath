@@ -6,6 +6,7 @@ import { AuthProvider } from "@/frontend/components/auth/AuthProvider";
 import { LoginPromptProvider } from "@/frontend/components/auth/LoginPromptProvider";
 import HelperPresence from "@/frontend/components/measurement/HelperPresence";
 import PwaRegistrar from "@/frontend/components/app/PwaRegistrar";
+import NavigationEntryTracker from "@/frontend/components/app/NavigationEntryTracker";
 import PersistentMapPage from "@/frontend/components/app/PersistentMapPage";
 
 // UI font — variable font, all weights 400–800 available
@@ -50,6 +51,7 @@ export default function RootLayout({
               <LoginPromptProvider>
                 <HelperPresence />
                 <Suspense fallback={null}>
+                  <NavigationEntryTracker />
                   <PersistentMapPage />
                 </Suspense>
                 {children}

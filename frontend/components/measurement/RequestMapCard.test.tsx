@@ -56,6 +56,8 @@ it("updates the map immediately after cancellation succeeds", async () => {
     />,
   );
   fireEvent.click(screen.getByRole("button", { name: "ยกเลิกคำขอ" }));
+  expect(mocks.cancel).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "ยืนยันยกเลิกคำขอ" }));
   await waitFor(() => expect(updated).toHaveBeenCalledWith(cancelled));
   expect(mocks.cancel).toHaveBeenCalledWith("own");
 });
@@ -71,6 +73,8 @@ it("keeps the marker when cancellation fails and allows retry", async () => {
     />,
   );
   fireEvent.click(screen.getByRole("button", { name: "ยกเลิกคำขอ" }));
+  expect(mocks.cancel).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "ยืนยันยกเลิกคำขอ" }));
   await screen.findByRole("alert");
   expect(updated).not.toHaveBeenCalled();
   expect(

@@ -84,7 +84,7 @@ describe("AuthProvider", () => {
         }),
         signInWithOAuth: vi.fn(async () => ({ error: null })),
         signInWithOtp: vi.fn(async () => ({ error: null })),
-        signOut: vi.fn(async () => undefined),
+        signOut: vi.fn(async () => ({ error: null })),
       },
     };
     supabaseMocks.getClient.mockReturnValue(client);
@@ -270,5 +270,24 @@ describe("AuthProvider", () => {
     expect(() => render(<Probe />)).toThrow(
       "useAuth must be used inside AuthProvider",
     );
+  });
+  it("reports a returned sign-out error so the account menu can offer retry", async () => {
+    const failure = new Error("logout unavailable");
+    supabaseMocks.getClient.mockReturnValue({
+      auth: {
+        getSession: vi.fn(async () => ({ data: { session: null } })),
+        onAuthStateChange: vi.fn(() => ({
+          data: { subscription: { unsubscribe: vi.fn() } },
+        })),
+        signOut: vi.fn(async () => ({ error: failure })),
+      },
+    });
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(latestAuth?.loading).toBe(false));
+    await expect(latestAuth?.signOut()).rejects.toBe(failure);
   });
 });

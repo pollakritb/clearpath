@@ -518,6 +518,7 @@ export default function MapPageClient(options: MapPageOptions) {
       )}
       {requestStep === "idle" && viewMode === "list" && (
         <ListView
+          onClose={() => setViewMode("map")}
           stations={mapStations}
           onSelectStation={(station) => {
             selectStation(station);

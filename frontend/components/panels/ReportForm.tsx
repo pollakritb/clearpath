@@ -1,6 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import ConfirmAction from "@/frontend/components/ui/ConfirmAction";
+import {
+  readPrivateDraft,
+  writePrivateDraft,
+  removePrivateDraft,
+  privateDraftGeneration,
+} from "@/frontend/lib/private-draft-memory";
 import OcrReadingDisplay from "./report/OcrReadingDisplay";
 import feedbackStyles from "./report/ReportFeedback.module.css";
 import ReportXPResult from "@/frontend/components/community/ReportXPResult";
@@ -42,6 +49,17 @@ const OCR_STATUS_MESSAGES: Record<ReportDraftResponse["ocr_status"], string> = {
   ready: "ระบบอ่านตัวเลข PM2.5 ได้ และจะเผยแพร่ค่านี้เมื่อส่งรายงาน",
 };
 
+interface PrivateReportDraft {
+  evidence: CameraEvidence | null;
+  draft: ReportDraftResponse | null;
+  claimedPm25: string;
+  hideIdentity: boolean;
+  measurementEnvironment: "unknown" | "outdoor" | "indoor";
+  averagingPeriod: "unknown" | "instant" | "1_minute" | "5_minutes";
+  deviceModel: string;
+  nearEmissionSource: boolean;
+}
+
 export default function ReportForm(props: ReportFormProps) {
   const auth = useAuth();
   const owner = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
@@ -55,31 +73,46 @@ function ReportFormContent({
   onRequestLocation,
   onSubmitted,
 }: ReportFormProps) {
-  const [evidence, setEvidence] = useState<CameraEvidence | null>(null);
-  const analysisEvidence = useRef<CameraEvidence | null>(null);
-  const [draft, setDraft] = useState<ReportDraftResponse | null>(null);
-  const [claimedPm25, setClaimedPm25] = useState("");
+  const auth = useAuth();
+  const owner = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
+  const draftKey = JSON.stringify([owner, measurementRequestId ?? "report"]);
+  const [restored] = useState(() =>
+    owner === "guest" ? null : readPrivateDraft<PrivateReportDraft>(draftKey),
+  );
+  const generation = useRef(privateDraftGeneration());
+  const [evidence, setEvidence] = useState<CameraEvidence | null>(
+    restored?.evidence ?? null,
+  );
+  const analysisEvidence = useRef<CameraEvidence | null>(
+    restored?.draft ? restored.evidence : null,
+  );
+  const [draft, setDraft] = useState<ReportDraftResponse | null>(
+    restored?.draft ?? null,
+  );
+  const [claimedPm25, setClaimedPm25] = useState(restored?.claimedPm25 ?? "");
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState<ReportCreateResponse | null>(null);
-  const [hideIdentity, setHideIdentity] = useState(false);
+  const [hideIdentity, setHideIdentity] = useState(
+    restored?.hideIdentity ?? false,
+  );
   const [measurementEnvironment, setMeasurementEnvironment] = useState<
     "unknown" | "outdoor" | "indoor"
-  >("unknown");
+  >(restored?.measurementEnvironment ?? "unknown");
   const [averagingPeriod, setAveragingPeriod] = useState<
     "unknown" | "instant" | "1_minute" | "5_minutes"
-  >("unknown");
-  const [deviceModel, setDeviceModel] = useState("");
-  const [nearEmissionSource, setNearEmissionSource] = useState(false);
-  const auth = useAuth();
+  >(restored?.averagingPeriod ?? "unknown");
+  const [deviceModel, setDeviceModel] = useState(restored?.deviceModel ?? "");
+  const [nearEmissionSource, setNearEmissionSource] = useState(
+    restored?.nearEmissionSource ?? false,
+  );
   const googleProfile = googleReporterProfile(auth.user);
   const [participation, setParticipation] = useState<{
     owner: string;
     alias: string;
     supportsContext: boolean;
   } | null>(null);
-  const owner = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
   const publicAlias =
     participation?.owner === owner ? participation.alias : null;
   useEffect(() => {
@@ -102,6 +135,82 @@ function ReportFormContent({
       active = false;
     };
   }, [owner]);
+  useEffect(() => {
+    if (owner === "guest" || generation.current !== privateDraftGeneration())
+      return;
+    if ((!evidence && !draft) || completed) {
+      removePrivateDraft(draftKey);
+      return;
+    }
+    const deadline = draft?.expires_at
+      ? Date.parse(draft.expires_at)
+      : Infinity;
+    writePrivateDraft<PrivateReportDraft>(
+      draftKey,
+      {
+        evidence,
+        draft,
+        claimedPm25,
+        hideIdentity,
+        measurementEnvironment,
+        averagingPeriod,
+        deviceModel,
+        nearEmissionSource,
+      },
+      Math.min(
+        Date.now() + 30 * 60_000,
+        Number.isFinite(deadline) ? deadline : Infinity,
+      ),
+    );
+  }, [
+    owner,
+    draftKey,
+    evidence,
+    draft,
+    claimedPm25,
+    hideIdentity,
+    measurementEnvironment,
+    averagingPeriod,
+    deviceModel,
+    nearEmissionSource,
+    completed,
+  ]);
+  useEffect(() => {
+    if (!evidence && !draft) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [evidence, draft]);
+  const needsRestoredLocation = useRef(
+    Boolean(restored?.evidence && !restored.draft),
+  );
+  useEffect(() => {
+    if (needsRestoredLocation.current) {
+      needsRestoredLocation.current = false;
+      onRequestLocation();
+    }
+  }, [onRequestLocation]);
+  async function discardDraft() {
+    if (sending) return;
+    setError(null);
+    if (draft) {
+      try {
+        await api.deleteReportDraft(draft.id);
+      } catch (cause) {
+        setError(apiErrorMessage(cause, "ทิ้งร่างไม่สำเร็จ กรุณาลองอีกครั้ง"));
+        return;
+      }
+    }
+    analysisEvidence.current = null;
+    setEvidence(null);
+    setDraft(null);
+    setClaimedPm25("");
+    setMessage(null);
+    removePrivateDraft(draftKey);
+  }
   const loginPrompt = useLoginPrompt();
   const activeStep = draft ? 3 : evidence ? 2 : 1;
 
@@ -292,16 +401,33 @@ function ReportFormContent({
 
   if (completed) {
     const approved = completed.review_outcome === "automatic_approved";
+    const restartAction = (
+      <button
+        type="button"
+        className={`${approved ? feedbackStyles.newReport : feedbackStyles.finish} cp-focus`}
+        onClick={() => {
+          setCompleted(null);
+          setMessage(null);
+          setError(null);
+        }}
+      >
+        {approved ? "ส่งรายงานใหม่" : "ถ่ายภาพใหม่และลองอีกครั้ง"}
+      </button>
+    );
     return (
       <section
         aria-label="ส่งรายงานสำเร็จ"
         className="cp-report-flow cp-report-complete"
       >
-        <div className="cp-report-success cp-section-enter" role="status">
+        <div
+          className="cp-report-success cp-section-enter"
+          role="status"
+          data-outcome={approved ? "approved" : "rejected"}
+        >
           <span className="cp-report-success__icon" aria-hidden="true">
-            <AppIcon name="check" size={30} />
+            <AppIcon name={approved ? "check" : "alert"} size={30} />
           </span>
-          <span className="cp-eyebrow">ระบบได้รับข้อมูลแล้ว</span>
+          <p>ระบบได้รับข้อมูลแล้ว</p>
           <h2>
             {approved
               ? "รายงานผ่านการตรวจอัตโนมัติ"
@@ -344,20 +470,14 @@ function ReportFormContent({
             </div>
           </dl>
           <div className={feedbackStyles.actions}>
-            <Link href="/" className={`${feedbackStyles.finish} cp-focus`}>
+            {!approved && restartAction}
+            <Link
+              href="/"
+              className={`${approved ? feedbackStyles.finish : feedbackStyles.newReport} cp-focus`}
+            >
               เสร็จสิ้นและกลับไปแผนที่
             </Link>
-            <button
-              type="button"
-              className={`${feedbackStyles.newReport} cp-focus`}
-              onClick={() => {
-                setCompleted(null);
-                setMessage(null);
-                setError(null);
-              }}
-            >
-              ส่งรายงานใหม่
-            </button>
+            {approved && restartAction}
           </div>
         </div>
       </section>
@@ -395,6 +515,22 @@ function ReportFormContent({
                 : "เตรียมเครื่องวัดให้นิ่งและให้ตัวเลขอยู่กลางภาพ"}
           </p>
         </div>
+      )}
+      {(evidence || draft) && (
+        <aside className="cp-report-draft-notice">
+          <p>
+            {restored
+              ? "กู้คืนร่างรายงานแล้ว"
+              : "ร่างรายงานเก็บชั่วคราวในแท็บนี้"}{" "}
+            · เก็บไม่เกิน 30 นาที และล้างเมื่อออกจากระบบหรือปิดแท็บ
+          </p>
+          <ConfirmAction
+            label="ทิ้งร่างรายงาน"
+            description="ทิ้งภาพและข้อมูลร่างนี้? รายงานที่ส่งแล้วจะไม่เปลี่ยน"
+            disabled={sending}
+            onConfirm={() => void discardDraft()}
+          />
+        </aside>
       )}
       <ol className="cp-report-progress" aria-label="ขั้นตอนส่งข้อมูล">
         <li data-complete={Boolean(evidence)}>
@@ -453,6 +589,7 @@ function ReportFormContent({
               </span>
             </div>
             <CameraCapture
+              initialEvidence={evidence ?? undefined}
               onLoginRequired={() =>
                 loginPrompt.openLoginPrompt({
                   title: "เข้าสู่ระบบก่อนเพิ่มภาพ",
@@ -461,6 +598,7 @@ function ReportFormContent({
                 })
               }
               onCaptured={(nextEvidence) => {
+                generation.current = privateDraftGeneration();
                 analysisEvidence.current = null;
                 setDraft(null);
                 setClaimedPm25("");

@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ReportForm from "./ReportForm";
+import { clearPrivateDrafts } from "@/frontend/lib/private-draft-memory";
 
 const mocks = vi.hoisted(() => ({
   draft: vi.fn(),
@@ -56,6 +57,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 beforeEach(() => {
+  clearPrivateDrafts();
   vi.clearAllMocks();
   mocks.auth.mockReturnValue({ user: null, localDemo: true });
   mocks.summary.mockResolvedValue(null);
@@ -356,4 +358,20 @@ it("does not announce pending or awarded XP for a rejected submission", async ()
   await screen.findByText("รายงานไม่ผ่านการตรวจอัตโนมัติ");
   expect(screen.queryByText(/กำลังบันทึกคะแนน/)).toBeNull();
   expect(screen.queryByText(/ได้รับ \+/)).toBeNull();
+});
+
+it("restores an unsent OCR draft after remount without uploading the image again", async () => {
+  const props = {
+    location: { lat: 13.8, lon: 100.1, accuracy: 10, source: "gps" as const },
+    onRequestLocation: vi.fn(),
+    onSubmitted: vi.fn(),
+  };
+  const first = render(<ReportForm {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "เลือกภาพทดสอบ" }));
+  await screen.findByLabelText("PM2.5 42.5 µg/m³");
+  first.unmount();
+  render(<ReportForm {...props} />);
+  await screen.findByText(/กู้คืนร่างรายงานแล้ว/);
+  expect(screen.getByLabelText("PM2.5 42.5 µg/m³")).toBeTruthy();
+  expect(mocks.draft).toHaveBeenCalledOnce();
 });

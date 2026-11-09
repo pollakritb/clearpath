@@ -12,6 +12,8 @@ import type {
 const STATUS_POLL_MS = 3_000;
 
 export default function LineNotificationCard() {
+  const [loading, setLoading] = useState(true);
+  const [reload, setReload] = useState(0);
   const [status, setStatus] = useState<LineNotificationStatus | null>(null);
   const [linkCode, setLinkCode] = useState<LineLinkCodeResponse | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -25,17 +27,23 @@ export default function LineNotificationCard() {
     void api
       .lineNotificationStatus()
       .then((next) => {
-        if (!cancelled) setStatus(next);
+        if (!cancelled) {
+          setStatus(next);
+          setError(null);
+        }
       })
       .catch((cause) => {
         if (!cancelled) {
           setError(apiErrorMessage(cause, "อ่านสถานะ LINE ไม่สำเร็จ"));
         }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reload]);
 
   useEffect(() => {
     if (!linkCode || status?.linked) return;
@@ -141,7 +149,9 @@ export default function LineNotificationCard() {
           data-linked={status?.linked ?? false}
         >
           {status === null
-            ? "กำลังตรวจ"
+            ? loading
+              ? "กำลังตรวจ"
+              : "โหลดไม่สำเร็จ"
             : status.linked
               ? "เชื่อมแล้ว"
               : "ยังไม่เชื่อม"}
@@ -149,7 +159,21 @@ export default function LineNotificationCard() {
       </header>
 
       {status === null ? (
-        <p>กำลังตรวจสถานะ LINE…</p>
+        loading ? (
+          <p role="status">กำลังตรวจสถานะ LINE…</p>
+        ) : (
+          <button
+            type="button"
+            className="cp-focus cp-btn"
+            onClick={() => {
+              setLoading(true);
+              setError(null);
+              setReload((n) => n + 1);
+            }}
+          >
+            ลองโหลดสถานะ LINE ใหม่
+          </button>
+        )
       ) : !status.enabled ? (
         <p className="cp-line-link__notice">
           ระบบ LINE ยังรอการเปิดใช้งาน Official Account โดยผู้ดูแลระบบ

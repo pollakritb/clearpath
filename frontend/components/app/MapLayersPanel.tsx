@@ -64,6 +64,7 @@ export default function MapLayersPanel({
 
   return (
     <MapBottomSheet
+      ownsFocus
       id="cp-map-layers-panel"
       className="cp-layers-sheet"
       label="เลือกข้อมูลที่แสดงบนแผนที่"

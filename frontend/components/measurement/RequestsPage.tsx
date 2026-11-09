@@ -1,6 +1,7 @@
 "use client";
+import ConfirmAction from "@/frontend/components/ui/ConfirmAction";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import SafeBackButton from "@/frontend/components/app/SafeBackButton";
 import HelpRequestButton from "./HelpRequestButton";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
@@ -160,14 +161,13 @@ export function RequestSummary({
             {active ? "รายละเอียดคำขอ" : "ดูประวัติคำขอ"}
           </Link>
           {row.is_owner && active && (
-            <button
-              type="button"
+            <ConfirmAction
+              label="ยกเลิกคำขอ"
+              description="ยกเลิกคำขอนี้? คำขอจะหยุดรับรายงานและเก็บไว้ในประวัติ"
               className="cp-request-cancel cp-focus"
               disabled={busy}
-              onClick={() => void act("cancel")}
-            >
-              {busy ? "กำลังยกเลิก…" : "ยกเลิกคำขอ"}
-            </button>
+              onConfirm={() => void act("cancel")}
+            />
           )}
         </div>
       ) : (
@@ -185,14 +185,13 @@ export function RequestSummary({
               </button>
             )}
           {row.is_owner && active && (
-            <button
-              type="button"
+            <ConfirmAction
+              label="ยกเลิกคำขอ"
+              description="ยกเลิกคำขอนี้? คำขอจะหยุดรับรายงานและเก็บไว้ในประวัติ"
               className="cp-request-cancel cp-focus"
               disabled={busy}
-              onClick={() => void act("cancel")}
-            >
-              ยกเลิกคำขอ
-            </button>
+              onConfirm={() => void act("cancel")}
+            />
           )}
           {row.declined && <p>คุณเลือกไม่สะดวกช่วยวัดคำขอนี้แล้ว</p>}
         </div>
@@ -209,7 +208,6 @@ export default function RequestsPage({
   requestId?: string;
   groupId?: string;
 }) {
-  const router = useRouter();
   const auth = useAuth();
   const login = useLoginPrompt();
   const signedIn = Boolean(auth.user || auth.localDemo);
@@ -284,14 +282,10 @@ export default function RequestsPage({
       }}
     >
       <div className="cp-measure-stack">
-        <button
-          type="button"
-          onClick={() => router.back()}
+        <SafeBackButton
+          fallback={requestId ? "/requests" : "/"}
           className="cp-measure-back cp-focus"
-        >
-          <span aria-hidden="true">←</span>
-          กลับ
-        </button>
+        />
         {!auth.loading && !auth.user && !auth.localDemo ? (
           <button
             type="button"

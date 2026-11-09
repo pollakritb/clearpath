@@ -1,4 +1,5 @@
 "use client";
+import ConfirmAction from "@/frontend/components/ui/ConfirmAction";
 import HelpRequestButton from "./HelpRequestButton";
 import { useState } from "react";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
@@ -91,14 +92,13 @@ export default function RequestMapCard({
       <p>ส่งถึงผู้ช่วยวัด {request.recipient_count} คน</p>
       {request.is_owner &&
         (request.status === "active" || request.status === "scheduled") && (
-          <button
-            type="button"
+          <ConfirmAction
+            label="ยกเลิกคำขอ"
+            description="ยกเลิกคำขอนี้? คำขอจะหยุดรับรายงานและเก็บไว้ในประวัติ"
             className="cp-request-cancel cp-focus"
             disabled={busy}
-            onClick={() => void cancel()}
-          >
-            {busy ? "กำลังยกเลิก…" : "ยกเลิกคำขอ"}
-          </button>
+            onConfirm={() => void cancel()}
+          />
         )}
       {error && <p role="alert">{error}</p>}
     </MapBottomSheet>

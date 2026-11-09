@@ -110,7 +110,28 @@ export default function MyContribution({
                 {report.verified_pm25 ?? "—"} <small>µg/m³</small>
               </strong>
               {report.status === "rejected" && (
-                <p>รายงานนี้ไม่ผ่านการตรวจ คุณสามารถส่งภาพใหม่ได้</p>
+                <div>
+                  <p>
+                    รายงานนี้ไม่เผยแพร่:{" "}
+                    {
+                      (
+                        {
+                          image_unclear: "ภาพไม่ชัดพอให้อ่านตัวเลข",
+                          value_mismatch: "ค่าที่อ่านได้ไม่ตรงกับข้อมูลรายงาน",
+                          suspected_screen_recapture:
+                            "หลักฐานภาพไม่ผ่านเงื่อนไข",
+                          invalid_location: "ข้อมูลตำแหน่งไม่ผ่านเงื่อนไข",
+                          invalid_measurement: "ข้อมูลการวัดไม่ผ่านเงื่อนไข",
+                          duplicate: "หลักฐานซ้ำ",
+                          other: "หลักฐานไม่ผ่านเงื่อนไขการเผยแพร่",
+                        } as Record<string, string>
+                      )[report.rejection_reason_code ?? "other"]
+                    }
+                  </p>
+                  <Link href="/report" className="cp-focus">
+                    ถ่ายภาพใหม่และส่งอีกครั้ง
+                  </Link>
+                </div>
               )}
             </li>
           ))}

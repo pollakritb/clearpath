@@ -30,10 +30,12 @@ export default function CameraCapture({
   onCaptured,
   onCleared,
   onLoginRequired,
+  initialEvidence,
 }: {
   onCaptured: (evidence: CameraEvidence) => void;
   onCleared: () => void;
   onLoginRequired?: () => boolean;
+  initialEvidence?: CameraEvidence;
 }) {
   const galleryInput = useRef<HTMLInputElement>(null);
   const [gallery, setGallery] = useState<{
@@ -46,8 +48,11 @@ export default function CameraCapture({
   const [videoSize, setVideoSize] = useState({ width: 3, height: 4 });
   const [guideStyle, setGuideStyle] = useState<React.CSSProperties>({});
   const streamRef = useRef<MediaStream | null>(null);
+  const cameraRequest = useRef(0);
   const sessionRef = useRef<{ token: string; issuedAt: string } | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(() =>
+    initialEvidence ? URL.createObjectURL(initialEvidence.file) : null,
+  );
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraFacing, setCameraFacing] = useState<CameraFacing>("environment");
@@ -62,6 +67,7 @@ export default function CameraCapture({
   }, []);
 
   const stopStream = useCallback(() => {
+    cameraRequest.current++;
     releaseStream();
     setCameraOpen(false);
     setCameraReady(false);
@@ -78,13 +84,25 @@ export default function CameraCapture({
     });
   }
 
-  async function attachStream(stream: MediaStream, facing: CameraFacing) {
+  async function attachStream(
+    stream: MediaStream,
+    facing: CameraFacing,
+    request: number,
+  ) {
+    if (request !== cameraRequest.current) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
     streamRef.current = stream;
     setCameraFacing(facing);
     setCameraReady(false);
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       await videoRef.current.play().catch(() => undefined);
+    }
+    if (request !== cameraRequest.current) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
     }
     setCameraOpen(true);
 
@@ -96,15 +114,23 @@ export default function CameraCapture({
       .catch(() => []);
     const videoDeviceCount =
       devices?.filter((device) => device.kind === "videoinput").length ?? 0;
-    setCanSwitchCamera(videoDeviceCount > 1 || facingModes.length > 1);
+    if (request === cameraRequest.current)
+      setCanSwitchCamera(videoDeviceCount > 1 || facingModes.length > 1);
   }
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
+      cameraRequest.current++;
       streamRef.current?.getTracks().forEach((track) => track.stop());
+    },
+    [],
+  );
+  useEffect(
+    () => () => {
       if (preview) URL.revokeObjectURL(preview);
-    };
-  }, [preview]);
+    },
+    [preview],
+  );
 
   useEffect(() => {
     if (!cameraOpen || !stageRef.current) return;
@@ -127,7 +153,10 @@ export default function CameraCapture({
     observer.observe(stage);
     fitGuide();
     const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") stopStream();
+      if (event.key === "Escape") {
+        stopStream();
+        setLoading(false);
+      }
     };
     document.addEventListener("keydown", escape);
     return () => {
@@ -147,19 +176,28 @@ export default function CameraCapture({
       onCleared();
     }
     stopStream();
+    const request = ++cameraRequest.current;
+    setLoading(true);
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("อุปกรณ์หรือ browser นี้ไม่รองรับกล้องภายในเว็บ");
       }
       const session = await api.captureSession();
+      if (request !== cameraRequest.current) return;
       const stream = await requestCamera(cameraFacing);
+      if (request !== cameraRequest.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       sessionRef.current = {
         token: session.token,
         issuedAt: session.issued_at,
       };
-      await attachStream(stream, cameraFacing);
+      await attachStream(stream, cameraFacing, request);
     } catch (cause) {
+      if (request !== cameraRequest.current) return;
       stopStream();
+      setLoading(false);
       if (cause instanceof ApiError) setError(cause.message);
       else if (cause instanceof DOMException)
         setError(cameraErrorMessage(cause.name));
@@ -168,12 +206,13 @@ export default function CameraCapture({
           cause instanceof Error ? cause.message : cameraErrorMessage(""),
         );
     } finally {
-      setLoading(false);
+      if (request === cameraRequest.current) setLoading(false);
     }
   }
 
   async function switchCamera() {
     if (!cameraOpen || loading) return;
+    const request = ++cameraRequest.current;
     const previousFacing = cameraFacing;
     const nextFacing: CameraFacing =
       previousFacing === "environment" ? "user" : "environment";
@@ -186,6 +225,7 @@ export default function CameraCapture({
       try {
         stream = await requestCamera(nextFacing, true);
       } catch (cause) {
+        if (request !== cameraRequest.current) return;
         if (
           !(cause instanceof DOMException) ||
           cause.name !== "OverconstrainedError"
@@ -194,22 +234,29 @@ export default function CameraCapture({
         }
         stream = await requestCamera(nextFacing);
       }
-      await attachStream(stream, nextFacing);
+      await attachStream(stream, nextFacing, request);
     } catch (cause) {
+      if (request !== cameraRequest.current) return;
+      const message =
+        cause instanceof DOMException
+          ? cameraErrorMessage(cause.name)
+          : cause instanceof Error
+            ? cause.message
+            : cameraErrorMessage("");
       try {
         const restored = await requestCamera(previousFacing);
-        await attachStream(restored, previousFacing);
+        await attachStream(restored, previousFacing, request);
       } catch {
+        if (request !== cameraRequest.current) return;
         stopStream();
+        setLoading(false);
+        setError(message);
+        return;
       }
-      if (cause instanceof DOMException)
-        setError(cameraErrorMessage(cause.name));
-      else
-        setError(
-          cause instanceof Error ? cause.message : cameraErrorMessage(""),
-        );
+      if (request !== cameraRequest.current) return;
+      setError(message);
     } finally {
-      setLoading(false);
+      if (request === cameraRequest.current) setLoading(false);
     }
   }
 
@@ -572,7 +619,10 @@ export default function CameraCapture({
             )}
             <button
               type="button"
-              onClick={stopStream}
+              onClick={() => {
+                stopStream();
+                setLoading(false);
+              }}
               className="cp-focus"
               style={{ ...buttonStyle, background: T.chip, color: T.ink }}
             >

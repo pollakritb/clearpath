@@ -1,13 +1,12 @@
 "use client";
 import CommunityTrustCard from "@/frontend/components/community/CommunityTrustCard";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import SafeBackButton from "@/frontend/components/app/SafeBackButton";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { PublicMember } from "@/frontend/types/xp";
 import ParticipationBadge from "./ParticipationBadge";
 export default function MemberProfile({ memberId }: { memberId: string }) {
-  const router = useRouter();
   const [member, setMember] = useState<PublicMember | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -28,12 +27,14 @@ export default function MemberProfile({ memberId }: { memberId: string }) {
     <UserPageShell
       tab="settings"
       icon="user"
-      header={{ title: "สมาชิกชุมชน", showDataStatus: false }}
+      header={{
+        title: "สมาชิกชุมชน",
+        description: "ผลงานและเสียงประเมินการรายงานจากชุมชน",
+        showDataStatus: false,
+      }}
     >
       <section className="cp-xp">
-        <button type="button" onClick={() => router.back()}>
-          ← กลับ
-        </button>
+        <SafeBackButton fallback="/profile?tab=leaderboard" />
         {member ? (
           <div className="cp-xp-profile">
             <h2>{member.alias}</h2>

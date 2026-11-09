@@ -83,12 +83,17 @@ export default function HelperLocationEditor({
     resolved?.lat === lat && resolved?.lon === lon ? resolved : null;
   useEffect(() => {
     const element = dialog.current;
+    const trigger =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     element?.showModal();
     return () => {
       element?.close();
       document.body.style.overflow = previousOverflow;
+      if (trigger?.isConnected) trigger.focus();
     };
   }, []);
   function back() {

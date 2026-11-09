@@ -342,6 +342,21 @@ export default function MapSearchPanel({
               <span>
                 <strong>{location.name}</strong>
                 <small>{location.address}</small>
+                <small>
+                  {(
+                    {
+                      station: "สถานี",
+                      amenity: "สถานที่",
+                      city: "เมือง",
+                      municipality: "เขตเทศบาล",
+                      village: "ชุมชน",
+                      town: "เมือง",
+                      suburb: "ย่าน",
+                      railway: "สถานีรถไฟ",
+                      bus_stop: "ป้ายรถโดยสาร",
+                    } as Record<string, string>
+                  )[location.kind] ?? location.kind.replaceAll("_", " ")}
+                </small>
               </span>
             </button>
           ))}
@@ -401,6 +416,7 @@ export default function MapSearchPanel({
     </section>
   ) : (
     <MapBottomSheet
+      ownsFocus
       id="cp-map-search-panel"
       label="ค้นหาสถานที่หรือสถานี"
       className="cp-search-sheet"

@@ -134,12 +134,12 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   }));
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
 
-  await page.setViewportSize({ width: 680, height: 1240 });
+  await page.setViewportSize({ width: 430, height: 932 });
   await expect(card).toHaveAttribute("data-expanded", "true");
   const expandedBounds = await card.boundingBox();
   expect(expandedBounds).not.toBeNull();
   expect(expandedBounds!.height).toBeGreaterThan(collapsedCard!.height);
-  await page.screenshot({ path: "test-results/place-focus-details-680.png" });
+  await page.screenshot({ path: "test-results/place-focus-details-430.png" });
   await card
     .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
     .press("Home");
@@ -150,7 +150,7 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   expect(compactBounds!.width).toBeGreaterThan(300);
   expect(compactBounds!.width).toBeLessThanOrEqual(430);
   expect(compactBounds!.y + compactBounds!.height).toBeLessThan(navBounds!.y);
-  await page.screenshot({ path: "test-results/place-focus-compact-680.png" });
+  await page.screenshot({ path: "test-results/place-focus-compact-430.png" });
   await card
     .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
     .press("End");

@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let lastUserId: string | null = accountRef.current;
     const applySession = (session: Session | null) => {
       if (!active) return;
-      if (lastUserId !== (session?.user.id ?? null)) clearAccountData();
+      if (lastUserId !== (session?.user.id ?? null)) clearAccountData(true);
       setUser(session?.user ?? null);
       lastUserId = session?.user.id ?? null;
       accountRef.current = lastUserId;
@@ -162,8 +162,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [client]);
 
   const signOut = useCallback(async () => {
-    if (client) await client.auth.signOut();
-    clearAccountData();
+    if (client) {
+      const { error } = await client.auth.signOut();
+      if (error) throw error;
+    }
+    clearAccountData(true);
   }, [client]);
 
   const value = useMemo<AuthState>(

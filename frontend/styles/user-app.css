@@ -2479,7 +2479,7 @@
     display: none !important;
   }
 
-  .cp-context-header .cp-data-status {
+  .cp-context-header .cp-data-status[data-state="healthy"] {
     display: none;
   }
 
@@ -11670,4 +11670,66 @@ dialog.cp-login-modal::backdrop {
   align-items: center;
   color: var(--cp-teal);
   cursor: pointer;
+}
+
+/* Cluster counts are distinct from single-station PM readings. */
+.leaflet-marker-icon.cp-marker--cluster:focus-visible {
+  outline: 3px solid #123d38;
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+.cp-official-cluster .cp-cluster-count {
+  display: grid;
+  justify-items: center;
+  line-height: 1.1;
+}
+.cp-official-cluster .cp-cluster-count small {
+  font: 700 10px/1.2 var(--font-sans);
+}
+.cp-report-success[data-outcome="rejected"] .cp-report-success__icon {
+  background: #fff1d6;
+  color: #754b00;
+}
+
+.cp-confirm-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.cp-confirm-action p {
+  flex-basis: 100%;
+  margin: 0;
+}
+.cp-confirm-action button {
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+.cp-report-draft-notice {
+  padding: 12px;
+  margin-bottom: 12px;
+  background: var(--cp-chip);
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.cp-report-draft-notice p {
+  margin: 0 0 8px;
+}
+.cp-mobile-frame .cp-admin-signout {
+  min-height: 44px;
+}
+
+.cp-list-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  background: white;
+  color: var(--cp-teal);
 }
