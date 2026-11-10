@@ -7,7 +7,7 @@ FastAPI และ Supabase โดย browser เรียกข้อมูล�
 
 รุ่นปัจจุบันใช้ XP `contribution-v3` และ `community-trust-v1` เปิด production วันที่ 7 พ.ย. 2569 เวลา 23:24 น. ตามคำยืนยันของเจ้าของโครงการ ดู [หลักฐานเปิดใช้](docs/verification/2026-11-07-xp-v3-live-release.md) และ [runbook XP](docs/runbooks/contribution-v3.md). ระบบคะแนนผลตรวจอิสระผู้รายงานและดาวรุ่นเก่าถูกถอดจาก runtime แล้ว ประวัติ ledger/audit ยังคงเก็บตามนโยบาย
 
-- **ค่าปัจจุบัน:** Air4Thai บันทึกลง Supabase ผ่าน cron ทุก 30 นาที และมี GitHub backup เมื่อรอบหลักขาดหาย
+- **ค่าปัจจุบัน:** Air4Thai บันทึกลง Supabase ผ่าน cron ทุก 5 นาที และมี GitHub backup เมื่อรอบหลักขาดหาย
 - **พยากรณ์:** อ่าน raw CAMS / Open-Meteo ที่เก็บไว้ สูงสุด 120 ชั่วโมงตามข้อมูลที่มี
   แยก collector รายสถานีและกริด ไม่มี local model, การเฉลี่ยหลาย provider หรือการปรับค่าด้วยชุมชน
 - **รายงาน:** ถ่ายภาพหรือเลือก JPEG/PNG/WEBP/HEIC/HEIF ไม่เกิน 8 MB → private draft → OCR number-only → ส่งรายงาน

@@ -83,7 +83,7 @@ async def cron_sync(authorization: str | None = Header(default=None)):
                 if primary_time.tzinfo is None:
                     primary_time = primary_time.replace(tzinfo=UTC)
                 age = datetime.now(UTC) - primary_time.astimezone(UTC)
-                if timedelta(0) <= age < timedelta(minutes=30):
+                if timedelta(0) <= age < timedelta(minutes=10):
                     return {
                         "ok": True,
                         "skipped": True,

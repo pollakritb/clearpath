@@ -31,7 +31,7 @@ data is served through the ClearPath `/api/*` backend with `service_role`.
 | `forecast_provider_sync_runs` |       7 | External-provider collection run status and errors.                                                                                                                          |
 
 The Air4Thai primary cron is `clearpath-air4thai-sync-30m`, active at minutes
-17 and 47 each hour. CAMS snapshots are collected by the separate scheduled
+2, 7, 12, …, 57 each hour (every five minutes). CAMS snapshots are collected by the separate scheduled
 workflow; they are forecasts, never observations. Do not mix their PM2.5 values
 with `pm25_readings` or present `issued_at` as a measurement time.
 

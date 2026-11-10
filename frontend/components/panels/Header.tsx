@@ -47,6 +47,7 @@ export default function Header({
   showDataStatus = true,
 }: HeaderProps) {
   const hasStaleData = delayedCount > 0 || expiredCount > 0;
+  const freshCount = Math.max(0, stationCount - delayedCount - expiredCount);
   const state = error ? "error" : hasStaleData ? "warning" : "healthy";
 
   return (
@@ -104,13 +105,15 @@ export default function Header({
                 ? "เชื่อมต่อข้อมูลไม่ได้"
                 : loading
                   ? "กำลังอัปเดตข้อมูล"
-                  : `${stationCount} สถานีพร้อมใช้งาน`}
+                  : freshCount === 0
+                    ? "ยังไม่มีข้อมูลสถานีสด"
+                    : `ข้อมูลสด ${freshCount} จาก ${stationCount} สถานี`}
             </strong>
             <small>
               {error
                 ? "ระบบจะแสดงข้อมูลล่าสุดที่มีอยู่"
                 : hasStaleData
-                  ? `ล่าช้า ${delayedCount} · หมดอายุ ${expiredCount}`
+                  ? `ล่าช้า ${delayedCount} · หมดอายุ ${expiredCount} · ระบบตรวจข้อมูลรอบใหม่อัตโนมัติ`
                   : `อัปเดตล่าสุด ${fmtTime(updatedAt)} น.`}
             </small>
           </span>

@@ -68,9 +68,12 @@ browser or environment switch that bypasses those gates.
 
 Vercel Hobby has no sub-hourly cron dependency in this project. Supabase Cron
 is the primary Air4Thai observation scheduler and invokes `/api/cron/sync` at
-minutes 2, 17, 32 and 47 of every hour. GitHub Actions remains an independent
+minutes 2, 7, 12, …, 57 of every hour (every five minutes). GitHub Actions remains an independent
 twice-hourly backup at minutes 7 and 37 and also runs alerts, evaluation and
-due forecast providers.
+due forecast providers. Backup skips only when the primary succeeded within
+ten minutes. The five-minute interval reduces intake delay after hourly
+publication; it cannot eliminate delays at Air4Thai itself. Fresh observations
+still expire after 60 minutes for Place IDW.
 
 Supabase configuration:
 
@@ -80,7 +83,8 @@ Supabase configuration:
    least 32 characters.
 3. Add the same value to Vercel Production as `SUPABASE_CRON_SECRET`.
 4. Apply `supabase/migrations/20260910_supabase_air4thai_cron.sql` to the
-   ClearPath project only, then redeploy Vercel.
+   ClearPath project only, followed by the 30-minute, source-alignment and
+   `20261110002811_air4thai_continuity_5m.sql` migrations, then redeploy Vercel.
 
 GitHub backup configuration:
 

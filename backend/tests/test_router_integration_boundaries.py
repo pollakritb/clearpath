@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -153,7 +153,15 @@ def test_cron_sync_runs_full_ingestion_boundary_and_records_success(monkeypatch)
         "create_sync_run",
         lambda row: sync_runs.append(row) or {**row, "id": "SYN-000123"},
     )
-    monkeypatch.setattr(cron.supabase_client, "latest_primary_sync_run", lambda: None)
+    # Two missed five-minute primary polls must not suppress the backup for
+    # the old thirty-minute window.
+    monkeypatch.setattr(
+        cron.supabase_client,
+        "latest_primary_sync_run",
+        lambda: {
+            "completed_at": (datetime.now(UTC) - timedelta(minutes=15)).isoformat()
+        },
+    )
     monkeypatch.setattr(cron.supabase_client, "upsert_stations", lambda rows: len(rows))
     monkeypatch.setattr(cron.supabase_client, "insert_readings", lambda rows: len(rows))
     monkeypatch.setattr(

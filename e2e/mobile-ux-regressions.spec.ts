@@ -565,3 +565,45 @@ test("a cancelled camera fallback cannot stop a newly opened camera @camera-390"
     ),
   ).toBe(true);
 });
+
+test("hourly data gap recovers on refresh without presenting stale values as current", async ({
+  page,
+}) => {
+  await gps(page);
+  let published = false;
+  await page.route("**/api/pm25/current", (route) =>
+    route.fulfill({
+      json: {
+        stations: [
+          {
+            ...station(),
+            recorded_at: new Date(
+              Date.now() - (published ? 5 : 67) * 60_000,
+            ).toISOString(),
+            data_status: published ? "fresh" : "delayed",
+            age_minutes: published ? 5 : 67,
+          },
+        ],
+        count: 1,
+        fresh_count: published ? 1 : 0,
+        delayed_count: published ? 0 : 1,
+        expired_count: 0,
+        updated_at: now(),
+        source: "air4thai",
+      },
+    }),
+  );
+  await page.goto("/air");
+  await expect(page.getByText("ยังไม่มีข้อมูลสถานีสด")).toBeVisible();
+  await expect(page.getByText(/ระบบตรวจข้อมูลรอบใหม่อัตโนมัติ/)).toBeVisible();
+  published = true;
+  await page.getByRole("button", { name: "รีเฟรชข้อมูลล่าสุด" }).click();
+  await expect(page.getByText("ข้อมูลสด 1 จาก 1 สถานี")).toBeAttached();
+  await expect(page.locator(".cp-data-status")).toBeHidden();
+  await expect(page.getByText("ยังไม่มีข้อมูลสถานีสด")).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
