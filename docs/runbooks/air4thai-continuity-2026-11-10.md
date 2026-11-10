@@ -28,6 +28,11 @@ total as ready. Nearby measurements under two hours old show age in minutes so
 The unsupported `browsing-topics` Permissions-Policy directive was removed while
 camera, geolocation and microphone restrictions remain.
 
+Production smoke now allows up to 60 attempts (15-second pauses) within a
+20-minute job timeout to cover the observed hourly publication delay. It still
+requires fresh observations and the exact release SHA. Its failure diagnostic
+also avoids the shell default-expression brace that appended invalid JSON.
+
 Verification: Python ingestion/cache and backup tests; PGlite migration retry,
 command preservation and drift guard; React stale-count and source-age tests;
 mobile browser stale-to-fresh recovery at 320/360/390/430px. These checks do not
