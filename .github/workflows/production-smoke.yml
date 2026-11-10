@@ -25,7 +25,7 @@ jobs:
          github.event.workflow_run.head_branch == 'main')
       }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 8
     env:
       CLEARPATH_PRODUCTION_URL: ${{ vars.CLEARPATH_PRODUCTION_URL }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -58,7 +58,7 @@ jobs:
           base_url="${CLEARPATH_PRODUCTION_URL%/}"
           synced=false
 
-          for attempt in $(seq 1 60); do
+          for attempt in $(seq 1 18); do
             health="$(curl --fail --silent --show-error --max-time 20 "${base_url}/api/health" || true)"
             # Readiness intentionally returns 503 when observations are stale;
             # retain that JSON body so release matching can still be verified.
@@ -105,11 +105,10 @@ jobs:
               exit 0
             fi
 
-            echo "Attempt ${attempt}/60: waiting for production release/fresh data"
+            echo "Attempt ${attempt}/18: waiting for production release/fresh data"
             sleep 15
           done
 
           echo "::error::Production did not reach the expected release and freshness contract"
-          if [ -z "${ready:-}" ]; then ready='{}'; fi
-          jq '{status, environment, release, reason, station_count, fresh_station_count, delayed_station_count, expired_station_count, latest_recorded_at}' <<<"$ready" || true
+          jq '{status, environment, release, reason, station_count, fresh_station_count, delayed_station_count, expired_station_count, latest_recorded_at}' <<<"${ready:-{}}" || true
           exit 1

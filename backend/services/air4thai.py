@@ -17,9 +17,8 @@ from ..core.cache import TTLCache
 from ..core.config import settings
 from ..core.errors import UpstreamError
 
-# Shorter than the five-minute cron cadence: a warm instance must not reuse
-# the preceding poll when scheduler jitter makes two runs <300 seconds apart.
-_cache = TTLCache(ttl_seconds=60)
+# air4thai อัปเดตทุก ~1 ชม. → cache 5 นาทีก็ลดการยิงซ้ำได้มากโดยข้อมูลยังสด
+_cache = TTLCache(ttl_seconds=300)
 _CACHE_KEY = "station_snapshot"
 logger = logging.getLogger("clearpath.air4thai")
 _CA_BUNDLE_PATH = Path(__file__).parent / "certs" / "letsencrypt-gen-y-chain.pem"
@@ -67,7 +66,7 @@ def _recorded_at(aqi_last: dict) -> str | None:
 
 
 async def fetch_stations() -> list[dict]:
-    """Return the official snapshot; cache only within one polling window."""
+    """คืน list ของสถานี (พร้อมค่า PM2.5 ล่าสุด + สี/ระดับ) — cache 5 นาที"""
     cached = _cache.get(_CACHE_KEY)
     if cached is not None:
         return list(cached["stations"])

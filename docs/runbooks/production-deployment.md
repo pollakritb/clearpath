@@ -212,9 +212,8 @@ project only:
    as `SUPABASE_CRON_SECRET`.
 4. Apply `20260910_supabase_air4thai_cron.sql`, then
    `20261010_air4thai_sync_30m.sql` and
-   `20261010_air4thai_sync_source_aligned.sql`, followed by
-   `20261110002811_air4thai_continuity_5m.sql`. Confirm the only active Air4Thai
-   job is `clearpath-air4thai-sync-30m` with schedule `2-57/5 * * * *` and inspect
+   `20261010_air4thai_sync_source_aligned.sql`. Confirm the only active Air4Thai
+   job is `clearpath-air4thai-sync-30m` with schedule `17,47 * * * *` and inspect
    its run history. This offset follows the usual Air4Thai publication lag.
 
 Then configure GitHub → repository Settings → Secrets and variables → Actions

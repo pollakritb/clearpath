@@ -29,7 +29,7 @@ const distance = (km: number, approximate = false) =>
 const age = (minutes: number | null) =>
   minutes == null
     ? "ไม่ทราบเวลาวัด"
-    : minutes < 120
+    : minutes < 60
       ? `${Math.round(minutes)} นาทีที่แล้ว`
       : `${Math.round(minutes / 60)} ชม.ที่แล้ว`;
 export default function PlaceAirCard({
