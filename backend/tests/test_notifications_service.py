@@ -10,6 +10,9 @@ from backend.services.measurement import store as measurement_store
 def isolate_outbox_boundaries(monkeypatch):
     monkeypatch.setattr(measurement_store, "claim_delivery", lambda _: True)
     monkeypatch.setattr(notifications, "air_alert_eligible", lambda *_: True)
+    monkeypatch.setattr(
+        notifications.supabase_client, "get_notification_preferences", lambda _: {}
+    )
 
 
 def test_enqueue_respects_preferences_and_persists_idempotent_outbox(monkeypatch):
