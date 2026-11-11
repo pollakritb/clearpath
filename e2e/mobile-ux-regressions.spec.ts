@@ -773,7 +773,9 @@ test("previous hourly station readings retain colour and a clock without becomin
   await expect(
     card.getByText("ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน"),
   ).toBeVisible();
-  await expect(card.getByText("ดี", { exact: true })).toHaveCount(0);
+  await expect(card.locator("[data-pm25-reading]")).toContainText(
+    "ข้อมูลก่อนหน้า",
+  );
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

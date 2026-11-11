@@ -6,6 +6,7 @@ import ParticipationBadge from "@/frontend/components/community/ParticipationBad
 import { useRef, useState } from "react";
 import MapBottomSheet from "./MapBottomSheet";
 import MapPanelReading from "./MapPanelReading";
+import StationInsights from "./StationInsights";
 import { readingAgeLabel, sourceTimeLabel } from "@/frontend/lib/reading-time";
 import {
   currentStationValue,
@@ -18,7 +19,6 @@ import Link from "next/link";
 import ReportEvidencePanel from "@/frontend/components/community/ReportEvidencePanel";
 import ReportEngagement from "@/frontend/components/community/ReportEngagement";
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { formatCommunityArea } from "@/frontend/lib/community-location";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
@@ -82,6 +82,7 @@ export default function MapStatusCard({
   historicalAt = null,
 }: MapStatusCardProps) {
   const photoDialogRef = useRef<HTMLDialogElement>(null);
+  const [expandedStation, setExpandedStation] = useState<string | null>(null);
   const [evidenceImage, setEvidenceImage] = useState<string | null>(null);
   const photoButtonRef = useRef<HTMLButtonElement>(null);
   const selection = report ?? station;
@@ -138,6 +139,9 @@ export default function MapStatusCard({
         closeLabel="ปิดรายละเอียดจุดบนแผนที่"
         className={`cp-station-sheet ${panel.panel}`}
         initialSnap="peek"
+        onSnapChange={(snap) =>
+          setExpandedStation(snap === "full" ? station.id : null)
+        }
         style={
           {
             "--cp-selection-color": classification.color,
@@ -206,16 +210,12 @@ export default function MapStatusCard({
           </>
         }
       >
-        <section className={panel.section}>
-          <h2>ข้อมูลสถานี</h2>
-          <p className={panel.address}>
-            {station.province ?? "ประเทศไทย"} · รหัสสถานี {station.id}
-          </p>
-          <SourceBadge kind="official" compact />
-          <p className={panel.address}>
-            ค่าตรวจวัดจาก Air4Thai ตามเวลาที่ระบุบนรายงาน
-          </p>
-        </section>
+        <StationInsights
+          key={`${station.id}:${station.recorded_at}:${historicalAt ?? "now"}`}
+          station={station}
+          enabled={expandedStation === station.id}
+          historicalAt={historicalAt}
+        />
       </MapBottomSheet>
     );
   }

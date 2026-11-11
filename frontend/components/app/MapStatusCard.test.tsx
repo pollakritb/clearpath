@@ -245,7 +245,9 @@ it.each([90, 119, 121])(
     expect(
       screen.getByText("ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน"),
     ).toBeTruthy();
-    expect(screen.queryByText("ดี", { exact: true })).toBeNull();
+    expect(
+      container.querySelector("[data-pm25-reading]")?.textContent,
+    ).toContain("ข้อมูลก่อนหน้า");
     expect(
       (
         container.querySelector("[data-pm25-reading]") as HTMLElement

@@ -1,0 +1,242 @@
+.root {
+  color: var(--cp-ink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.section {
+  padding: 16px 0;
+  border-top: 1px solid var(--cp-line);
+}
+.section h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.section p {
+  margin: 8px 0;
+}
+.levelSection {
+  padding: 12px 0;
+}
+.levelSection h2 {
+  font-size: 13px;
+  color: var(--cp-subink);
+  font-weight: 500;
+}
+.levelSection .emphasis {
+  margin: 0;
+  font-size: 13px;
+}
+.scale {
+  display: flex;
+  gap: 3px;
+  padding-bottom: 18px;
+}
+.scale > div {
+  position: relative;
+  flex: 1;
+}
+.scale span {
+  display: block;
+  height: 8px;
+  background: var(--band);
+  border-radius: 3px;
+}
+.scale b {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+}
+.scale b svg {
+  display: block;
+  width: 10px;
+  height: 7px;
+}
+.emphasis {
+  font-weight: 650;
+}
+.details {
+  border-top: 1px solid var(--cp-line);
+  color: var(--cp-subink);
+  font-size: 12px;
+}
+.details summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+  color: var(--cp-teal);
+}
+.details p {
+  margin: 6px 0 12px;
+}
+.legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+.legend b {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.trend {
+  font-weight: 600;
+}
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+.chart text {
+  fill: #526761;
+  font: 13px var(--font-sans);
+}
+.section .comparison {
+  margin: -4px 0 10px;
+  color: var(--cp-subink);
+  font-size: 12px;
+}
+.timeAxis {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 8px 24px;
+  color: var(--cp-subink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.scrubber {
+  display: grid;
+  font-size: 12px;
+  color: var(--cp-subink);
+}
+.scrubber input {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  accent-color: var(--cp-teal);
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+}
+.scrubber input::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #cfddda;
+  border-radius: 4px;
+}
+.scrubber input::-webkit-slider-thumb {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -12px;
+  background: var(--cp-teal);
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px #173b3340;
+}
+.scrubber input::-moz-range-track {
+  height: 4px;
+  background: #cfddda;
+  border-radius: 4px;
+}
+.scrubber input::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: var(--cp-teal);
+  border: 3px solid white;
+  border-radius: 50%;
+}
+.selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 12px;
+}
+.selected > span {
+  max-width: 48%;
+  color: var(--cp-subink);
+  line-height: 1.5;
+}
+.selected strong {
+  text-align: right;
+  font-size: 22px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.selected strong small {
+  display: block;
+  margin-top: 3px;
+  color: var(--cp-subink);
+  font-size: 12px;
+  font-weight: 400;
+}
+.extremes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  margin-top: 14px;
+}
+.extremes span {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.extremes b {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.extremes small {
+  width: 100%;
+  color: var(--cp-subink);
+}
+.note,
+.source {
+  font-size: 12px;
+  color: var(--cp-subink);
+}
+.notice {
+  padding: 8px 10px;
+  border: 1px solid var(--cp-line);
+  border-radius: 8px;
+}
+.advice {
+  margin: 0 0 8px;
+}
+.advice > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+}
+.advice dt {
+  font-weight: 650;
+  font-size: 12px;
+}
+.advice dd {
+  margin: 0;
+}
+.source {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--cp-teal);
+  text-underline-offset: 3px;
+}
+.retry {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  background: white;
+  color: var(--cp-teal);
+  font: inherit;
+  cursor: pointer;
+}
+.root :is(button, input, summary, a):focus-visible {
+  outline: 2px solid var(--cp-teal);
+  outline-offset: 3px;
+}
