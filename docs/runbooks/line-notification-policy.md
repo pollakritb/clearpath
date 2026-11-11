@@ -2,11 +2,11 @@
 
 Automatic LINE messages are limited to three events:
 
-| Event                   | Recipient and eligibility                                                                                                                     |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `measurement_request`   | Eligible participating helper; open request/group, not declined, linked LINE, consent and channel enabled                                     |
-| `measurement_fulfilled` | Request owner only, really fulfilled, notification lifetime not expired, linked LINE, consent and channel enabled                             |
-| `air_alert`             | Air4Thai PM2.5 at or above the saved threshold, within the saved radius, valid finite measurement/source time, existing 90-minute alert limit |
+| Event                   | Recipient and eligibility                                                                                                                                             |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `measurement_request`   | Eligible participating helper; open request/group, not declined, linked LINE, consent and channel enabled                                                             |
+| `measurement_fulfilled` | Request owner only, really fulfilled, notification lifetime not expired, linked LINE, consent and channel enabled                                                     |
+| `air_alert`             | Air4Thai PM2.5 at least 37.6 µg/m³ and at or above the saved threshold, within the saved radius, valid finite measurement/source time, existing 90-minute alert limit |
 
 Report status, expired requests, hotspots, rank/reward/rating, leaderboard,
 announcement and unknown events never enter automatic LINE delivery. This is a
@@ -34,7 +34,8 @@ Consent, LINE enablement, request/group state and PM2.5 preferences are checked
 again. Quiet hours defer without consuming a provider attempt. Old air readings
 are cancelled after a quiet window; closed/declined requests and expired
 fulfillment messages are cancelled. Missing coordinates do not mean nationwide
-alerts. Zero thresholds work. Map and Place IDW policies remain unchanged.
+alerts. Legacy thresholds below 37.6 cannot send lower-band readings. Higher
+personal thresholds are preserved. Place IDW eligibility remains unchanged.
 
 ## Delivery results and retries
 

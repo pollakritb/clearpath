@@ -7,6 +7,10 @@ import { useRef, useState } from "react";
 import MapBottomSheet from "./MapBottomSheet";
 import MapPanelReading from "./MapPanelReading";
 import { readingAgeLabel, sourceTimeLabel } from "@/frontend/lib/reading-time";
+import {
+  currentStationValue,
+  stationMarkerDisplay,
+} from "@/frontend/lib/station-display";
 import panel from "./MapPanel.module.css";
 
 import Link from "next/link";
@@ -98,8 +102,18 @@ export default function MapStatusCard({
   const value = isCommunity ? report.pm25 : station?.pm25;
   const expired =
     !historicalAt &&
-    (report ? report.is_fresh === false : station?.data_status !== "fresh");
-  const classification = classifyPm25(expired ? null : value);
+    (report
+      ? report.is_fresh === false
+      : !station || currentStationValue(station) == null);
+  const showPreviousColour = Boolean(
+    !report &&
+    station &&
+    !historicalAt &&
+    stationMarkerDisplay(station).previous,
+  );
+  const classification = classifyPm25(
+    expired && !showPreviousColour ? null : value,
+  );
   const reporterAvatar = report ? publicReporterAvatar(report) : null;
   const showReporterProfile = Boolean(
     report?.source_type === "individual" && report.show_reporter_profile,
@@ -148,6 +162,7 @@ export default function MapStatusCard({
             <MapPanelReading
               value={value}
               stale={expired}
+              showPreviousColour={showPreviousColour}
               caption={
                 <>
                   เวลาข้อมูลต้นทาง ·{" "}

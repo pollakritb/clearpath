@@ -220,3 +220,37 @@ it("opens separate history and forecast timelines from a station pin", () => {
     }),
   ).toBeNull();
 });
+
+it.each([90, 119, 121])(
+  "labels an official reading aged %s minutes without current-health reassurance",
+  (age) => {
+    const { container } = render(
+      <MapStatusCard
+        station={
+          {
+            id: "old",
+            name_th: "ข้อมูลก่อนหน้า",
+            pm25: 20,
+            recorded_at: "2026-11-11T09:00:00Z",
+            age_minutes: age,
+            data_status: age === 90 ? "fresh" : "expired",
+            eligible_for_surface: false,
+          } as Station
+        }
+        report={null}
+        updatedAt={null}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText("ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน"),
+    ).toBeTruthy();
+    expect(screen.queryByText("ดี", { exact: true })).toBeNull();
+    expect(
+      (
+        container.querySelector("[data-pm25-reading]") as HTMLElement
+      ).style.getPropertyValue("--reading-color"),
+    ).toBe(age <= 120 ? "#22c55e" : "#95a5a6");
+    cleanup();
+  },
+);

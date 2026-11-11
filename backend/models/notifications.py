@@ -10,7 +10,7 @@ class NotificationPreferences(BaseModel):
     radius_km: float | None = Field(default=None, ge=1, le=50)
     center_lat: float | None = Field(default=None, ge=-90, le=90)
     center_lon: float | None = Field(default=None, ge=-180, le=180)
-    pm25_threshold: float = Field(default=37.5, ge=0, le=500)
+    pm25_threshold: float = Field(default=37.6, ge=0, le=500)
     air_alerts: bool = True
     hotspot_alerts: bool = True
     community_alerts: bool = False

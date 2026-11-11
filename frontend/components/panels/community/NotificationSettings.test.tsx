@@ -37,6 +37,12 @@ it("shows the three LINE event categories and omits retired event controls", asy
   });
   render(<NotificationSettings />);
   fireEvent.click(await screen.findByRole("button", { name: "แก้ไขเงื่อนไข" }));
+  expect((screen.getAllByRole("slider")[0] as HTMLInputElement).min).toBe(
+    "37.6",
+  );
+  expect((screen.getAllByRole("slider")[0] as HTMLInputElement).value).toBe(
+    "37.6",
+  );
   expect(screen.getByText(/มีคำขอให้ช่วยวัด: ตามพื้นที่ผู้ช่วย/)).toBeTruthy();
   expect(
     screen.getByText(/คำขอได้รับข้อมูลแล้ว: เมื่อคำขอของคุณ/),

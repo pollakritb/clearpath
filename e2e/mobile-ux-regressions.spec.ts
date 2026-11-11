@@ -337,7 +337,7 @@ test("closing unsaved preference editing restores the persisted summary", async 
   await page.getByRole("button", { name: "ปิดการแก้ไข", exact: true }).click();
   await expect(
     page.locator(".cp-notification-condition-summary").first(),
-  ).toContainText("37.5");
+  ).toContainText("37.6");
   await expect(page.getByText(/ยังใช้เงื่อนไขที่บันทึกไว้เดิม/)).toBeVisible();
 });
 
@@ -621,7 +621,10 @@ test("publication gap keeps a labelled previous reading outside the current esti
   await expect(card.getByText("ยังไม่มีค่าปัจจุบัน")).toBeVisible();
   await expect(page.locator(".cp-station-marker").first()).toHaveAttribute(
     "style",
-    /--marker-aqi:#7b8583/,
+    /--marker-aqi:#22c55e/,
+  );
+  await expect(page.locator(".cp-station-marker").first()).toHaveClass(
+    /is-previous/,
   );
   await expect(
     card.getByText("ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน"),
@@ -723,4 +726,60 @@ test("LINE settings expose only the three supported notification categories", as
     page.getByRole("button", { name: "แก้ไขเงื่อนไข" }),
   ).toBeVisible();
   expect(sends).toBe(0);
+});
+
+test("previous hourly station readings retain colour and a clock without becoming current", async ({
+  page,
+}) => {
+  await page.route("**/api/pm25/current", (route) =>
+    route.fulfill({
+      json: {
+        source: "air4thai",
+        count: 1,
+        fresh_count: 0,
+        delayed_count: 0,
+        expired_count: 1,
+        updated_at: now(),
+        stations: [
+          {
+            ...station(),
+            lat: 12.577835,
+            lon: 99.953663,
+            recorded_at: new Date(Date.now() - 119 * 60000).toISOString(),
+            age_minutes: 119,
+            data_status: "expired",
+            eligible_for_surface: false,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("/");
+  const marker = page.locator(".cp-marker--station").first();
+  await expect(marker.locator(".cp-station-marker")).toHaveClass(/is-previous/);
+  await expect(marker.locator(".cp-marker-previous")).toBeVisible();
+  await expect(marker).toHaveAttribute("title", /ข้อมูลก่อนหน้า/);
+  expect(
+    await marker
+      .locator(".cp-station-marker")
+      .evaluate((el) =>
+        (el as HTMLElement).style.getPropertyValue("--marker-aqi"),
+      ),
+  ).toBe("#22c55e");
+  await marker.click();
+  const card = page.getByRole("region", {
+    name: "รายละเอียดสถานีตรวจวัดทางการ",
+  });
+  await expect(
+    card.getByText("ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน"),
+  ).toBeVisible();
+  await expect(card.getByText("ดี", { exact: true })).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `test-results/previous-hour-${page.viewportSize()?.width}.png`,
+  });
 });

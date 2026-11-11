@@ -11,6 +11,7 @@ from .distance import haversine_km
 LINE_EVENT_TYPES = frozenset(
     {"measurement_request", "measurement_fulfilled", "air_alert"}
 )
+MIN_AIR_ALERT_PM25 = 37.6
 
 
 def line_event_type(payload: dict) -> str | None:
@@ -51,7 +52,7 @@ def air_alert_eligible(payload: dict, preferences: dict, now: datetime) -> bool:
             return False
         age = (now.astimezone(UTC) - recorded).total_seconds() / 60
         pm25 = float(payload["pm25"])
-        threshold = float(preferences.get("pm25_threshold", 37.5))
+        threshold = float(preferences.get("pm25_threshold", MIN_AIR_ALERT_PM25))
         lat, lon = float(payload["lat"]), float(payload["lon"])
         center_lat = float(preferences["center_lat"])
         center_lon = float(preferences["center_lon"])
@@ -60,7 +61,7 @@ def air_alert_eligible(payload: dict, preferences: dict, now: datetime) -> bool:
         return bool(
             all(math.isfinite(v) for v in values)
             and 0 <= age <= 90
-            and pm25 >= 0
+            and pm25 >= MIN_AIR_ALERT_PM25
             and pm25 >= threshold
             and -90 <= lat <= 90
             and -90 <= center_lat <= 90

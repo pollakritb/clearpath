@@ -101,6 +101,25 @@ def test_preferences_are_checked_again_before_delivery(patch):
     assert not air_alert_eligible(air(), prefs() | patch, NOW)
 
 
-def test_valid_air_alert_and_zero_threshold_are_supported():
+def test_valid_air_alert_and_zero_legacy_threshold_still_require_unhealthy_band():
     assert air_alert_eligible(air(), prefs(), NOW)
-    assert air_alert_eligible(air() | {"pm25": 0}, prefs() | {"pm25_threshold": 0}, NOW)
+    assert not air_alert_eligible(
+        air() | {"pm25": 0}, prefs() | {"pm25_threshold": 0}, NOW
+    )
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [(0, False), (25, False), (37.5, False), (37.6, True), (75, True), (75.1, True)],
+)
+def test_only_the_two_health_impact_bands_can_notify(value, expected):
+    assert air_alert_eligible(air() | {"pm25": value}, prefs(), NOW) is expected
+
+
+def test_higher_personal_threshold_is_preserved():
+    assert not air_alert_eligible(
+        air() | {"pm25": 40}, prefs() | {"pm25_threshold": 75.1}, NOW
+    )
+    assert air_alert_eligible(
+        air() | {"pm25": 75.1}, prefs() | {"pm25_threshold": 75.1}, NOW
+    )

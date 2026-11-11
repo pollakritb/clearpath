@@ -17,7 +17,7 @@ const DEFAULTS: NotificationPreferences = {
   radius_km: 10,
   center_lat: null,
   center_lon: null,
-  pm25_threshold: 37.5,
+  pm25_threshold: 37.6,
   air_alerts: true,
   hotspot_alerts: true,
   community_alerts: false,
@@ -73,8 +73,12 @@ function NotificationSettingsContent() {
       .notificationPreferences()
       .then((value) => {
         if (!active) return;
-        setPreferences(value);
-        setPersisted(value);
+        const effective = {
+          ...value,
+          pm25_threshold: Math.max(37.6, value.pm25_threshold),
+        };
+        setPreferences(effective);
+        setPersisted(effective);
         setLoadState("ready");
         setError(null);
       })
@@ -261,9 +265,9 @@ function NotificationSettingsContent() {
                 </span>
                 <input
                   type="range"
-                  min={15}
-                  max={150}
-                  step={2.5}
+                  min={37.6}
+                  max={500}
+                  step={0.1}
                   value={preferences.pm25_threshold}
                   onChange={(event) =>
                     setPreferences((current) => ({
@@ -307,6 +311,11 @@ function NotificationSettingsContent() {
               <legend>แจ้งเตือนผ่าน LINE</legend>
               <p>มีคำขอให้ช่วยวัด: ตามพื้นที่ผู้ช่วยที่คุณเปิดไว้</p>
               <p>คำขอได้รับข้อมูลแล้ว: เมื่อคำขอของคุณมีรายงานที่เข้าเกณฑ์</p>
+              <p>
+                แจ้งค่าฝุ่นเฉพาะระดับเริ่มมีผลกระทบต่อสุขภาพ 37.6–75.0
+                และมีผลกระทบต่อสุขภาพตั้งแต่ 75.1 µg/m³
+                โดยใช้เกณฑ์ที่คุณตั้งหากสูงกว่า
+              </p>
               {ALERT_OPTIONS.map(([key, label, description]) => (
                 <label key={key}>
                   <input

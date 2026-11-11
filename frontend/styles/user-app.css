@@ -5675,6 +5675,7 @@
 }
 
 .cp-station-marker > span svg,
+.cp-marker-previous svg,
 .cp-official-cluster svg {
   width: 13px;
   height: 13px;
@@ -5683,6 +5684,30 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2;
+}
+
+.cp-official-cluster {
+  position: relative;
+}
+
+.cp-station-marker > .cp-marker-previous,
+.cp-official-cluster > .cp-marker-previous {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #5b6966;
+  border-radius: 50%;
+  background: #fff;
+  color: #253b36;
+}
+
+.cp-station-marker.is-previous > span,
+.cp-official-cluster.is-previous {
+  border-style: dashed;
 }
 
 .cp-station-marker > span b,

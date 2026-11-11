@@ -7,13 +7,17 @@ export default function MapPanelReading({
   status,
   caption,
   stale = false,
+  showPreviousColour = false,
 }: {
   value: number | null | undefined;
   status?: string;
   caption?: ReactNode;
   stale?: boolean;
+  showPreviousColour?: boolean;
 }) {
-  const classification = classifyPm25(stale ? null : value);
+  const classification = classifyPm25(
+    stale && !showPreviousColour ? null : value,
+  );
   return (
     <>
       {value == null ? (
