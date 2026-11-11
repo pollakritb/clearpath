@@ -5,6 +5,12 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from time import monotonic
 
+from ..algorithms.line_notification_policy import (
+    LINE_EVENT_TYPES,
+    air_alert_eligible,
+    line_event_type,
+    line_retry_key,
+)
 from ..algorithms.notification_policy import is_quiet_hour
 from ..core.errors import ConfigurationError, UpstreamError
 from . import line_messaging, supabase_client
@@ -41,14 +47,14 @@ def deliver_to_channel(
 ) -> int:
     """Deliver one independently retryable channel for a user."""
     preferences = _delivery_preferences(user_id)
+    if channel == "line" and preferences.get("line_enabled", True) is False:
+        return 0
     if not _enforce_delivery_policy(preferences, force=force):
         return 0
     # Retired push jobs may still exist in the historical outbox.
     if channel == "web_push":
         return 0
     if channel == "line":
-        if preferences.get("line_enabled", True) is False:
-            return 0
         return line_messaging.send_to_user(user_id, payload)
     raise ValueError("unsupported notification channel")
 
@@ -135,8 +141,10 @@ def enqueue_user_notification(
         }
     )
     channels = []
-    if preferences.get("consent_granted") is True and preferences.get(
-        "line_enabled", True
+    if (
+        event_type in LINE_EVENT_TYPES
+        and preferences.get("consent_granted") is True
+        and preferences.get("line_enabled", True)
     ):
         channels.append("line")
     for channel in channels:
@@ -148,6 +156,15 @@ def enqueue_user_notification(
                 "event_key": f"{deduplication_key}:{channel}",
                 "payload": {
                     "channel": channel,
+                    "event_type": event_type,
+                    **(
+                        {
+                            k: (payload or {}).get(k)
+                            for k in ("source_at", "pm25", "lat", "lon")
+                        }
+                        if event_type == "air_alert"
+                        else {}
+                    ),
                     "title": title,
                     "body": body,
                     "url": url,
@@ -162,7 +179,7 @@ def enqueue_user_notification(
     return notification
 
 
-def process_outbox(limit: int = 100, budget_seconds: float | None = None) -> dict:
+def process_outbox(limit: int = 100, budget_seconds: float | None = 20) -> dict:
     from .community import xp
 
     if xp.configured():
@@ -188,15 +205,60 @@ def process_outbox(limit: int = 100, budget_seconds: float | None = None) -> dic
             break
         processed += 1
         attempts = int(event.get("attempts") or 0) + 1
+        channel = None
+        payload = {}
         try:
             payload = dict(event.get("payload") or {})
             channel = payload.pop("channel", None)
+            from .measurement import store as measurement_store
+
+            if not measurement_store.claim_delivery(str(event["id"])):
+                continue
+            event_type = line_event_type(payload)
+            reason = None
+            if channel not in (None, "line") or event_type not in LINE_EVENT_TYPES:
+                reason = "line_event_disabled"
+            elif (
+                event_type == "measurement_request"
+                and not (
+                    payload.get("measurement_group_id")
+                    or (
+                        payload.get("measurement_request_id")
+                        and payload.get("measurement_kind") == event_type
+                    )
+                )
+                or event_type == "measurement_fulfilled"
+                and not (
+                    payload.get("measurement_request_id")
+                    and payload.get("measurement_kind") == event_type
+                    and not payload.get("measurement_group_id")
+                )
+            ):
+                reason = "measurement_context_missing"
+            elif event_type == "air_alert" and not air_alert_eligible(
+                payload, _delivery_preferences(str(event["user_id"])), datetime.now(UTC)
+            ):
+                reason = "air_alert_no_longer_eligible"
+            if reason:
+                dead += 1
+                supabase_client.update_outbox_event(
+                    str(event["id"]),
+                    {
+                        "status": "dead",
+                        "processed_at": datetime.now(UTC).isoformat(),
+                        "last_error": reason,
+                        "payload": {"channel": channel, "tag": payload.get("tag")},
+                    },
+                )
+                continue
+            payload["event_type"] = event_type
+            payload["retry_key"] = line_retry_key(
+                str(event["id"]), payload.get("retry_key")
+            )
             if payload.get("measurement_group_id"):
                 from .measurement import registered
                 from .measurement import store as measurement_store
 
-                if not measurement_store.claim_delivery(str(event["id"])):
-                    continue
                 current = registered.prepare_group(
                     str(payload["measurement_group_id"]), str(event["user_id"])
                 )
@@ -225,8 +287,6 @@ def process_outbox(limit: int = 100, budget_seconds: float | None = None) -> dic
                     store as measurement_store,
                 )
 
-                if not measurement_store.claim_delivery(str(event["id"])):
-                    continue
                 if not measurement_service.delivery_allowed(
                     str(event["user_id"]), payload
                 ):
@@ -249,16 +309,18 @@ def process_outbox(limit: int = 100, budget_seconds: float | None = None) -> dic
             supabase_client.update_outbox_event(
                 str(event["id"]),
                 {
-                    "status": "sent",
+                    "status": "sent" if count > 0 else "dead",
                     "attempts": attempts,
                     "processed_at": datetime.now(UTC).isoformat(),
-                    "last_error": None,
+                    "last_error": None if count > 0 else "notification_not_delivered",
                     "payload": {
                         "channel": channel,
                         "tag": payload.get("tag"),
                     },
                 },
             )
+            if count <= 0:
+                dead += 1
         except NotificationDeferred:
             deferred += 1
             supabase_client.update_outbox_event(
@@ -348,7 +410,14 @@ def publish_alert(
             entity_type="alert_event",
             entity_id=str(event["id"]),
             deduplication_key=f"alert:{deduplication_key}:{user_id}",
-            payload={"kind": kind, "severity": severity, **(payload or {})},
+            payload={
+                "kind": kind,
+                "severity": severity,
+                **(payload or {}),
+                "source_at": detected_at,
+                "lat": lat,
+                "lon": lon,
+            },
         )
         delivered += int(bool(queued))
     supabase_client.update_alert_event(

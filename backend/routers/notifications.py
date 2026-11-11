@@ -86,7 +86,7 @@ async def test_notification(user: AuthenticatedUser = Depends(require_user)):
         user.id,
         {
             "title": "ClearPath พร้อมแจ้งเตือน",
-            "body": "อุปกรณ์นี้จะรับการแจ้งเตือนตามพื้นที่และเกณฑ์ที่เลือก",
+            "body": "LINE ที่เชื่อมไว้จะรับคำขอให้ช่วยวัด คำขอได้รับข้อมูลแล้ว และ PM2.5 เกินเกณฑ์ตามการตั้งค่า",
             "url": "/",
             "tag": f"test-{user.id}",
         },

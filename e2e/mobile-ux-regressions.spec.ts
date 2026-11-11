@@ -656,3 +656,71 @@ test("publication gap keeps a labelled previous reading outside the current esti
   await card.getByRole("button", { name: "ปิดสถานที่ที่เลือก" }).click();
   await expect(card).toHaveCount(0);
 });
+
+test("LINE settings expose only the three supported notification categories", async ({
+  page,
+}) => {
+  const saved = await preferences(page);
+  await page.route("**/api/notifications/preferences", (route) =>
+    route.fulfill({
+      json: {
+        ...saved,
+        hotspot_alerts: true,
+        report_status_alerts: true,
+        rating_alerts: true,
+        reward_alerts: true,
+        announcement_alerts: true,
+        line_enabled: true,
+        consent_granted: true,
+      },
+    }),
+  );
+  await page.route("**/api/notifications/line", (route) =>
+    route.fulfill({
+      json: {
+        enabled: true,
+        linked: true,
+        linked_at: now(),
+        official_account_url: "https://line.me/test",
+      },
+    }),
+  );
+  let sends = 0;
+  await page.route("**/api/notifications/line/test", (route) => {
+    sends++;
+    return route.abort();
+  });
+  await page.goto("/settings/notifications");
+  await page.getByRole("button", { name: "แก้ไขเงื่อนไข" }).click();
+  await expect(
+    page.getByText(/มีคำขอให้ช่วยวัด: ตามพื้นที่ผู้ช่วย/),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/คำขอได้รับข้อมูลแล้ว: เมื่อคำขอของคุณ/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: /PM2.5 ถึงหรือเกินค่าที่ตั้งไว้/ }),
+  ).toBeVisible();
+  for (const text of [
+    /จุดความร้อน/,
+    /สถานะรายงานของฉัน/,
+    /เสียงประเมินจากชุมชน/,
+    /คะแนนและเหรียญ/,
+    /อันดับประจำเดือน/,
+    /ประกาศสำคัญ/,
+  ])
+    await expect(page.getByText(text)).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `test-results/line-settings-${page.viewportSize()?.width}.png`,
+  });
+  await page.getByRole("button", { name: "ปิดการแก้ไข" }).click();
+  await expect(
+    page.getByRole("button", { name: "แก้ไขเงื่อนไข" }),
+  ).toBeVisible();
+  expect(sends).toBe(0);
+});

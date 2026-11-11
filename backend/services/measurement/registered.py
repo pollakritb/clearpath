@@ -267,6 +267,7 @@ def invite(request: dict, user_id: str) -> bool:
                     event_key=f"measurement-group:{batch['id']}:line",
                     payload=dict(
                         channel="line",
+                        event_type="measurement_request",
                         measurement_group_id=batch["id"],
                         tag=f"measurement-group:{batch['id']}",
                         retry_key=batch["id"],

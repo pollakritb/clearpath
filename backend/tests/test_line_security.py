@@ -21,7 +21,11 @@ def test_line_retry_key_treats_previously_accepted_push_as_success(monkeypatch):
 
     def post(url, **kwargs):
         calls.append(kwargs)
-        return httpx.Response(409, request=httpx.Request("POST", url))
+        return httpx.Response(
+            409,
+            headers={"x-line-accepted-request-id": "already-accepted"},
+            request=httpx.Request("POST", url),
+        )
 
     monkeypatch.setattr(httpx, "post", post)
     line_messaging._post(line_messaging.LINE_PUSH_URL, {}, retry_key="stable-key")

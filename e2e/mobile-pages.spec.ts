@@ -520,10 +520,14 @@ test("notification settings separate channels from conditions on mobile", async 
   await expect(
     page.getByRole("button", { name: "แก้ไขเงื่อนไข" }),
   ).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByText("เลือกประเภทเหตุการณ์")).toHaveCount(0);
+  await expect(
+    page.getByRole("group", { name: "แจ้งเตือนผ่าน LINE", exact: true }),
+  ).toHaveCount(0);
 
   await page.getByRole("button", { name: "แก้ไขเงื่อนไข" }).click();
-  await expect(page.getByText("เลือกประเภทเหตุการณ์")).toBeVisible();
+  await expect(
+    page.getByRole("group", { name: "แจ้งเตือนผ่าน LINE", exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("ช่องทางและช่วงไม่รบกวน")).toBeVisible();
   await expect(page.getByLabel("เริ่มไม่รบกวน")).toHaveValue("22:00");
   await expect(page.getByLabel("กลับมาแจ้งเตือน")).toHaveValue("07:00");

@@ -3,6 +3,13 @@ from __future__ import annotations
 import pytest
 
 from backend.services import notifications
+from backend.services.measurement import store as measurement_store
+
+
+@pytest.fixture(autouse=True)
+def isolate_outbox_boundaries(monkeypatch):
+    monkeypatch.setattr(measurement_store, "claim_delivery", lambda _: True)
+    monkeypatch.setattr(notifications, "air_alert_eligible", lambda *_: True)
 
 
 def test_enqueue_respects_preferences_and_persists_idempotent_outbox(monkeypatch):
@@ -41,24 +48,34 @@ def test_enqueue_respects_preferences_and_persists_idempotent_outbox(monkeypatch
     )
     result = notifications.enqueue_user_notification(
         user_id="user-1",
-        event_type="announcement",
+        event_type="air_alert",
         title="title",
         body="body",
-        deduplication_key="announcement:1",
+        deduplication_key="air:1",
         payload={"kind": "news"},
     )
     assert result["user_id"] == "user-1"
     assert rows[0]["payload"] == {"kind": "news"}
     assert {row["event_key"] for row in outbox} == {
-        "announcement:1:line",
+        "air:1:line",
     }
     assert all(row["status"] == "pending" for row in outbox)
 
 
 def test_outbox_marks_success_and_schedules_bounded_retry(monkeypatch):
     events = [
-        {"id": "ok", "user_id": "user-1", "payload": {}, "attempts": 0},
-        {"id": "fail", "user_id": "user-2", "payload": {}, "attempts": 8},
+        {
+            "id": "ok",
+            "user_id": "user-1",
+            "payload": {"event_type": "air_alert"},
+            "attempts": 0,
+        },
+        {
+            "id": "fail",
+            "user_id": "user-2",
+            "payload": {"event_type": "air_alert"},
+            "attempts": 8,
+        },
     ]
     updates: list[tuple[str, dict]] = []
     monkeypatch.setattr(
@@ -146,7 +163,14 @@ def test_outbox_defers_without_consuming_attempt(monkeypatch):
     monkeypatch.setattr(
         notifications.supabase_client,
         "list_pending_outbox",
-        lambda _limit: [{"id": "quiet", "user_id": "u", "payload": {}, "attempts": 3}],
+        lambda _limit: [
+            {
+                "id": "quiet",
+                "user_id": "u",
+                "payload": {"event_type": "air_alert"},
+                "attempts": 3,
+            }
+        ],
     )
     monkeypatch.setattr(
         notifications.supabase_client,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
@@ -34,21 +34,11 @@ const DEFAULTS: NotificationPreferences = {
 };
 
 const ALERT_OPTIONS = [
-  ["air_alerts", "PM2.5 จาก Air4Thai", "ข้อมูลหลักจากสถานีทางการ"],
-  ["hotspot_alerts", "จุดความร้อนจากดาวเทียม", "NASA FIRMS อายุไม่เกิน 12 ชม."],
   [
-    "report_status_alerts",
-    "สถานะรายงานของฉัน",
-    "ผลเผยแพร่หรือเหตุผลที่รายงานไม่ผ่าน",
+    "air_alerts",
+    "PM2.5 ถึงหรือเกินค่าที่ตั้งไว้",
+    "ข้อมูลจาก Air4Thai ภายในพื้นที่และรัศมีที่เลือก",
   ],
-  [
-    "rating_alerts",
-    "เสียงประเมินจากชุมชน",
-    "เมื่อมีเสียงประเมินต่อรายงานของฉัน",
-  ],
-  ["reward_alerts", "คะแนนและเหรียญ", "รางวัลจากการช่วยชุมชน"],
-  ["leaderboard_alerts", "อันดับประจำเดือน", "เมื่ออันดับของฉันเปลี่ยน"],
-  ["announcement_alerts", "ประกาศสำคัญ", "ข่าวสารที่ควรรู้จาก ClearPath"],
 ] as const;
 
 export default function NotificationSettings() {
@@ -100,11 +90,6 @@ function NotificationSettingsContent() {
       active = false;
     };
   }, [auth.user, auth.localDemo, reload]);
-
-  const activeAlertCount = useMemo(
-    () => ALERT_OPTIONS.filter(([key]) => preferences[key]).length,
-    [preferences],
-  );
 
   function useCurrentArea() {
     setError(null);
@@ -201,7 +186,7 @@ function NotificationSettingsContent() {
             <AppIcon name="activity" size={19} />
           </span>
           <span>
-            <small>ระดับฝุ่น</small>
+            <small>ระดับฝุ่น{preferences.air_alerts ? "" : " (ปิดอยู่)"}</small>
             <strong>PM2.5 ตั้งแต่ {preferences.pm25_threshold} µg/m³</strong>
           </span>
         </div>
@@ -236,8 +221,8 @@ function NotificationSettingsContent() {
             <AppIcon name="settings" size={19} />
           </span>
           <span>
-            <small>ประเภทเหตุการณ์</small>
-            <strong>เปิดอยู่ {activeAlertCount} รายการ</strong>
+            <small>ประเภทที่รองรับ</small>
+            <strong>คำขอให้ช่วยวัด · คำขอได้รับข้อมูลแล้ว · PM2.5</strong>
           </span>
         </div>
 
@@ -319,7 +304,9 @@ function NotificationSettingsContent() {
             </fieldset>
 
             <fieldset className="cp-notification-option-group">
-              <legend>เลือกประเภทเหตุการณ์</legend>
+              <legend>แจ้งเตือนผ่าน LINE</legend>
+              <p>มีคำขอให้ช่วยวัด: ตามพื้นที่ผู้ช่วยที่คุณเปิดไว้</p>
+              <p>คำขอได้รับข้อมูลแล้ว: เมื่อคำขอของคุณมีรายงานที่เข้าเกณฑ์</p>
               {ALERT_OPTIONS.map(([key, label, description]) => (
                 <label key={key}>
                   <input

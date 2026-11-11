@@ -39,7 +39,11 @@ def _post(url: str, payload: dict, retry_key: str | None = None) -> None:
         if retry_key:
             headers["X-Line-Retry-Key"] = retry_key
         response = httpx.post(url, json=payload, headers=headers, timeout=15.0)
-        if retry_key and response.status_code == 409:
+        if (
+            retry_key
+            and response.status_code == 409
+            and response.headers.get("x-line-accepted-request-id")
+        ):
             return  # The same LINE push was already accepted.
         response.raise_for_status()
     except httpx.HTTPError as exc:
@@ -201,7 +205,7 @@ def handle_webhook(body: bytes, signature: str) -> dict:
 
 def send_to_user(user_id: str, payload: dict) -> int:
     if not settings.line_messaging_ready:
-        return 0
+        raise ConfigurationError("LINE Messaging API ยังไม่เปิดใช้งาน")
     row = supabase_client.get_line_notification_link(user_id)
     if not row or not row.get("active") or not row.get("line_user_id"):
         return 0
@@ -236,7 +240,7 @@ def send_test_to_user(user_id: str) -> bool:
             user_id,
             {
                 "title": "ClearPath เชื่อม LINE สำเร็จ",
-                "body": "คุณจะได้รับข้อความตามพื้นที่และเกณฑ์แจ้งเตือนที่บันทึกไว้",
+                "body": "แจ้งเฉพาะคำขอให้ช่วยวัด คำขอได้รับข้อมูลแล้ว และ PM2.5 เกินเกณฑ์ ตามการตั้งค่าของคุณ",
                 "url": "/community",
             },
         )

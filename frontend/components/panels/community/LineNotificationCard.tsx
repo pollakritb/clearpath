@@ -182,7 +182,8 @@ export default function LineNotificationCard() {
         <div className="cp-line-link__connected">
           <p>
             <AppIcon name="check" size={17} />
-            บัญชีนี้พร้อมรับ PM2.5 จุดความร้อน และสถานะรายงานตามเกณฑ์ที่เลือก
+            LINE รองรับคำขอให้ช่วยวัด คำขอได้รับข้อมูลแล้ว และ PM2.5
+            ตามการเปิดรับและเงื่อนไขของคุณ
           </p>
           {status.linked_at && (
             <small>เชื่อมเมื่อ {formatDateTime(status.linked_at)}</small>

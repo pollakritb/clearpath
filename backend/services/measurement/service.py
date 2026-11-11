@@ -296,6 +296,8 @@ def notify(row: dict, user_id: str, kind: str, matched_location_at: str | None =
         "measurement_expired": "คำขอค่าฝุ่นหมดเวลาแล้ว",
     }[kind]
     body = f"{row['place_name']} · วง {row['radius_km']} กม. · ก่อน {expires} น."
+    if kind == "measurement_fulfilled":
+        body = f"{row['place_name']} · มีรายงานค่าฝุ่นที่เข้าเงื่อนไขคำขอแล้ว เปิดดูค่าฝุ่นและเวลาวัด"
     if kind == "measurement_request":
         body += " · เลือกจากตำแหน่งเข้าเว็บล่าสุด ซึ่งอาจไม่ใช่ตำแหน่งปัจจุบัน"
     url = f"/requests/{row['id']}"
@@ -320,7 +322,12 @@ def notify(row: dict, user_id: str, kind: str, matched_location_at: str | None =
         else False
     )
     outbox = None
-    if prefs.get("consent_granted") and prefs.get("line_enabled", True) and linked:
+    if (
+        kind in {"measurement_request", "measurement_fulfilled"}
+        and prefs.get("consent_granted")
+        and prefs.get("line_enabled", True)
+        and linked
+    ):
         outbox = {
             "id": oid,
             "user_id": user_id,
@@ -328,6 +335,7 @@ def notify(row: dict, user_id: str, kind: str, matched_location_at: str | None =
             "event_key": f"{key}:line",
             "payload": {
                 "channel": "line",
+                "event_type": kind,
                 "title": title,
                 "body": body,
                 "url": url,
@@ -369,7 +377,11 @@ def delivery_allowed(user_id: str, payload: dict) -> bool:
             and invitation
             and not invitation.get("declined")
         )
-    return row["user_id"] == user_id and row["status"] in {"fulfilled", "expired"}
+    return (
+        payload["measurement_kind"] == "measurement_fulfilled"
+        and row["user_id"] == user_id
+        and row["status"] == "fulfilled"
+    )
 
 
 def process() -> dict:

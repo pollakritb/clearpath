@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from ..algorithms.distance import haversine_km
 from ..algorithms.hotspot_policy import public_hotspot_state
+from ..algorithms.line_notification_policy import air_alert_eligible
 from ..algorithms.notification_policy import format_air_alert, format_hotspot_alert
 from ..algorithms.thailand_boundary import is_in_thailand
 from ..algorithms.trust import capture_age_minutes
@@ -58,9 +61,16 @@ async def run_alerts() -> dict:
         targets = [
             str(item["user_id"])
             for item in preferences
-            if item.get("air_alerts", True)
-            and pm25 >= float(item.get("pm25_threshold") or 37.5)
-            and _near_preference(item, float(station["lat"]), float(station["lon"]))
+            if air_alert_eligible(
+                {
+                    "source_at": station["recorded_at"],
+                    "pm25": pm25,
+                    "lat": station["lat"],
+                    "lon": station["lon"],
+                },
+                item,
+                datetime.now(UTC),
+            )
         ]
         if not targets:
             continue
