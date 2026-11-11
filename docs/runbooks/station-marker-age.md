@@ -4,11 +4,11 @@ Marker colour describes a measurement, while age describes when that measurement
 was recorded. ClearPath uses the following display-only policy; these limits are
 product policy, not an international guarantee of measurement accuracy.
 
-| Source age                                                    | Map marker                                                                                         |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Up to 60 minutes, currently eligible                          | Normal concentration colour                                                                        |
-| Over 60 through 120 minutes, valid value and source timestamp | Concentration colour, dashed border and clock; detail says “ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน” |
-| Over 120 minutes, missing time or invalid value               | Neutral grey; prior values remain accessible in details/history                                    |
+| Source age                                                    | Map marker                                                                          |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Up to 60 minutes, currently eligible                          | Normal concentration colour                                                         |
+| Over 60 through 120 minutes, valid value and source timestamp | Concentration colour and clock; detail says “ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน” |
+| Over 120 minutes, missing time or invalid value               | Neutral grey; prior values remain accessible in details/history                     |
 
 Clusters use current values for their colour when any exist. Only when none
 exist may they use previous values within 120 minutes, with a clock and a label

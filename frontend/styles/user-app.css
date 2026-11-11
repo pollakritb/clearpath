@@ -5705,11 +5705,6 @@
   color: #253b36;
 }
 
-.cp-station-marker.is-previous > span,
-.cp-official-cluster.is-previous {
-  border-style: dashed;
-}
-
 .cp-station-marker > span b,
 .cp-official-cluster b {
   font: 900 0.66rem/1 var(--font-mono);
