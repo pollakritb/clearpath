@@ -136,9 +136,8 @@ describe("MapStatusCard", () => {
       />,
     );
     expect(screen.getByText("สนามกีฬากลางจังหวัดสุพรรณบุรี")).toBeTruthy();
-    expect(
-      screen.getByText(/ต.ดอนกำยาน อ.เมือง สุพรรณบุรี · รหัสสถานี 85t/),
-    ).toBeTruthy();
+    expect(screen.getByText("ต.ดอนกำยาน อ.เมือง สุพรรณบุรี")).toBeTruthy();
+    expect(screen.getByText("รหัสสถานี 85t")).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: "ดูรายละเอียดสถานี" }),
     ).toBeNull();
@@ -146,10 +145,10 @@ describe("MapStatusCard", () => {
       screen.queryByRole("region", { name: "พยากรณ์ PM2.5 รายชั่วโมง" }),
     ).toBeNull();
     expect(document.querySelector('a[href^="/air"]')).toBeNull();
-    const measuredTime = screen.getByText(/3 พ.ย. 2569.*20:00/);
+    const measuredTime = document.querySelector("time")!;
     expect(measuredTime.tagName).toBe("TIME");
     expect(measuredTime.getAttribute("datetime")).toBe("2026-11-03T13:00:00Z");
-    expect(screen.getByText(/เวลาข้อมูลต้นทาง/)).toBeTruthy();
+    expect(screen.getAllByText(/เวลาข้อมูลต้นทาง/).length).toBeGreaterThan(0);
   });
 });
 

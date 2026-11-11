@@ -42,7 +42,14 @@ test("station popup contains metadata and returns from its own history without c
     name: "รายละเอียดสถานีตรวจวัดทางการ",
   });
   await expect(pin.getByText("18.5", { exact: true })).toBeVisible();
+  await expect(
+    pin.getByRole("heading", { name: "อ่านค่าฝุ่นนี้อย่างไร" }),
+  ).toHaveCount(0);
   await pin.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }).press("End");
+  await expect(
+    pin.getByRole("heading", { name: "อ่านค่าฝุ่นนี้อย่างไร" }),
+  ).toBeVisible();
+  await pin.getByText(/รหัสสถานี 103t/).scrollIntoViewIfNeeded();
   await expect(pin.getByText(/รหัสสถานี 103t/)).toBeVisible();
   await expect(pin.locator("time")).toHaveAttribute(
     "datetime",
@@ -63,6 +70,38 @@ test("station popup contains metadata and returns from its own history without c
   await history.getByRole("button", { name: "กลับไปที่หมุดสถานี" }).click();
   await expect(pin).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
+});
+
+test("full station sheet exposes source context and returns to the unchanged summary", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.locator(".cp-marker--station").first().click();
+  const pin = page.getByRole("region", {
+    name: "รายละเอียดสถานีตรวจวัดทางการ",
+  });
+  const grip = pin.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" });
+  await grip.press("End");
+  await expect(pin.getByText("ระดับของค่าที่บันทึก: ดี")).toBeVisible();
+  const source = pin.getByRole("link", { name: /ดูข้อมูลจาก Air4Thai/ });
+  await source.scrollIntoViewIfNeeded();
+  await expect(source).toBeInViewport();
+  await expect(source).toHaveAttribute("href", "https://air4thai.pcd.go.th/");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `test-results/station-full-${page.viewportSize()?.width}.png`,
+  });
+  await grip.press("Home");
+  await expect(
+    pin.getByRole("heading", { name: "ที่มาและข้อควรรู้" }),
+  ).toHaveCount(0);
+  await expect(pin.getByText("18.5", { exact: true })).toBeVisible();
+  await pin.getByRole("button", { name: "ปิดรายละเอียดจุดบนแผนที่" }).click();
+  await expect(pin).toHaveCount(0);
 });
 
 test("station forecast shows missing data without inventing a reading or showing a grid", async ({
