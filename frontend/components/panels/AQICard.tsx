@@ -6,6 +6,7 @@ import HistoryChart from "@/frontend/components/panels/HistoryChart";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { T } from "@/frontend/lib/ui";
+import { readingAgeLabel, sourceTimeLabel } from "@/frontend/lib/reading-time";
 import type { CommunityReport, HistoryPoint, Station } from "@/frontend/types";
 
 export interface AQICardProps {
@@ -124,13 +125,8 @@ export default function AQICard({
             </div>
             {measuredAt && !Number.isNaN(Date.parse(measuredAt)) && (
               <div style={{ fontSize: ".75em", marginTop: 2 }}>
-                วัดเมื่อ{" "}
-                {new Date(measuredAt).toLocaleString("th-TH", {
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {report ? "วัดเมื่อ " : "เวลาข้อมูลต้นทาง "}
+                {sourceTimeLabel(measuredAt)} · {readingAgeLabel(ageMinutes)}
               </div>
             )}
             {reading.province && (
@@ -153,7 +149,13 @@ export default function AQICard({
           >
             <span aria-hidden>{cls.glyph}</span>
             <span>
-              {current ? cls.level : "ข้อมูลเก่าหรือยังยืนยันเวลาไม่ได้"}
+              {current
+                ? cls.level
+                : ageMinutes != null &&
+                    measuredAt &&
+                    Number.isFinite(Date.parse(measuredAt))
+                  ? "ข้อมูลก่อนหน้า"
+                  : "ไม่ทราบเวลาข้อมูล"}
             </span>
           </div>
         </div>

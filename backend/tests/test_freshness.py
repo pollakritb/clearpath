@@ -60,3 +60,15 @@ def test_current_station_contract_explains_source_and_quality(monkeypatch):
     fresh, delayed = payload["stations"]
     assert fresh["quality_flags"] == []
     assert delayed["quality_flags"] == ["missing_pm25", "data_delayed"]
+
+
+def test_future_timestamp_is_unknown_except_for_small_clock_skew():
+    now = datetime(2026, 11, 11, 12, tzinfo=UTC)
+    future = station_freshness((now + timedelta(minutes=6)).isoformat(), now)
+    assert future["data_status"] == "expired"
+    assert future["age_minutes"] is None
+    assert future["eligible_for_surface"] is False
+    assert (
+        station_freshness((now + timedelta(minutes=5)).isoformat(), now)["data_status"]
+        == "fresh"
+    )

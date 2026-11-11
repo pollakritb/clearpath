@@ -6,6 +6,11 @@ import MapPanelReading from "./MapPanelReading";
 import MapStationForecast from "./MapStationForecast";
 import styles from "./MapPanel.module.css";
 import AppIcon from "@/frontend/components/ui/AppIcon";
+import {
+  readingAgeLabel as age,
+  sourceTimeLabel,
+} from "@/frontend/lib/reading-time";
+import { previousPlaceReading } from "@/frontend/lib/previous-place-reading";
 import { PLACE_RADIUS_KM, type PlaceAir } from "@/frontend/lib/place-air";
 import type {
   CommunityReport,
@@ -26,12 +31,6 @@ interface PlaceAirCardProps {
 }
 const distance = (km: number, approximate = false) =>
   `${approximate ? "ประมาณ " : ""}${km < 1 ? `${Math.round(km * 1000)} ม.` : `${km.toFixed(1)} กม.`}`;
-const age = (minutes: number | null) =>
-  minutes == null
-    ? "ไม่ทราบเวลาวัด"
-    : minutes < 60
-      ? `${Math.round(minutes)} นาทีที่แล้ว`
-      : `${Math.round(minutes / 60)} ชม.ที่แล้ว`;
 export default function PlaceAirCard({
   place,
   air,
@@ -91,6 +90,10 @@ export default function PlaceAirCard({
     .filter(Boolean)
     .join(" · ");
   const noCurrent = air.value == null;
+  const previous =
+    noCurrent && !loading && !selectionPending
+      ? previousPlaceReading(air)
+      : null;
   const single = air.contributors.length === 1 ? air.contributors[0] : null;
   const usedIds = new Set(air.contributors.map((item) => item.id));
   const usedStations = air.stations.filter((item) =>
@@ -134,6 +137,19 @@ export default function PlaceAirCard({
                   : undefined
             }
           />
+          {previous && (
+            <p className={styles.address}>
+              <strong>
+                ข้อมูลล่าสุดจาก {previous.name}: {previous.value!.toFixed(1)}{" "}
+                µg/m³
+              </strong>
+              <br />
+              เวลาข้อมูลต้นทาง {sourceTimeLabel(previous.at)} ·{" "}
+              {age(previous.ageMinutes)} · {distance(previous.distanceKm)}
+              <br />
+              <span>ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน</span>
+            </p>
+          )}
           <div className={styles.placeFooter}>
             <p
               className={styles.placeMeta}

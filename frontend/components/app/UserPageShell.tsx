@@ -16,6 +16,7 @@ interface HeaderState {
   title?: string;
   description?: string;
   stationCount?: number;
+  currentCount?: number;
   updatedAt?: string | null;
   loading?: boolean;
   delayedCount?: number;
@@ -76,6 +77,7 @@ export default function UserPageShell({
             title={header.title ?? copy.title}
             description={header.description ?? copy.description}
             stationCount={header.stationCount ?? 0}
+            currentCount={header.currentCount}
             updatedAt={header.updatedAt ?? null}
             loading={header.loading ?? false}
             delayedCount={header.delayedCount ?? 0}

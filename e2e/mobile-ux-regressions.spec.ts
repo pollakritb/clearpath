@@ -565,3 +565,94 @@ test("a cancelled camera fallback cannot stop a newly opened camera @camera-390"
     ),
   ).toBe(true);
 });
+
+test("publication gap keeps a labelled previous reading outside the current estimate", async ({
+  page,
+}) => {
+  await page.route("**/api/locations/search?*", (route) =>
+    route.fulfill({
+      json: {
+        coverage: "nationwide",
+        locations: [
+          {
+            id: "gap-place",
+            name: "สถานที่ข้อมูลก่อนหน้า",
+            address: "นครปฐม",
+            kind: "amenity",
+            source: "geoapify",
+            lat: 13.82,
+            lon: 100.0622,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route("**/api/community/reports**", (route) =>
+    route.fulfill({ json: { reports: [], count: 0 } }),
+  );
+  await page.route("**/api/pm25/current", (route) =>
+    route.fulfill({
+      json: {
+        stations: [
+          {
+            ...station(),
+            name_th: "สถานีข้อมูลก่อนหน้า",
+            recorded_at: new Date(Date.now() - 67 * 60000).toISOString(),
+            data_status: "delayed",
+            age_minutes: 67,
+          },
+        ],
+        count: 1,
+        fresh_count: 0,
+        delayed_count: 1,
+        expired_count: 0,
+        updated_at: now(),
+        source: "air4thai",
+      },
+    }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี" }).click();
+  await page
+    .getByPlaceholder("ชื่อสถานที่ ที่อยู่ หรือสถานี")
+    .fill("สถานที่ข้อมูลก่อนหน้า");
+  await page.getByRole("button", { name: /สถานที่ข้อมูลก่อนหน้า/ }).click();
+  const card = page.locator(".cp-place-sheet");
+  await expect(card.getByText("ยังไม่มีค่าปัจจุบัน")).toBeVisible();
+  await expect(page.locator(".cp-station-marker").first()).toHaveAttribute(
+    "style",
+    /--marker-aqi:#7b8583/,
+  );
+  await expect(
+    card.getByText("ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน"),
+  ).toBeInViewport({ ratio: 1 });
+  await expect
+    .poll(() =>
+      card.evaluate((element) => {
+        const header =
+          element.querySelector("[data-sheet-grip]")?.parentElement;
+        return Boolean(
+          header &&
+          header.getBoundingClientRect().bottom <=
+            element.getBoundingClientRect().bottom + 1,
+        );
+      }),
+    )
+    .toBe(true);
+  await expect(
+    card.getByText(/ข้อมูลล่าสุดจาก สถานีข้อมูลก่อนหน้า: 20.0/),
+  ).toBeVisible();
+  await expect(
+    card.getByRole("button", { name: "ปิดสถานที่ที่เลือก" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `test-results/source-gap-${page.viewportSize()?.width}.png`,
+  });
+  await card.getByRole("button", { name: "ปิดสถานที่ที่เลือก" }).click();
+  await expect(card).toHaveCount(0);
+});

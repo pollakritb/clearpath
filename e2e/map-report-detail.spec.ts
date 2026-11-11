@@ -65,7 +65,7 @@ test("an archived report link opens its own pin without returning it to the curr
   await page.goto("/?report=RPT-000004&report_request=REQ-000001");
   const card = page.getByRole("region", { name: "รายละเอียดรายงานจากบุคคล" });
   await expect(card).toBeVisible();
-  await expect(card.getByText("ข้อมูลหมดอายุ", { exact: true })).toBeVisible();
+  await expect(card.getByText("ข้อมูลก่อนหน้า", { exact: true })).toBeVisible();
   await expect(page.locator(".cp-marker--individual")).toHaveCount(1);
   await card.getByRole("button", { name: "ปิดรายละเอียดจุดบนแผนที่" }).click();
   await expect(page.locator(".cp-marker--individual")).toHaveCount(0);

@@ -21,3 +21,12 @@ it("uses the existing 60/90 minute boundaries and never refreshes a stale server
     ageStation({ ...station, recorded_at: null }, now).eligible_for_surface,
   ).toBe(false);
 });
+it("does not promote an invalid future source timestamp to fresh", () => {
+  const result = ageStation(
+    { ...station, recorded_at: new Date(now + 6 * 60000).toISOString() },
+    now,
+  );
+  expect(result.data_status).toBe("expired");
+  expect(result.age_minutes).toBeNull();
+  expect(result.eligible_for_surface).toBe(false);
+});

@@ -70,3 +70,15 @@ def test_parse_stations_treats_negative_air4thai_sentinel_as_missing():
     assert rows[0]["pm25"] is None
     assert rows[0]["aqi"] is None
     assert rows[0]["level"] is None
+
+
+def test_source_time_is_not_fabricated_from_missing_or_invalid_clock():
+    from backend.services.air4thai import _recorded_at
+
+    assert _recorded_at({"date": "2026-11-11"}) is None
+    assert _recorded_at({"date": "2026-11-11", "time": "25:00"}) is None
+    assert _recorded_at({"date": "not-a-date", "time": "10:00"}) is None
+    assert (
+        _recorded_at({"date": "2026-11-11", "time": "10:00"})
+        == "2026-11-11T10:00:00+07:00"
+    )

@@ -715,6 +715,7 @@ export default function MapPageClient(options: MapPageOptions) {
         stationCount: serviceAreaStations.length,
         updatedAt: pm25.updatedAt,
         loading: pm25.loading || community.loading,
+        currentCount: pm25.counts.current,
         delayedCount: pm25.counts.delayed,
         expiredCount: pm25.counts.expired,
         error: pm25.error,

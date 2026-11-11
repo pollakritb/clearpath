@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ageStation } from "@/frontend/lib/station-age";
+import { currentStationValue } from "@/frontend/lib/station-display";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import {
   cachedPublicValue,
@@ -100,6 +101,9 @@ export function usePm25() {
     stations,
     updatedAt: snapshot?.updated_at ?? null,
     counts: {
+      current: stations.filter(
+        (station) => currentStationValue(station) != null,
+      ).length,
       fresh: stations.filter((station) => station.data_status === "fresh")
         .length,
       delayed: stations.filter((station) => station.data_status === "delayed")

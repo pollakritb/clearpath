@@ -34,7 +34,7 @@ export default function MapPanelReading({
             </div>
             <span className={styles.level}>
               <i aria-hidden="true" />
-              {status ?? (stale ? "ข้อมูลหมดอายุ" : classification.level)}
+              {status ?? (stale ? "ข้อมูลก่อนหน้า" : classification.level)}
             </span>
           </div>
           {caption && <div className={styles.time}>{caption}</div>}

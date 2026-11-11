@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import ssl
+from datetime import datetime
 from pathlib import Path
 
 import httpx
@@ -57,12 +58,14 @@ def _recorded_at(aqi_last: dict) -> str | None:
     """ประกอบ ISO timestamp (เวลาไทย +07:00) จาก field date/time ของ air4thai"""
     d = aqi_last.get("date")
     t = aqi_last.get("time")
-    if not d:
+    if not isinstance(d, str) or not isinstance(t, str) or not d or not t:
         return None
-    t = t or "00:00"
     if len(t) == 5:  # HH:MM
         t = f"{t}:00"
-    return f"{d}T{t}+07:00"
+    try:
+        return datetime.fromisoformat(f"{d}T{t}+07:00").isoformat()
+    except ValueError:
+        return None
 
 
 async def fetch_stations() -> list[dict]:

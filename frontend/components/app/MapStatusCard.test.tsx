@@ -149,7 +149,7 @@ describe("MapStatusCard", () => {
     const measuredTime = screen.getByText(/3 พ.ย. 2569.*20:00/);
     expect(measuredTime.tagName).toBe("TIME");
     expect(measuredTime.getAttribute("datetime")).toBe("2026-11-03T13:00:00Z");
-    expect(screen.getByText(/ตรวจวัดล่าสุด/)).toBeTruthy();
+    expect(screen.getByText(/เวลาข้อมูลต้นทาง/)).toBeTruthy();
   });
 });
 

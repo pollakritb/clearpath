@@ -176,3 +176,70 @@ it("labels a single community source and keeps excluded readings behind a disclo
     screen.getByRole("button", { name: /มีรายงานใหม่กว่าจากคนนี้/ }),
   ).toBeTruthy();
 });
+
+it("shows a reading just beyond the freshness limit in minutes", () => {
+  const air = {
+    ...empty,
+    stations: [
+      {
+        station: { id: "late", name_th: "สถานีรออัปเดต", pm25: 10.2 },
+        distanceKm: 1.3,
+        ageMinutes: 67,
+        usable: false,
+      },
+    ],
+  } as PlaceAir;
+  render(
+    <PlaceAirCard
+      place={place}
+      air={air}
+      loading={false}
+      dataError={null}
+      {...callbacks}
+    />,
+  );
+  fireEvent.keyDown(
+    screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+    { key: "End" },
+  );
+  fireEvent.click(screen.getByText("ข้อมูลอื่นที่ไม่ใช้คำนวณ (1)"));
+  expect(
+    screen.getByRole("button", { name: /สถานีรออัปเดต.*67 นาทีที่แล้ว/ }),
+  ).toBeTruthy();
+  expect(screen.getByText("ยังไม่มีค่าปัจจุบัน")).toBeTruthy();
+});
+
+it("shows a previous source value without presenting it as a current estimate", () => {
+  const air = {
+    ...empty,
+    stations: [
+      {
+        station: {
+          id: "previous",
+          name_th: "สถานีเดิม",
+          pm25: 20,
+          recorded_at: new Date(Date.now() - 67 * 60000).toISOString(),
+        },
+        distanceKm: 1,
+        ageMinutes: 67,
+        usable: false,
+      },
+    ],
+  } as PlaceAir;
+  render(
+    <PlaceAirCard
+      place={place}
+      air={air}
+      loading={false}
+      dataError={null}
+      {...callbacks}
+    />,
+  );
+  expect(
+    screen.getByText("ข้อมูลล่าสุดจาก สถานีเดิม: 20.0 µg/m³"),
+  ).toBeTruthy();
+  expect(
+    screen.getByText("ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน"),
+  ).toBeTruthy();
+  expect(screen.getByText("ยังไม่มีค่าปัจจุบัน")).toBeTruthy();
+});

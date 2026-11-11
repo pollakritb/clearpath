@@ -14,7 +14,10 @@ def station_freshness(recorded_at: str | None, now: datetime | None = None) -> d
         recorded = datetime.fromisoformat(str(recorded_at).replace("Z", "+00:00"))
         if recorded.tzinfo is None:
             recorded = recorded.replace(tzinfo=UTC)
-        age = max(0.0, ((now or datetime.now(UTC)) - recorded).total_seconds() / 60)
+        elapsed = ((now or datetime.now(UTC)) - recorded).total_seconds() / 60
+        # Match Place IDW's five-minute clock-skew tolerance. A wildly future
+        # source time is unknown, not a zero-age observation.
+        age = max(0.0, elapsed) if elapsed >= -5 else None
     except (TypeError, ValueError):
         pass
     status = (

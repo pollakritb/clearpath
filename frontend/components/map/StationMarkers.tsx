@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useMapEvents } from "react-leaflet";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
+import { currentStationValue } from "@/frontend/lib/station-display";
 import { clusterStations } from "@/frontend/lib/station-clusters";
 import type { Station } from "@/frontend/types";
 
@@ -69,7 +70,9 @@ export default function StationMarkers({
       {clusters.map((cluster) => {
         if (cluster.stations.length > 1) {
           const values = cluster.stations.flatMap((station) =>
-            station.pm25 == null ? [] : [station.pm25],
+            currentStationValue(station) == null
+              ? []
+              : [currentStationValue(station)!],
           );
           const average = values.length
             ? values.reduce((total, value) => total + value, 0) / values.length
@@ -98,10 +101,13 @@ export default function StationMarkers({
           );
         }
         const s = cluster.stations[0];
-        const cls = classifyPm25(s.pm25);
+        const currentValue = currentStationValue(s);
+        const cls = classifyPm25(currentValue);
         const stationName = s.name_th ?? s.name_en ?? s.id;
         const markerLabel = `${stationName} PM2.5 ${s.pm25 ?? "ไม่มีข้อมูล"} ไมโครกรัมต่อลูกบาศก์เมตร ${
-          s.data_status === "expired" ? "ข้อมูลหมดอายุ" : cls.level
+          currentValue == null
+            ? "ข้อมูลก่อนหน้า หรือไม่ทราบเวลาข้อมูล"
+            : cls.level
         }`;
         return (
           <PriorityMarker
@@ -111,7 +117,7 @@ export default function StationMarkers({
             title={markerLabel}
             alt={markerLabel}
             icon={stationIcon(
-              s.data_status === "expired" ? "#7b8583" : cls.color,
+              currentValue == null ? "#7b8583" : cls.color,
               s.pm25,
               s.data_status === "expired",
               s.id === selectedId,

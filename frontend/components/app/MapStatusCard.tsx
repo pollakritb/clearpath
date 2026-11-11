@@ -6,6 +6,7 @@ import ParticipationBadge from "@/frontend/components/community/ParticipationBad
 import { useRef, useState } from "react";
 import MapBottomSheet from "./MapBottomSheet";
 import MapPanelReading from "./MapPanelReading";
+import { readingAgeLabel, sourceTimeLabel } from "@/frontend/lib/reading-time";
 import panel from "./MapPanel.module.css";
 
 import Link from "next/link";
@@ -97,7 +98,7 @@ export default function MapStatusCard({
   const value = isCommunity ? report.pm25 : station?.pm25;
   const expired =
     !historicalAt &&
-    (report ? report.is_fresh === false : station?.data_status === "expired");
+    (report ? report.is_fresh === false : station?.data_status !== "fresh");
   const classification = classifyPm25(expired ? null : value);
   const reporterAvatar = report ? publicReporterAvatar(report) : null;
   const showReporterProfile = Boolean(
@@ -149,13 +150,20 @@ export default function MapStatusCard({
               stale={expired}
               caption={
                 <>
-                  {historicalAt ? "เวลาตรวจวัด" : "ตรวจวัดล่าสุด"} ·{" "}
+                  เวลาข้อมูลต้นทาง ·{" "}
                   <time dateTime={station.recorded_at ?? undefined}>
-                    {formatReportDate(station.recorded_at)}
+                    {sourceTimeLabel(station.recorded_at)}
                   </time>
+                  {!historicalAt &&
+                    ` · ${readingAgeLabel(station.age_minutes)}`}
                 </>
               }
             />
+            {expired && (
+              <p className={panel.address}>
+                ข้อมูลก่อนหน้า ไม่ใช้คำนวณค่าปัจจุบัน
+              </p>
+            )}
             {station && (onOpenHistory || onOpenForecast) && (
               <div className="cp-pin-time-actions">
                 {onOpenHistory && (

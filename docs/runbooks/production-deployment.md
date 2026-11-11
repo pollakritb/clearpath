@@ -241,6 +241,11 @@ Do not call the production sync endpoint manually from browser history because
 the bearer secret could be exposed. Use the protected GitHub Actions workflow
 or a trusted terminal that obtains the secret from the password manager.
 
+The post-deploy smoke distinguishes release/API verification from data freshness.
+See [production smoke policy](production-smoke.md) for its 40-attempt, 15-second
+retry interval and 15-minute timeout. A stale-data warning does not change the
+public readiness response or the 30-minute ingestion schedule.
+
 For a forecast containment drill, disable the relevant CAMS collector or stored
 station read gate in staging. Verify health/readiness/auth with
 `scripts.verify_deployment`, then inspect unavailable responses without fabricated

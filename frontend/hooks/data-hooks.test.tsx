@@ -77,7 +77,12 @@ describe("data hooks", () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.stations).toHaveLength(1);
-    expect(result.current.counts).toEqual({ fresh: 1, delayed: 0, expired: 0 });
+    expect(result.current.counts).toEqual({
+      current: 1,
+      fresh: 1,
+      delayed: 0,
+      expired: 0,
+    });
 
     apiMocks.pm25Current.mockRejectedValueOnce(new Error("station offline"));
     await act(async () => result.current.refresh());

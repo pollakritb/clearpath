@@ -151,6 +151,7 @@ export default function TodayPageClient({
         stationCount: serviceAreaStations.length,
         updatedAt: pm25.updatedAt,
         loading: pm25.loading,
+        currentCount: pm25.counts.current,
         delayedCount: pm25.counts.delayed,
         expiredCount: pm25.counts.expired,
         error: pm25.error,

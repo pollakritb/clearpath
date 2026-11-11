@@ -13,6 +13,7 @@ interface HeaderProps {
   title: string;
   description: string;
   stationCount: number;
+  currentCount?: number;
   updatedAt: string | null;
   loading: boolean;
   delayedCount: number;
@@ -38,6 +39,7 @@ export default function Header({
   title,
   description,
   stationCount,
+  currentCount,
   updatedAt,
   loading,
   delayedCount,
@@ -46,7 +48,10 @@ export default function Header({
   onRefresh,
   showDataStatus = true,
 }: HeaderProps) {
-  const hasStaleData = delayedCount > 0 || expiredCount > 0;
+  const freshCount =
+    currentCount ?? Math.max(0, stationCount - delayedCount - expiredCount);
+  const hasStaleData =
+    delayedCount > 0 || expiredCount > 0 || freshCount < stationCount;
   const state = error ? "error" : hasStaleData ? "warning" : "healthy";
 
   return (
@@ -104,14 +109,16 @@ export default function Header({
                 ? "เชื่อมต่อข้อมูลไม่ได้"
                 : loading
                   ? "กำลังอัปเดตข้อมูล"
-                  : `${stationCount} สถานีพร้อมใช้งาน`}
+                  : freshCount === 0
+                    ? "ยังไม่มีข้อมูลสถานีที่เข้าเกณฑ์ปัจจุบัน"
+                    : `ข้อมูลเข้าเกณฑ์ ${freshCount} จาก ${stationCount} สถานี`}
             </strong>
             <small>
               {error
                 ? "ระบบจะแสดงข้อมูลล่าสุดที่มีอยู่"
                 : hasStaleData
-                  ? `ล่าช้า ${delayedCount} · หมดอายุ ${expiredCount}`
-                  : `อัปเดตล่าสุด ${fmtTime(updatedAt)} น.`}
+                  ? `สถานีทั้งหมด ${stationCount} · ข้อมูลไม่เข้าเกณฑ์ ${stationCount - freshCount}`
+                  : `ซิงก์ล่าสุด ${fmtTime(updatedAt)} น.`}
             </small>
           </span>
           <span className="cp-data-status__source">Air4Thai</span>

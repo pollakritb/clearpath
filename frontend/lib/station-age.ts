@@ -3,9 +3,9 @@ import type { Station } from "@/frontend/types";
 /** Age cached readings without promoting a server-declared stale/invalid value. */
 export function ageStation(station: Station, now: number): Station {
   const measuredAt = Date.parse(station.recorded_at ?? "");
-  const age = Number.isFinite(measuredAt)
-    ? Math.max(0, (now - measuredAt) / 60_000)
-    : null;
+  const elapsed = (now - measuredAt) / 60_000;
+  const age =
+    Number.isFinite(elapsed) && elapsed >= -5 ? Math.max(0, elapsed) : null;
   const clockStatus =
     age == null || age > 90 ? "expired" : age > 60 ? "delayed" : "fresh";
   const order = { fresh: 0, delayed: 1, expired: 2 };
