@@ -6,7 +6,6 @@ import ParticipationBadge from "@/frontend/components/community/ParticipationBad
 import { useRef, useState } from "react";
 import MapBottomSheet from "./MapBottomSheet";
 import MapPanelReading from "./MapPanelReading";
-import StationDetails from "./StationDetails";
 import { readingAgeLabel, sourceTimeLabel } from "@/frontend/lib/reading-time";
 import {
   currentStationValue,
@@ -19,6 +18,7 @@ import Link from "next/link";
 import ReportEvidencePanel from "@/frontend/components/community/ReportEvidencePanel";
 import ReportEngagement from "@/frontend/components/community/ReportEngagement";
 import AppIcon from "@/frontend/components/ui/AppIcon";
+import SourceBadge from "@/frontend/components/ui/SourceBadge";
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { formatCommunityArea } from "@/frontend/lib/community-location";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
@@ -206,7 +206,16 @@ export default function MapStatusCard({
           </>
         }
       >
-        <StationDetails station={station} historical={Boolean(historicalAt)} />
+        <section className={panel.section}>
+          <h2>ข้อมูลสถานี</h2>
+          <p className={panel.address}>
+            {station.province ?? "ประเทศไทย"} · รหัสสถานี {station.id}
+          </p>
+          <SourceBadge kind="official" compact />
+          <p className={panel.address}>
+            ค่าตรวจวัดจาก Air4Thai ตามเวลาที่ระบุบนรายงาน
+          </p>
+        </section>
       </MapBottomSheet>
     );
   }

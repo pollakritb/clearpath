@@ -195,36 +195,6 @@
   line-height: 1.6;
   color: var(--cp-subink);
 }
-.explanation {
-  margin: 0;
-  color: var(--cp-ink);
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.6;
-}
-.stationFacts {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.6;
-}
-.stationFacts > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--cp-line);
-}
-.stationFacts > div:last-child {
-  border-bottom: 0;
-}
-.stationFacts dt {
-  color: var(--cp-subink);
-}
-.stationFacts dd {
-  margin: 0;
-  color: var(--cp-ink);
-  overflow-wrap: anywhere;
-}
 .panel :global(.cp-map-station-forecast) {
   padding: 16px 0;
   border: 0;
