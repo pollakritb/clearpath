@@ -119,3 +119,36 @@ it("shows all request information and actions without expanding a sheet", () => 
   ).toBeNull();
   expect(screen.getByRole("region").dataset.snap).toBe("fixed");
 });
+
+it("does not offer cancellation after the report window has expired before polling catches up", () => {
+  render(
+    <RequestMapCard
+      request={{
+        ...request,
+        expires_at: new Date(Date.now() - 1000).toISOString(),
+      }}
+      now={Date.now()}
+      onClose={vi.fn()}
+    />,
+  );
+  expect(screen.queryByRole("button", { name: "ยกเลิกคำขอ" })).toBeNull();
+});
+it("does not resume a completed request even if a help claim has time remaining", () => {
+  render(
+    <RequestMapCard
+      request={{
+        ...request,
+        is_owner: false,
+        status: "fulfilled",
+        help_claim: {
+          deadline: new Date(Date.now() + 600000).toISOString(),
+        } as MeasurementRequestView["help_claim"],
+      }}
+      now={Date.now()}
+      onClose={vi.fn()}
+    />,
+  );
+  expect(
+    screen.queryByRole("button", { name: "วัดต่อจากภารกิจเดิม" }),
+  ).toBeNull();
+});

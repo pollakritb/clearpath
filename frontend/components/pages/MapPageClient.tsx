@@ -54,6 +54,7 @@ export default function MapPageClient(options: MapPageOptions) {
     community,
     currentLocation,
     mapHistory,
+    requestFlow,
     requestStep,
     setRequestStep,
     requestPoint,
@@ -545,7 +546,13 @@ export default function MapPageClient(options: MapPageOptions) {
             setRequestStep("pick");
           }}
           onMapSelect={() => setRequestStep("pick")}
-          onClose={() => setRequestStep("idle")}
+          onClose={requestFlow.back}
+          backLabel={
+            requestFlow.previous === "pick"
+              ? "กลับไปเลือกจุดบนแผนที่"
+              : "กลับไปแผนที่"
+          }
+          onExit={() => setRequestStep("idle")}
         />
       ) : requestStep !== "idle" ? (
         <MapRequestPanel
@@ -558,7 +565,10 @@ export default function MapPageClient(options: MapPageOptions) {
           resolvingName={requestLabel.loading}
           editing={requestStep === "form"}
           onConfirm={() => setRequestStep("form")}
-          onReselect={() => setRequestStep("pick")}
+          onReselect={requestFlow.reselect}
+          onBack={requestFlow.back}
+          draft={requestFlow.draft}
+          onDraftChange={requestFlow.setDraft}
           onSearch={() => setRequestStep("search")}
           onClose={() => setRequestStep("idle")}
         />

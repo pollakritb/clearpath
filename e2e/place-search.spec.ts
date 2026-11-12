@@ -164,9 +164,9 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
     .getByRole("searchbox", { name: "สถานที่หรือที่อยู่" })
     .fill("สถานที่ทด");
   await page.getByRole("button", { name: /สถานที่ทดสอบ/ }).click();
-  await expect(page.locator(".cp-map-request-point strong")).toHaveText(
-    "สถานที่ทดสอบ",
-  );
+  await expect(
+    page.getByRole("button", { name: "ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น" }),
+  ).toContainText("สถานที่ทดสอบ");
   await page.getByRole("button", { name: "ใช้จุดนี้เพื่อขอค่าฝุ่น" }).click();
   await page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี" }).click();
   await page

@@ -114,6 +114,7 @@ export default function RequestMapCard({
       </p>
       <HelpRequestButton request={request} now={now} />
       {request.is_owner &&
+        Date.parse(request.expires_at) > now &&
         (request.status === "active" || request.status === "scheduled") && (
           <ConfirmAction
             label="ยกเลิกคำขอ"

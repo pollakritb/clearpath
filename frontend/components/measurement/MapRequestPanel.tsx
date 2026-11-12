@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import MapBottomSheet from "@/frontend/components/app/MapBottomSheet";
-import { useId, useLayoutEffect, useRef } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import type {
   LocationSuggestion,
   MeasurementRequestView,
 } from "@/frontend/types";
+import type { RequestDraft } from "@/frontend/hooks/useRequestFlow";
 import CreateRequest from "./CreateRequest";
 import { requestPlaceTitle } from "@/frontend/lib/request-place";
 
@@ -17,6 +18,9 @@ export default function MapRequestPanel({
   onConfirm,
   onReselect,
   onSearch,
+  onBack,
+  draft,
+  onDraftChange,
   onClose,
   onCreated,
   resolvingName = false,
@@ -26,10 +30,17 @@ export default function MapRequestPanel({
   onConfirm: () => void;
   onReselect: () => void;
   onSearch?: () => void;
+  onBack?: () => void;
+  draft?: RequestDraft;
+  onDraftChange?: (draft: RequestDraft) => void;
   onClose: () => void;
   onCreated?: (request: MeasurementRequestView) => void;
   resolvingName?: boolean;
 }) {
+  const [submitting, setSubmitting] = useState(false);
+  const close = () => {
+    if (!submitting) onClose();
+  };
   const placeLabelId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -70,8 +81,8 @@ export default function MapRequestPanel({
           <button
             type="button"
             className="cp-request-location-back cp-focus"
-            onClick={onClose}
-            aria-label="กลับสู่แผนที่หลัก"
+            onClick={onBack ?? onClose}
+            aria-label="กลับขั้นก่อนหน้า"
           >
             <AppIcon name="back" size={20} />
           </button>
@@ -103,7 +114,8 @@ export default function MapRequestPanel({
         label="ขอค่าฝุ่นบนแผนที่"
         className="cp-request-picker-sheet"
         initialSnap={editing ? "full" : "peek"}
-        onClose={onClose}
+        onClose={close}
+        showClose={!submitting}
         closeLabel="ปิดการขอค่าฝุ่น"
         header={
           <>
@@ -113,6 +125,7 @@ export default function MapRequestPanel({
                   type="button"
                   className="cp-focus"
                   onClick={onReselect}
+                  disabled={submitting}
                   aria-label="กลับไปเลือกจุดบนแผนที่"
                 >
                   <AppIcon name="back" size={18} /> กลับ
@@ -187,6 +200,9 @@ export default function MapRequestPanel({
               mapContext
               onCreated={onCreated}
               resolvingName={resolvingName}
+              draft={draft}
+              onDraftChange={onDraftChange}
+              onBusyChange={setSubmitting}
             />
           </div>
         )}

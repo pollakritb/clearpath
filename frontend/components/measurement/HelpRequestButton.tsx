@@ -21,6 +21,7 @@ export default function HelpRequestButton({
   const continuing =
     request.help_claim && Date.parse(request.help_claim.deadline) > now;
   if (
+    (request.status !== "active" && request.status !== "scheduled") ||
     request.is_owner ||
     request.declined ||
     Date.parse(request.expires_at) <= now ||

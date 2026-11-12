@@ -14,6 +14,8 @@ import type {
   MeasurementRequestView,
 } from "@/frontend/types";
 
+import type { RequestDraft } from "@/frontend/hooks/useRequestFlow";
+
 const RequestAreaMap = dynamic(() => import("./RequestAreaMap"), {
   ssr: false,
 });
@@ -24,24 +26,40 @@ export default function CreateRequest({
   mapContext = false,
   onCreated,
   resolvingName = false,
+  draft,
+  onDraftChange,
+  onBusyChange,
 }: {
   place: LocationSuggestion;
   initiallyOpen?: boolean;
   mapContext?: boolean;
   onCreated?: (request: MeasurementRequestView) => void;
   resolvingName?: boolean;
+  draft?: RequestDraft;
+  onDraftChange?: (draft: RequestDraft) => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const login = useLoginPrompt();
   const [open, setOpen] = useState(initiallyOpen);
   const radius = 2 as const;
-  const [scheduled, setScheduled] = useState(false);
-  const [time, setTime] = useState("");
+  const [localDraft, setLocalDraft] = useState<RequestDraft>({
+    scheduled: false,
+    time: "",
+  });
+  const { scheduled, time } = draft ?? localDraft;
+  const updateDraft = (next: RequestDraft) => {
+    setLocalDraft(next);
+    onDraftChange?.(next);
+    setError("");
+    key.current = null;
+  };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<MeasurementRequestView | null>(null);
   const key = useRef<string | null>(null);
+  const inFlight = useRef(false);
   async function send() {
-    if (resolvingName) return;
+    if (resolvingName || inFlight.current) return;
     if (login.openLoginPrompt()) return;
     if (
       scheduled &&
@@ -50,7 +68,19 @@ export default function CreateRequest({
       setError("เลือกเวลาที่ต้องการข้อมูล");
       return;
     }
+    if (scheduled) {
+      const deadline = new Date(`${time}+07:00`).getTime();
+      if (
+        deadline <= Date.now() ||
+        deadline > Date.now() + 24 * 60 * 60 * 1000
+      ) {
+        setError("เลือกเวลาล่วงหน้าภายใน 24 ชั่วโมง");
+        return;
+      }
+    }
+    inFlight.current = true;
     setBusy(true);
+    onBusyChange?.(true);
     setError("");
     key.current ??= crypto.randomUUID();
     try {
@@ -68,7 +98,9 @@ export default function CreateRequest({
     } catch (e) {
       setError(apiErrorMessage(e, "สร้างคำขอไม่สำเร็จ กรุณาลองอีกครั้ง"));
     } finally {
+      inFlight.current = false;
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
   if (result)
@@ -113,8 +145,7 @@ export default function CreateRequest({
                 aria-pressed={!scheduled}
                 disabled={busy}
                 onClick={() => {
-                  setScheduled(false);
-                  key.current = null;
+                  updateDraft({ scheduled: false, time });
                 }}
               >
                 ตอนนี้
@@ -124,8 +155,7 @@ export default function CreateRequest({
                 aria-pressed={scheduled}
                 disabled={busy}
                 onClick={() => {
-                  setScheduled(true);
-                  key.current = null;
+                  updateDraft({ scheduled: true, time });
                 }}
               >
                 ก่อนเวลาที่กำหนด
@@ -140,8 +170,7 @@ export default function CreateRequest({
                 value={time}
                 disabled={busy}
                 onChange={(e) => {
-                  setTime(e.target.value);
-                  key.current = null;
+                  updateDraft({ scheduled, time: e.target.value });
                 }}
               />
             </label>

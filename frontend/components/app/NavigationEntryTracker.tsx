@@ -12,6 +12,7 @@ export default function NavigationEntryTracker() {
       );
       if (
         !link ||
+        link.hasAttribute("data-safe-back") ||
         link.target === "_blank" ||
         event.ctrlKey ||
         event.metaKey ||

@@ -303,3 +303,77 @@ it("shows the requester and counts down scheduled start in hours", () => {
   expect(screen.queryByText(/เหลือเวลารับรายงาน/)).toBeNull();
   clock.mockRestore();
 });
+
+it("blocks past/out-of-range schedules locally and clears the error when changing timing", () => {
+  render(<CreateRequest place={place} initiallyOpen mapContext />);
+  fireEvent.click(screen.getByRole("button", { name: "ก่อนเวลาที่กำหนด" }));
+  fireEvent.change(screen.getByLabelText("ต้องการข้อมูลก่อน (ภายใน 24 ชม.)"), {
+    target: { value: "2000-01-01T12:00" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "ส่งคำขอ" }));
+  expect(screen.getByRole("alert").textContent).toContain("ภายใน 24 ชั่วโมง");
+  expect(mocks.create).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "ตอนนี้" }));
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+it("does not offer an empty map target for a completed request", () => {
+  render(<RequestSummary row={{ ...row, status: "fulfilled" }} />);
+  expect(screen.queryByRole("link", { name: "ดูจุดคำขอบนแผนที่" })).toBeNull();
+});
+
+it("sends a valid scheduled deadline in Thailand time and keeps the controlled draft", async () => {
+  const time = new Date(Date.now() + 3600000 + 7 * 3600000)
+    .toISOString()
+    .slice(0, 16);
+  render(
+    <CreateRequest
+      place={place}
+      initiallyOpen
+      mapContext
+      draft={{ scheduled: true, time }}
+    />,
+  );
+  expect(
+    screen.getByLabelText("ต้องการข้อมูลก่อน (ภายใน 24 ชม.)"),
+  ).toHaveProperty("value", time);
+  fireEvent.click(screen.getByRole("button", { name: "ส่งคำขอ" }));
+  await waitFor(() =>
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        needed_by: new Date(`${time}+07:00`).toISOString(),
+        radius_km: 2,
+      }),
+    ),
+  );
+});
+
+it("opens login instead of submitting a guest request and retains the selected timing", () => {
+  mocks.login.mockReturnValue(true);
+  const time = new Date(Date.now() + 3600000 + 7 * 3600000)
+    .toISOString()
+    .slice(0, 16);
+  render(
+    <CreateRequest
+      place={place}
+      initiallyOpen
+      mapContext
+      draft={{ scheduled: true, time }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "ส่งคำขอ" }));
+  expect(mocks.login).toHaveBeenCalledOnce();
+  expect(mocks.create).not.toHaveBeenCalled();
+  expect(
+    screen.getByLabelText("ต้องการข้อมูลก่อน (ภายใน 24 ชม.)"),
+  ).toHaveProperty("value", time);
+});
+
+it("does not let owners cancel an expired request awaiting its server status refresh", () => {
+  render(
+    <RequestSummary
+      row={{ ...row, expires_at: new Date(Date.now() - 1000).toISOString() }}
+      actions
+    />,
+  );
+  expect(screen.queryByRole("button", { name: "ยกเลิกคำขอ" })).toBeNull();
+});

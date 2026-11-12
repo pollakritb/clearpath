@@ -90,7 +90,7 @@ it("keeps location search available above the map and removes it while editing t
   expect(search.textContent).toContain("วัดมังกร");
   fireEvent.click(search);
   expect(onSearch).toHaveBeenCalledOnce();
-  fireEvent.click(screen.getByRole("button", { name: "กลับสู่แผนที่หลัก" }));
+  fireEvent.click(screen.getByRole("button", { name: "กลับขั้นก่อนหน้า" }));
   expect(props.onClose).toHaveBeenCalledOnce();
   expect(onSearch).toHaveBeenCalledOnce();
   rerender(<MapRequestPanel {...props} editing />);

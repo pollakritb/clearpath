@@ -12085,3 +12085,9 @@ dialog.cp-login-modal::backdrop {
   left: auto;
   transform: none;
 }
+.cp-request-search-screen > header > .cp-request-search-exit {
+  flex: 0 0 44px;
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+}

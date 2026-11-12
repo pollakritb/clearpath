@@ -15,6 +15,7 @@ export default function SafeBackButton({
   return (
     <Link
       href={fallback}
+      data-safe-back
       className={className ?? "cp-focus"}
       onClick={(event) => {
         if (window.history.state?.cpInternalEntry === true) {

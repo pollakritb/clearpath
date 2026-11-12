@@ -10,6 +10,7 @@ import { useCamsPresentation } from "@/frontend/hooks/useCamsPresentation";
 import { useForecastGrid } from "@/frontend/hooks/useForecastGrid";
 import type { ViewportBounds } from "@/frontend/types/ui";
 import { useMeasurementRequests } from "@/frontend/hooks/useMeasurementRequests";
+import { useRequestFlow } from "./useRequestFlow";
 import { useRequestPlaceLabel } from "@/frontend/hooks/useRequestPlaceLabel";
 import { visibleMapRequests } from "@/frontend/lib/request-map";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
@@ -109,9 +110,12 @@ export function useMapPage({
   const community = useCommunityMapData();
   const currentLocation = useCurrentLocation(true);
   const mapHistory = useMapHistory();
-  const [requestStep, setRequestStep] = useState<
-    "idle" | "search" | "pick" | "form"
-  >("idle");
+  const requestFlow = useRequestFlow();
+  const {
+    step: requestStep,
+    go: setRequestStep,
+    start: beginRequest,
+  } = requestFlow;
   const [requestPoint, setRequestPoint] = useState<LocationSuggestion | null>(
     null,
   );
@@ -179,9 +183,12 @@ export function useMapPage({
   ]);
   useEffect(() => {
     if (active) return;
-    const frame = requestAnimationFrame(pauseCams);
+    const frame = requestAnimationFrame(() => {
+      pauseCams();
+      setRequestStep("idle");
+    });
     return () => cancelAnimationFrame(frame);
-  }, [active, pauseCams]);
+  }, [active, pauseCams, setRequestStep]);
   const [historyOffsetHours, setHistoryOffsetHours] = useState(1);
   const [focusPoint, setFocusPoint] = useState<MapFocusPoint | null>(null);
   const [locatedManually, setLocatedManually] =
@@ -191,7 +198,7 @@ export function useMapPage({
 
   const startRequest = useCallback(() => {
     setSelectedRequestId(null);
-    setRequestStep("search");
+    beginRequest();
     setRequestPoint(null);
     setSelectedPlace(null);
     setSelectedStation(null);
@@ -201,6 +208,7 @@ export function useMapPage({
     if (!camsEnabled) setHistoryEnabled(false);
     setViewMode("map");
   }, [
+    beginRequest,
     pauseCams,
     camsEnabled,
     setHistoryEnabled,
@@ -362,7 +370,7 @@ export function useMapPage({
       setMode("current");
       focusPin(point);
     },
-    [focusPin, setMode],
+    [focusPin, setMode, setRequestStep],
   );
   useMissionMapLink(initialMissionLink, active, selectMissionPlace);
 
@@ -495,6 +503,7 @@ export function useMapPage({
     community,
     currentLocation,
     mapHistory,
+    requestFlow,
     requestStep,
     setRequestStep,
     requestPoint,

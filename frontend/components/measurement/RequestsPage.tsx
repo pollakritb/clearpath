@@ -51,6 +51,7 @@ export function RequestSummary({
   const cls = classifyPm25(row.result?.pm25);
   const place = requestPlaceParts(row.place_name);
   const active = row.status === "scheduled" || row.status === "active";
+  const canAct = active && Date.parse(row.expires_at) > now;
   const minutesLeft = Math.max(
     0,
     Math.ceil((Date.parse(row.expires_at) - now) / 60000),
@@ -92,7 +93,7 @@ export function RequestSummary({
         วง {row.radius_km} กม. · รับรายงาน {date(row.starts_at)} –{" "}
         {date(row.expires_at)}
       </p>
-      {row.status !== "cancelled" && (
+      {active && Date.parse(row.expires_at) > now && (
         <Link
           href={`/?measurement_request=${encodeURIComponent(row.id)}`}
           className="cp-measure-link cp-focus"
@@ -112,7 +113,7 @@ export function RequestSummary({
               : "หมดเวลารับรายงานแล้ว กำลังสรุปผล"}
         </p>
       )}
-      {row.is_owner && active && (
+      {row.is_owner && canAct && (
         <p>
           {row.recipient_count
             ? `มีผู้เข้าเกณฑ์รับคำขอ ${row.recipient_count} คน · ไม่ใช่จำนวนที่อ่านแล้ว`
@@ -160,7 +161,7 @@ export function RequestSummary({
           <Link href={`/requests/${row.id}`} className="cp-measure-link">
             {active ? "รายละเอียดคำขอ" : "ดูประวัติคำขอ"}
           </Link>
-          {row.is_owner && active && (
+          {row.is_owner && canAct && (
             <ConfirmAction
               label="ยกเลิกคำขอ"
               description="ยกเลิกคำขอนี้? คำขอจะหยุดรับรายงานและเก็บไว้ในประวัติ"
@@ -173,7 +174,7 @@ export function RequestSummary({
       ) : (
         <div className="cp-measure-actions">
           {!row.is_owner &&
-            active &&
+            canAct &&
             row.matched_location_at &&
             !row.declined && (
               <button
@@ -184,7 +185,7 @@ export function RequestSummary({
                 ไม่สะดวก
               </button>
             )}
-          {row.is_owner && active && (
+          {row.is_owner && canAct && (
             <ConfirmAction
               label="ยกเลิกคำขอ"
               description="ยกเลิกคำขอนี้? คำขอจะหยุดรับรายงานและเก็บไว้ในประวัติ"

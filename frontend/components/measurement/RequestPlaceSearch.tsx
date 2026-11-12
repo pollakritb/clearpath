@@ -11,24 +11,34 @@ export default function RequestPlaceSearch({
   onSelect,
   onMapSelect,
   onClose,
+  onExit,
+  backLabel = "กลับไปแผนที่",
 }: {
   stations: Station[];
   userLocation: { lat: number; lon: number } | null;
   onSelect: (location: LocationSuggestion) => void;
   onMapSelect: () => void;
   onClose: () => void;
+  onExit?: () => void;
+  backLabel?: string;
 }) {
   return (
     <section
       className="cp-request-search-screen cp-location-picker-screen"
       aria-label="เลือกพื้นที่ขอค่าฝุ่น"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onClose();
+        }
+      }}
     >
       <header>
         <button
           type="button"
           className="cp-focus"
           onClick={onClose}
-          aria-label="กลับไปแผนที่"
+          aria-label={backLabel}
         >
           <AppIcon name="back" size={20} />
         </button>
@@ -36,6 +46,16 @@ export default function RequestPlaceSearch({
           <h1>ขอค่าฝุ่นที่ไหน?</h1>
           <p>ค้นหาที่อยู่ หรือเลือกจุดบนแผนที่</p>
         </div>
+        {onExit && (
+          <button
+            type="button"
+            className="cp-request-search-exit cp-focus"
+            aria-label="ปิดการขอค่าฝุ่น"
+            onClick={onExit}
+          >
+            <AppIcon name="close" size={20} />
+          </button>
+        )}
       </header>
       <MapSearchPanel
         embedded
