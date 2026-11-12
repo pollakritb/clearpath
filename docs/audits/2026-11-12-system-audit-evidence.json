@@ -1,0 +1,344 @@
+{
+  "commit": "4e3730663810087955d581652ae4bc3d2fa87e8e",
+  "date": "2026-11-12",
+  "test_log_tails": {
+    "fe-tests": [
+      "  ...-community.ts |   96.96 |       80 |     100 |     100 | 70,173-183        ",
+      "  ...esentation.ts |   98.03 |    95.65 |     100 |     100 | 65-68             ",
+      "  ...er-profile.ts |     100 |    96.77 |     100 |     100 | 37                ",
+      "  supabase.ts      |   89.18 |       80 |     100 |     100 | 29,40-43,48-52    ",
+      "-------------------|---------|----------|---------|---------|-------------------",
+      "",
+      "=============================== Coverage summary ===============================",
+      "Statements   : 93.15% ( 1416/1520 )",
+      "Branches     : 86.58% ( 826/954 )",
+      "Functions    : 91.21% ( 374/410 )",
+      "Lines        : 94.15% ( 1273/1352 )",
+      "================================================================================"
+    ],
+    "be-tests": [
+      "backend/services/store_client.py                     54     20    63%   31, 53-56, 78-100",
+      "backend/services/store_community.py                 343    186    46%   29-77, 83-91, 97-107, 111-116, 123, 131-134, 140-141, 147-155, 162-170, 176-177, 183-192, 198-207, 211-221, 225-228, 240-243, 249-257, 263-271, 276, 280-294, 298-301, 308-321, 327-335, 341-350, 358, 392, 430, 441-450, 454-457, 472-494, 511-514, 518-520, 532-540, 547, 560-571, 577-578, 584-602, 608-629, 639-659, 676, 763-783, 787-798, 804-813, 817-819, 833-870, 877, 895-903, 910-918, 932, 944-956",
+      "backend/services/store_feeds.py                      10      5    50%   7, 16, 28-39, 43",
+      "backend/services/store_notifications.py             125     64    49%   20-28, 34-44, 50-60, 66-77, 87-98, 104-110, 114-117, 126-134, 140-150, 154-156, 163-178, 182-185, 200, 218, 232-240, 246-254, 272-275, 288-298, 304-324",
+      "backend/services/store_operations.py                 51     30    41%   15-30, 34-37, 41-44, 55-64, 76, 87-90, 94-105, 111, 123-145",
+      "backend/services/store_stations.py                  125     79    37%   30-42, 47-65, 71-74, 78-96, 102-116, 122-124, 132-134, 142-154, 160-176, 181, 188, 192-205, 211-226, 231, 233, 244, 252-256, 276-291, 300, 317, 324, 338-340",
+      "backend/services/supabase_client.py                   5      0   100%",
+      "backend/services/weather_service.py                   3      0   100%",
+      "-------------------------------------------------------------------------------",
+      "TOTAL                                              9501   1748    82%",
+      "Required test coverage of 80% reached. Total coverage: 81.60%",
+      "651 passed, 1 warning in 54.99s"
+    ],
+    "lint": ["", "> clearpath@0.1.0 lint", "> eslint", ""],
+    "types": [
+      "",
+      "> clearpath@0.1.0 typecheck",
+      "> tsc --noEmit --noUnusedLocals --noUnusedParameters",
+      ""
+    ],
+    "format": [
+      "",
+      "> clearpath@0.1.0 format:check",
+      "> prettier --check app frontend e2e *.json *.mjs *.ts *.md docs/**/*.md",
+      "",
+      "Checking formatting...",
+      "All matched files use Prettier code style!"
+    ],
+    "ruff": ["All checks passed!"],
+    "ruff-format": ["271 files already formatted"],
+    "build": [
+      "├ ƒ /requests",
+      "├ ƒ /requests/[id]",
+      "├ ○ /settings",
+      "├ ○ /settings/notifications",
+      "├ ○ /settings/privacy",
+      "├ ○ /settings/report-problem",
+      "└ ○ /terms",
+      "",
+      "",
+      "○  (Static)   prerendered as static content",
+      "ƒ  (Dynamic)  server-rendered on demand",
+      ""
+    ],
+    "npm": [
+      "",
+      "> clearpath@0.1.0 audit:ci",
+      "> node scripts/npm-audit-ci.mjs",
+      "",
+      "npm audit passed: no high or critical vulnerabilities"
+    ],
+    "pip": ["No known vulnerabilities found"],
+    "trust-db": [
+      "community trust SQL: replay inputs, retry, replacement, withdrawal, pair quota, hold, CAS, RLS and release gates passed"
+    ],
+    "xp-db": [
+      "contribution-v3 SQL: migration, legacy preservation, 55 base/day, 5-day week, cross-version cooldown/month, fixed job policy, pause/retry, PM-independent awards, reversals and role isolation passed"
+    ],
+    "requests-db": [
+      "Registered places: RLS, two-slot cap, batched invitations, five-request fanout and one automatic bonus passed",
+      "Fixed 2 km request radius: new inserts enforced; historical radii preserved",
+      "Saved emoji: defaults, updates, allowed symbols and service-only writes passed"
+    ],
+    "retention-db": [
+      "Reporter audit migration: RLS, server-only ingestion, immutable history, ownership, replay and revision checks passed."
+    ],
+    "feeds-db": [
+      "External feeds SQL: leases, deduplication, updates, retry timing, 304, snapshots, rollback, retention and role isolation passed"
+    ],
+    "grid-db": [
+      "Grid SQL: migration, atomic claim, lease exclusion, invalid publication rollback, nulls, publish, idempotency and RLS passed"
+    ],
+    "identifiers-db": [
+      "Numeric cutover: pause/rollback guards, bigint PK/FK, old aliases, stable pins/dedup, retry resurrection, moderation, request/outbox RPCs and ownership RLS passed.",
+      "Clean schema: public legacy columns removed; retry resurrection, moderation and request/outbox RPCs passed.",
+      "Retired model feature tables: nonempty guard, 41-table inventory, retained CAMS/community and working cleanup passed.",
+      "Single active slot, retries, cancellation/success/expiry release, and uninvited volunteering passed.",
+      "Identity migration: existing aliases preserved, new Google default, anonymous reports not backfilled passed.",
+      "Per-account active slots: multiple requesters coexist and only their own second request is blocked.",
+      "Two-open policy: active/scheduled slots, third rejection, cancellation release, retry, daily cap and service-only RPC passed."
+    ],
+    "e2e": [
+      "[307/316] [mobile-430] › e2e/place-search.spec.ts:317:5 › place time actions open separate forecast and history while keeping the radius and sources",
+      "[308/316] [mobile-430] › e2e/place-search.spec.ts:405:5 › place estimate counts a repeat reporter once and discloses excluded readings",
+      "[309/316] [mobile-430] › e2e/report-stacks.spec.ts:3:5 › local stack demo shows grouped reports and their individual details",
+      "[310/316] [mobile-430] › e2e/report-stacks.spec.ts:70:5 › nearby user reports share a marker and preserve each photo/detail",
+      "[311/316] [mobile-430] › e2e/report-stacks.spec.ts:192:5 › local demo report slides between summary and full details",
+      "[312/316] [mobile-430] › e2e/report-stacks.spec.ts:226:5 › touch swipes snap only to summary or full view and full content scrolls as one panel",
+      "[313/316] [mobile-430] › e2e/system-audit.spec.ts:5:5 › older retrieved notifications stay reachable on mobile",
+      "[314/316] [mobile-430] › e2e/system-audit.spec.ts:45:5 › map, refresh and settings controls have practical mobile touch targets",
+      "[315/316] [mobile-430] › e2e/system-audit.spec.ts:65:5 › forecast service failures explain recovery without exposing server configuration",
+      "[316/316] [mobile-430] › e2e/system-audit.spec.ts:141:5 › admin report-count badges retain AA contrast when populated",
+      "  6 skipped",
+      "  310 passed (4.4m)"
+    ],
+    "repro": [
+      "(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:",
+      "  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `\"type\": \"module\"` in the closest package.json",
+      "Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.",
+      "",
+      " RUN  v5.0.3 /Users/pollakrit/Documents/Kasetsart/ClearPath",
+      "",
+      "",
+      " Test Files  1 passed (1)",
+      "      Tests  4 passed (4)",
+      "   Start at  02:34:40",
+      "   Duration  874ms (environment 70%, import 12%, transform 12%, tests 6%)",
+      ""
+    ]
+  },
+  "production_read_only_http": [
+    {
+      "path": "/api/health",
+      "status": 200,
+      "ms": 269,
+      "bytes": 37
+    },
+    {
+      "path": "/api/ready",
+      "status": 200,
+      "ms": 849,
+      "bytes": 396
+    },
+    {
+      "path": "/api/stations",
+      "status": 404,
+      "ms": 212,
+      "bytes": 22
+    },
+    {
+      "path": "/api/notifications",
+      "status": 401,
+      "ms": 314,
+      "bytes": 100
+    },
+    {
+      "path": "/api/notifications/preferences",
+      "status": 401,
+      "ms": 209,
+      "bytes": 100
+    },
+    {
+      "path": "/api/notifications/line",
+      "status": 401,
+      "ms": 198,
+      "bytes": 100
+    },
+    {
+      "path": "/api/admin/stats",
+      "status": 404,
+      "ms": 278,
+      "bytes": 22
+    },
+    {
+      "path": "/api/history?station_id=invalid-audit-station&hours=0",
+      "status": 422,
+      "ms": 203,
+      "bytes": 144
+    },
+    {
+      "path": "/api/pm25/current",
+      "status": 200,
+      "ms": 1338,
+      "station_count": 179
+    }
+  ],
+  "detector": [
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(1) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10.56px functional text \"90\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(2) > div.cp-official-cluster > span.cp-cluster-count > b"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(2) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10.56px functional text \"14\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(3) > div.cp-official-cluster > span.cp-cluster-count > b"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(3) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(4) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(5) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(6) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(7) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(9) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(12) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(13) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(15) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(16) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(19) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(21) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(22) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(23) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(24) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(25) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(28) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "10px functional text \"สถานี\" (below 11px floor)",
+      "selector": "div.leaflet-marker-icon.cp-marker:nth-of-type(29) > div.cp-official-cluster > span.cp-cluster-count > small"
+    },
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "9.44px functional text \"คุณภาพอากาศทั่วไทย\" (below 10px floor)",
+      "selector": "div.cp-map-topbar__copy > small"
+    },
+    {
+      "antipattern": "straggler",
+      "file": "http://127.0.0.1:3279/air",
+      "snippet": "\"และประวัติรายสถานี\" alone on the last of 2 lines (13% of the measure)",
+      "selector": "span:nth-of-type(2) > p"
+    },
+    {
+      "antipattern": "tiny-text",
+      "file": "http://127.0.0.1:3279/air",
+      "snippet": "11.7px body text",
+      "selector": "div > div:nth-of-type(3)"
+    },
+    {
+      "antipattern": "nested-cards",
+      "file": "http://127.0.0.1:3279/air",
+      "snippet": "Card inside card",
+      "selector": "section.cp-air-outlook"
+    }
+  ]
+}

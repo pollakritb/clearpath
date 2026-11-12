@@ -35,6 +35,34 @@ describe("api client", () => {
     mockedGetAccessToken.mockResolvedValue("access-token");
   });
 
+  it("encodes a historical endpoint and keeps cancellation on the request", async () => {
+    const controller = new AbortController();
+    await api.history(
+      "station / one",
+      24,
+      "2026-11-11T12:00:00.000Z",
+      controller.signal,
+    );
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    const params = new URL(String(url), "http://localhost").searchParams;
+    expect(params.get("station_id")).toBe("station / one");
+    expect(params.get("end_at")).toBe("2026-11-11T12:00:00.000Z");
+    expect(init?.signal).toBe(controller.signal);
+  });
+
+  it("rejects oversized combined uploads before contacting the API", async () => {
+    const form = new FormData();
+    form.set("image", new File([new Uint8Array(2_500_000)], "one.jpg"));
+    form.append(
+      "burst_images",
+      new File([new Uint8Array(2_000_000)], "two.jpg"),
+    );
+    await expect(api.createReportDraft(form)).rejects.toMatchObject({
+      status: 413,
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("does not expose administrator mutation commands", () => {
     for (const method of [
       "reverseXP",
@@ -195,7 +223,7 @@ describe("api client", () => {
     }
 
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain(
-      "/api/history?station_id=station%20%2F%20one&hours=24",
+      "/api/history?station_id=station+%2F+one&hours=24",
     );
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain(
       "/api/history/map?at=2026-09-19T03%3A00%3A00.000Z&max_age_minutes=90",

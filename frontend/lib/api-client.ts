@@ -1,3 +1,4 @@
+import { uploadSizeError } from "./upload-limits";
 import type {
   CommunityTrust,
   CommunityTrustReview,
@@ -102,6 +103,10 @@ interface HttpOptions extends RequestInit {
 
 async function http<T>(url: string, init?: HttpOptions): Promise<T> {
   const isForm = init?.body instanceof FormData;
+  if (init?.body instanceof FormData) {
+    const error = uploadSizeError(init.body);
+    if (error) throw new ApiError(error, 413);
+  }
   const headers = new Headers(init?.headers);
   if (!isForm && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -243,10 +248,19 @@ export const api = {
 
   firms: (days = 1) => http<FirmsResponse>(`/api/firms?days=${days}`),
 
-  history: (stationId: string, hours = 24) =>
-    http<HistoryResponse>(
-      `/api/history?station_id=${encodeURIComponent(stationId)}&hours=${hours}`,
-    ),
+  history: (
+    stationId: string,
+    hours = 24,
+    endAt?: string,
+    signal?: AbortSignal,
+  ) => {
+    const params = new URLSearchParams({
+      station_id: stationId,
+      hours: String(hours),
+    });
+    if (endAt) params.set("end_at", endAt);
+    return http<HistoryResponse>(`/api/history?${params}`, { signal });
+  },
 
   mapHistory: (at: string, maxAgeMinutes = 90) => {
     const params = new URLSearchParams({

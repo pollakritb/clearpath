@@ -33,6 +33,7 @@ from .store_community import (  # noqa: F401 - stable workflow persistence API
     get_map_history_reports,
     get_profile,
     get_recent_image_fingerprints,
+    get_report_by_image_sha256,
     get_report_draft,
     get_report_evidence,
     get_report_reaction,

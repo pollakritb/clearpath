@@ -16,6 +16,9 @@ export interface AQICardProps {
   showHistory: boolean;
   onToggleHistory: () => void;
   historyPoints: HistoryPoint[];
+  historyReference?: number | null;
+  historyError?: string | null;
+  onRetryHistory?: () => void;
   historyLoading: boolean;
   onOpenMap: () => void;
 }
@@ -28,6 +31,9 @@ export default function AQICard({
   onToggleHistory,
   historyPoints,
   historyLoading,
+  historyReference,
+  historyError,
+  onRetryHistory,
   onOpenMap,
 }: AQICardProps) {
   // empty state
@@ -241,7 +247,13 @@ export default function AQICard({
         )}
 
         {!report && showHistory && (
-          <HistoryChart points={historyPoints} loading={historyLoading} />
+          <HistoryChart
+            points={historyPoints}
+            loading={historyLoading}
+            reference={historyReference}
+            error={historyError}
+            onRetry={onRetryHistory}
+          />
         )}
       </div>
     </section>

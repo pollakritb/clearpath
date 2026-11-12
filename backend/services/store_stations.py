@@ -136,10 +136,13 @@ def prune_forecast_validation_snapshots(cutoff: str) -> None:
     ).execute()
 
 
-def get_history(station_id: str, hours: int = 24) -> list[dict]:
+def get_history(
+    station_id: str, hours: int = 24, end_at: datetime | None = None
+) -> list[dict]:
     if settings.local_demo_mode:
-        return local_store.get_history(station_id, hours)
-    cutoff = (datetime.now(UTC) - timedelta(hours=hours)).isoformat()
+        return local_store.get_history(station_id, hours, end_at)
+    end = end_at or datetime.now(UTC)
+    cutoff = (end - timedelta(hours=hours)).isoformat()
     res = db._execute_read(
         lambda: (
             db.get_client()
@@ -147,6 +150,7 @@ def get_history(station_id: str, hours: int = 24) -> list[dict]:
             .select("recorded_at,pm25,aqi")
             .eq("station_id", station_id)
             .gte("recorded_at", cutoff)
+            .lte("recorded_at", end.isoformat())
             .order("recorded_at")
             .execute()
         )

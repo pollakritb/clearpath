@@ -1,5 +1,7 @@
 "use client";
 
+import { MAX_IMAGE_BYTES } from "@/frontend/lib/upload-limits";
+
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -349,10 +351,10 @@ export default function CameraCapture({
         ((!file.type || file.type === "application/octet-stream") &&
           /\.(heic|heif|jpg|jpeg|png|webp)$/i.test(file.name))
       ) ||
-      file.size > 8 * 1024 * 1024
+      file.size > MAX_IMAGE_BYTES
     ) {
       setError(
-        "เลือกภาพ JPEG, PNG, WEBP หรือ HEIC/HEIF จาก iPhone ขนาดไม่เกิน 8 MB",
+        "เลือกภาพ JPEG, PNG, WEBP หรือ HEIC/HEIF จาก iPhone ขนาดไม่เกิน 4 MB",
       );
       return;
     }

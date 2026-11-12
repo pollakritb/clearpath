@@ -1,0 +1,119 @@
+{
+  "baseline_commit": "4e37306",
+  "local_only": true,
+  "log_tails": {
+    "unit-final": [
+      "  ...-community.ts |   96.96 |       80 |     100 |     100 | 70,173-183        ",
+      "  ...esentation.ts |   98.03 |    95.65 |     100 |     100 | 65-68             ",
+      "  ...er-profile.ts |     100 |    96.77 |     100 |     100 | 37                ",
+      "  supabase.ts      |   89.18 |       80 |     100 |     100 | 29,40-43,48-52    ",
+      "-------------------|---------|----------|---------|---------|-------------------",
+      "",
+      "=============================== Coverage summary ===============================",
+      "Statements   : 93.29% ( 1446/1550 )",
+      "Branches     : 86.74% ( 838/966 )",
+      "Functions    : 91.24% ( 375/411 )",
+      "Lines        : 94.25% ( 1297/1376 )",
+      "================================================================================"
+    ],
+    "backend-final": [
+      "........................................................................ [ 65%]",
+      "........................................................................ [ 76%]",
+      "........................................................................ [ 87%]",
+      "........................................................................ [ 98%]",
+      ".............                                                            [100%]",
+      "=============================== warnings summary ===============================",
+      ".venv/lib/python3.12/site-packages/fastapi/testclient.py:1",
+      "  /Users/pollakrit/Documents/Kasetsart/ClearPath/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.",
+      "    from starlette.testclient import TestClient as TestClient  # noqa",
+      "",
+      "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
+      "661 passed, 1 warning in 23.37s"
+    ],
+    "build-final": [
+      "├ ƒ /requests",
+      "├ ƒ /requests/[id]",
+      "├ ○ /settings",
+      "├ ○ /settings/notifications",
+      "├ ○ /settings/privacy",
+      "├ ○ /settings/report-problem",
+      "└ ○ /terms",
+      "",
+      "",
+      "○  (Static)   prerendered as static content",
+      "ƒ  (Dynamic)  server-rendered on demand",
+      ""
+    ],
+    "types-final": [
+      "",
+      "> clearpath@0.1.0 typecheck",
+      "> tsc --noEmit --noUnusedLocals --noUnusedParameters",
+      ""
+    ],
+    "lint-final": ["", "> clearpath@0.1.0 lint", "> eslint", ""],
+    "ruff-final": ["All checks passed!"],
+    "ruff-format-final": ["272 files already formatted"],
+    "format-final": [
+      "",
+      "> clearpath@0.1.0 format:check",
+      "> prettier --check app frontend e2e *.json *.mjs *.ts *.md docs/**/*.md",
+      "",
+      "Checking formatting...",
+      "All matched files use Prettier code style!"
+    ],
+    "e2e": [
+      "[307/316] [mobile-430] › e2e/place-search.spec.ts:317:5 › place time actions open separate forecast and history while keeping the radius and sources",
+      "[308/316] [mobile-430] › e2e/place-search.spec.ts:405:5 › place estimate counts a repeat reporter once and discloses excluded readings",
+      "[309/316] [mobile-430] › e2e/report-stacks.spec.ts:3:5 › local stack demo shows grouped reports and their individual details",
+      "[310/316] [mobile-430] › e2e/report-stacks.spec.ts:70:5 › nearby user reports share a marker and preserve each photo/detail",
+      "[311/316] [mobile-430] › e2e/report-stacks.spec.ts:192:5 › local demo report slides between summary and full details",
+      "[312/316] [mobile-430] › e2e/report-stacks.spec.ts:226:5 › touch swipes snap only to summary or full view and full content scrolls as one panel",
+      "[313/316] [mobile-430] › e2e/system-audit.spec.ts:5:5 › older retrieved notifications stay reachable on mobile",
+      "[314/316] [mobile-430] › e2e/system-audit.spec.ts:45:5 › map, refresh and settings controls have practical mobile touch targets",
+      "[315/316] [mobile-430] › e2e/system-audit.spec.ts:65:5 › forecast service failures explain recovery without exposing server configuration",
+      "[316/316] [mobile-430] › e2e/system-audit.spec.ts:141:5 › admin report-count badges retain AA contrast when populated",
+      "  6 skipped",
+      "  310 passed (4.4m)"
+    ],
+    "e2e-final": [
+      "[10/16] [mobile-390] › e2e/mobile-pages.spec.ts:68:7 › /air is mobile-safe and has no serious accessibility violations",
+      "[11/16] [mobile-390] › e2e/mobile-pages.spec.ts:68:7 › /report is mobile-safe and has no serious accessibility violations",
+      "[12/16] [mobile-390] › e2e/mobile-pages.spec.ts:68:7 › /settings is mobile-safe and has no serious accessibility violations",
+      "(node:43088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.",
+      "(Use `node --trace-warnings ...` to show where the warning was created)",
+      "",
+      "",
+      "[13/16] [mobile-430] › e2e/map-station-detail.spec.ts:140:5 › full station insights load on expansion and show genuine gaps and hourly changes",
+      "[14/16] [mobile-430] › e2e/mobile-pages.spec.ts:68:7 › /air is mobile-safe and has no serious accessibility violations",
+      "[15/16] [mobile-430] › e2e/mobile-pages.spec.ts:68:7 › /report is mobile-safe and has no serious accessibility violations",
+      "[16/16] [mobile-430] › e2e/mobile-pages.spec.ts:68:7 › /settings is mobile-safe and has no serious accessibility violations",
+      "  16 passed (11.6s)"
+    ]
+  },
+  "detector_remaining": [
+    {
+      "antipattern": "undersized-ui-text",
+      "file": "http://127.0.0.1:3279",
+      "snippet": "9.44px functional text \"คุณภาพอากาศทั่วไทย\" (below 10px floor)",
+      "selector": "div.cp-map-topbar__copy > small"
+    },
+    {
+      "antipattern": "straggler",
+      "file": "http://127.0.0.1:3279/air",
+      "snippet": "\"และประวัติรายสถานี\" alone on the last of 2 lines (13% of the measure)",
+      "selector": "span:nth-of-type(2) > p"
+    },
+    {
+      "antipattern": "tiny-text",
+      "file": "http://127.0.0.1:3279/air",
+      "snippet": "11.7px body text",
+      "selector": "div > div:nth-of-type(3)"
+    },
+    {
+      "antipattern": "nested-cards",
+      "file": "http://127.0.0.1:3279/air",
+      "snippet": "Card inside card",
+      "selector": "section.cp-air-outlook"
+    }
+  ]
+}

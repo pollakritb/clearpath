@@ -7,3 +7,7 @@ class ConfigurationError(RuntimeError):
 
 class UpstreamError(RuntimeError):
     """บริการภายนอก (Open-Meteo/FIRMS/air4thai/OpenAI) ตอบผิดพลาด → HTTP 502"""
+
+
+class ReportInProgressError(RuntimeError):
+    """Another request is still completing this report; retry the same draft."""

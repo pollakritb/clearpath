@@ -9,6 +9,7 @@ from starlette.concurrency import run_in_threadpool
 
 from ..core.auth import AuthenticatedUser, require_user
 from ..core.config import settings
+from ..core.errors import ReportInProgressError
 from ..core.identifiers import ReportID, RequestID
 from ..models.schemas import (
     AccountAccessResponse,
@@ -145,7 +146,7 @@ async def image_metadata(
         raise HTTPException(429, detail="เลือกภาพถี่เกินไป กรุณารอสักครู่")
     content = await image.read(MAX_IMAGE_BYTES + 1)
     if not content or len(content) > MAX_IMAGE_BYTES:
-        raise HTTPException(413, detail="ภาพต้องมีขนาดไม่เกิน 8 MB")
+        raise HTTPException(413, detail="ภาพต้องมีขนาดไม่เกิน 4 MB")
     try:
         return await run_in_threadpool(photo_metadata.inspect_photo, content)
     except ValueError as exc:
@@ -180,6 +181,8 @@ async def create_report_draft(
             await evidence.read_upload(upload, supplementary=True)
             for upload in burst_images
         ]
+        if len(content) + sum(len(data) for data, _mime in burst) > MAX_IMAGE_BYTES:
+            raise HTTPException(413, detail="ภาพที่ส่งรวมกันต้องไม่เกิน 4 MB กรุณาลดภาพเสริม")
     except evidence.InvalidImageUpload as exc:
         raise HTTPException(exc.status_code, detail=str(exc)) from exc
     try:
@@ -238,6 +241,8 @@ async def submit_report_draft(
                 "identity_provider": user.identity_provider,
             },
         )
+    except ReportInProgressError as exc:
+        raise HTTPException(409, detail=str(exc), headers={"Retry-After": "2"}) from exc
     except KeyError as exc:
         raise HTTPException(404, detail="ไม่พบ draft") from exc
     except ValueError as exc:

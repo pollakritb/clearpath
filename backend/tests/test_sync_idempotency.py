@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from backend.services import local_store
 
 
@@ -5,7 +7,7 @@ def test_local_hourly_sync_deduplicates_station_timestamp():
     station_id = "idempotency-test-station"
     reading = {
         "id": station_id,
-        "recorded_at": "2026-08-03T01:00:00+00:00",
+        "recorded_at": datetime.now(UTC).isoformat(),
         "pm25": 17.5,
         "aqi": 22,
     }

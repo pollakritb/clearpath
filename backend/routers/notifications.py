@@ -79,8 +79,37 @@ async def update_preferences(
     return NotificationPreferences(**row)
 
 
+async def require_notification_test_slot(
+    user: AuthenticatedUser = Depends(require_user),
+):
+    status = await run_in_threadpool(line_messaging.status, user.id)
+    if not status.get("linked"):
+        raise HTTPException(422, detail="ยังไม่ได้เชื่อมบัญชี LINE")
+    allowed = await run_in_threadpool(
+        supabase_client.take_rate_limit, user.id, "line_test_shared", 60, 1
+    )
+    if not allowed:
+        raise HTTPException(
+            429,
+            detail="ส่งข้อความทดสอบแล้ว กรุณารอ 60 วินาทีก่อนลองอีกครั้ง",
+            headers={"Retry-After": "60"},
+        )
+    daily = await run_in_threadpool(
+        supabase_client.take_rate_limit, user.id, "line_test_daily", 86400, 10
+    )
+    if not daily:
+        raise HTTPException(
+            429,
+            detail="ส่งข้อความทดสอบครบ 10 ครั้งในรอบนี้แล้ว กรุณาลองใหม่ภายหลัง",
+            headers={"Retry-After": "86400"},
+        )
+    return user
+
+
 @router.post("/notifications/test", response_model=OperationResponse)
-async def test_notification(user: AuthenticatedUser = Depends(require_user)):
+async def test_notification(
+    user: AuthenticatedUser = Depends(require_notification_test_slot),
+):
     delivered = await run_in_threadpool(
         notification_service.deliver_to_user,
         user.id,
@@ -116,7 +145,9 @@ async def disconnect_line(user: AuthenticatedUser = Depends(require_user)):
 
 
 @router.post("/notifications/line/test", response_model=OperationResponse)
-async def test_line_notification(user: AuthenticatedUser = Depends(require_user)):
+async def test_line_notification(
+    user: AuthenticatedUser = Depends(require_notification_test_slot),
+):
     delivered = await run_in_threadpool(line_messaging.send_test_to_user, user.id)
     if not delivered:
         raise HTTPException(422, detail="ยังไม่ได้เชื่อมบัญชี LINE")

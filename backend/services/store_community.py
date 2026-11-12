@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
+from postgrest.exceptions import APIError
+
 from ..core.config import settings
 from . import local_store
 from . import store_client as db
@@ -305,14 +307,19 @@ def insert_community_report_once(row: dict) -> tuple[dict, bool]:
     """Insert a deterministic report id without duplicating a retried submit."""
     if settings.local_demo_mode:
         return local_store.insert_report_once(row)
-    data = (
-        db.get_client()
-        .table("community_reports")
-        .upsert(row, on_conflict="id", ignore_duplicates=True)
-        .execute()
-        .data
-        or []
-    )
+    try:
+        data = (
+            db.get_client()
+            .table("community_reports")
+            .upsert(row, on_conflict="id", ignore_duplicates=True)
+            .execute()
+            .data
+            or []
+        )
+    except APIError as exc:
+        if str(exc.code) == "23505" and "image_sha256" in str(exc):
+            raise ValueError("ภาพนี้เคยส่งรายงานแล้ว กรุณาใช้ภาพการวัดใหม่") from exc
+        raise
     if data:
         return data[0], True
     existing = get_community_report(str(row["id"]))
@@ -413,6 +420,20 @@ def list_user_reports(user_id: str, limit: int = 50) -> list[dict]:
         )
         for row in rows
     ]
+
+
+def get_report_by_image_sha256(sha256: str) -> dict | None:
+    if settings.local_demo_mode:
+        return local_store.get_report_by_image_sha256(sha256)
+    rows = (
+        db.get_client()
+        .table("community_reports")
+        .select("id,image_sha256")
+        .eq("image_sha256", sha256)
+        .limit(1)
+        .execute()
+    ).data or []
+    return rows[0] if rows else None
 
 
 def get_recent_image_fingerprints(limit: int = 500) -> list[dict]:

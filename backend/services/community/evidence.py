@@ -12,7 +12,8 @@ IMAGE_EXTENSIONS = {
     "image/heic": "heic",
 }
 PERCEPTUAL_DUPLICATE_DISTANCE = 4
-MAX_IMAGE_BYTES = 8 * 1024 * 1024
+MAX_IMAGE_BYTES = 4_000_000
+MAX_MULTIPART_BYTES = 4_200_000  # room for multipart headers, below Vercel 4.5 MB
 MIME_ALIASES = {
     "image/heif": "image/heic",
     "image/heic-sequence": "image/heic",
@@ -46,7 +47,7 @@ async def read_upload(
     if not content or len(content) > MAX_IMAGE_BYTES:
         raise InvalidImageUpload(
             413,
-            "ภาพเสริมแต่ละภาพต้องไม่เกิน 8 MB" if supplementary else "ภาพต้องมีขนาดไม่เกิน 8 MB",
+            "ภาพเสริมแต่ละภาพต้องไม่เกิน 4 MB" if supplementary else "ภาพต้องมีขนาดไม่เกิน 4 MB",
         )
     try:
         detected = await run_in_threadpool(image_fingerprint.detect_image_mime, content)
@@ -64,6 +65,9 @@ async def read_upload(
 
 
 def find_duplicate(fingerprint: dict) -> tuple[dict | None, bool, int | None]:
+    exact = supabase_client.get_report_by_image_sha256(fingerprint["sha256"])
+    if exact:
+        return exact, True, 0
     similar: tuple[dict, int] | None = None
     for row in supabase_client.get_recent_image_fingerprints(500):
         if row.get("image_sha256") == fingerprint["sha256"]:

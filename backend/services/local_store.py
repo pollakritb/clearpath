@@ -261,17 +261,30 @@ def insert_readings(rows: list[dict]) -> int:
         return len(rows)
 
 
-def get_history(station_id: str, hours: int) -> list[dict]:
+def get_history(
+    station_id: str, hours: int, end_at: datetime | None = None
+) -> list[dict]:
     with _LOCK:
         rows = [dict(row) for row in _HISTORY if row["station_id"] == station_id]
+        end = end_at or datetime.now(UTC)
+        cutoff = end - timedelta(hours=hours)
         if rows:
-            return rows[-hours:]
+            return sorted(
+                [
+                    row
+                    for row in rows
+                    if cutoff
+                    <= datetime.fromisoformat(row["recorded_at"].replace("Z", "+00:00"))
+                    <= end
+                ],
+                key=lambda row: row["recorded_at"],
+            )
         _seed_stations()
         station = _STATIONS.get(station_id)
         if not station or station.get("pm25") is None:
             return []
         base = float(station["pm25"])
-        now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+        now = end.replace(minute=0, second=0, microsecond=0)
         return [
             {
                 "recorded_at": (now - timedelta(hours=offset)).isoformat(),
@@ -779,6 +792,18 @@ def insert_report_once(row: dict) -> tuple[dict, bool]:
             return dict(existing), False
         _REPORTS[report_id] = dict(row)
         return dict(row), True
+
+
+def get_report_by_image_sha256(sha256: str) -> dict | None:
+    with _LOCK:
+        return next(
+            (
+                dict(row)
+                for row in _REPORTS.values()
+                if row.get("image_sha256") == sha256
+            ),
+            None,
+        )
 
 
 def get_report(report_id: str) -> dict | None:

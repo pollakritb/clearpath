@@ -15,8 +15,14 @@ router = APIRouter()
 def history(
     station_id: str = Query(...),
     hours: int = Query(24, ge=1, le=720),
+    end_at: datetime | None = Query(None),
 ):
-    rows = supabase_client.get_history(station_id, hours)
+    if end_at is None:
+        rows = supabase_client.get_history(station_id, hours)
+    else:
+        end = end_at if end_at.tzinfo else end_at.replace(tzinfo=UTC)
+        end = min(end.astimezone(UTC), datetime.now(UTC))
+        rows = supabase_client.get_history(station_id, hours, end)
     points = [
         HistoryPoint(**{k: r.get(k) for k in HistoryPoint.model_fields}) for r in rows
     ]

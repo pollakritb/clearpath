@@ -13,7 +13,7 @@ from ...algorithms.distance import haversine_km
 from ...algorithms.ocr_quality import classify_ocr_result
 from ...algorithms.trust import calculate_trust_score, is_thailand_area
 from ...core.config import settings
-from ...core.errors import UpstreamError
+from ...core.errors import ReportInProgressError, UpstreamError
 from .. import capture, image_fingerprint, ocr, photo_metadata, supabase_client
 from ..record_keys import creation_key
 from ..stations import get_current_stations
@@ -226,6 +226,34 @@ async def create_draft(
     }
 
 
+async def _completed_retry(report: dict, official: list | None = None) -> dict:
+    # Wait briefly for the first submission; no duplicate finalization or rewards.
+    import asyncio
+
+    for _ in range(10):
+        if report.get("status") in {"approved", "rejected"}:
+            if official is None:
+                official, _source = await get_current_stations()
+            presented = present_report(
+                report, official_stations=official, include_exact_location=True
+            )
+            presented["_review_outcome"] = (
+                "automatic_approved"
+                if report["status"] == "approved"
+                else "automatic_rejected"
+            )
+            presented["_review_reasons"] = ["รับคำขอซ้ำโดยไม่สร้างรายงานใหม่"]
+            return presented
+        await asyncio.sleep(0.2)
+        report = (
+            await run_in_threadpool(
+                supabase_client.get_community_report, str(report["id"])
+            )
+            or report
+        )
+    raise ReportInProgressError("รายงานนี้กำลังบันทึก กรุณารอสักครู่แล้วลองส่งอีกครั้ง")
+
+
 async def submit_draft(
     *,
     draft_id: str,
@@ -241,17 +269,7 @@ async def submit_draft(
         supabase_client.get_community_report, report_id
     )
     if existing_report:
-        official, _source = await get_current_stations()
-        presented = present_report(
-            existing_report, official_stations=official, include_exact_location=True
-        )
-        presented["_review_outcome"] = (
-            "automatic_approved"
-            if presented.get("status") == "approved"
-            else "automatic_rejected"
-        )
-        presented["_review_reasons"] = ["รับคำขอซ้ำโดยไม่สร้างรายงานใหม่"]
-        return presented
+        return await _completed_retry(existing_report)
     if draft.get("submitted_at"):
         raise ValueError("draft นี้ถูกส่งแล้ว แต่ไม่พบรายงานเดิม กรุณาติดต่อผู้ดูแล")
     expires_at = datetime.fromisoformat(str(draft["expires_at"]).replace("Z", "+00:00"))
@@ -468,16 +486,7 @@ async def submit_draft(
         supabase_client.insert_community_report_once, report_row
     )
     if not created:
-        presented = present_report(
-            saved, official_stations=official, include_exact_location=True
-        )
-        presented["_review_outcome"] = (
-            "automatic_approved"
-            if presented.get("status") == "approved"
-            else "automatic_rejected"
-        )
-        presented["_review_reasons"] = ["รับคำขอซ้ำโดยไม่สร้างรายงานใหม่"]
-        return presented
+        return await _completed_retry(saved, official)
     evidence = {
         "report_id": report_id,
         "image_metadata": draft.get("image_metadata") or {},

@@ -63,6 +63,21 @@ def create_app() -> FastAPI:
     )
 
     @app.middleware("http")
+    async def upload_payload_limit(request: Request, call_next):
+        from .services.community.evidence import MAX_MULTIPART_BYTES
+
+        if request.headers.get("content-type", "").startswith("multipart/form-data"):
+            length = request.headers.get("content-length", "0")
+            if length.isdecimal() and int(length) > MAX_MULTIPART_BYTES:
+                return JSONResponse(
+                    {
+                        "detail": "ภาพและข้อมูลที่ส่งรวมกันต้องไม่เกิน 4 MB กรุณาลดขนาดภาพหรือภาพเสริม"
+                    },
+                    status_code=413,
+                )
+        return await call_next(request)
+
+    @app.middleware("http")
     async def identifier_maintenance(request: Request, call_next):
         # GET cron endpoints also mutate data. Pause all workers, not just the UI.
         if (

@@ -174,6 +174,11 @@ export default function TodayPageClient({
               history.stationId === selectedStation?.id ? history.points : []
             }
             historyLoading={history.loading}
+            historyReference={history.reference}
+            historyError={history.error}
+            onRetryHistory={() => {
+              if (selectedStation) void history.load(selectedStation.id, 24);
+            }}
             onOpenMap={() => router.push("/")}
           />
           <ForecastPanel
