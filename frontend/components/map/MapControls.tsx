@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, type CSSProperties, type SyntheticEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  type CSSProperties,
+  type SyntheticEvent,
+} from "react";
 import { useMap, useMapEvents } from "react-leaflet";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -24,6 +30,8 @@ interface MapControlsProps {
   onResetView?: () => void;
   hasLocation?: boolean;
   locationUnavailable?: boolean;
+  showZoom?: boolean;
+  animateLocate?: boolean;
 }
 
 export default function MapControls({
@@ -31,7 +39,16 @@ export default function MapControls({
   onResetView,
   hasLocation = false,
   locationUnavailable = false,
+  showZoom = true,
+  animateLocate = true,
 }: MapControlsProps) {
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
   const map = useMap();
   const [zoom, setZoom] = useState(() => map.getZoom());
   useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
@@ -40,6 +57,7 @@ export default function MapControls({
 
   const stopPropagation = (event: SyntheticEvent) => event.stopPropagation();
   const locate = () => {
+    if (locating) return;
     if (!navigator.geolocation) {
       setLocationError("อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง");
       return;
@@ -48,12 +66,19 @@ export default function MapControls({
     setLocationError(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (!alive.current) return;
         const { latitude, longitude, accuracy } = position.coords;
         setLocating(false);
-        map.flyTo([latitude, longitude], Math.max(map.getZoom(), 15));
+        if (animateLocate)
+          map.flyTo([latitude, longitude], Math.max(map.getZoom(), 15));
+        else
+          map.setView([latitude, longitude], Math.max(map.getZoom(), 15), {
+            animate: false,
+          });
         onLocate?.(latitude, longitude, accuracy);
       },
       (error) => {
+        if (!alive.current) return;
         setLocating(false);
         setLocationError(
           error.code === error.PERMISSION_DENIED
@@ -76,37 +101,42 @@ export default function MapControls({
       onMouseDown={stopPropagation}
       onDoubleClick={stopPropagation}
     >
-      <div
-        className="cp-mapctrls__zoom"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          background: T.panel,
-          borderRadius: "11px",
-          boxShadow: "0 3px 12px rgba(0,0,0,.2)",
-          overflow: "hidden",
-          border: `1px solid ${T.line}`,
-        }}
-      >
-        <button
-          type="button"
-          aria-label="ซูมเข้า"
-          className="cp-focus"
-          onClick={() => map.zoomIn()}
-          style={CONTROL_BUTTON_STYLE}
+      {showZoom && (
+        <div
+          className="cp-mapctrls__zoom"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            background: T.panel,
+            borderRadius: "11px",
+            boxShadow: "0 3px 12px rgba(0,0,0,.2)",
+            overflow: "hidden",
+            border: `1px solid ${T.line}`,
+          }}
         >
-          +
-        </button>
-        <button
-          type="button"
-          aria-label="ซูมออก"
-          className="cp-focus"
-          onClick={() => map.zoomOut()}
-          style={{ ...CONTROL_BUTTON_STYLE, borderTop: `1px solid ${T.line}` }}
-        >
-          −
-        </button>
-      </div>
+          <button
+            type="button"
+            aria-label="ซูมเข้า"
+            className="cp-focus"
+            onClick={() => map.zoomIn()}
+            style={CONTROL_BUTTON_STYLE}
+          >
+            +
+          </button>
+          <button
+            type="button"
+            aria-label="ซูมออก"
+            className="cp-focus"
+            onClick={() => map.zoomOut()}
+            style={{
+              ...CONTROL_BUTTON_STYLE,
+              borderTop: `1px solid ${T.line}`,
+            }}
+          >
+            −
+          </button>
+        </div>
+      )}
       {onResetView && (
         <button
           type="button"

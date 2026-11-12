@@ -17,7 +17,6 @@ import type {
   CommunityReportStack,
   FirePoint,
   MeasurementRequestView,
-  MeasurementHelperLocation,
   Station,
 } from "@/frontend/types";
 import type { MapFocusPoint, ViewportBounds } from "@/frontend/types/ui";
@@ -39,7 +38,6 @@ import ForecastStationMarker from "./ForecastStationMarker";
 import type { ForecastStationPoint } from "@/frontend/types/ui";
 import { ViewportController } from "./MapBehaviors";
 import { ViewportReporter } from "./MapBehaviors";
-import SavedHelperMarkers from "./SavedHelperMarkers";
 import RequestMarkers from "./RequestMarkers";
 
 export interface MapViewProps {
@@ -55,8 +53,7 @@ export interface MapViewProps {
   reports: CommunityReport[];
   reportStacks: CommunityReportStack[];
   reportPin: { lat: number; lon: number } | null;
-  savedHelperLocations?: MeasurementHelperLocation[];
-  onSelectSavedLocation?: () => void;
+  onSelectFire?: () => void;
   measurementRequests?: MeasurementRequestView[];
   selectedRequestId?: string | null;
   requestsNow?: number;
@@ -97,8 +94,7 @@ export default function MapView({
   reports,
   reportStacks,
   reportPin,
-  savedHelperLocations = [],
-  onSelectSavedLocation,
+  onSelectFire,
   measurementRequests = [],
   selectedRequestId = null,
   requestsNow = 0,
@@ -139,13 +135,6 @@ export default function MapView({
       <MarkerPriorityProvider toolsOpen={toolsOpen}>
         <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} noWrap />
 
-        <SavedHelperMarkers
-          key={savedHelperLocations
-            .map((place) => `${place.slot}:${place.lat}:${place.lon}`)
-            .join("|")}
-          locations={savedHelperLocations}
-          onSelect={onSelectSavedLocation}
-        />
         <CamsCanvasLayer surface={camsSurface} preload={camsPreload} />
         {forecastStation && <ForecastStationMarker point={forecastStation} />}
         {camsPoint && !forecastStation && (
@@ -214,7 +203,7 @@ export default function MapView({
           />
         )}
         {fires.length > 0 && (
-          <FireLayer fires={fires} onSelect={onSelectSavedLocation} />
+          <FireLayer fires={fires} onSelect={onSelectFire} />
         )}
         <RequestMarkers
           requests={measurementRequests}

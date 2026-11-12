@@ -8,13 +8,17 @@ const state = vi.hoisted(() => ({
   handlers: {} as { moveend?: () => void; dragstart?: () => void },
   marker: null as null | { draggable: boolean; position: number[] },
   setView: vi.fn(),
+  circles: vi.fn(),
 }));
 vi.mock("react-leaflet", () => ({
   useMap: () => map,
   useMapEvents: (handlers: typeof state.handlers) => {
     state.handlers = handlers;
   },
-  Circle: () => null,
+  Circle: (props: unknown) => {
+    state.circles(props);
+    return null;
+  },
   Marker: (props: NonNullable<typeof state.marker>) => {
     state.marker = props;
     return null;
@@ -28,6 +32,7 @@ const map = {
   stop: vi.fn(),
 };
 beforeEach(() => {
+  state.circles.mockClear();
   state.center = { lat: 14, lng: 100 };
   state.zoom = 11;
   state.setView.mockReset().mockImplementation((point, zoom) => {
@@ -87,4 +92,25 @@ it("does not replace a searched place during programmatic moveend", () => {
   state.handlers.dragstart?.();
   state.handlers.moveend?.();
   expect(move).toHaveBeenCalledWith(14.01, 100.01);
+});
+
+it("omits a radius circle for helper area picking and retains request circles", () => {
+  const { rerender } = render(
+    <RequestLocationMarker
+      position={{ lat: 14, lon: 100 }}
+      radiusKm={0}
+      onMove={vi.fn()}
+    />,
+  );
+  expect(state.circles).not.toHaveBeenCalled();
+  rerender(
+    <RequestLocationMarker
+      position={{ lat: 14, lon: 100 }}
+      radiusKm={2}
+      onMove={vi.fn()}
+    />,
+  );
+  expect(state.circles).toHaveBeenCalledWith(
+    expect.objectContaining({ radius: 2000 }),
+  );
 });

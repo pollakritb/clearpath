@@ -134,7 +134,7 @@ it("opens reporting without claiming when automatic help is enabled", async () =
   expect(mocks.claim).not.toHaveBeenCalled();
 });
 
-it("edits a saved emoji immediately without requiring map selection or changing its receiving flag", async () => {
+it("edits a name without symbol controls, map selection or changing the receiving flag", async () => {
   const change = vi.fn();
   render(
     <RegisteredHelperSettings
@@ -146,20 +146,21 @@ it("edits a saved emoji immediately without requiring map selection or changing 
       onChange={change}
     />,
   );
-  fireEvent.click(
-    screen.getByRole("button", { name: "เปลี่ยนสัญลักษณ์ บ้าน" }),
-  );
-  expect(
-    screen
-      .getByRole("button", { name: "ใช้สัญลักษณ์บ้าน" })
-      .getAttribute("aria-pressed"),
-  ).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "แก้ไขสถานที่ บ้าน" }));
+  expect(screen.queryByText("สัญลักษณ์บนแผนที่")).toBeNull();
+  expect(screen.queryByRole("button", { name: "ใช้สัญลักษณ์บ้าน" })).toBeNull();
   expect(screen.queryByRole("button", { name: "ยืนยันจุดนี้" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "ใช้สัญลักษณ์สวน" }));
+  fireEvent.change(screen.getByLabelText("ชื่อพื้นที่รับคำขอ"), {
+    target: { value: "บ้านใหม่" },
+  });
   fireEvent.click(screen.getByRole("button", { name: "บันทึกพื้นที่" }));
   await waitFor(() =>
     expect(mocks.save).toHaveBeenCalledWith(
-      expect.objectContaining({ ...settings.locations![0], emoji: "🌳" }),
+      expect.objectContaining({
+        ...settings.locations![0],
+        name: "บ้านใหม่",
+        emoji: "🏠",
+      }),
       1,
     ),
   );

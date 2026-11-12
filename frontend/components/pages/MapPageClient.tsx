@@ -1,7 +1,5 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useCurrentUserId } from "@/frontend/components/auth/AuthProvider";
-import { useSavedHelperLocations } from "@/frontend/hooks/useSavedHelperLocations";
 import noticeStyles from "./MapLinkNotice.module.css";
 import { useCallback, useEffect, useState } from "react";
 import MapChrome from "@/frontend/components/app/MapChrome";
@@ -34,10 +32,6 @@ const MapView = dynamic(() => import("@/frontend/components/map/MapView"), {
 });
 
 export default function MapPageClient(options: MapPageOptions) {
-  const savedHelperLocations = useSavedHelperLocations(
-    useCurrentUserId(),
-    options.active ?? true,
-  );
   const {
     active,
     reportLinkError,
@@ -311,8 +305,7 @@ export default function MapPageClient(options: MapPageOptions) {
         selectedRequestId={selectedRequestId}
         requestsNow={requestData.now}
         onSelectRequest={selectRequest}
-        savedHelperLocations={savedHelperLocations}
-        onSelectSavedLocation={() => {
+        onSelectFire={() => {
           setSelectedStation(null);
           setSelectedReport(null);
           setSelectedStackId(null);

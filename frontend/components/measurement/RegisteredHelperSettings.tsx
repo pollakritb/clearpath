@@ -1,7 +1,7 @@
 "use client";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import ConfirmAction from "@/frontend/components/ui/ConfirmAction";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type {
@@ -10,7 +10,6 @@ import type {
   MeasurementHelperLocationWrite,
 } from "@/frontend/types";
 import { HELPER_LOCATIONS_CHANGED } from "@/frontend/lib/measurement-events";
-import { helperLocationEmoji } from "@/frontend/lib/helper-location-emoji";
 import HelperLocationEditor from "./HelperLocationEditor";
 
 export default function RegisteredHelperSettings({
@@ -27,6 +26,7 @@ export default function RegisteredHelperSettings({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const places = settings.locations ?? [];
+  const pendingCreated = useRef<MeasurementHelperLocation | null>(null);
   async function run(operation: () => Promise<unknown>) {
     setBusy(true);
     setError("");
@@ -48,11 +48,17 @@ export default function RegisteredHelperSettings({
   }
   async function save(value: MeasurementHelperLocationWrite, slot?: 1 | 2) {
     const done = await run(async () => {
-      const targetSlot = slot ?? (places.some((p) => p.slot === 1) ? 2 : 1);
-      await api.saveMeasurementLocation(value, targetSlot);
+      const saved = await api.saveMeasurementLocation(
+        value,
+        slot ?? pendingCreated.current?.slot,
+      );
+      if (slot == null) pendingCreated.current = saved;
       if (!places.length) await api.setMeasurementHelper(true);
     });
-    if (done) setEditor(undefined);
+    if (done) {
+      pendingCreated.current = null;
+      setEditor(undefined);
+    }
   }
   return (
     <section
@@ -118,20 +124,6 @@ export default function RegisteredHelperSettings({
               className="cp-helper-place-title"
               data-receiving={settings.enabled && place.enabled}
             >
-              <button
-                type="button"
-                className="cp-helper-place-emoji cp-focus"
-                aria-label={`เปลี่ยนสัญลักษณ์ ${place.name}`}
-                disabled={busy}
-                onClick={() => {
-                  setError("");
-                  setEditor(place);
-                }}
-              >
-                <span aria-hidden="true">
-                  {helperLocationEmoji(place.emoji)}
-                </span>
-              </button>
               <div className="cp-helper-place-copy">
                 <strong>{place.name}</strong>
                 <small>
@@ -172,6 +164,7 @@ export default function RegisteredHelperSettings({
                 aria-label={`แก้ไขสถานที่ ${place.name}`}
                 onClick={() => {
                   setError("");
+                  pendingCreated.current = null;
                   setEditor(place);
                 }}
               >
@@ -196,6 +189,7 @@ export default function RegisteredHelperSettings({
           disabled={busy}
           onClick={() => {
             setError("");
+            pendingCreated.current = null;
             setEditor(null);
           }}
         >
@@ -208,7 +202,7 @@ export default function RegisteredHelperSettings({
       <details className="cp-helper-details">
         <summary className="cp-focus">การรับคำขอทำงานอย่างไร</summary>
         <small>
-          จุดที่บันทึกเป็นข้อมูลส่วนตัว แสดงบนแผนที่เฉพาะคุณและใช้รับแจ้งคำขอ
+          จุดที่บันทึกเป็นข้อมูลส่วนตัว ใช้รับแจ้งคำขอใกล้พื้นที่ที่คุณเลือก
           ไม่จำกัดพื้นที่ส่งรายงาน · ปิดรับชั่วคราวยังเก็บพื้นที่ไว้
           และยังใช้การตั้งค่า LINE กับเวลาพักเดิม
         </small>
@@ -233,7 +227,20 @@ export default function RegisteredHelperSettings({
           busy={busy}
           error={error}
           onSave={save}
-          onClose={() => setEditor(undefined)}
+          onClose={() => {
+            setEditor(undefined);
+            if (pendingCreated.current) {
+              pendingCreated.current = null;
+              void api
+                .measurementHelper()
+                .then(onChange)
+                .catch(() =>
+                  setError(
+                    "โหลดพื้นที่ล่าสุดไม่สำเร็จ กรุณาลองเปิดหน้านี้อีกครั้ง",
+                  ),
+                );
+            }
+          }}
         />
       )}
     </section>

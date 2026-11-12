@@ -2,6 +2,12 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect } from "react";
 import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import MapControls from "@/frontend/components/map/MapControls";
+import {
+  OSM_TILE_URL,
+  OSM_ATTRIBUTION,
+  MAP_BOUNDS,
+} from "@/frontend/lib/constants";
 import RequestLocationMarker from "@/frontend/components/map/RequestLocationMarker";
 
 function ResizeMap({
@@ -38,12 +44,17 @@ export default function HelperLocationMap({
       zoom={initialZoom}
       style={{ height: "100%", width: "100%" }}
       zoomControl={false}
+      minZoom={5}
+      maxBounds={MAP_BOUNDS}
+      maxBoundsViscosity={1}
     >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      />
+      <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} noWrap />
       <ResizeMap onZoomChange={onZoomChange} />
+      <MapControls
+        showZoom={false}
+        animateLocate={false}
+        onLocate={(lat, lon) => onMove(lat, lon)}
+      />
       <RequestLocationMarker
         position={point}
         radiusKm={0}

@@ -1,10 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import {
-  HELPER_LOCATION_EMOJIS,
-  helperLocationEmoji,
-} from "@/frontend/lib/helper-location-emoji";
+
 import LocationPickerActions from "./LocationPickerActions";
 import { api } from "@/frontend/lib/api-client";
 import { THAILAND_CENTER } from "@/frontend/lib/constants";
@@ -47,10 +44,16 @@ export default function HelperLocationEditor({
     lon: number;
     address: string;
   } | null>(initial);
+  const [pointChosen, setPointChosen] = useState(Boolean(initial));
   const [placeName, setPlaceName] = useState(initial?.name ?? "");
-  const [emoji, setEmoji] = useState(helperLocationEmoji(initial?.emoji));
   const [name, setName] = useState(initial?.name ?? "");
-  const [step, setStep] = useState<Step>(initial ? "details" : "search");
+  const [steps, setSteps] = useState<Step[]>([initial ? "details" : "search"]);
+  const step = steps.at(-1)!;
+  const previousStep = steps.at(-2);
+  const go = (next: Step) =>
+    setSteps((previous) =>
+      previous.at(-1) === next ? previous : [...previous, next],
+    );
   const [mapZoom, setMapZoom] = useState(15);
   const [resolved, setResolved] = useState<{
     lat: number;
@@ -62,7 +65,14 @@ export default function HelperLocationEditor({
     lon = point?.lon,
     address = point?.address;
   useEffect(() => {
-    if (lat == null || lon == null || address || step === "search") return;
+    if (
+      !pointChosen ||
+      lat == null ||
+      lon == null ||
+      address ||
+      step === "search"
+    )
+      return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       void api
@@ -78,7 +88,7 @@ export default function HelperLocationEditor({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [lat, lon, address, step]);
+  }, [lat, lon, address, step, pointChosen]);
   const resolvedLabel =
     resolved?.lat === lat && resolved?.lon === lon ? resolved : null;
   useEffect(() => {
@@ -98,15 +108,16 @@ export default function HelperLocationEditor({
   }, []);
   function back() {
     if (busy) return;
-    if (step === "search" || (initial && step === "details")) onClose();
-    else setStep(step === "details" ? "map" : "search");
+    if (steps.length === 1) onClose();
+    else setSteps((previous) => previous.slice(0, -1));
   }
   const select = (place: LocationSuggestion) => {
+    setPointChosen(true);
     setPoint({ lat: place.lat, lon: place.lon, address: place.address });
     setPlaceName(place.name);
     if (!name) setName(place.name.slice(0, 80));
     setMapZoom(15);
-    setStep("map");
+    go("map");
   };
   const location = point && (
     <div className="cp-helper-editor__location">
@@ -144,25 +155,47 @@ export default function HelperLocationEditor({
           className="cp-focus"
           disabled={busy}
           aria-label={
-            step === "search" || (initial && step === "details")
-              ? "กลับไปตั้งค่าพื้นที่"
-              : step === "map"
+            previousStep === "map"
+              ? "กลับไปเลือกจุดบนแผนที่"
+              : previousStep === "search"
                 ? "กลับไปค้นหาสถานที่"
-                : "กลับไปเลือกจุดบนแผนที่"
+                : previousStep === "details"
+                  ? "กลับไปแก้ไขพื้นที่"
+                  : "กลับไปตั้งค่าพื้นที่"
           }
           onClick={back}
         >
           <AppIcon name="back" size={21} />
         </button>
-        <h2>
-          {step === "search"
-            ? "เลือกพื้นที่รับคำขอ"
-            : step === "map"
-              ? "ปักหมุดพื้นที่"
+        {step === "map" && point ? (
+          <button
+            type="button"
+            className="cp-helper-editor__map-search cp-focus"
+            aria-label="ค้นหาหรือแก้ไขพื้นที่รับคำขอ"
+            onClick={() => go("search")}
+          >
+            <AppIcon name="location" size={18} />
+            <span>
+              <small>พื้นที่รับคำขอ</small>
+              <strong>
+                {point.address
+                  ? placeName
+                  : pointChosen
+                    ? resolvedLabel?.name || "จุดที่เลือกบนแผนที่"
+                    : "ค้นหาหรือเลือกพื้นที่"}
+              </strong>
+            </span>
+            <AppIcon name="search" size={18} />
+          </button>
+        ) : (
+          <h2>
+            {step === "search"
+              ? "เลือกพื้นที่รับคำขอ"
               : initial
                 ? "แก้ไขสถานที่"
                 : "บันทึกพื้นที่รับคำขอ"}
-        </h2>
+          </h2>
+        )}
         <button
           type="button"
           className="cp-focus"
@@ -196,7 +229,7 @@ export default function HelperLocationEditor({
                 setPlaceName("จุดที่เลือกบนแผนที่");
                 setMapZoom(6);
               }
-              setStep("map");
+              go("map");
             }}
           />
           <p className="cp-helper-editor__privacy">
@@ -211,7 +244,10 @@ export default function HelperLocationEditor({
               point={point}
               initialZoom={mapZoom}
               onZoomChange={setMapZoom}
-              onMove={(lat, lon) => setPoint({ lat, lon, address: "" })}
+              onMove={(lat, lon) => {
+                setPointChosen(true);
+                setPoint({ lat, lon, address: "" });
+              }}
             />
           </div>
           <section
@@ -220,20 +256,20 @@ export default function HelperLocationEditor({
           >
             <h3>รับคำขอบริเวณนี้</h3>
             <p className="cp-helper-editor__pick-help">
-              เลื่อนแผนที่ให้หมุดตรงจุดที่คุณพร้อมช่วยวัด
+              เลื่อนแผนที่ให้หมุดตรงจุดที่ต้องการ หรือใช้ตำแหน่งของฉัน
             </p>
-            {location}
-            <button
-              className="cp-helper-editor__change cp-focus"
-              type="button"
-              onClick={() => setStep("search")}
-            >
-              <AppIcon name="search" size={17} /> ค้นหาสถานที่อื่น
-            </button>
+            <p className="cp-helper-editor__pick-address">
+              {pointChosen
+                ? point.address ||
+                  resolvedLabel?.address ||
+                  `${point.lat.toFixed(5)}, ${point.lon.toFixed(5)}`
+                : "ยังไม่ได้เลือกจุด"}
+            </p>
             <button
               className="cp-measure-primary cp-focus"
               type="button"
-              onClick={() => setStep("details")}
+              onClick={() => go("details")}
+              disabled={!pointChosen}
             >
               ยืนยันจุดนี้
             </button>
@@ -249,7 +285,7 @@ export default function HelperLocationEditor({
                 {
                   ...point,
                   name: name.trim(),
-                  emoji,
+                  emoji: initial?.emoji ?? "📍",
                   address: point.address || resolvedLabel?.address || "",
                   enabled: initial?.enabled ?? true,
                 },
@@ -258,7 +294,7 @@ export default function HelperLocationEditor({
           }}
         >
           <div className="cp-helper-editor__details-body">
-            <p>ชื่อและสัญลักษณ์ที่แสดงบนแผนที่</p>
+            <p>ตั้งชื่อให้จำง่าย เช่น บ้านหรือที่ทำงาน</p>
             <label className="cp-helper-editor__name">
               ชื่อพื้นที่
               <input
@@ -295,24 +331,6 @@ export default function HelperLocationEditor({
                 ))}
               </div>
             )}
-            <fieldset className="cp-helper-emoji-picker">
-              <legend>สัญลักษณ์บนแผนที่</legend>
-              <div>
-                {HELPER_LOCATION_EMOJIS.map((choice) => (
-                  <button
-                    key={choice.emoji}
-                    type="button"
-                    className="cp-focus"
-                    aria-label={`ใช้สัญลักษณ์${choice.label}`}
-                    aria-pressed={emoji === choice.emoji}
-                    disabled={busy}
-                    onClick={() => setEmoji(choice.emoji)}
-                  >
-                    <span aria-hidden="true">{choice.emoji}</span>
-                  </button>
-                ))}
-              </div>
-            </fieldset>
             <section
               className="cp-helper-editor__summary"
               aria-label="จุดที่เลือก"
@@ -322,14 +340,14 @@ export default function HelperLocationEditor({
                 className="cp-helper-editor__change cp-focus"
                 disabled={busy}
                 type="button"
-                onClick={() => setStep("map")}
+                onClick={() => go("map")}
               >
                 แก้ไขจุดบนแผนที่
               </button>
             </section>
             <p className="cp-helper-editor__privacy">
               <AppIcon name="shield" size={18} />
-              เห็นเฉพาะคุณ · แก้ไขชื่อและสัญลักษณ์ได้ทุกเมื่อ
+              เห็นเฉพาะคุณ · แก้ไขชื่อและพื้นที่ได้ทุกเมื่อ
             </p>
             {error && (
               <p className="cp-helper-editor__error" role="alert">

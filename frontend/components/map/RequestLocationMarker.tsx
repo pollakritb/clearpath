@@ -134,19 +134,21 @@ function CenterPicker({
   }, [map, lat, lon, publish, minimumZoom]);
   return (
     <>
-      <Circle
-        ref={circle}
-        center={map.getCenter()}
-        radius={radiusKm * 1000}
-        pathOptions={{
-          color: "#35706c",
-          weight: 2,
-          dashArray: "7 6",
-          fillColor: "#d7ebe8",
-          fillOpacity: 0.13,
-          interactive: false,
-        }}
-      />
+      {radiusKm > 0 && (
+        <Circle
+          ref={circle}
+          center={map.getCenter()}
+          radius={radiusKm * 1000}
+          pathOptions={{
+            color: "#35706c",
+            weight: 2,
+            dashArray: "7 6",
+            fillColor: "#d7ebe8",
+            fillOpacity: 0.13,
+            interactive: false,
+          }}
+        />
+      )}
       {createPortal(
         <div
           className="cp-request-center-pin"

@@ -10760,17 +10760,6 @@
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
-.cp-helper-place-emoji {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  font-size: 28px;
-  cursor: pointer;
-}
 .cp-helper-place-title .cp-helper-place-receiving {
   flex: none;
   display: flex;
@@ -11529,67 +11518,6 @@ dialog.cp-login-modal::backdrop {
   cursor: wait;
 }
 
-.cp-helper-emoji-picker {
-  border: 0;
-  padding: 0;
-  margin: 0 0 24px;
-  min-width: 0;
-}
-.cp-helper-emoji-picker legend {
-  font-weight: 650;
-  margin-bottom: 12px;
-}
-.cp-helper-emoji-picker > div {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(44px, 1fr));
-  gap: 8px;
-}
-.cp-helper-emoji-picker button {
-  min-height: 48px;
-  border: 1px solid #c7ded7;
-  border-radius: 12px;
-  background: white;
-  font-size: 26px;
-  cursor: pointer;
-}
-.cp-helper-emoji-picker button[aria-pressed="true"] {
-  border: 2px solid var(--cp-teal);
-  background: #e4f3ed;
-}
-.cp-helper-emoji-picker button:disabled {
-  opacity: 0.5;
-  cursor: wait;
-}
-.cp-helper-emoji-picker p {
-  color: var(--cp-muted);
-  font-size: 13px;
-  margin: 8px 0 0;
-}
-.cp-saved-helper-marker {
-  background: transparent;
-}
-.cp-saved-helper-marker > span {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  background: transparent;
-  font-size: 36px;
-  line-height: 1;
-}
-
-.cp-saved-helper-popup .leaflet-popup-content {
-  margin: 16px 44px 16px 16px;
-  font: 400 14px/1.5 var(--font-sans);
-  color: var(--cp-ink);
-}
-.cp-saved-helper-popup .leaflet-popup-close-button {
-  width: 44px;
-  height: 44px;
-  padding: 10px;
-  color: var(--cp-teal);
-}
-
 .cp-brand-mark-image {
   display: block;
   width: 100%;
@@ -11637,22 +11565,6 @@ dialog.cp-login-modal::backdrop {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.cp-saved-helper-popup__edit {
-  display: block;
-  min-height: 44px;
-  margin-top: 6px;
-  padding: 8px 0;
-  border: 0;
-  background: transparent;
-  color: var(--cp-teal);
-  font: 600 14px var(--font-sans);
-  cursor: pointer;
-}
-
-.cp-helper-editor__details-body > .cp-helper-emoji-picker {
-  margin-top: 20px;
 }
 
 .cp-search-radius-label.leaflet-tooltip {
@@ -12401,4 +12313,89 @@ dialog.cp-login-modal::backdrop {
 }
 .cp-request-card-actions > .cp-confirm-action {
   flex-basis: 100%;
+}
+
+/* Helper-area picking follows request picking, without a request-radius ring. */
+.cp-helper-areas .cp-helper-place-title {
+  grid-template-columns: minmax(0, 1fr) 56px;
+}
+.cp-helper-areas .cp-helper-place-actions {
+  padding-left: 0;
+}
+.cp-helper-editor[data-step="map"] .cp-helper-editor__header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1100;
+  background: transparent;
+}
+.cp-helper-editor__header .cp-helper-editor__map-search {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  min-height: 56px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  box-shadow: 0 4px 16px #143a2e14;
+}
+.cp-helper-editor__map-search > span {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+.cp-helper-editor__map-search svg {
+  flex: none;
+}
+.cp-helper-editor__map-search small {
+  font-size: 11px;
+  color: var(--cp-subink);
+}
+.cp-helper-editor__map-search strong {
+  font-size: 13px;
+  color: var(--cp-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cp-helper-editor .cp-mapctrls {
+  top: auto;
+  right: 12px;
+  bottom: 28px;
+  left: auto;
+  transform: none;
+  padding: 0;
+  border-radius: 50%;
+}
+.cp-helper-editor .cp-mapctrls__locate {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+}
+.cp-helper-editor .cp-mapctrls__locate-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+.cp-helper-editor .cp-request-center-pin {
+  width: 44px;
+  height: 64px;
+  transform: translate(-50%, -62px);
+}
+.cp-helper-editor__pick-address {
+  color: var(--cp-subink);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.cp-helper-editor__sheet h3 {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+.cp-helper-editor .cp-request-center-pin > svg {
+  width: 44px;
+  height: 64px;
 }

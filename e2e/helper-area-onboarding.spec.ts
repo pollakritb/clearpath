@@ -28,6 +28,11 @@ async function helpers(page: Page, initial: MeasurementHelperLocation[] = []) {
         settings.locations = settings.locations.filter((p) => p.slot !== slot);
         return route.fulfill({ json: { ok: true } });
       }
+      if (
+        route.request().method() === "PATCH" &&
+        !settings.locations.some((p) => p.slot === slot)
+      )
+        return route.fulfill({ status: 404, json: { detail: "ไม่พบพื้นที่" } });
       const place = { ...route.request().postDataJSON(), slot };
       settings.locations = [
         ...settings.locations.filter((p) => p.slot !== slot),
@@ -222,7 +227,22 @@ test("saved helper areas edit, pause, resume, keep/delete and retry with working
     .click();
   const editor = page.getByRole("dialog", { name: "แก้ไขพื้นที่รับคำขอ" });
   await editor.getByRole("button", { name: "แก้ไขจุดบนแผนที่" }).click();
-  await editor.getByRole("button", { name: "กลับไปค้นหาสถานที่" }).click();
+  await editor
+    .getByRole("button", { name: "ค้นหาหรือแก้ไขพื้นที่รับคำขอ", exact: true })
+    .click();
+  await editor
+    .getByRole("button", { name: "กลับไปเลือกจุดบนแผนที่", exact: true })
+    .click();
+  await expect(
+    editor.getByRole("button", {
+      name: "ค้นหาหรือแก้ไขพื้นที่รับคำขอ",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await editor
+    .getByRole("button", { name: "กลับไปแก้ไขพื้นที่", exact: true })
+    .click();
+  await expect(editor.getByLabel("ชื่อพื้นที่รับคำขอ")).toHaveValue("บ้าน");
   await editor.getByRole("button", { name: "กลับไปตั้งค่าพื้นที่" }).click();
   await expect(editor).toHaveCount(0);
   await page
