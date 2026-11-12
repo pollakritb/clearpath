@@ -6,6 +6,8 @@ introduction, with copy and an action for managing existing areas. Looking at an
 
 - Set up now opens `/settings/helper-areas?request=<id>`. Back explicitly returns
   to that request's detail, including when the request has already ended.
+  Return and Close replace the setup history entry rather than adding a new
+  forward entry; a subsequent request Back cannot re-open the setup page.
 - Remind in three days, Close and Escape snooze the introduction. On the next map
   visit after three days it is offered again unless the introduction has been permanently dismissed or setup was chosen.
 - Never show again suppresses this introduction. Settings remain accessible under
@@ -40,3 +42,9 @@ coverage: `e2e/helper-area-backend.spec.ts`, with isolated local demo mode,
 `MEASUREMENT_REGISTERED_LOCATIONS_ENABLED=true` and
 `RUN_HELPER_BACKEND_INTEGRATION=true`. This checks creation, editing, deletion
 and persisted coordinates through the actual frontend/backend contract.
+
+The helper picker displays the shared blue current-location marker after explicit
+GPS selection, either through the search action or the map locate control. The
+GPS coordinate is retained across editor steps and does not move when the user
+pans the separate center selection pin. The marker is not inferred from a saved
+area or an unconfirmed map center, and opening the editor never requests GPS.

@@ -76,9 +76,11 @@ export default function Header({
           {theme === "settings" ? (
             <Link
               href={settingsCloseHref}
+              replace
+              data-safe-back
               className="cp-icon-button cp-focus"
               aria-label="ปิดการตั้งค่า"
-              title="กลับไปหน้าอากาศวันนี้"
+              title="ปิดการตั้งค่า"
             >
               <AppIcon name="close" size={18} />
             </Link>

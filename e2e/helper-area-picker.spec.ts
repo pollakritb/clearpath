@@ -58,6 +58,12 @@ test("helper picker uses a centered pin without a radius, GPS and editable top s
   const locate = d.getByRole("button", { name: "ตำแหน่งของฉัน", exact: true });
   await locate.click();
   await expect(confirm).toBeEnabled();
+  const gpsMarker = d.locator(".cp-marker--current-location");
+  await expect(gpsMarker).toBeVisible();
+  await expect(locate).toHaveAttribute("data-active", "true");
+  const gpsX = await gpsMarker.evaluate((el) =>
+    Math.round(el.getBoundingClientRect().x),
+  );
   await expect(d.locator(".cp-helper-editor__pick-address")).toHaveText(
     "นครปฐม",
   );
@@ -97,6 +103,14 @@ test("helper picker uses a centered pin without a radius, GPS and editable top s
   await map.focus();
   await page.keyboard.press("ArrowRight");
   await expect(confirm).toBeEnabled();
+  await expect
+    .poll(() =>
+      gpsMarker.evaluate((el) => Math.round(el.getBoundingClientRect().x)),
+    )
+    .not.toBe(gpsX);
+  await page.screenshot({
+    path: `output/playwright/helper-gps-${page.viewportSize()?.width}.png`,
+  });
   await d.getByRole("button", { name: "ค้นหาหรือแก้ไขพื้นที่รับคำขอ" }).click();
   await d.getByPlaceholder("ค้นหาสถานที่หรือที่อยู่").fill("สถานที่ใหม่");
   await d.getByRole("button", { name: /สถานที่ใหม่.*นครปฐม/ }).click();
@@ -250,4 +264,26 @@ test("a late GPS callback is ignored after closing the area picker", async ({
     d.getByRole("button", { name: "ยืนยันจุดนี้", exact: true }),
   ).toBeDisabled();
   expect(errors).toEqual([]);
+});
+
+test("choosing current location from search shows the GPS marker after returning from details", async ({
+  page,
+}) => {
+  await page.context().grantPermissions(["geolocation"]);
+  await page
+    .context()
+    .setGeolocation({ latitude: 13.82, longitude: 100.06, accuracy: 10 });
+  await open(page);
+  const d = editor(page);
+  await d
+    .getByRole("button", { name: "กลับไปค้นหาสถานที่", exact: true })
+    .click();
+  await d.getByRole("button", { name: /ใช้ตำแหน่งปัจจุบัน/ }).click();
+  await expect(d.locator(".cp-marker--current-location")).toBeVisible();
+  await d.getByRole("button", { name: "ยืนยันจุดนี้", exact: true }).click();
+  await d
+    .getByRole("button", { name: "กลับไปเลือกจุดบนแผนที่", exact: true })
+    .click();
+  await expect(d.locator(".cp-marker--current-location")).toBeVisible();
+  await expect(d.locator(".cp-request-center-pin")).toBeVisible();
 });

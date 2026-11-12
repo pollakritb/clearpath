@@ -44,6 +44,10 @@ export default function HelperLocationEditor({
     lon: number;
     address: string;
   } | null>(initial);
+  const [currentLocation, setCurrentLocation] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
   const [pointChosen, setPointChosen] = useState(Boolean(initial));
   const [placeName, setPlaceName] = useState(initial?.name ?? "");
   const [name, setName] = useState(initial?.name ?? "");
@@ -112,6 +116,8 @@ export default function HelperLocationEditor({
     else setSteps((previous) => previous.slice(0, -1));
   }
   const select = (place: LocationSuggestion) => {
+    if (place.id === "current-location")
+      setCurrentLocation({ lat: place.lat, lon: place.lon });
     setPointChosen(true);
     setPoint({ lat: place.lat, lon: place.lon, address: place.address });
     setPlaceName(place.name);
@@ -242,6 +248,12 @@ export default function HelperLocationEditor({
           <div className="cp-helper-editor__map">
             <LocationMap
               point={point}
+              userLocation={currentLocation}
+              onLocate={(lat, lon) => {
+                setCurrentLocation({ lat, lon });
+                setPointChosen(true);
+                setPoint({ lat, lon, address: "" });
+              }}
               initialZoom={mapZoom}
               onZoomChange={setMapZoom}
               onMove={(lat, lon) => {

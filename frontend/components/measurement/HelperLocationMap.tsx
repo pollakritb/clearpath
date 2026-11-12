@@ -1,7 +1,14 @@
 "use client";
 import "leaflet/dist/leaflet.css";
 import { useEffect } from "react";
-import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
+import { CURRENT_LOCATION_ICON } from "@/frontend/components/map/map-icons";
 import MapControls from "@/frontend/components/map/MapControls";
 import {
   OSM_TILE_URL,
@@ -29,11 +36,15 @@ function ResizeMap({
 
 export default function HelperLocationMap({
   point,
+  userLocation,
+  onLocate,
   initialZoom = 15,
   onZoomChange,
   onMove,
 }: {
   point: { lat: number; lon: number };
+  userLocation?: { lat: number; lon: number } | null;
+  onLocate?: (lat: number, lon: number) => void;
   initialZoom?: number;
   onZoomChange?: (zoom: number) => void;
   onMove: (lat: number, lon: number) => void;
@@ -53,8 +64,20 @@ export default function HelperLocationMap({
       <MapControls
         showZoom={false}
         animateLocate={false}
-        onLocate={(lat, lon) => onMove(lat, lon)}
+        hasLocation={Boolean(userLocation)}
+        onLocate={onLocate ?? onMove}
       />
+      {userLocation && (
+        <Marker
+          position={[userLocation.lat, userLocation.lon]}
+          icon={CURRENT_LOCATION_ICON}
+          title="ตำแหน่งปัจจุบันของคุณ"
+          alt="ตำแหน่งปัจจุบันของคุณ"
+          zIndexOffset={1000}
+          interactive={false}
+          keyboard={false}
+        />
+      )}
       <RequestLocationMarker
         position={point}
         radiusKm={0}

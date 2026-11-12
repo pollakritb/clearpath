@@ -384,3 +384,44 @@ test("a three-day reminder returns on the next map visit and can be dismissed pe
     ),
   ).toBe("never");
 });
+
+for (const exit of ["กลับไปคำขอของฉัน", "ปิดการตั้งค่า"]) {
+  test(`popup settings return does not revisit settings when request Back is pressed (${exit})`, async ({
+    page,
+  }) => {
+    await helpers(page, [
+      {
+        slot: 1,
+        name: "บ้าน",
+        address: "นครปฐม",
+        lat: 13.82,
+        lon: 100.06,
+        enabled: true,
+      },
+    ]);
+    await submitFirst(page);
+    const intro = page.getByRole("dialog", { name: "รับคำขอจากคนใกล้คุณ" });
+    await intro
+      .getByRole("link", { name: "จัดการพื้นที่รับคำขอ", exact: true })
+      .click();
+    await expect(page).toHaveURL(
+      /\/settings\/helper-areas\?request=REQ-INTRO$/,
+    );
+    await page.getByRole("link", { name: exit, exact: true }).click();
+    await expect(page).toHaveURL(/\/requests\/REQ-INTRO$/);
+    await page.getByRole("link", { name: "← กลับ", exact: true }).click();
+    await expect(page).toHaveURL(/\/requests$/);
+    await page.getByRole("link", { name: "← กลับ", exact: true }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole("button", { name: "ขอค่าฝุ่น", exact: true }),
+    ).toBeVisible();
+    // Browser history must also unwind to map, never to the replaced setup.
+    await page.goBack();
+    await expect(page).toHaveURL(/\/requests$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/requests\/REQ-INTRO$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/$/);
+  });
+}

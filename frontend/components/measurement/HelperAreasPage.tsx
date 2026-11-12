@@ -20,7 +20,12 @@ export default function HelperAreasPage({ requestId }: { requestId?: string }) {
       }}
     >
       <section className="cp-settings-page cp-helper-areas-page">
-        <Link href={returnHref} className="cp-settings-back cp-focus">
+        <Link
+          href={returnHref}
+          replace
+          data-safe-back
+          className="cp-settings-back cp-focus"
+        >
           <AppIcon name="back" size={18} />
           {requestId ? "กลับไปคำขอของฉัน" : "กลับไปการแจ้งเตือน"}
         </Link>
