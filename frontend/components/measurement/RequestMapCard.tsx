@@ -47,21 +47,24 @@ export default function RequestMapCard({
   return (
     <MapBottomSheet
       label="รายละเอียดจุดขอค่าฝุ่น"
+      expandable={false}
       className="cp-request-sheet"
       onClose={onClose}
       closeLabel="ปิดจุดขอค่าฝุ่น"
       header={
         <>
           <div className="cp-place-card__heading">
-            <span className="cp-place-card__eyebrow">
-              {request.is_owner ? "คำขอของคุณ" : "คำขอให้ช่วยวัด"} ·{" "}
-              <span style={{ color: state.color }}>{state.label}</span>
-            </span>
             <h2>{place.title}</h2>
-            <p>
-              ผู้ขอ: {request.requester_name ?? "สมาชิก ClearPath"}
-              {request.is_owner ? " (คุณ)" : ""}
+            <p
+              className="cp-request-card-status"
+              style={{ color: state.color }}
+            >
+              {request.is_owner ? "คำขอของคุณ" : "คำขอให้ช่วยวัด"} ·{" "}
+              {state.label}
             </p>
+            {!request.is_owner && (
+              <p>ผู้ขอ: {request.requester_name ?? "สมาชิก ClearPath"}</p>
+            )}
             {place.address && <p>{place.address}</p>}
             {place.title === UNKNOWN_REQUEST_PLACE && (
               <p>
@@ -72,24 +75,44 @@ export default function RequestMapCard({
         </>
       }
     >
-      <p>วงรัศมี {request.radius_km} กม. รอบจุดที่ขอ · ไม่ใช่พื้นผิวค่าฝุ่น</p>
+      <p className="cp-request-card-radius">
+        รัศมี {request.radius_km} กม. รอบจุดที่ขอ
+      </p>
       {request.status === "fulfilled" && request.result?.pm25 != null && (
         <p>
           <strong>{request.result.pm25} µg/m³</strong> · ได้รับรายงานแล้ว
         </p>
       )}
-      <HelpRequestButton request={request} now={now} />
-      <p>
-        ช่วงรับรายงาน:{" "}
-        {new Date(request.starts_at).toLocaleString("th-TH", {
-          timeZone: "Asia/Bangkok",
-        })}{" "}
-        –{" "}
-        {new Date(request.expires_at).toLocaleString("th-TH", {
-          timeZone: "Asia/Bangkok",
-        })}
+      <div className="cp-request-card-timing">
+        <span>ช่วงรับรายงาน · เวลาไทย</span>
+        <strong>
+          {new Date(request.starts_at).toLocaleString("th-TH", {
+            timeZone: "Asia/Bangkok",
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}{" "}
+          –{" "}
+          {new Date(request.expires_at).toLocaleString("th-TH", {
+            timeZone: "Asia/Bangkok",
+            ...(new Date(request.starts_at).toLocaleDateString("th-TH", {
+              timeZone: "Asia/Bangkok",
+            }) !==
+            new Date(request.expires_at).toLocaleDateString("th-TH", {
+              timeZone: "Asia/Bangkok",
+            })
+              ? { day: "numeric", month: "short" as const }
+              : {}),
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </strong>
+      </div>
+      <p className="cp-request-card-recipients">
+        ส่งคำขอถึงผู้ช่วยวัด {request.recipient_count ?? 0} คน
       </p>
-      <p>ส่งถึงผู้ช่วยวัด {request.recipient_count} คน</p>
+      <HelpRequestButton request={request} now={now} />
       {request.is_owner &&
         (request.status === "active" || request.status === "scheduled") && (
           <ConfirmAction

@@ -28,6 +28,7 @@ export default function MapBottomSheet({
   showClose = true,
   ownsFocus = false,
   mapClearance = 8,
+  expandable = true,
 }: {
   id?: string;
   label: string;
@@ -42,6 +43,7 @@ export default function MapBottomSheet({
   showClose?: boolean;
   ownsFocus?: boolean;
   mapClearance?: number;
+  expandable?: boolean;
 }) {
   const contentId = useId();
   const root = useRef<HTMLElement>(null),
@@ -100,6 +102,7 @@ export default function MapBottomSheet({
     current.current = { snap, sizes };
   }, [snap, sizes]);
   function select(next: Snap) {
+    if (!expandable) return;
     setSnap(next);
     setDragHeight(null);
     if (next === "peek" && scroll.current) scroll.current.scrollTop = 0;
@@ -136,7 +139,8 @@ export default function MapBottomSheet({
       );
       const peek = Math.min(
         available,
-        heading.current?.getBoundingClientRect().height || 180,
+        (heading.current?.getBoundingClientRect().height || 180) +
+          (expandable ? 0 : (content.current?.scrollHeight ?? 0)),
       );
       const max = Math.min(
         available,
@@ -165,10 +169,10 @@ export default function MapBottomSheet({
       window.removeEventListener("resize", measure);
       window.visualViewport?.removeEventListener("resize", measure);
     };
-  }, [mapClearance]);
+  }, [mapClearance, expandable]);
   useLayoutEffect(() => {
     const element = scroll.current;
-    if (!element) return;
+    if (!element || !expandable) return;
     let startY = 0,
       startX = 0,
       allowed = false;
@@ -230,9 +234,10 @@ export default function MapBottomSheet({
       element.removeEventListener("touchend", end);
       element.removeEventListener("touchcancel", cancel);
     };
-  }, []);
+  }, [expandable]);
   function start(event: PointerEvent<HTMLDivElement>) {
     if (
+      !expandable ||
       event.pointerType === "touch" ||
       event.button !== 0 ||
       (event.target as Element).closest(
@@ -272,8 +277,8 @@ export default function MapBottomSheet({
       role="region"
       aria-label={label}
       className={`${styles.sheet} ${className}`}
-      data-snap={snap}
-      data-expanded={snap === "full"}
+      data-snap={expandable ? snap : "fixed"}
+      data-expanded={!expandable || snap === "full"}
       data-owns-focus={ownsFocus}
       data-dragging={dragHeight !== null}
       style={
@@ -339,18 +344,20 @@ export default function MapBottomSheet({
         }}
       >
         <div ref={heading} className={styles.header}>
-          <button
-            data-sheet-grip
-            type="button"
-            className={`${styles.grip} cp-focus`}
-            aria-label="เลื่อนแผงข้อมูลขึ้นลง"
-            aria-expanded={snap === "full"}
-            aria-controls={contentId}
-            onKeyDown={keyboard}
-            onClick={() => select(snap === "peek" ? "full" : "peek")}
-          >
-            <span aria-hidden="true" />
-          </button>
+          {expandable && (
+            <button
+              data-sheet-grip
+              type="button"
+              className={`${styles.grip} cp-focus`}
+              aria-label="เลื่อนแผงข้อมูลขึ้นลง"
+              aria-expanded={snap === "full"}
+              aria-controls={contentId}
+              onKeyDown={keyboard}
+              onClick={() => select(snap === "peek" ? "full" : "peek")}
+            >
+              <span aria-hidden="true" />
+            </button>
+          )}
 
           <div className={styles.summary}>{header}</div>
         </div>
@@ -358,8 +365,8 @@ export default function MapBottomSheet({
           id={contentId}
           ref={content}
           className={styles.content}
-          inert={snap === "peek"}
-          aria-hidden={snap === "peek"}
+          inert={expandable && snap === "peek"}
+          aria-hidden={expandable && snap === "peek"}
         >
           {children}
         </div>

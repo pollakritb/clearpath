@@ -171,6 +171,58 @@ test("request confirmation opens the full usable form", async ({ page }) => {
   await expect(
     sheet.getByRole("button", { name: "ส่งคำขอ", exact: true }),
   ).toBeVisible();
+  const back = sheet.getByRole("button", { name: "กลับไปเลือกจุดบนแผนที่" });
+  await expect(back).toBeVisible();
+  await back.click();
+  await expect(
+    page.getByRole("button", { name: "ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น" }),
+  ).toContainText("พื้นที่ทดสอบ");
+  await page.getByRole("button", { name: "ใช้จุดนี้เพื่อขอค่าฝุ่น" }).click();
+  await expect(
+    sheet.getByRole("button", { name: "ส่งคำขอ", exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      sheet.evaluate((element) => {
+        const back = element
+          .querySelector<HTMLButtonElement>(
+            '[aria-label="กลับไปเลือกจุดบนแผนที่"]',
+          )!
+          .getBoundingClientRect();
+        const close = element
+          .querySelector<HTMLButtonElement>('[aria-label="ปิดการขอค่าฝุ่น"]')!
+          .getBoundingClientRect();
+        return Math.abs(
+          back.y + back.height / 2 - (close.y + close.height / 2),
+        );
+      }),
+    )
+    .toBeLessThanOrEqual(4);
+  const quota = sheet.getByText(/แต่ละบัญชีเปิดพร้อมกันได้ 2 คำขอ/);
+  await expect(quota).toBeHidden();
+  await sheet.getByText("รายละเอียดการส่งคำขอ", { exact: true }).click();
+  await expect(quota).toBeVisible();
+  await sheet.getByText("รายละเอียดการส่งคำขอ", { exact: true }).click();
+  await sheet
+    .getByRole("button", { name: "ก่อนเวลาที่กำหนด", exact: true })
+    .click();
+  await expect(
+    sheet.getByLabel("ต้องการข้อมูลก่อน (ภายใน 24 ชม.)"),
+  ).toBeVisible();
+  const a11y = await new AxeBuilder({ page })
+    .exclude(".leaflet-control-attribution")
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(
+    a11y.violations.filter((issue) =>
+      ["serious", "critical"].includes(issue.impact ?? ""),
+    ),
+  ).toEqual([]);
+  await sheet.getByRole("button", { name: "ตอนนี้", exact: true }).click();
+  await back.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `output/playwright/request-form-back-${page.viewportSize()?.width}.png`,
+  });
   await sheet.getByRole("button", { name: "ปิดการขอค่าฝุ่น" }).click();
   await expect(sheet).toHaveCount(0);
 });
@@ -784,4 +836,102 @@ test("previous hourly station readings retain colour and a clock without becomin
   await page.screenshot({
     path: `test-results/previous-hour-${page.viewportSize()?.width}.png`,
   });
+});
+
+test("request map keeps editable location above and a compact locate control clear of the sheet", async ({
+  page,
+}) => {
+  await gps(page);
+  await page.route("**/api/locations/reverse?*", (route) =>
+    route.fulfill({
+      json: { name: "พื้นที่ทดสอบ", address: "นครปฐม ประเทศไทย" },
+    }),
+  );
+  await page.route("**/api/locations/search?*", (route) =>
+    route.fulfill({
+      json: {
+        query: "สถานที่ใหม่",
+        coverage: "nationwide",
+        locations: [
+          {
+            id: "new-place",
+            name: "สถานที่ใหม่",
+            address: "นครปฐม",
+            lat: 13.84,
+            lon: 100.08,
+            kind: "amenity",
+            source: "geoapify",
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "ขอค่าฝุ่น", exact: true }).click();
+  await page.getByRole("button", { name: /เลือกบนแผนที่/ }).click();
+  const bar = page.getByRole("group", {
+    name: "สถานที่ขอค่าฝุ่น",
+    exact: true,
+  });
+  const search = bar.getByRole("button", {
+    name: "ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น",
+  });
+  await expect(search).toContainText("พื้นที่ทดสอบ");
+  const sheet = page.getByRole("region", {
+    name: "ขอค่าฝุ่นบนแผนที่",
+    exact: true,
+  });
+  const locate = page.getByRole("button", {
+    name: "ตำแหน่งของฉัน",
+    exact: true,
+  });
+  await expect
+    .poll(async () => {
+      const b = await bar.boundingBox(),
+        l = await locate.boundingBox(),
+        s = await sheet.boundingBox(),
+        pin = await page.locator(".cp-request-center-pin").boundingBox();
+      return (
+        !!b &&
+        !!l &&
+        !!s &&
+        !!pin &&
+        b.y + b.height < pin.y &&
+        l.y + l.height < s.y &&
+        l.y > b.y + b.height &&
+        l.width >= 44 &&
+        l.width <= 52
+      );
+    })
+    .toBe(true);
+  await search.click();
+  await expect(
+    page.getByRole("region", { name: "เลือกพื้นที่ขอค่าฝุ่น" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "กลับไปแผนที่", exact: true }).click();
+  await expect(search).toContainText("พื้นที่ทดสอบ");
+  await search.click();
+  await page.getByPlaceholder("ค้นหาสถานที่หรือที่อยู่").fill("สถานที่ใหม่");
+  await page.getByRole("button", { name: /สถานที่ใหม่/ }).click();
+  await expect(search).toContainText("สถานที่ใหม่");
+  await locate.click();
+  await expect(locate).toBeEnabled();
+  await expect(page.locator(".cp-request-center-pin")).toBeVisible();
+  await expect(search).toContainText("พื้นที่ทดสอบ");
+  const accessibility = await new AxeBuilder({ page })
+    .exclude(".leaflet-control-attribution")
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(
+    accessibility.violations.filter((issue) =>
+      ["serious", "critical"].includes(issue.impact ?? ""),
+    ),
+  ).toEqual([]);
+  await page.screenshot({
+    path: `output/playwright/request-picker-${page.viewportSize()?.width}.png`,
+  });
+  await sheet.getByRole("button", { name: "ใช้จุดนี้เพื่อขอค่าฝุ่น" }).click();
+  await expect(
+    sheet.getByRole("button", { name: "ส่งคำขอ", exact: true }),
+  ).toBeVisible();
 });

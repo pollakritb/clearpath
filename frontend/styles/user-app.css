@@ -10702,8 +10702,8 @@
   display: none;
 }
 .cp-map:has(.cp-map-request-flow[data-editing="false"]) .cp-mapctrls {
-  top: 12px;
-  bottom: auto;
+  top: auto;
+  bottom: 12px;
   right: 12px;
   left: auto;
   transform: none;
@@ -11799,4 +11799,277 @@ dialog.cp-login-modal::backdrop {
   background: white;
   color: #195d58;
   font: 700 12px/1.4 var(--font-sans);
+}
+
+/* Request picking: compact search above the map, one thumb-reachable locate button. */
+.cp-request-location-bar {
+  position: absolute;
+  z-index: 1700;
+  top: max(12px, env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cp-request-location-back,
+.cp-request-location-search {
+  min-height: 48px;
+  border: 1px solid var(--cp-line);
+  background: white;
+  color: var(--cp-teal);
+  box-shadow: 0 3px 10px #173b331a;
+  cursor: pointer;
+}
+.cp-request-location-back {
+  width: 48px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+.cp-request-location-search {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 14px;
+  text-align: left;
+}
+.cp-request-location-search > svg {
+  flex: none;
+}
+.cp-request-location-search > span {
+  min-width: 0;
+  flex: 1;
+}
+.cp-request-location-search small {
+  display: block;
+  font: 400 12px/1.4 var(--font-sans);
+  color: var(--cp-subink);
+}
+.cp-request-location-search strong {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 650 14px/1.5 var(--font-sans);
+  color: var(--cp-ink);
+}
+.cp-map-request-flow[data-editing="false"] .cp-map-request-location {
+  margin: 0;
+}
+.cp-map-request-flow[data-editing="false"] .cp-map-request-point {
+  margin: 0;
+  font-size: 12px;
+  color: var(--cp-subink);
+}
+.cp-map-request-flow[data-editing="false"] .cp-map-request-point > span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cp-map-request-flow[data-editing="false"] .cp-request-pick-hint {
+  margin: 6px 0 10px;
+  font-size: 12px;
+  color: var(--cp-subink);
+}
+.cp-map-request-flow[data-editing="false"] .cp-measure-primary {
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  border-radius: 12px;
+  font-size: 15px;
+}
+.cp-map:has(.cp-map-request-flow[data-editing="false"]) .cp-mapctrls {
+  padding: 0;
+  border-radius: 50%;
+}
+.cp-map:has(.cp-map-request-flow[data-editing="false"]) .cp-mapctrls__locate {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+}
+.cp-map:has(.cp-map-request-flow[data-editing="false"])
+  .cp-mapctrls__locate-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+.cp-map:has(.cp-map-request-flow[data-editing="false"])
+  .cp-mapctrls__error[role="alert"] {
+  max-width: min(270px, calc(100vw - 40px));
+}
+.cp-map-request-flow .cp-request-secondary-actions {
+  grid-template-columns: 1fr;
+}
+.cp-map:has(.cp-map-request-flow[data-editing="false"]) .cp-request-center-pin {
+  width: 44px;
+  height: 64px;
+  transform: translate(-50%, -62px);
+}
+.cp-map:has(.cp-map-request-flow[data-editing="false"])
+  .cp-request-center-pin
+  > svg {
+  width: 44px;
+  height: 64px;
+}
+
+.cp-request-form-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 44px;
+  margin-bottom: 8px;
+}
+.cp-request-picker-sheet .cp-request-form-heading h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.cp-request-form-heading > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  gap: 4px;
+  min-height: 44px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: white;
+  color: var(--cp-teal);
+  font: 650 14px var(--font-sans);
+  cursor: pointer;
+}
+
+/* Request form: one navigation row, then place, time and the primary action. */
+.cp-map-request-flow[data-editing="true"]
+  .cp-request-picker-sheet
+  button[aria-label="ปิดการขอค่าฝุ่น"] {
+  top: 44px;
+  right: 12px;
+}
+.cp-map-request-flow[data-editing="true"] .cp-map-request-location {
+  margin: 8px 0 0;
+}
+.cp-map-request-flow[data-editing="true"] .cp-map-request-point {
+  margin: 0;
+}
+.cp-map-request-flow[data-editing="true"] .cp-map-request-point strong {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.cp-map-request-flow[data-editing="true"] .cp-map-request-point span {
+  margin-top: 4px;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.cp-map-request-flow .cp-request-place-radius {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--cp-line);
+  color: var(--cp-subink);
+  font-size: 12px;
+}
+.cp-map-request-panel .cp-measure-form {
+  gap: 16px;
+}
+.cp-map-request-panel .cp-measure-form legend {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.cp-map-request-panel .cp-measure-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.cp-map-request-panel .cp-measure-options button {
+  min-height: 48px;
+  padding: 10px 6px;
+  font-size: 14px;
+}
+.cp-map-request-panel .cp-measure-form label {
+  margin: 0;
+  font-size: 14px;
+}
+.cp-map-request-panel .cp-measure-form input {
+  margin-top: 8px;
+}
+.cp-map-request-panel .cp-measure-form > p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.cp-map-request-panel .cp-measure-form > .cp-measure-primary {
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  border-radius: 12px;
+  font-size: 15px;
+}
+.cp-map-request-panel .cp-request-form-help {
+  border-top: 1px solid var(--cp-line);
+}
+.cp-map-request-panel .cp-request-form-help summary {
+  min-height: 44px;
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--cp-teal);
+}
+.cp-map-request-panel .cp-request-form-help p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.cp-request-form-help:not([open]) > :not(summary) {
+  display: none;
+}
+
+.cp-request-sheet .cp-place-card__heading {
+  padding: 0;
+}
+.cp-request-sheet .cp-request-card-status {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cp-request-sheet .cp-request-card-radius,
+.cp-request-sheet .cp-request-card-recipients {
+  margin: 0 0 10px;
+  color: var(--cp-subink);
+  font-size: 12px;
+}
+.cp-request-card-timing {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 8px;
+}
+.cp-request-card-timing span {
+  color: var(--cp-subink);
+  font-size: 12px;
+}
+.cp-request-card-timing strong {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.cp-request-sheet .cp-request-cancel {
+  min-height: 44px;
+}
+.cp-request-sheet .cp-help-request .cp-measure-primary {
+  width: 100%;
+  min-height: 44px;
 }

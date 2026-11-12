@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import MapBottomSheet from "@/frontend/components/app/MapBottomSheet";
-import { useLayoutEffect, useRef } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import type {
   LocationSuggestion,
@@ -30,6 +30,7 @@ export default function MapRequestPanel({
   onCreated?: (request: MeasurementRequestView) => void;
   resolvingName?: boolean;
 }) {
+  const placeLabelId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (editing) return;
@@ -60,6 +61,43 @@ export default function MapRequestPanel({
       data-editing={editing}
       style={{ display: "contents" }}
     >
+      {!editing && (
+        <div
+          className="cp-request-location-bar"
+          role="group"
+          aria-label="สถานที่ขอค่าฝุ่น"
+        >
+          <button
+            type="button"
+            className="cp-request-location-back cp-focus"
+            onClick={onSearch ?? onClose}
+            aria-label="กลับไปค้นหาสถานที่"
+          >
+            <AppIcon name="back" size={20} />
+          </button>
+          <button
+            type="button"
+            className="cp-request-location-search cp-focus"
+            onClick={onSearch}
+            disabled={!onSearch}
+            aria-label="ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น"
+            aria-describedby={placeLabelId}
+          >
+            <AppIcon name="location" size={19} />
+            <span id={placeLabelId}>
+              <small>สถานที่ขอค่าฝุ่น</small>
+              <strong>
+                {resolvingName
+                  ? "กำลังระบุพื้นที่…"
+                  : point
+                    ? requestPlaceTitle(point.name)
+                    : "ค้นหาสถานที่หรือที่อยู่"}
+              </strong>
+            </span>
+            <AppIcon name="search" size={19} />
+          </button>
+        </div>
+      )}
       <MapBottomSheet
         key={editing ? "form" : "pick"}
         label="ขอค่าฝุ่นบนแผนที่"
@@ -69,15 +107,31 @@ export default function MapRequestPanel({
         closeLabel="ปิดการขอค่าฝุ่น"
         header={
           <>
-            <h2>{editing ? "ขอค่าฝุ่นบริเวณนี้" : "เลือกจุดขอค่าฝุ่น"}</h2>
+            {editing ? (
+              <div className="cp-request-form-heading">
+                <button
+                  type="button"
+                  className="cp-focus"
+                  onClick={onReselect}
+                  aria-label="กลับไปเลือกจุดบนแผนที่"
+                >
+                  <AppIcon name="back" size={18} /> กลับ
+                </button>
+                <h2>ขอค่าฝุ่นบริเวณนี้</h2>
+              </div>
+            ) : (
+              <h2>เลือกจุดขอค่าฝุ่น</h2>
+            )}
             <div className="cp-map-request-location">
               {point ? (
                 <p className="cp-map-request-point">
-                  <strong>
-                    {resolvingName
-                      ? "กำลังระบุพื้นที่…"
-                      : requestPlaceTitle(point.name)}
-                  </strong>
+                  {editing && (
+                    <strong>
+                      {resolvingName
+                        ? "กำลังระบุพื้นที่…"
+                        : requestPlaceTitle(point.name)}
+                    </strong>
+                  )}
                   <span>
                     {point.address ? (
                       point.address
@@ -94,19 +148,16 @@ export default function MapRequestPanel({
                   หรือค้นหาสถานที่ด้วยปุ่มแว่นขยาย
                 </p>
               )}
-              {editing && point && (
-                <button
-                  className="cp-map-request-reselect cp-focus"
-                  type="button"
-                  aria-label="เปลี่ยนจุดบนแผนที่"
-                  onClick={onReselect}
-                >
-                  เปลี่ยนจุด
-                </button>
-              )}
             </div>
+            {editing && (
+              <p className="cp-request-place-radius">
+                <AppIcon name="map" size={15} /> รัศมี 2 กม. รอบจุดที่เลือก
+              </p>
+            )}
             {!editing && point && (
-              <p className="cp-request-pick-hint">เลื่อนแผนที่เพื่อปรับจุด</p>
+              <p className="cp-request-pick-hint">
+                เลื่อนแผนที่เพื่อปรับจุด · รัศมี 2 กม.
+              </p>
             )}
             {!editing && (
               <>
@@ -141,11 +192,6 @@ export default function MapRequestPanel({
         )}
         {!editing && (
           <div className="cp-request-secondary-actions">
-            {onSearch && (
-              <button type="button" className="cp-focus" onClick={onSearch}>
-                <AppIcon name="search" size={16} /> ค้นหาที่อื่น
-              </button>
-            )}
             <Link href="/requests" className="cp-focus">
               <AppIcon name="community" size={16} /> คำขอของฉัน
             </Link>

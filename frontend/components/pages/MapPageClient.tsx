@@ -545,7 +545,7 @@ export default function MapPageClient(options: MapPageOptions) {
             setRequestStep("pick");
           }}
           onMapSelect={() => setRequestStep("pick")}
-          onClose={() => setRequestStep("idle")}
+          onClose={() => setRequestStep(requestPoint ? "pick" : "idle")}
         />
       ) : requestStep !== "idle" ? (
         <MapRequestPanel

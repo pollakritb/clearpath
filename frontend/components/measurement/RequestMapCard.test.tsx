@@ -21,14 +21,7 @@ vi.mock("@/frontend/lib/api-client", () => ({
   },
   apiErrorMessage: (_e: unknown, fallback: string) => fallback,
 }));
-const render = (...args: Parameters<typeof renderUI>) => {
-  const result = renderUI(...args);
-  fireEvent.keyDown(
-    screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
-    { key: "End" },
-  );
-  return result;
-};
+const render = renderUI;
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 const request = {
@@ -106,4 +99,23 @@ it("starts help straight from the map and opens reporting once the claim succeed
     expect(mocks.push).toHaveBeenCalledWith("/report?request=own"),
   );
   expect(mocks.claim).toHaveBeenCalledOnce();
+});
+
+it("shows all request information and actions without expanding a sheet", () => {
+  render(
+    <RequestMapCard
+      request={{ ...request, recipient_count: 2 }}
+      now={Date.now()}
+      onClose={vi.fn()}
+    />,
+  );
+  expect(
+    screen.queryByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+  ).toBeNull();
+  expect(screen.getByText("ส่งคำขอถึงผู้ช่วยวัด 2 คน")).toBeTruthy();
+  expect(screen.getByText("ช่วงรับรายงาน · เวลาไทย")).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "ยกเลิกคำขอ" }).closest("[inert]"),
+  ).toBeNull();
+  expect(screen.getByRole("region").dataset.snap).toBe("fixed");
 });

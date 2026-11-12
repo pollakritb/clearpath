@@ -84,7 +84,7 @@ export default function UserPageShell({
             expiredCount={header.expiredCount ?? 0}
             error={header.error ?? null}
             onRefresh={header.onRefresh}
-            showDataStatus={header.showDataStatus ?? true}
+            showDataStatus={header.showDataStatus ?? false}
           />
         }
       >

@@ -61,6 +61,37 @@ it("confirms the selected coordinates before opening the form and supports resel
   expect(screen.getByTestId("request-form").getAttribute("data-open")).toBe(
     "true",
   );
-  fireEvent.click(screen.getByRole("button", { name: "เปลี่ยนจุดบนแผนที่" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "กลับไปเลือกจุดบนแผนที่" }),
+  );
   expect(onReselect).toHaveBeenCalledOnce();
+});
+
+it("keeps location search available above the map and removes it while editing the form", () => {
+  const onSearch = vi.fn();
+  const point = {
+    id: "place",
+    name: "วัดมังกร",
+    address: "เยาวราช กรุงเทพฯ",
+    lat: 13.8,
+    lon: 100.1,
+  } as LocationSuggestion;
+  const props = {
+    point,
+    onSearch,
+    onConfirm: vi.fn(),
+    onReselect: vi.fn(),
+    onClose: vi.fn(),
+  };
+  const { rerender } = render(<MapRequestPanel {...props} editing={false} />);
+  const search = screen.getByRole("button", {
+    name: "ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น",
+  });
+  expect(search.textContent).toContain("วัดมังกร");
+  fireEvent.click(search);
+  expect(onSearch).toHaveBeenCalledOnce();
+  rerender(<MapRequestPanel {...props} editing />);
+  expect(
+    screen.queryByRole("button", { name: "ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น" }),
+  ).toBeNull();
 });
