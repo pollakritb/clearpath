@@ -12091,3 +12091,290 @@ dialog.cp-login-modal::backdrop {
   border: 0;
   background: transparent;
 }
+
+/* Private helper areas: a clear master control, then individual receiving areas. */
+.cp-helper-areas > header {
+  align-items: flex-start;
+  gap: 12px;
+}
+.cp-helper-areas > header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.cp-helper-areas > header p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.cp-helper-areas > header > span {
+  padding-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.cp-helper-master {
+  margin: 18px 0 12px;
+  padding: 14px 0;
+  border-block: 1px solid var(--cp-line);
+}
+.cp-helper-switch-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 44px;
+}
+.cp-helper-switch-label > span {
+  display: grid;
+  gap: 4px;
+}
+.cp-helper-switch-label strong {
+  font-size: 15px;
+}
+.cp-helper-switch-label small {
+  color: var(--cp-subink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.cp-helper-areas input[role="switch"] {
+  appearance: none;
+  position: relative;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 26px;
+  margin: 9px 0;
+  border: 1px solid #71867e;
+  border-radius: 20px;
+  background: #71867e;
+  cursor: pointer;
+}
+.cp-helper-areas input[role="switch"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 120ms ease-out;
+}
+.cp-helper-areas input[role="switch"]:checked {
+  background: var(--cp-teal);
+  border-color: var(--cp-teal);
+}
+.cp-helper-areas input[role="switch"]:checked::after {
+  transform: translateX(18px);
+}
+.cp-helper-areas input[role="switch"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.cp-helper-areas input[role="switch"]:focus-visible {
+  outline: 2px solid var(--cp-teal);
+  outline-offset: 4px;
+}
+.cp-helper-areas .cp-helper-place-title {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 56px;
+  gap: 10px;
+  align-items: start;
+}
+.cp-helper-areas .cp-helper-place-receiving {
+  flex-direction: column;
+  gap: 0;
+  align-items: center;
+  font-size: 11px;
+}
+.cp-helper-areas .cp-helper-place-copy {
+  padding-top: 4px;
+}
+.cp-helper-areas .cp-helper-place-copy small {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cp-helper-areas .cp-helper-place-actions {
+  justify-content: flex-start;
+  padding: 8px 0 0 54px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.cp-helper-areas .cp-helper-place-actions > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.cp-helper-areas .cp-helper-place-actions > button:last-child {
+  color: #a6352c;
+}
+.cp-helper-areas .cp-helper-place-actions .cp-confirm-action {
+  width: 100%;
+}
+.cp-helper-areas .cp-helper-place-actions .cp-confirm-action button {
+  min-height: 44px;
+  margin-right: 12px;
+}
+.cp-helper-paused,
+.cp-helper-private {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--cp-subink);
+  line-height: 1.6;
+}
+.cp-helper-paused svg,
+.cp-helper-private svg {
+  flex: none;
+  margin-top: 2px;
+}
+.cp-helper-areas > .cp-measure-primary {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.cp-helper-empty {
+  padding: 20px 0;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--cp-teal);
+}
+.cp-helper-empty p {
+  margin: 0;
+  color: var(--cp-subink);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.cp-helper-areas .cp-helper-requests-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-top: 8px;
+}
+.cp-helper-areas-page > h1 {
+  margin: 20px 0 8px;
+  font-size: 22px;
+}
+.cp-helper-areas-page > p {
+  color: var(--cp-subink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.cp-helper-intro {
+  box-sizing: border-box;
+  width: min(406px, calc(100vw - 24px));
+  max-height: calc(100dvh - 40px);
+  margin: auto;
+  padding: 28px 20px 20px;
+  border: 0;
+  border-radius: 16px;
+  color: var(--cp-ink);
+  box-shadow: 0 12px 40px #173b3333;
+  overflow-y: auto;
+}
+.cp-helper-intro::backdrop {
+  background: #102c2870;
+}
+.cp-helper-intro-close {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: white;
+  color: var(--cp-teal);
+  border-radius: 12px;
+}
+.cp-helper-intro-icon {
+  color: var(--cp-teal);
+  display: inline-flex;
+  margin-bottom: 12px;
+}
+.cp-helper-intro h2 {
+  font-size: 21px;
+  margin: 0 30px 12px 0;
+  line-height: 1.45;
+}
+.cp-helper-intro p {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0 0 16px;
+}
+.cp-helper-intro .cp-helper-intro-private {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--cp-subink);
+  font-size: 12px;
+}
+.cp-helper-intro .cp-measure-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  text-decoration: none;
+  font-size: 15px;
+  margin: 0;
+}
+.cp-helper-intro-later,
+.cp-helper-intro-never {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--cp-teal);
+  font: inherit;
+  font-size: 14px;
+  margin-top: 6px;
+}
+.cp-helper-intro-never {
+  color: var(--cp-subink);
+  font-size: 12px;
+}
+.cp-helper-intro > small {
+  display: block;
+  color: var(--cp-subink);
+  text-align: center;
+  line-height: 1.6;
+  font-size: 11px;
+  margin-top: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cp-helper-areas input[role="switch"]::after {
+    transition: none;
+  }
+}
+/* The painted switch is 26px high; its actual touch target stays 44px. */
+.cp-helper-areas input[role="switch"],
+.cp-helper-areas input[role="switch"]:checked {
+  height: 44px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+.cp-helper-areas input[role="switch"]::before {
+  content: "";
+  position: absolute;
+  inset: 9px 0;
+  border-radius: 20px;
+  background: #71867e;
+}
+.cp-helper-areas input[role="switch"]:checked::before {
+  background: var(--cp-teal);
+}
+.cp-helper-areas input[role="switch"]::after {
+  top: 13px;
+  left: 4px;
+}

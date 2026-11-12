@@ -19,6 +19,7 @@ import type {
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import RequestPlaceSearch from "@/frontend/components/measurement/RequestPlaceSearch";
 import MapRequestPanel from "@/frontend/components/measurement/MapRequestPanel";
+import HelperAreaIntro from "@/frontend/components/measurement/HelperAreaIntro";
 import RequestMapCard from "@/frontend/components/measurement/RequestMapCard";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import ListView from "@/frontend/components/panels/ListView";
@@ -433,6 +434,7 @@ export default function MapPageClient(options: MapPageOptions) {
           setResetViewSignal((value) => value + 1);
         }}
       />
+      <HelperAreaIntro active={active} />
       {requestStep === "idle" && (
         <button
           type="button"

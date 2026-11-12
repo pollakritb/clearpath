@@ -21,6 +21,7 @@ interface HeaderProps {
   error: string | null;
   onRefresh?: () => void;
   showDataStatus?: boolean;
+  settingsCloseHref?: string;
 }
 
 function fmtTime(iso: string | null): string {
@@ -47,6 +48,7 @@ export default function Header({
   error,
   onRefresh,
   showDataStatus = true,
+  settingsCloseHref = "/air",
 }: HeaderProps) {
   const freshCount =
     currentCount ?? Math.max(0, stationCount - delayedCount - expiredCount);
@@ -73,7 +75,7 @@ export default function Header({
           )}
           {theme === "settings" ? (
             <Link
-              href="/air"
+              href={settingsCloseHref}
               className="cp-icon-button cp-focus"
               aria-label="ปิดการตั้งค่า"
               title="กลับไปหน้าอากาศวันนี้"

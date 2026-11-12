@@ -84,10 +84,10 @@ it("shows two private saved areas and pauses an area without adding a third", as
   const changed = vi.fn();
   render(<RegisteredHelperSettings settings={settings} onChange={changed} />);
   expect(screen.getByText("2/2 จุด")).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "เพิ่มสถานที่" })).toBeNull();
-  fireEvent.click(
-    screen.getByRole("checkbox", { name: "รับคำขอที่ ที่ทำงาน" }),
-  );
+  expect(
+    screen.queryByRole("button", { name: "เพิ่มพื้นที่รับคำขอ" }),
+  ).toBeNull();
+  fireEvent.click(screen.getByRole("switch", { name: "รับคำขอที่ ที่ทำงาน" }));
   await waitFor(() =>
     expect(mocks.save).toHaveBeenCalledWith(
       { ...settings.locations![1], enabled: false },

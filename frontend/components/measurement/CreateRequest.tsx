@@ -4,6 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import { REQUEST_CREATED } from "@/frontend/lib/helper-area-intro";
 import { REQUESTS_CHANGED } from "@/frontend/lib/measurement-events";
 import {
   storedRequestPlace,
@@ -94,6 +95,9 @@ export default function CreateRequest({
       });
       setResult(created);
       onCreated?.(created);
+      window.dispatchEvent(
+        new CustomEvent(REQUEST_CREATED, { detail: { requestId: created.id } }),
+      );
       window.dispatchEvent(new Event(REQUESTS_CHANGED));
     } catch (e) {
       setError(apiErrorMessage(e, "สร้างคำขอไม่สำเร็จ กรุณาลองอีกครั้ง"));

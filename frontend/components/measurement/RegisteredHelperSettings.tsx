@@ -1,4 +1,5 @@
 "use client";
+import AppIcon from "@/frontend/components/ui/AppIcon";
 import ConfirmAction from "@/frontend/components/ui/ConfirmAction";
 import { useState } from "react";
 import Link from "next/link";
@@ -24,14 +25,17 @@ export default function RegisteredHelperSettings({
   >();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const places = settings.locations ?? [];
   async function run(operation: () => Promise<unknown>) {
     setBusy(true);
     setError("");
+    setMessage("");
     try {
       await operation();
       onChange(await api.measurementHelper());
       window.dispatchEvent(new Event(HELPER_LOCATIONS_CHANGED));
+      setMessage("บันทึกการตั้งค่าพื้นที่แล้ว");
       return true;
     } catch (cause) {
       setError(
@@ -44,43 +48,76 @@ export default function RegisteredHelperSettings({
   }
   async function save(value: MeasurementHelperLocationWrite, slot?: 1 | 2) {
     const done = await run(async () => {
-      await api.saveMeasurementLocation(value, slot);
+      const targetSlot = slot ?? (places.some((p) => p.slot === 1) ? 2 : 1);
+      await api.saveMeasurementLocation(value, targetSlot);
       if (!places.length) await api.setMeasurementHelper(true);
     });
     if (done) setEditor(undefined);
   }
   return (
     <section
-      className="cp-measure-card cp-helper-settings"
+      className="cp-measure-card cp-helper-settings cp-helper-areas"
       aria-label="พื้นที่ที่ฉันช่วยวัดได้"
     >
       <header>
         <div>
           <h3>พื้นที่รับคำขอ</h3>
-          <p>บันทึกได้ 2 จุด · เห็นเฉพาะคุณ</p>
+          <p>เลือกจุดที่คุณพร้อมช่วยวัด เช่น บ้านหรือที่ทำงาน</p>
         </div>
-        <span>{places.length}/2 จุด</span>
+        <span aria-label={`บันทึกแล้ว ${places.length} จาก 2 พื้นที่`}>
+          {places.length}/2 จุด
+        </span>
       </header>
-      <label className="cp-measure-toggle">
-        <input
-          type="checkbox"
-          checked={settings.enabled}
-          disabled={
-            busy || (!settings.enabled && !places.some((p) => p.enabled))
-          }
-          onChange={() =>
-            void run(() => api.setMeasurementHelper(!settings.enabled))
-          }
-        />
-        รับแจ้งคำขอให้ช่วยวัด
-      </label>
+      <div className="cp-helper-master">
+        <label className="cp-helper-switch-label">
+          <span>
+            <strong>รับคำขอให้ช่วยวัด</strong>
+            <small>
+              {settings.enabled
+                ? "เปิดรับตามพื้นที่ที่เลือกด้านล่าง"
+                : "พักรับทุกพื้นที่ โดยยังเก็บจุดเดิมไว้"}
+            </small>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            aria-label="รับแจ้งคำขอให้ช่วยวัด"
+            checked={settings.enabled && places.length > 0}
+            disabled={
+              busy ||
+              !places.length ||
+              (!settings.enabled && !places.some((p) => p.enabled))
+            }
+            onChange={() =>
+              void run(() => api.setMeasurementHelper(!settings.enabled))
+            }
+          />
+        </label>
+      </div>
       {!places.length && (
-        <p>เพิ่มพื้นที่แรกเพื่อเปิดรับคำขอ ไม่ใช้ GPS เมื่อเข้าเว็บล่าสุด</p>
+        <div className="cp-helper-empty">
+          <AppIcon name="location" size={28} />
+          <strong>เริ่มจากพื้นที่ที่คุณอยู่บ่อย</strong>
+          <p>
+            บันทึกได้ 2 จุด พิกัดเห็นเฉพาะคุณ
+            <br />
+            รับคำขอใกล้พื้นที่นี้เมื่อคุณเปิดรับ
+          </p>
+        </div>
+      )}
+      {places.length > 0 && !settings.enabled && (
+        <p className="cp-helper-paused" role="status">
+          <AppIcon name="pause" size={16} />
+          พักรับทุกพื้นที่อยู่ เปิดสวิตช์ด้านบนเมื่อต้องการรับคำขอ
+        </p>
       )}
       <div className="cp-helper-places">
         {places.map((place) => (
           <article key={place.slot} className="cp-helper-saved-row">
-            <div className="cp-helper-place-title">
+            <div
+              className="cp-helper-place-title"
+              data-receiving={settings.enabled && place.enabled}
+            >
               <button
                 type="button"
                 className="cp-helper-place-emoji cp-focus"
@@ -105,6 +142,7 @@ export default function RegisteredHelperSettings({
               <label className="cp-helper-place-receiving">
                 <input
                   type="checkbox"
+                  role="switch"
                   aria-label={`รับคำขอที่ ${place.name}`}
                   checked={place.enabled}
                   disabled={busy}
@@ -117,7 +155,13 @@ export default function RegisteredHelperSettings({
                     )
                   }
                 />
-                <span>{place.enabled ? "เปิดรับ" : "พักรับ"}</span>
+                <span>
+                  {!settings.enabled
+                    ? "พักทั้งหมด"
+                    : place.enabled
+                      ? "เปิดรับ"
+                      : "พักรับ"}
+                </span>
               </label>
             </div>
             <div className="cp-helper-place-actions">
@@ -131,7 +175,7 @@ export default function RegisteredHelperSettings({
                   setEditor(place);
                 }}
               >
-                แก้ไขชื่อ / สัญลักษณ์ / จุด
+                <AppIcon name="settings" size={16} /> แก้ไขพื้นที่
               </button>
               <ConfirmAction
                 label={`ลบสถานที่ ${place.name}`}
@@ -155,9 +199,12 @@ export default function RegisteredHelperSettings({
             setEditor(null);
           }}
         >
-          เพิ่มสถานที่
+          <AppIcon name="location" size={18} /> เพิ่มพื้นที่รับคำขอ
         </button>
       )}
+      <p className="cp-helper-private">
+        <AppIcon name="shield" size={16} /> พิกัดพื้นที่เห็นเฉพาะคุณ
+      </p>
       <details className="cp-helper-details">
         <summary className="cp-focus">การรับคำขอทำงานอย่างไร</summary>
         <small>
@@ -166,9 +213,18 @@ export default function RegisteredHelperSettings({
           และยังใช้การตั้งค่า LINE กับเวลาพักเดิม
         </small>
       </details>
-      <Link href="/requests" className="cp-measure-link">
+      <Link
+        href="/requests"
+        className="cp-measure-link cp-helper-requests-link"
+      >
         ดูคำขอให้ช่วยวัด
       </Link>
+      {busy && <p role="status">กำลังบันทึก…</p>}
+      {message && !busy && (
+        <p className="cp-helper-saved-message" role="status">
+          {message}
+        </p>
+      )}
       {error && editor === undefined && <p role="alert">{error}</p>}
       {editor !== undefined && (
         <HelperLocationEditor

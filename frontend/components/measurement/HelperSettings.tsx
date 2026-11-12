@@ -24,6 +24,7 @@ export default function HelperSettings() {
   const setSettings = (settings: MeasurementHelperSettings) =>
     setLoaded({ account, settings });
   const [busy, setBusy] = useState(false);
+  const [reload, setReload] = useState(0);
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
@@ -32,7 +33,10 @@ export default function HelperSettings() {
       void api
         .measurementHelper()
         .then((r) => {
-          if (active) setLoaded({ account, settings: r });
+          if (active) {
+            setLoaded({ account, settings: r });
+            setError("");
+          }
         })
         .catch((e) => {
           if (active)
@@ -45,7 +49,7 @@ export default function HelperSettings() {
       active = false;
       window.removeEventListener(HELPER_PRESENCE_UPDATED, refresh);
     };
-  }, [signedIn, account]);
+  }, [signedIn, account, reload]);
   async function toggle() {
     if (login.openLoginPrompt()) return;
     setBusy(true);
@@ -60,6 +64,31 @@ export default function HelperSettings() {
       setBusy(false);
     }
   }
+  if (signedIn && !settings)
+    return (
+      <section
+        className="cp-measure-card cp-helper-settings"
+        aria-label="พื้นที่รับคำขอ"
+      >
+        {error ? (
+          <>
+            <p role="alert">{error}</p>
+            <button
+              type="button"
+              className="cp-measure-primary cp-focus"
+              onClick={() => {
+                setError("");
+                setReload((value) => value + 1);
+              }}
+            >
+              ลองโหลดพื้นที่อีกครั้ง
+            </button>
+          </>
+        ) : (
+          <p role="status">กำลังโหลดพื้นที่รับคำขอ…</p>
+        )}
+      </section>
+    );
   if (settings?.registered_locations_enabled)
     return (
       <RegisteredHelperSettings

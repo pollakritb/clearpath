@@ -181,7 +181,7 @@ it("does not create a scheduled request until a time is selected", async () => {
 it("asks for explicit helper consent and defaults off", async () => {
   mocks.setHelper.mockResolvedValue({ enabled: true, observed_at: null });
   render(<HelperSettings />);
-  const checkbox = screen.getByRole("checkbox") as HTMLInputElement;
+  const checkbox = (await screen.findByRole("checkbox")) as HTMLInputElement;
   await waitFor(() => expect(checkbox.disabled).toBe(false));
   expect(checkbox.checked).toBe(false);
   fireEvent.click(checkbox);
