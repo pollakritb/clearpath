@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import ConfirmAction from "@/frontend/components/ui/ConfirmAction";
 import HelpRequestButton from "./HelpRequestButton";
 import { useState } from "react";
@@ -113,17 +114,28 @@ export default function RequestMapCard({
         ส่งคำขอถึงผู้ช่วยวัด {request.recipient_count ?? 0} คน
       </p>
       <HelpRequestButton request={request} now={now} />
-      {request.is_owner &&
-        Date.parse(request.expires_at) > now &&
-        (request.status === "active" || request.status === "scheduled") && (
-          <ConfirmAction
-            label="ยกเลิกคำขอ"
-            description="ยกเลิกคำขอนี้? คำขอจะหยุดรับรายงานและเก็บไว้ในประวัติ"
-            className="cp-request-cancel cp-focus"
-            disabled={busy}
-            onConfirm={() => void cancel()}
-          />
-        )}
+      {request.is_owner && (
+        <div className="cp-request-card-actions">
+          <Link
+            href={`/requests/${encodeURIComponent(request.id)}`}
+            className="cp-request-track cp-focus"
+          >
+            ติดตามคำขอ
+          </Link>
+          {request.is_owner &&
+            Date.parse(request.expires_at) > now &&
+            (request.status === "active" || request.status === "scheduled") && (
+              <ConfirmAction
+                label="ยกเลิกคำขอ"
+                description="ยกเลิกคำขอนี้? คำขอจะหยุดรับรายงานและเก็บไว้ในประวัติ"
+                className="cp-request-cancel cp-focus"
+                disabled={busy}
+                onConfirm={() => void cancel()}
+              />
+            )}
+        </div>
+      )}
+
       {error && <p role="alert">{error}</p>}
     </MapBottomSheet>
   );

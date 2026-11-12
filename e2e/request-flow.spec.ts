@@ -146,6 +146,20 @@ test("request submit failure retries once, cancel can be kept, history and detai
   await expect(card).toBeVisible();
   expect(calls).toBe(2);
   await expect(card.locator("[data-sheet-grip]")).toHaveCount(0);
+  await card
+    .getByRole("link", { name: "ติดตามคำขอ", exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `output/playwright/request-track-${page.viewportSize()?.width}.png`,
+  });
+  await card.getByRole("link", { name: "ติดตามคำขอ", exact: true }).click();
+  await expect(page).toHaveURL(/\/requests\/REQ-FLOW-001$/);
+  await expect(
+    page.getByRole("region", { name: "รายละเอียดคำขอ" }),
+  ).toContainText("พื้นที่ทดสอบ");
+  await page.getByRole("link", { name: "← กลับ", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(card).toBeVisible();
   await card.getByRole("button", { name: "ยกเลิกคำขอ", exact: true }).click();
   await card.getByRole("button", { name: "เก็บไว้", exact: true }).click();
   await expect(

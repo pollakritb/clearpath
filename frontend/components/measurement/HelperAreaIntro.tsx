@@ -20,6 +20,7 @@ export default function HelperAreaIntro({
   const [offer, setOffer] = useState<{
     account: string;
     requestId: string;
+    areaCount: number;
   } | null>(null);
   useEffect(() => {
     if (!account || !active) return;
@@ -32,12 +33,12 @@ export default function HelperAreaIntro({
       checking = true;
       try {
         const settings = await api.measurementHelper();
-        if (
-          alive &&
-          settings.registered_locations_enabled &&
-          !(settings.locations ?? []).length
-        )
-          setOffer({ account, requestId });
+        if (alive && settings.registered_locations_enabled)
+          setOffer({
+            account,
+            requestId,
+            areaCount: (settings.locations ?? []).length,
+          });
       } catch {
         /* Never block a submitted request when settings are unavailable. */
       } finally {
@@ -59,6 +60,7 @@ export default function HelperAreaIntro({
   return (
     <IntroDialog
       requestId={offer.requestId}
+      areaCount={offer.areaCount}
       onChoose={(choice) => {
         rememberHelperAreaIntro(
           offer.account,
@@ -73,9 +75,11 @@ export default function HelperAreaIntro({
 }
 function IntroDialog({
   requestId,
+  areaCount,
   onChoose,
 }: {
   requestId: string;
+  areaCount: number;
   onChoose: (choice: "setup" | "later" | "never") => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -116,8 +120,9 @@ function IntroDialog({
       </span>
       <h2 id="cp-helper-intro-title">รับคำขอจากคนใกล้คุณ</h2>
       <p id="cp-helper-intro-copy">
-        ส่งคำขอของคุณแล้ว หากคุณมีเครื่องวัด
-        ลองเพิ่มบ้านหรือที่ทำงานไว้ช่วยวัดให้คนใกล้พื้นที่
+        {areaCount > 0
+          ? `ส่งคำขอของคุณแล้ว คุณมีพื้นที่รับคำขอ ${areaCount} จุด ตรวจสอบหรือปรับพื้นที่ และเปิดรับคำขอเมื่อพร้อมช่วยวัดได้ที่นี่`
+          : "ส่งคำขอของคุณแล้ว หากคุณมีเครื่องวัด ลองเพิ่มบ้านหรือที่ทำงานไว้ช่วยวัดให้คนใกล้พื้นที่"}
       </p>
       <p className="cp-helper-intro-private">
         <AppIcon name="shield" size={17} /> บันทึกได้ 2 จุด · พิกัดเห็นเฉพาะคุณ
@@ -127,7 +132,7 @@ function IntroDialog({
         href={`/settings/helper-areas?request=${encodeURIComponent(requestId)}`}
         onClick={() => onChoose("setup")}
       >
-        ตั้งค่าพื้นที่ตอนนี้
+        {areaCount > 0 ? "จัดการพื้นที่รับคำขอ" : "ตั้งค่าพื้นที่ตอนนี้"}
         <AppIcon name="chevron" size={18} />
       </Link>
       <button

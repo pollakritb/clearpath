@@ -257,7 +257,7 @@ test("saved helper areas edit, pause, resume, keep/delete and retry with working
   await expect(page).toHaveURL(/\/settings$/);
 });
 
-test("existing helper areas skip the intro and settings load failures offer retry", async ({
+test("existing helper areas still receive the first intro and settings load failures offer retry", async ({
   page,
 }) => {
   await helpers(page, [
@@ -269,14 +269,23 @@ test("existing helper areas skip the intro and settings load failures offer retr
       lon: 100.06,
       enabled: true,
     },
+    {
+      slot: 2,
+      name: "ที่ทำงาน",
+      address: "นครปฐม",
+      lat: 13.8,
+      lon: 100.1,
+      enabled: true,
+    },
   ]);
   await submitFirst(page);
-  await expect(
-    page.getByRole("region", { name: "รายละเอียดจุดขอค่าฝุ่น" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("dialog", { name: "รับคำขอจากคนใกล้คุณ" }),
-  ).toHaveCount(0);
+  const intro = page.getByRole("dialog", { name: "รับคำขอจากคนใกล้คุณ" });
+  await expect(intro).toBeVisible();
+  await expect(intro).toContainText("คุณมีพื้นที่รับคำขอ 2 จุด");
+  await intro
+    .getByRole("link", { name: "จัดการพื้นที่รับคำขอ", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/settings\/helper-areas\?request=REQ-INTRO$/);
   let fail = true;
   await page.route("**/api/measurement-requests/helper", (route) =>
     route.fulfill(

@@ -152,3 +152,15 @@ it("does not resume a completed request even if a help claim has time remaining"
     screen.queryByRole("button", { name: "วัดต่อจากภารกิจเดิม" }),
   ).toBeNull();
 });
+
+it("links the owner directly to the selected request without expanding the sheet", () => {
+  render(
+    <RequestMapCard request={request} now={Date.now()} onClose={vi.fn()} />,
+  );
+  expect(
+    screen.getByRole("link", { name: "ติดตามคำขอ" }).getAttribute("href"),
+  ).toBe("/requests/own");
+  expect(
+    screen.getByRole("link", { name: "ติดตามคำขอ" }).closest("[inert]"),
+  ).toBeNull();
+});

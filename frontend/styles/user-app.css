@@ -12378,3 +12378,27 @@ dialog.cp-login-modal::backdrop {
   top: 13px;
   left: 4px;
 }
+
+.cp-request-card-actions {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cp-request-card-actions .cp-request-track {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--cp-teal);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.cp-request-card-actions > .cp-confirm-action {
+  flex-basis: 100%;
+}

@@ -1,13 +1,13 @@
 # Mobile helper areas and first-request introduction
 
-The request is saved before any introduction is shown. Guests, failed requests,
-accounts with saved helper areas, and deployments without registered helper areas
-are not prompted. Looking at an introduction never enables receiving or samples GPS.
+The request is saved before any introduction is shown. Guests, failed requests, and deployments without registered helper areas
+are not prompted. Accounts with saved helper areas still receive their first
+introduction, with copy and an action for managing existing areas. Looking at an introduction never enables receiving or samples GPS.
 
 - Set up now opens `/settings/helper-areas?request=<id>`. Back explicitly returns
   to that request's detail, including when the request has already ended.
 - Remind in three days, Close and Escape snooze the introduction. On the next map
-  visit after three days it is offered again if no area has been saved.
+  visit after three days it is offered again unless the introduction has been permanently dismissed or setup was chosen.
 - Never show again suppresses this introduction. Settings remain accessible under
   Settings → Notifications.
 - The preference is stored per account in local browser storage. It does not sync
