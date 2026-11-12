@@ -106,6 +106,28 @@ test("separate station sliders move left through Air4Thai and right through CAMS
   );
   await expect(forecast.getByRole("status")).toHaveText("CAMS · ค่าพยากรณ์");
   await expect(forecast.locator(".cp-history-station b")).toHaveText("31");
+  const forecastMarker = page.locator(".cp-marker--forecast-station");
+  await expect(forecastMarker).toBeVisible();
+  await expect
+    .poll(async () => {
+      const markerBox = await forecastMarker.boundingBox();
+      const sheetBox = await forecast.boundingBox();
+      return (
+        !!markerBox &&
+        !!sheetBox &&
+        markerBox.y >= 130 &&
+        markerBox.y + markerBox.height <= sheetBox.y
+      );
+    })
+    .toBe(true);
+
+  await expect(forecastMarker.locator("b")).toHaveText("31.0");
+  await expect(forecastMarker).toContainText("พยากรณ์");
+  await expect(forecastMarker.locator(".cp-marker-previous")).toHaveCount(0);
+  await page.screenshot({
+    path: `test-results/forecast-station-marker-${page.viewportSize()?.width}.png`,
+  });
+
   await forecastSlider.press("ArrowRight");
   await expect(forecastSlider).toHaveAttribute(
     "aria-valuetext",
@@ -113,6 +135,7 @@ test("separate station sliders move left through Air4Thai and right through CAMS
   );
   await expect(forecastSlider).toHaveValue("1");
   await forecastSlider.fill("120");
+  await expect(forecastMarker).toBeVisible();
   await expect(forecastSlider).toHaveAttribute(
     "aria-valuetext",
     /พยากรณ์.*CAMS/,
@@ -129,6 +152,8 @@ test("separate station sliders move left through Air4Thai and right through CAMS
     .getByRole("button", { name: "กลับไปที่หมุดสถานี", exact: false })
     .click();
   await expect(pin).toBeVisible();
+  await expect(forecastMarker).toHaveCount(0);
+  await expect(page.locator(".cp-marker--station").first()).toBeVisible();
   await expect(page.locator("main.cp-map")).toHaveAttribute(
     "data-mode",
     "current",

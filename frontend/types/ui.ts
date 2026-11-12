@@ -128,3 +128,15 @@ export interface SearchHistoryEntry {
   stationId?: string;
   selectedAt: number;
 }
+
+/** CAMS forecast at the selected station coordinate; not an observation. */
+export interface ForecastStationPoint {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  pm25: number | null;
+  validAt: string;
+  loading: boolean;
+  error: string | null;
+}

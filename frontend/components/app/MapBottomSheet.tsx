@@ -27,6 +27,7 @@ export default function MapBottomSheet({
   onSnapChange,
   showClose = true,
   ownsFocus = false,
+  mapClearance = 8,
 }: {
   id?: string;
   label: string;
@@ -40,6 +41,7 @@ export default function MapBottomSheet({
   onSnapChange?: (snap: Snap) => void;
   showClose?: boolean;
   ownsFocus?: boolean;
+  mapClearance?: number;
 }) {
   const contentId = useId();
   const root = useRef<HTMLElement>(null),
@@ -130,7 +132,7 @@ export default function MapBottomSheet({
       const bottom = parseFloat(getComputedStyle(element).bottom) || 84;
       const available = Math.max(
         120,
-        height - (bottom - previousKeyboard + keyboard) - 8,
+        height - (bottom - previousKeyboard + keyboard) - mapClearance,
       );
       const peek = Math.min(
         available,
@@ -163,7 +165,7 @@ export default function MapBottomSheet({
       window.removeEventListener("resize", measure);
       window.visualViewport?.removeEventListener("resize", measure);
     };
-  }, []);
+  }, [mapClearance]);
   useLayoutEffect(() => {
     const element = scroll.current;
     if (!element) return;

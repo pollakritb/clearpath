@@ -162,6 +162,7 @@ export default function StationTimelineControls({
       style={{ display: paused ? "none" : "contents" }}
     >
       <MapTimelineControls
+        mapClearance={mode === "forecast" ? 220 : undefined}
         onClose={onClose}
         title={mode === "history" ? "ค่าตรวจวัดย้อนหลัง" : "พยากรณ์ค่าฝุ่น"}
         time={isNow ? "ตอนนี้" : at ? formatForecastTime(at) : "ตอนนี้"}

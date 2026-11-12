@@ -35,6 +35,8 @@ import MapControls from "./MapControls";
 import { CURRENT_LOCATION_ICON, REPORT_PIN_ICON } from "./map-icons";
 import ReportMarkers from "./ReportMarkers";
 import StationMarkers from "./StationMarkers";
+import ForecastStationMarker from "./ForecastStationMarker";
+import type { ForecastStationPoint } from "@/frontend/types/ui";
 import { ViewportController } from "./MapBehaviors";
 import { ViewportReporter } from "./MapBehaviors";
 import SavedHelperMarkers from "./SavedHelperMarkers";
@@ -46,6 +48,7 @@ export interface MapViewProps {
   camsSurface?: GridSurface | null;
   camsPreload?: GridSurface[];
   camsPoint?: { lat: number; lon: number } | null;
+  forecastStation?: ForecastStationPoint | null;
   stations: Station[];
   heatmapPoint: HeatmapPoint | null;
   fires: FirePoint[];
@@ -87,6 +90,7 @@ export default function MapView({
   camsSurface = null,
   camsPreload,
   camsPoint = null,
+  forecastStation = null,
   stations,
   heatmapPoint,
   fires,
@@ -143,7 +147,8 @@ export default function MapView({
           onSelect={onSelectSavedLocation}
         />
         <CamsCanvasLayer surface={camsSurface} preload={camsPreload} />
-        {camsPoint && (
+        {forecastStation && <ForecastStationMarker point={forecastStation} />}
+        {camsPoint && !forecastStation && (
           <CircleMarker
             center={[camsPoint.lat, camsPoint.lon]}
             radius={6}

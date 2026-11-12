@@ -11757,3 +11757,46 @@ dialog.cp-login-modal::backdrop {
 .cp-official-cluster .cp-cluster-count b {
   font-size: 12px;
 }
+
+/* Square CAMS forecast badge stays distinct from circular observed station pins. */
+.cp-marker--forecast-station {
+  pointer-events: none;
+}
+.cp-forecast-station-marker {
+  width: 72px;
+  color: #07130f;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.cp-forecast-station-marker > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 4px;
+  background: var(--marker-aqi);
+  border: 3px solid white;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px #163f3740;
+}
+.cp-forecast-station-marker svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.cp-forecast-station-marker b {
+  font: 750 16px var(--font-sans);
+}
+.cp-forecast-station-marker > span {
+  display: block;
+  margin-top: 2px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: white;
+  color: #195d58;
+  font: 700 12px/1.4 var(--font-sans);
+}

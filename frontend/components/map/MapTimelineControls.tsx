@@ -27,6 +27,7 @@ export default function MapTimelineControls({
   footer,
   detail,
   leadingAction,
+  mapClearance,
 }: {
   onClose?: () => void;
   title: string;
@@ -50,12 +51,14 @@ export default function MapTimelineControls({
   footer?: ReactNode;
   detail?: ReactNode;
   leadingAction?: ReactNode;
+  mapClearance?: number;
 }) {
   return (
     <MapBottomSheet
       label={title}
       className="cp-timeline-sheet"
       initialSnap="full"
+      mapClearance={mapClearance}
       onClose={onClose ?? onNow}
       showClose={false}
       header={

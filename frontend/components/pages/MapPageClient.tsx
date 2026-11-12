@@ -274,6 +274,16 @@ export default function MapPageClient(options: MapPageOptions) {
             : null
         }
         onViewportChange={setViewport}
+        forecastStation={
+          timelineOpen && timelineTime.kind === "forecast" && timelineStation
+            ? {
+                ...timelineStation,
+                validAt: timelineTime.at,
+                loading: timelineLoading,
+                error: timelineError,
+              }
+            : null
+        }
         stations={mapStations}
         heatmapPoint={heatmapPoint}
         fires={
