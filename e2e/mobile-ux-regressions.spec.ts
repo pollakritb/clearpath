@@ -909,8 +909,41 @@ test("request map keeps editable location above and a compact locate control cle
     page.getByRole("region", { name: "เลือกพื้นที่ขอค่าฝุ่น" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "กลับไปแผนที่", exact: true }).click();
-  await expect(search).toContainText("พื้นที่ทดสอบ");
-  await search.click();
+  await expect(bar).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "เลือกพื้นที่ขอค่าฝุ่น" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "ขอค่าฝุ่น", exact: true }).click();
+  await page.getByRole("button", { name: /เลือกบนแผนที่/ }).click();
+  await bar.getByRole("button", { name: "กลับสู่แผนที่หลัก" }).click();
+  await expect(bar).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const toolbar = document
+          .querySelector(".cp-mapctrls")
+          ?.getBoundingClientRect();
+        const nav = document
+          .querySelector('nav[aria-label="เมนูหลักบนมือถือ"]')
+          ?.getBoundingClientRect();
+        return toolbar && nav ? nav.top - toolbar.bottom : -1;
+      }),
+    )
+    .toBeGreaterThanOrEqual(12);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const toolbar = document
+          .querySelector(".cp-mapctrls")
+          ?.getBoundingClientRect();
+        const nav = document
+          .querySelector('nav[aria-label="เมนูหลักบนมือถือ"]')
+          ?.getBoundingClientRect();
+        return toolbar && nav ? nav.top - toolbar.bottom : 999;
+      }),
+    )
+    .toBeLessThanOrEqual(28);
+  await page.getByRole("button", { name: "ขอค่าฝุ่น", exact: true }).click();
   await page.getByPlaceholder("ค้นหาสถานที่หรือที่อยู่").fill("สถานที่ใหม่");
   await page.getByRole("button", { name: /สถานที่ใหม่/ }).click();
   await expect(search).toContainText("สถานที่ใหม่");

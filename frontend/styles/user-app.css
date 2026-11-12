@@ -12073,3 +12073,15 @@ dialog.cp-login-modal::backdrop {
   width: 100%;
   min-height: 44px;
 }
+
+/* Resting map: keep both actions within thumb reach, just above navigation.
+   Picker and timeline tools retain their own sheet-aware positioning. */
+.cp-app
+  .cp-map:not(:has([data-map-sheet])):not([data-mode="cams"])
+  .cp-mapctrls {
+  top: auto;
+  bottom: calc(var(--cp-mobile-nav-h, 76px) + 20px);
+  right: 12px;
+  left: auto;
+  transform: none;
+}

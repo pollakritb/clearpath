@@ -70,8 +70,8 @@ export default function MapRequestPanel({
           <button
             type="button"
             className="cp-request-location-back cp-focus"
-            onClick={onSearch ?? onClose}
-            aria-label="กลับไปค้นหาสถานที่"
+            onClick={onClose}
+            aria-label="กลับสู่แผนที่หลัก"
           >
             <AppIcon name="back" size={20} />
           </button>
