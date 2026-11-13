@@ -8,6 +8,7 @@ import AlertLocationPresence from "@/frontend/components/auth/AlertLocationPrese
 import HelperPresence from "@/frontend/components/measurement/HelperPresence";
 import PwaRegistrar from "@/frontend/components/app/PwaRegistrar";
 import NavigationEntryTracker from "@/frontend/components/app/NavigationEntryTracker";
+import LiquidGlass from "@/frontend/components/app/LiquidGlass";
 import PersistentMapPage from "@/frontend/components/app/PersistentMapPage";
 
 // UI font — variable font, all weights 400–800 available
@@ -44,8 +45,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className={`${notoThai.variable} ${plexMono.variable}`}>
+    <html
+      lang="th"
+      data-liquid-glass="on"
+      className={`${notoThai.variable} ${plexMono.variable}`}
+    >
       <body>
+        <LiquidGlass />
         <div className="cp-mobile-frame">
           <div className="cp-mobile-content">
             <AuthProvider>

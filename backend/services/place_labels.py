@@ -6,7 +6,7 @@ from time import monotonic
 
 from ..core.config import settings
 from ..core.errors import UpstreamError
-from . import geoapify_reverse, photon_reverse
+from . import geoapify_reverse, photon_reverse, province_labels
 
 _cache: dict[tuple[float, float], tuple[float, dict]] = {}
 _lock = Lock()
@@ -36,4 +36,6 @@ async def resolve_label(lat: float, lon: float) -> dict:
                     _cache.pop(next(iter(_cache)))
                 _cache[key] = (monotonic(), label)
             return label
-    return {"name": "พื้นที่ที่ขอวัดค่าฝุ่น", "address": "", "source": "local"}
+    # Polygon containment remains available when providers have no nearby POI or
+    # time out. Do not cache this coarse label for an hour: let detail recover.
+    return province_labels.resolve(lat, lon)

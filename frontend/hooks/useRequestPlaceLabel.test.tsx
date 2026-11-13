@@ -77,7 +77,19 @@ it("ignores the previous point's late response and uses a neutral label on failu
   );
   expect(result.current.point?.name).not.toBe("พื้นที่เก่า");
   await act(async () => vi.advanceTimersByTimeAsync(450));
-  expect(result.current.point?.name).toBe("พื้นที่ที่ขอวัดค่าฝุ่น");
+  expect(result.current.point?.name).toBe("จุดที่เลือก (14.04000, 99.97046)");
   expect(result.current.point?.lat).toBe(14.04);
+  expect(result.current.loading).toBe(false);
+});
+
+it("shows a containing province returned when no detailed place name is available", async () => {
+  mocks.reverse.mockResolvedValue({
+    name: "จังหวัดอุทัยธานี",
+    address: "",
+    source: "local",
+  });
+  const { result } = renderHook(() => useRequestPlaceLabel(point, true));
+  await act(async () => vi.advanceTimersByTimeAsync(450));
+  expect(result.current.point?.name).toBe("จังหวัดอุทัยธานี");
   expect(result.current.loading).toBe(false);
 });

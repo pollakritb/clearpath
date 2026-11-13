@@ -133,7 +133,12 @@ export default function MapView({
       scrollWheelZoom
     >
       <MarkerPriorityProvider toolsOpen={toolsOpen}>
-        <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} noWrap />
+        <TileLayer
+          url={OSM_TILE_URL}
+          attribution={OSM_ATTRIBUTION}
+          noWrap
+          crossOrigin="anonymous"
+        />
 
         <CamsCanvasLayer surface={camsSurface} preload={camsPreload} />
         {forecastStation && <ForecastStationMarker point={forecastStation} />}

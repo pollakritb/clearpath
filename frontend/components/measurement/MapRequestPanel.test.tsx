@@ -67,7 +67,7 @@ it("confirms the selected coordinates before opening the form and supports resel
   expect(onReselect).toHaveBeenCalledOnce();
 });
 
-it("keeps location search available above the map and removes it while editing the form", () => {
+it("keeps request-specific location search and back navigation after confirming the point", () => {
   const onSearch = vi.fn();
   const point = {
     id: "place",
@@ -94,7 +94,12 @@ it("keeps location search available above the map and removes it while editing t
   expect(props.onClose).toHaveBeenCalledOnce();
   expect(onSearch).toHaveBeenCalledOnce();
   rerender(<MapRequestPanel {...props} editing />);
-  expect(
-    screen.queryByRole("button", { name: "ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น" }),
-  ).toBeNull();
+  fireEvent.click(
+    screen.getByRole("button", { name: "ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น" }),
+  );
+  expect(onSearch).toHaveBeenCalledTimes(2);
+  fireEvent.click(
+    screen.getByRole("button", { name: "กลับไปปรับจุดขอค่าฝุ่น" }),
+  );
+  expect(props.onReselect).toHaveBeenCalledOnce();
 });

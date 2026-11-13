@@ -1,6 +1,11 @@
 import type { LocationSuggestion } from "@/frontend/types";
 
 export const UNKNOWN_REQUEST_PLACE = "พื้นที่ที่ขอวัดค่าฝุ่น";
+
+/** Preserve the selected point's identity even when the API cannot be reached. */
+export function coordinatePlaceTitle(lat: number, lon: number) {
+  return `จุดที่เลือก (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+}
 const clean = (value: string | undefined) =>
   (value ?? "").replace(/\s+/g, " ").trim();
 export function requestPlaceTitle(name: string) {

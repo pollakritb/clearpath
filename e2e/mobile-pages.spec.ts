@@ -1101,7 +1101,7 @@ test("admin reads historical data issues without submission or mutation controls
   await page.goto("/admin");
   await page
     .getByRole("navigation", { name: "เมนูผู้ดูแล" })
-    .getByRole("button", { name: "ระบบ", exact: true })
+    .getByRole("button", { name: "สถานะระบบ", exact: true })
     .click();
   const issue = page
     .locator(".cp-admin-issue-row")

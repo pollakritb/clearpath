@@ -437,7 +437,7 @@ export default function MapPageClient(options: MapPageOptions) {
           <AppIcon name="community" size={18} /> ขอค่าฝุ่น
         </button>
       )}
-      {requestStep !== "search" && viewMode === "map" && (
+      {requestStep === "idle" && viewMode === "map" && (
         <MapChrome
           camsEnabled={camsEnabled}
           onToggleCams={() => {
@@ -545,7 +545,9 @@ export default function MapPageClient(options: MapPageOptions) {
           backLabel={
             requestFlow.previous === "pick"
               ? "กลับไปเลือกจุดบนแผนที่"
-              : "กลับไปแผนที่"
+              : requestFlow.previous === "form"
+                ? "กลับไปกรอกคำขอ"
+                : "กลับไปแผนที่"
           }
           onExit={() => setRequestStep("idle")}
         />

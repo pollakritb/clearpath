@@ -128,7 +128,11 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
     (r) => r.status === "pending" || r.status === "processing",
   );
   return (
-    <section className={styles.panel} aria-label="จัดการข้อมูลบัญชี">
+    <section
+      className={styles.panel}
+      aria-label="จัดการข้อมูลบัญชี"
+      data-glass-surface="reading"
+    >
       <SettingsLink
         href="/settings"
         replace

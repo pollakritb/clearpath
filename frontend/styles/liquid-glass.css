@@ -1,0 +1,305 @@
+/* Native materials are available before the optional WebGL enhancement loads. */
+html[data-liquid-glass="on"] {
+  --cp-glass-light: rgb(255 255 255 / 73%);
+  --cp-glass-reading: rgb(255 255 255 / 94%);
+  --cp-glass-line: rgb(255 255 255 / 82%);
+  --cp-panel: var(--cp-glass-reading);
+  --cp-glass-shadow: 0 6px 22px rgb(21 63 57 / 10%);
+}
+
+/* Floating chrome gets light glass; standalone reading panels get a dense tint.
+   Form fields, header groups and nested details keep their native solid surface. */
+html[data-liquid-glass="on"]
+  :is(
+    .cp-context-header,
+    .cp-mobile-nav,
+    .cp-map-topbar,
+    .cp-map-action:not([data-active="true"]),
+    .cp-mapctrls__zoom,
+    .cp-mapctrls__overview,
+    .cp-mapctrls__locate,
+    .cp-map-request-button,
+    .cp-map-current-dock,
+    .cp-map-history-dock,
+    .cp-cams-dock,
+    .cp-settings-row,
+    .cp-icon-button,
+    .cp-legal-header,
+    .cp-admin-topbar,
+    .cp-admin-sidebar,
+    .cp-request-location-back,
+    .cp-request-location-search,
+    .cp-helper-editor__header button,
+    .cp-helper-editor__presets button:not([aria-pressed="true"]),
+    .cp-helper-text-button,
+    .cp-measure-back,
+    .cp-map-layer-actions button,
+    .cp-map-layer-actions a,
+    .cp-line-link__secondary,
+    .cp-line-link__code button,
+    .cp-channel-button,
+    .cp-notification-conditions__toggle,
+    .cp-news-tabs button[aria-pressed="true"],
+    .cp-participation-nav button[aria-pressed="true"],
+    .cp-news-filters button:not([aria-pressed="true"]),
+    .cp-news-more,
+    .cp-notifications-mobile button,
+    .cp-season-all,
+    .cp-contribution-more,
+    .cp-list-back,
+    .cp-login-modal__close,
+    .cp-auth-google,
+    .cp-admin-button--secondary,
+    .cp-admin-signout,
+    .cp-admin-topbar__home,
+    .cp-xp button:not([aria-pressed="true"])
+  ) {
+  background: var(--cp-glass-light);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  backdrop-filter: blur(18px) saturate(1.3);
+  box-shadow:
+    var(--cp-glass-shadow),
+    inset 0 1px 0 var(--cp-glass-line);
+}
+
+html[data-liquid-glass="on"]
+  :is(
+    [data-map-sheet],
+    .cp-account-dialog__content,
+    .cp-login-modal__card,
+    .cp-map-tools,
+    .cp-map-panel,
+    .cp-map-selection-card,
+    .cp-place-card,
+    .cp-map-photo-dialog__content,
+    .cp-helper-onboarding__card,
+    .cp-helper-settings,
+    .cp-helper-location-editor,
+    .cp-notification-settings,
+    .cp-line-link,
+    .cp-request-map-card,
+    .cp-request-tracking__main,
+    .cp-forecast-card,
+    .cp-community-card,
+    .cp-measure-card,
+    .cp-reward-card,
+    .cp-account-privacy,
+    .cp-participation-card,
+    .cp-privacy-card,
+    .cp-admin-card,
+    .cp-admin-panel,
+    .cp-admin-stat-card,
+    .cp-admin-overview-card,
+    .cp-admin-table-card,
+    .cp-admin-report-card,
+    .cp-admin-gate__card,
+    .cp-helper-areas,
+    .cp-helper-intro,
+    .cp-helper-editor__sheet,
+    .cp-air-outlook,
+    .cp-notification-conditions,
+    .cp-community-announcements__empty,
+    .cp-community-announcements__list article,
+    .cp-community-disclosure,
+    .cp-news-empty,
+    .cp-notifications-mobile li a,
+    .cp-xp-profile,
+    .cp-xp-board,
+    .cp-xp-rank-dialog,
+    .cp-participation-empty,
+    .cp-contribution-list li,
+    .cp-report-stack-card,
+    .cp-report-source-help,
+    .cp-report-retry,
+    .cp-report-success,
+    .cp-legal-document,
+    .cp-admin-issue-row,
+    .cp-admin-form-card,
+    .cp-admin-gate__card,
+    [data-glass-surface="reading"]
+  ) {
+  background: var(--cp-glass-reading);
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  backdrop-filter: blur(22px) saturate(1.15);
+  box-shadow:
+    0 7px 24px rgb(21 63 57 / 8%),
+    inset 0 1px 0 var(--cp-glass-line);
+}
+
+/* Matching material for the read-only administration shell. */
+html[data-liquid-glass="on"] :is(.cp-admin-header, .cp-admin-nav) {
+  background: var(--cp-glass-reading);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+html[data-liquid-glass="on"] .cp-mobile-nav {
+  border-top-color: rgb(255 255 255 / 80%);
+  border-radius: 22px 22px 0 0;
+}
+html[data-liquid-glass="on"] .cp-mobile-nav a[data-active="true"] {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 85%);
+}
+html[data-liquid-glass="on"] .cp-mobile-nav a:not([data-active="true"]) {
+  color: var(--cp-ink);
+}
+html[data-liquid-glass="on"] .cp-map-topbar {
+  color: var(--cp-ink);
+}
+html[data-liquid-glass="on"] .cp-map-action {
+  /* Selection foreground and background change together, without a white flash. */
+  transition-property: transform, box-shadow, border-color;
+}
+html[data-liquid-glass="on"] .cp-map-search-trigger {
+  color: var(--cp-ink);
+}
+html[data-liquid-glass="on"] .cp-account-dialog {
+  background: transparent;
+}
+html[data-liquid-glass="on"] .cp-account-dialog__content {
+  border-color: rgb(255 255 255 / 85%);
+}
+
+/* A single offscreen WebGL renderer supplies these passive copies on the map. */
+.cp-liquid-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.cp-liquid-layer canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+.cp-liquid-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 65%),
+    rgb(255 255 255 / 48%)
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 95%),
+    inset 0 -1px 0 rgb(255 255 255 / 65%);
+}
+html[data-liquid-glass="on"]
+  [data-liquid-surface="ready"]:not([data-active="true"]) {
+  isolation: isolate;
+  background: transparent;
+}
+html[data-liquid-glass="on"]
+  :is(
+    [data-map-sheet],
+    .cp-map-history-dock,
+    .cp-cams-dock,
+    .cp-account-dialog__content,
+    .cp-login-modal__card,
+    .cp-helper-onboarding__card
+  )
+  > .cp-liquid-layer::after {
+  background: rgb(255 255 255 / 89%);
+}
+html[data-liquid-glass="on"]
+  [data-map-sheet][data-snap="peek"]
+  > .cp-liquid-layer::after {
+  background: rgb(255 255 255 / 86%);
+}
+/* Preserve the solid, semantic selection/submit states over the glass. */
+html[data-liquid-glass="on"] .cp-map-action[data-active="true"] {
+  background: var(--cp-teal);
+  color: #fff;
+}
+html[data-liquid-glass="on"]
+  .cp-map-action[data-active="true"]
+  > .cp-liquid-layer {
+  opacity: 0;
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  html[data-liquid-glass="on"] {
+    --cp-glass-light: #fff;
+    --cp-glass-reading: #fff;
+  }
+  html[data-liquid-glass="on"] [data-liquid-surface="ready"] {
+    background: Canvas;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  html[data-liquid-glass="on"] .cp-liquid-layer {
+    display: none;
+  }
+}
+
+html[data-liquid-glass="on"] [data-glass-surface="reading"] {
+  border-radius: 16px;
+  padding: 16px;
+}
+
+/* A missing GPU/context never makes a surface transparent without a backdrop. */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  html[data-liquid-glass="on"] {
+    --cp-glass-light: #fff;
+    --cp-glass-reading: #fff;
+  }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  html[data-liquid-glass="on"] :where(*) {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+html[data-liquid-glass="on"]
+  .cp-xp
+  input:not([type="checkbox"]):not([type="radio"]):not([aria-invalid="true"]) {
+  background-color: var(--cp-panel);
+}
+
+/* Group wrappers have no physical surface; each floating control owns its edge. */
+html[data-liquid-glass="on"]
+  :is(
+    .cp-request-location-bar,
+    .cp-request-search-screen > header,
+    .cp-helper-editor[data-step="map"] .cp-helper-editor__header
+  ) {
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html[data-liquid-glass="on"]
+  .cp-map-action[data-active="true"][data-liquid-surface="ready"] {
+  background: #0b766f;
+  color: #fff;
+}
+/* Search on a reading page is an input, not a window into a retained map. */
+html[data-liquid-glass="on"] .cp-location-picker-screen .cp-map-search-field {
+  background: #fff;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+/* Keep a single material behind the request form instead of nested glass cards. */
+html[data-liquid-glass="on"] .cp-request-picker-sheet .cp-measure-form {
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html[data-liquid-glass="on"] .cp-request-picker-sheet .cp-map-request-panel {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}

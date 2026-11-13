@@ -72,43 +72,42 @@ export default function MapRequestPanel({
       data-editing={editing}
       style={{ display: "contents" }}
     >
-      {!editing && (
-        <div
-          className="cp-request-location-bar"
-          role="group"
-          aria-label="สถานที่ขอค่าฝุ่น"
+      <div
+        className="cp-request-location-bar"
+        role="group"
+        aria-label="สถานที่ขอค่าฝุ่น"
+      >
+        <button
+          type="button"
+          className="cp-request-location-back cp-focus"
+          disabled={submitting}
+          onClick={editing ? onReselect : (onBack ?? onClose)}
+          aria-label={editing ? "กลับไปปรับจุดขอค่าฝุ่น" : "กลับขั้นก่อนหน้า"}
         >
-          <button
-            type="button"
-            className="cp-request-location-back cp-focus"
-            onClick={onBack ?? onClose}
-            aria-label="กลับขั้นก่อนหน้า"
-          >
-            <AppIcon name="back" size={20} />
-          </button>
-          <button
-            type="button"
-            className="cp-request-location-search cp-focus"
-            onClick={onSearch}
-            disabled={!onSearch}
-            aria-label="ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น"
-            aria-describedby={placeLabelId}
-          >
-            <AppIcon name="location" size={19} />
-            <span id={placeLabelId}>
-              <small>สถานที่ขอค่าฝุ่น</small>
-              <strong>
-                {resolvingName
-                  ? "กำลังระบุพื้นที่…"
-                  : point
-                    ? requestPlaceTitle(point.name)
-                    : "ค้นหาสถานที่หรือที่อยู่"}
-              </strong>
-            </span>
-            <AppIcon name="search" size={19} />
-          </button>
-        </div>
-      )}
+          <AppIcon name="back" size={20} />
+        </button>
+        <button
+          type="button"
+          className="cp-request-location-search cp-focus"
+          onClick={onSearch}
+          disabled={!onSearch || submitting}
+          aria-label="ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น"
+          aria-describedby={placeLabelId}
+        >
+          <AppIcon name="location" size={19} />
+          <span id={placeLabelId}>
+            <small>สถานที่ขอค่าฝุ่น</small>
+            <strong>
+              {resolvingName
+                ? "กำลังระบุพื้นที่…"
+                : point
+                  ? requestPlaceTitle(point.name)
+                  : "ค้นหาสถานที่หรือที่อยู่"}
+            </strong>
+          </span>
+          <AppIcon name="search" size={19} />
+        </button>
+      </div>
       <MapBottomSheet
         key={editing ? "form" : "pick"}
         label="ขอค่าฝุ่นบนแผนที่"

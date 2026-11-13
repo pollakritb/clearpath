@@ -1,11 +1,17 @@
 import { expect, it } from "vitest";
 import {
   escapeMarkerText,
+  coordinatePlaceTitle,
   requestPlaceParts,
   requestPlaceTitle,
   storedRequestPlace,
   UNKNOWN_REQUEST_PLACE,
 } from "./request-place";
+it("identifies an unresolved coordinate without inventing a nearby place name", () => {
+  const name = coordinatePlaceTitle(15.3418, 99.99825);
+  expect(name).toBe("จุดที่เลือก (15.34180, 99.99825)");
+  expect(requestPlaceTitle(name)).toBe(name);
+});
 it("shows the place name directly and removes the legacy area prefix", () => {
   const stored = storedRequestPlace({
     name: "Central Embassy",

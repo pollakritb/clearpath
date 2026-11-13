@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import LocationPickerActions from "./LocationPickerActions";
 import { api } from "@/frontend/lib/api-client";
 import { THAILAND_CENTER } from "@/frontend/lib/constants";
+import { coordinatePlaceTitle } from "@/frontend/lib/request-place";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import MapSearchPanel from "@/frontend/components/app/MapSearchPanel";
 import type {
@@ -85,7 +86,13 @@ export default function HelperLocationEditor({
           if (!cancelled) setResolved({ lat, lon, ...label });
         })
         .catch(() => {
-          /* Coordinates remain usable when address lookup is unavailable. */
+          if (!cancelled)
+            setResolved({
+              lat,
+              lon,
+              name: coordinatePlaceTitle(lat, lon),
+              address: "",
+            });
         });
     }, 450);
     return () => {

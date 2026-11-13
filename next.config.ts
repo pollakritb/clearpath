@@ -37,6 +37,8 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Keep the development badge from covering mobile navigation during local QA.
+  devIndicators: false,
   // Keep `next build`/Playwright output from invalidating a running dev server.
   distDir: isDev ? ".next-dev" : ".next",
   allowedDevOrigins: ["127.0.0.1"],

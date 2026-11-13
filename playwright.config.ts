@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 const isWindows = process.platform === "win32";
 const python = isWindows ? ".venv\\Scripts\\python.exe" : "python";
 const isCi = Boolean(process.env.CI);
+const isGuestRun = process.env.RUN_GUEST_FLOW === "true";
 const frontendPort = isCi ? 3000 : 3117;
 const backendPort = isCi ? 8000 : 8017;
 
@@ -39,7 +40,7 @@ export default defineConfig({
       env: {
         ...process.env,
         APP_ENVIRONMENT: "test",
-        LOCAL_DEMO_MODE: "true",
+        LOCAL_DEMO_MODE: isGuestRun ? "false" : "true",
         CAPTURE_SESSION_SECRET: "e2e-capture-secret-at-least-32-bytes",
         OPENAI_API_KEY: "",
         PUSH_ENABLED: "false",
@@ -54,7 +55,7 @@ export default defineConfig({
         ...process.env,
         BACKEND_ORIGIN: `http://127.0.0.1:${backendPort}`,
         ENABLE_LOCAL_API_PROXY: "true",
-        NEXT_PUBLIC_LOCAL_DEMO_MODE: "true",
+        NEXT_PUBLIC_LOCAL_DEMO_MODE: isGuestRun ? "false" : "true",
       },
     },
   ],

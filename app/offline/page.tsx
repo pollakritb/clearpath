@@ -12,7 +12,10 @@ export default function OfflinePage() {
         color: "#173a37",
       }}
     >
-      <section style={{ maxWidth: 420, textAlign: "center" }}>
+      <section
+        data-glass-surface="reading"
+        style={{ maxWidth: 420, textAlign: "center" }}
+      >
         <p aria-hidden="true" style={{ fontSize: 48, margin: 0 }}>
           ◌
         </p>

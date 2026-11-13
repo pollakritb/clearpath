@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/frontend/lib/api-client";
-import { UNKNOWN_REQUEST_PLACE } from "@/frontend/lib/request-place";
+import { coordinatePlaceTitle } from "@/frontend/lib/request-place";
 import type {
   LocationLabelResponse,
   LocationSuggestion,
@@ -33,7 +33,7 @@ export function useRequestPlaceLabel(
             setResolved({
               key,
               label: {
-                name: UNKNOWN_REQUEST_PLACE,
+                name: coordinatePlaceTitle(lat, lon),
                 address: "",
                 source: "local",
               },
@@ -51,7 +51,7 @@ export function useRequestPlaceLabel(
       needsLabel && point
         ? ({
             ...point,
-            name: label?.name ?? UNKNOWN_REQUEST_PLACE,
+            name: label?.name ?? coordinatePlaceTitle(point.lat, point.lon),
             address: label?.address ?? "",
             source: label?.source ?? "local",
             kind: "request-area",

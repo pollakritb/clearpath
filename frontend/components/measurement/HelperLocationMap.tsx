@@ -59,7 +59,12 @@ export default function HelperLocationMap({
       maxBounds={MAP_BOUNDS}
       maxBoundsViscosity={1}
     >
-      <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} noWrap />
+      <TileLayer
+        crossOrigin="anonymous"
+        url={OSM_TILE_URL}
+        attribution={OSM_ATTRIBUTION}
+        noWrap
+      />
       <ResizeMap onZoomChange={onZoomChange} />
       <MapControls
         showZoom={false}

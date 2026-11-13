@@ -158,7 +158,7 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   await expect(card).toHaveCount(0);
   await expect(page.locator(".cp-place-marker")).toHaveCount(0);
 
-  // A general search must leave an unfinished request rather than reuse its intent.
+  // Request editing owns its location header; close it before a general search.
   await page.getByRole("button", { name: "ขอค่าฝุ่น", exact: true }).click();
   await page
     .getByRole("searchbox", { name: "สถานที่หรือที่อยู่" })
@@ -168,6 +168,18 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
     page.getByRole("button", { name: "ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น" }),
   ).toContainText("สถานที่ทดสอบ");
   await page.getByRole("button", { name: "ใช้จุดนี้เพื่อขอค่าฝุ่น" }).click();
+  await expect(
+    page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", {
+      name: "ค้นหาหรือแก้ไขสถานที่ขอค่าฝุ่น",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "ปิดการขอค่าฝุ่น", exact: true })
+    .click();
   await page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี" }).click();
   await page
     .getByPlaceholder("ชื่อสถานที่ ที่อยู่ หรือสถานี")

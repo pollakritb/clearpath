@@ -9,13 +9,13 @@ def _text(value) -> str:
 
 def _label(
     row: dict, lat: float, lon: float, source: str, coordinates: tuple
-) -> dict | None:
+) -> tuple[int, dict] | None:
     if _text(row.get("country_code") or row.get("countrycode")).lower() != "th":
         return None
     keys = (
         ("suburb", "district", "city", "county", "state")
         if source == "geoapify"
-        else ("locality", "district", "city", "county", "state")
+        else ("locality", "suburb", "district", "city", "county", "state")
     )
     areas = list(
         dict.fromkeys(_text(row.get(key)) for key in keys if _text(row.get(key)))
@@ -38,29 +38,52 @@ def _label(
     )
     if nearby and poi and name and not name.isnumeric():
         base = name
+        priority = 3
     elif areas:
         base = areas[0]
+        priority = 2
+    elif (
+        name
+        and not name.isnumeric()
+        and (
+            row.get("result_type") in {"suburb", "district", "city", "county", "state"}
+            or (row.get("osm_key") == "place" and nearby)
+        )
+    ):
+        base = name
+        priority = 2
+    elif nearby and _text(row.get("street")):
+        base = _text(row["street"])
+        priority = 1
     else:
         return None
-    return {"name": f"บริเวณ{base}", "address": " · ".join(areas), "source": source}
+    return priority, {
+        "name": f"บริเวณ{base}",
+        "address": " · ".join(areas),
+        "source": source,
+    }
 
 
 def geoapify_label(payload: dict, lat: float, lon: float) -> dict | None:
     rows = payload.get("results", []) if isinstance(payload, dict) else []
     if not isinstance(rows, list):
         return None
+    candidates = []
     for row in rows:
         if isinstance(row, dict):
             label = _label(row, lat, lon, "geoapify", (row.get("lat"), row.get("lon")))
             if label:
-                return label
-    return None
+                candidates.append(label)
+    return (
+        max(candidates, key=lambda candidate: candidate[0])[1] if candidates else None
+    )
 
 
 def photon_label(payload: dict, lat: float, lon: float) -> dict | None:
     features = payload.get("features", []) if isinstance(payload, dict) else []
     if not isinstance(features, list):
         return None
+    candidates = []
     for feature in features:
         if not isinstance(feature, dict) or not isinstance(
             feature.get("properties"), dict
@@ -76,5 +99,7 @@ def photon_label(payload: dict, lat: float, lon: float) -> dict | None:
             feature["properties"], lat, lon, "photon", (coordinates[1], coordinates[0])
         )
         if label:
-            return label
-    return None
+            candidates.append(label)
+    return (
+        max(candidates, key=lambda candidate: candidate[0])[1] if candidates else None
+    )

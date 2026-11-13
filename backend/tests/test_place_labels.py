@@ -69,7 +69,7 @@ def test_malformed_reverse_response_never_invents_a_name(payload):
     assert geoapify_label(payload, 14, 100) is None
 
 
-def test_provider_failure_is_neutral_and_does_not_use_nearest_gazetteer(
+def test_provider_failure_uses_containing_province_not_nearest_gazetteer(
     monkeypatch,
 ):
     place_labels._cache.clear()
@@ -80,7 +80,81 @@ def test_provider_failure_is_neutral_and_does_not_use_nearest_gazetteer(
 
     monkeypatch.setattr(photon_reverse, "resolve", fail)
     result = asyncio.run(place_labels.resolve_label(14.02, 99.97))
-    assert result == {"name": "พื้นที่ที่ขอวัดค่าฝุ่น", "address": "", "source": "local"}
+    assert result == {"name": "จังหวัดนครปฐม", "address": "", "source": "local"}
+
+
+def test_empty_reverse_result_uses_province_for_the_reported_rural_point(monkeypatch):
+    place_labels._cache.clear()
+    monkeypatch.setattr(settings, "geoapify_api_key", "")
+
+    async def empty(*args):
+        return None
+
+    monkeypatch.setattr(photon_reverse, "resolve", empty)
+    assert (
+        asyncio.run(place_labels.resolve_label(15.3418, 99.99825))["name"]
+        == "จังหวัดอุทัยธานี"
+    )
+
+
+def test_reverse_prefers_close_named_poi_over_first_generic_area():
+    def feature(properties):
+        return {
+            "properties": {"countrycode": "TH", **properties},
+            "geometry": {"coordinates": [100, 14]},
+        }
+
+    label = photon_label(
+        {
+            "features": [
+                feature({"state": "นครปฐม"}),
+                feature({"name": "สถานที่ทดสอบ", "osm_key": "amenity"}),
+            ]
+        },
+        14,
+        100,
+    )
+    assert label["name"] == "บริเวณสถานที่ทดสอบ"
+
+
+def test_administrative_result_can_supply_its_own_name_without_parent_fields():
+    assert (
+        photon_label(
+            {
+                "features": [
+                    {
+                        "properties": {
+                            "countrycode": "TH",
+                            "osm_key": "place",
+                            "name": "ตำบลทดสอบ",
+                        },
+                        "geometry": {"coordinates": [100, 14]},
+                    }
+                ]
+            },
+            14,
+            100,
+        )["name"]
+        == "บริเวณตำบลทดสอบ"
+    )
+    assert (
+        geoapify_label(
+            {
+                "results": [
+                    {
+                        "country_code": "th",
+                        "result_type": "city",
+                        "name": "นครปฐม",
+                        "lat": 14,
+                        "lon": 100,
+                    }
+                ]
+            },
+            14,
+            100,
+        )["name"]
+        == "บริเวณนครปฐม"
+    )
 
 
 def test_adapters_and_cache_use_requested_coordinates_without_snapping(

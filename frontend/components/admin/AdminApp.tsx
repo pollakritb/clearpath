@@ -144,6 +144,7 @@ export default function AdminApp() {
               key={item.id}
               type="button"
               onClick={() => setView(item.id)}
+              aria-label={item.label}
               aria-current={view === item.id ? "page" : undefined}
               data-active={view === item.id}
               className="cp-admin-nav-item cp-focus"
