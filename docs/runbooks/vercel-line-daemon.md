@@ -53,8 +53,7 @@ At activation, verify provider HTTP 200, remaining quota, durable queue health,
 and an alive daemon instance. Record the effective cap and release in the
 private deployment evidence. No diagnostic endpoint sends a test message.
 
-Activation quota check on November 13: provider limit 300, consumed 17, remaining
-283. Trial cap: 280 additional push reservations at 1 request/second. Reservations
+Activation quota check on November 13: provider limit 300, consumed 17, remaining 283. Trial cap: 280 additional push reservations at 1 request/second. Reservations
 count attempts conservatively; retries may therefore use this budget before the
 provider reports 280 delivered messages. Reply messages have their own rate
 bucket and do not consume the monthly push reservation bucket.
