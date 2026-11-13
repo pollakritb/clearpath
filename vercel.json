@@ -9,5 +9,43 @@
       "maxDuration": 60
     }
   },
-  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }]
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    }
+  ],
+  "daemons": {
+    "line-worker": {
+      "root": "backend",
+      "entrypoint": "Dockerfile.line-worker",
+      "command": [
+        "python",
+        "-m",
+        "backend.workers.line",
+        "--probe",
+        "--health-port",
+        "8080"
+      ],
+      "instances": {
+        "sin1": 0
+      },
+      "resources": {
+        "requests": {
+          "memory": "1Gi"
+        }
+      },
+      "terminationGracePeriodSeconds": 40,
+      "livenessProbe": {
+        "httpGet": {
+          "path": "/health",
+          "port": 8080
+        },
+        "initialDelaySeconds": 30,
+        "periodSeconds": 30,
+        "timeoutSeconds": 2,
+        "failureThreshold": 3
+      }
+    }
+  }
 }
