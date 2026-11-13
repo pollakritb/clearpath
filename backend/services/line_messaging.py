@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -33,9 +34,60 @@ def _headers() -> dict[str, str]:
     }
 
 
-def _post(url: str, payload: dict, retry_key: str | None = None) -> None:
+class LineProviderError(UpstreamError):
+    def __init__(
+        self,
+        reason: str,
+        *,
+        retryable: bool = True,
+        retry_after: float = 0,
+        attempted: bool = True,
+    ):
+        super().__init__("LINE Messaging API ส่งข้อความไม่สำเร็จ")
+        self.reason, self.retryable, self.retry_after, self.attempted = (
+            reason,
+            retryable,
+            retry_after,
+            attempted,
+        )
+
+
+def reserve_budget(url: str) -> None:
+    if settings.line_durable_delivery_enabled:
+        if settings.line_monthly_message_cap <= 0:
+            raise ConfigurationError("ตั้งค่า LINE_MONTHLY_MESSAGE_CAP ก่อนเปิด worker")
+        from . import store_client
+
+        allowed = (
+            store_client.get_client()
+            .rpc(
+                "reserve_line_budget",
+                {
+                    "p_endpoint": "push" if url == LINE_PUSH_URL else "reply",
+                    "p_per_second": settings.line_requests_per_second,
+                    "p_monthly_cap": settings.line_monthly_message_cap,
+                },
+            )
+            .execute()
+            .data
+        )
+        if not allowed:
+            raise LineProviderError(
+                "line_budget_deferred", retry_after=60, attempted=False
+            )
+
+
+def _post(
+    url: str,
+    payload: dict,
+    retry_key: str | None = None,
+    *,
+    budget_reserved: bool = False,
+) -> str | None:
     try:
         headers = _headers()
+        if not budget_reserved:
+            reserve_budget(url)
         if retry_key:
             headers["X-Line-Retry-Key"] = retry_key
         response = httpx.post(url, json=payload, headers=headers, timeout=15.0)
@@ -44,10 +96,23 @@ def _post(url: str, payload: dict, retry_key: str | None = None) -> None:
             and response.status_code == 409
             and response.headers.get("x-line-accepted-request-id")
         ):
-            return  # The same LINE push was already accepted.
-        response.raise_for_status()
+            return response.headers.get("x-line-accepted-request-id")
+        if response.status_code >= 400:
+            status = response.status_code
+            retry_after = 0.0
+            with contextlib.suppress(ValueError):
+                retry_after = min(
+                    86400, max(0, float(response.headers.get("retry-after", 0)))
+                )
+            quota = status == 429 and "monthly" in response.text.lower()
+            raise LineProviderError(
+                "line_monthly_quota" if quota else f"line_http_{status}",
+                retryable=status == 429 or status >= 500,
+                retry_after=max(retry_after, 3600 if quota else 0),
+            )
+        return response.headers.get("x-line-request-id")
     except httpx.HTTPError as exc:
-        raise UpstreamError("LINE Messaging API ส่งข้อความไม่สำเร็จ") from exc
+        raise LineProviderError("line_network_error") from exc
 
 
 def config() -> dict:
@@ -149,8 +214,12 @@ def handle_webhook(body: bytes, signature: str) -> dict:
         raise ValueError("LINE webhook JSON ไม่ถูกต้อง") from exc
     if not isinstance(payload, dict) or not isinstance(payload.get("events", []), list):
         raise ValueError("LINE webhook JSON ไม่ถูกต้อง")
+    return process_events(payload.get("events") or [])
+
+
+def process_events(events: list[dict]) -> dict:
     handled = linked = duplicates = 0
-    for event in payload.get("events") or []:
+    for event in events:
         if not isinstance(event, dict):
             continue
         event_id = str(event.get("webhookEventId") or "").strip()
@@ -203,12 +272,10 @@ def handle_webhook(body: bytes, signature: str) -> dict:
     return {"handled": handled, "linked": linked, "duplicates": duplicates}
 
 
-def send_to_user(user_id: str, payload: dict) -> int:
-    if not settings.line_messaging_ready:
-        raise ConfigurationError("LINE Messaging API ยังไม่เปิดใช้งาน")
+def prepare_push(user_id: str, payload: dict) -> dict | None:
     row = supabase_client.get_line_notification_link(user_id)
     if not row or not row.get("active") or not row.get("line_user_id"):
-        return 0
+        return None
     title = str(payload.get("title") or "ClearPath")
     body = str(payload.get("body") or "มีข้อมูลใหม่")
     url = str(payload.get("url") or "").strip()
@@ -217,12 +284,22 @@ def send_to_user(user_id: str, payload: dict) -> int:
     elif not url.startswith("https://"):
         url = ""
     text = "\n".join(part for part in (title, body, url) if part)[:5000]
+    return {"to": row["line_user_id"], "messages": [{"type": "text", "text": text}]}
+
+
+def post_push(request: dict, retry_key: str) -> str | None:
+    return _post(LINE_PUSH_URL, request, retry_key=retry_key, budget_reserved=True)
+
+
+def send_to_user(user_id: str, payload: dict) -> int:
+    if not settings.line_messaging_ready:
+        raise ConfigurationError("LINE Messaging API ยังไม่เปิดใช้งาน")
+    request = prepare_push(user_id, payload)
+    if request is None:
+        return 0
     _post(
         LINE_PUSH_URL,
-        {
-            "to": row["line_user_id"],
-            "messages": [{"type": "text", "text": text}],
-        },
+        request,
         **(
             {"retry_key": str(payload["retry_key"])} if payload.get("retry_key") else {}
         ),

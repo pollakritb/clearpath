@@ -532,7 +532,7 @@ test("notification settings separate channels from conditions on mobile", async 
   await expect(page.getByLabel("เริ่มไม่รบกวน")).toHaveValue("22:00");
   await expect(page.getByLabel("กลับมาแจ้งเตือน")).toHaveValue("07:00");
   await expect(
-    page.getByText("ยินยอมรับการแจ้งเตือนตามเงื่อนไขนี้"),
+    page.getByText("ยินยอมรับแจ้งเตือนและใช้ GPS ล่าสุดเพื่อเลือกหมุดค่าฝุ่น"),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "บันทึกเงื่อนไข" }),

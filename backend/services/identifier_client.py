@@ -14,6 +14,8 @@ from time import monotonic
 from ..core.identifiers import PREFIXES, UUID_ENTITIES, code, legacy_uuid, number
 
 REFERENCES = {
+    "air_alert_locations": {"user_id": "profiles"},
+    "air_alert_states": {"user_id": "profiles"},
     "community_reporter_review_requests": {"user_id": "profiles"},
     "community_reporter_audits": {
         "user_id": "profiles",
@@ -103,6 +105,12 @@ REFERENCES = {
 }
 
 RPC_PARAMETERS = {
+    "touch_line_outbox": {"p_event": "notification_outbox"},
+    "finish_line_outbox": {"p_event": "notification_outbox"},
+    "resolve_air_alert": {"p_user": "profiles"},
+    "enqueue_notification": {"p_user": "profiles"},
+    "set_air_alert_location": {"p_user": "profiles"},
+    "commit_air_alert": {"p_user": "profiles"},
     "community_trust_owner_reviews": {"p_user": "profiles"},
     "community_trust_viewer_state": {
         "p_user": "profiles",
@@ -163,6 +171,8 @@ RPC_PARAMETERS = {
     },
 }
 RPC_RESULTS = {
+    "enqueue_notification": "user_notifications",
+    "claim_line_outbox": "notification_outbox",
     "registered_measurement_helpers": "measurement_helper_presence",
     "apply_reputation_event": "profiles",
     "moderate_community_report": "community_reports",

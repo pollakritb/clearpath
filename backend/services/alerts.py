@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from starlette.concurrency import run_in_threadpool
 
 from ..algorithms.distance import haversine_km
 from ..algorithms.hotspot_policy import public_hotspot_state
-from ..algorithms.line_notification_policy import air_alert_eligible
-from ..algorithms.notification_policy import format_air_alert, format_hotspot_alert
+from ..algorithms.notification_policy import format_hotspot_alert
 from ..algorithms.thailand_boundary import is_in_thailand
-from ..algorithms.trust import capture_age_minutes
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
 from . import fire_feed, firms, notifications, supabase_client
-from .stations import get_current_stations
 
 
 def _near_preference(preference: dict, lat: float, lon: float) -> bool:
@@ -36,7 +33,6 @@ async def run_alerts() -> dict:
         return {"ok": True, "disabled": True, "events": 0, "recipients": 0}
 
     preferences = supabase_client.list_notification_preferences()
-    stations, _source = await get_current_stations()
     try:
         if settings.external_feed_storage_enabled:
             fire_points = (await fire_feed.get_public_fires(1)).fires
@@ -51,51 +47,11 @@ async def run_alerts() -> dict:
     events = 0
     recipients = 0
 
-    for station in stations:
-        if station.get("pm25") is None or not station.get("recorded_at"):
-            continue
-        age = capture_age_minutes(str(station["recorded_at"]))
-        if age is None or age > 90:
-            continue
-        pm25 = float(station["pm25"])
-        targets = [
-            str(item["user_id"])
-            for item in preferences
-            if air_alert_eligible(
-                {
-                    "source_at": station["recorded_at"],
-                    "pm25": pm25,
-                    "lat": station["lat"],
-                    "lon": station["lon"],
-                },
-                item,
-                datetime.now(UTC),
-            )
-        ]
-        if not targets:
-            continue
-        message = format_air_alert(
-            pm25=pm25,
-            station_name=str(station.get("name_th") or station["id"]),
-            recorded_at=str(station["recorded_at"]),
-            area=str(station.get("province") or "ประเทศไทย"),
-        )
-        event = notifications.publish_alert(
-            deduplication_key=f"pm25:{station['id']}:{station['recorded_at']}",
-            source="air4thai",
-            kind="pm25_threshold",
-            severity=message["severity"],
-            title=message["title"],
-            body=message["body"],
-            detected_at=str(station["recorded_at"]),
-            recipients=targets,
-            lat=float(station["lat"]),
-            lon=float(station["lon"]),
-            payload={"station_id": station["id"], "pm25": pm25},
-        )
-        if event:
-            events += 1
-            recipients += int(event["recipient_count"])
+    from .air_alerts import evaluate_batch
+
+    air_result = await run_in_threadpool(evaluate_batch)
+    events += air_result["queued"]
+    recipients += air_result["queued"]
 
     for fire in fire_points:
         acquired_at = fire.get("acquired_at")

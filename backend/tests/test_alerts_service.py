@@ -7,7 +7,7 @@ import pytest
 
 from backend.core.config import settings
 from backend.core.errors import UpstreamError
-from backend.services import alerts
+from backend.services import air_alerts, alerts
 
 
 def test_alerts_short_circuit_when_push_is_disabled(monkeypatch):
@@ -110,7 +110,7 @@ def test_alerts_publish_fresh_air_and_nationwide_hotspots(monkeypatch):
     monkeypatch.setattr(
         alerts.supabase_client, "list_notification_preferences", lambda: preferences
     )
-    monkeypatch.setattr(alerts, "get_current_stations", current_stations)
+    monkeypatch.setattr(air_alerts, "evaluate_batch", lambda: {"queued": 1})
     monkeypatch.setattr(alerts.firms, "get_fires", current_fires)
     monkeypatch.setattr(alerts.notifications, "publish_alert", publish_alert)
 
@@ -118,19 +118,16 @@ def test_alerts_publish_fresh_air_and_nationwide_hotspots(monkeypatch):
 
     assert result == {"ok": True, "disabled": False, "events": 3, "recipients": 3}
     assert [item["kind"] for item in published] == [
-        "pm25_threshold",
         "satellite_hotspot",
         "satellite_hotspot",
     ]
-    assert [item["severity"] for item in published] == ["danger", "warning", "warning"]
-    assert published[0]["recipients"] == ["near-user"]
-    assert {tuple(item["recipients"]) for item in published[1:]} == {
+    assert [item["severity"] for item in published] == ["warning", "warning"]
+    assert {tuple(item["recipients"]) for item in published} == {
         ("near-user",),
         ("far-user",),
     }
-    assert all("ประเทศไทย" in item["body"] for item in published[1:])
-    assert "Air4Thai" in published[0]["body"]
-    assert any("NASA FIRMS (VIIRS)" in item["body"] for item in published[1:])
+    assert all("ประเทศไทย" in item["body"] for item in published)
+    assert any("NASA FIRMS (VIIRS)" in item["body"] for item in published)
     assert "ยังไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว" in published[1]["body"]
 
 
@@ -159,7 +156,7 @@ def test_alerts_keep_air_alerts_when_firms_fails_and_ignore_empty_targets(
         "list_notification_preferences",
         lambda: [{"user_id": "user", "pm25_threshold": 37.5}],
     )
-    monkeypatch.setattr(alerts, "get_current_stations", current_stations)
+    monkeypatch.setattr(air_alerts, "evaluate_batch", lambda: {"queued": 0})
     monkeypatch.setattr(alerts.firms, "get_fires", failed_fires)
     monkeypatch.setattr(
         alerts.notifications,

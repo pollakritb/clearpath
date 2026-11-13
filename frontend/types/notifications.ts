@@ -57,3 +57,17 @@ export interface OperationResponse {
   ok: boolean;
   message: string;
 }
+
+export interface AlertLocationInput {
+  lat: number;
+  lon: number;
+  accuracy_m: number;
+  observed_at: string;
+}
+
+export interface AlertLocationStatus {
+  status: string;
+  observed_at: string | null;
+  accuracy_m: number | null;
+  version: string | null;
+}

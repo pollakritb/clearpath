@@ -36,6 +36,8 @@ def _typescript_fields(path: str, interface_name: str) -> set[str]:
         ("FirmsResponse", "frontend/types/environment.ts"),
         ("CommunityReport", "frontend/types/community.ts"),
         ("CommunityReportsResponse", "frontend/types/community.ts"),
+        ("AlertLocationInput", "frontend/types/notifications.ts"),
+        ("AlertLocationStatus", "frontend/types/notifications.ts"),
         ("NotificationPreferences", "frontend/types/notifications.ts"),
         ("ForecastGridMetadata", "frontend/types/forecast-grid.ts"),
         ("ForecastGridFrame", "frontend/types/forecast-grid.ts"),

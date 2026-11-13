@@ -12356,3 +12356,33 @@ dialog.cp-login-modal::backdrop {
 .cp-auth-session[data-compact="false"] > .cp-signout-control {
   align-items: stretch;
 }
+
+/* GPS notification readiness stays in the existing mobile settings surface. */
+.cp-alert-location {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-bottom: 1px solid #e4ebe9;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.cp-alert-location p {
+  margin: 0;
+}
+.cp-alert-location > strong {
+  font-size: 14px;
+}
+.cp-alert-location details > p {
+  margin-top: 8px;
+}
+.cp-alert-location summary {
+  cursor: pointer;
+  color: var(--cp-teal);
+}
+.cp-alert-location button {
+  min-height: 44px;
+  width: 100%;
+}
+.cp-alert-location [role="alert"] {
+  color: #a32e22;
+}

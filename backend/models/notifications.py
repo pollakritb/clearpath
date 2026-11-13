@@ -1,6 +1,22 @@
 """Notification preferences and inbox contracts."""
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field
+
+
+class AlertLocationInput(BaseModel):
+    lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    lon: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    accuracy_m: float = Field(ge=0, le=200, allow_inf_nan=False)
+    observed_at: datetime
+
+
+class AlertLocationStatus(BaseModel):
+    status: str
+    observed_at: str | None = None
+    accuracy_m: float | None = None
+    version: str | None = None
 
 
 class NotificationPreferences(BaseModel):

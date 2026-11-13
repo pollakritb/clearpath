@@ -153,10 +153,21 @@ def get_notification_preferences(user_id: str) -> dict | None:
 def list_notification_preferences() -> list[dict]:
     if settings.local_demo_mode:
         return local_store.list_notification_preferences()
-    return (
-        db.get_client().table("notification_preferences").select("*").execute().data
-        or []
-    )
+    rows = []
+    while True:
+        page = (
+            db.get_client()
+            .table("notification_preferences")
+            .select("*")
+            .order("user_id")
+            .range(len(rows), len(rows) + 999)
+            .execute()
+            .data
+            or []
+        )
+        rows.extend(page)
+        if len(page) < 1000:
+            return rows
 
 
 def create_alert_if_new(row: dict) -> dict | None:
@@ -301,6 +312,8 @@ def update_outbox_event(event_id: str, values: dict) -> dict:
 def notification_outbox_summary() -> dict:
     if settings.local_demo_mode:
         return local_store.notification_outbox_summary()
+    if settings.line_durable_delivery_enabled:
+        return db.get_client().rpc("line_delivery_metrics").execute().data
     rows = (
         db.get_client()
         .table("notification_outbox")

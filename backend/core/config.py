@@ -89,6 +89,11 @@ class Settings(BaseSettings):
     supabase_cron_secret: str = ""
 
     # LINE Messaging API (LINE Notify was discontinued). Secrets remain server-only.
+    line_alert_shadow_mode: bool = False
+    line_alert_canary_user_ids: str = ""
+    line_durable_delivery_enabled: bool = False
+    line_requests_per_second: int = 5
+    line_monthly_message_cap: int = 0
     line_messaging_enabled: bool = False
     line_channel_secret: str = ""
     line_channel_access_token: str = ""

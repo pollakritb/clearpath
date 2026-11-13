@@ -85,6 +85,8 @@ from .measurement import (
 )
 from .meta import ReadinessResponse
 from .notifications import (
+    AlertLocationInput,
+    AlertLocationStatus,
     LineLinkCodeResponse,
     LineNotificationStatus,
     NotificationPreferences,
@@ -94,6 +96,8 @@ from .notifications import (
 )
 
 __all__ = [
+    "AlertLocationInput",
+    "AlertLocationStatus",
     "AccountAccessResponse",
     "BonusGPS",
     "HelpClaim",

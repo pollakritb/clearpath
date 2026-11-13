@@ -9,6 +9,8 @@ import type {
   LineNotificationStatus,
 } from "@/frontend/types";
 
+import { ALERT_PREFERENCES_CHANGED } from "@/frontend/components/auth/AlertLocationPresence";
+
 const STATUS_POLL_MS = 3_000;
 
 export default function LineNotificationCard() {
@@ -62,6 +64,7 @@ export default function LineNotificationCard() {
           if (next.linked) {
             setLinkCode(null);
             setMessage("เชื่อม LINE สำเร็จแล้ว");
+            window.dispatchEvent(new Event(ALERT_PREFERENCES_CHANGED));
           }
         })
         .catch(() => undefined);
@@ -127,6 +130,7 @@ export default function LineNotificationCard() {
       );
       setLinkCode(null);
       setMessage(result.message);
+      window.dispatchEvent(new Event(ALERT_PREFERENCES_CHANGED));
     } catch (cause) {
       setError(apiErrorMessage(cause, "ยกเลิก LINE ไม่สำเร็จ"));
     } finally {

@@ -8,6 +8,8 @@ import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { NotificationPreferences } from "@/frontend/types";
 
+import AlertLocationControls from "./AlertLocationControls";
+import { ALERT_PREFERENCES_CHANGED } from "@/frontend/components/auth/AlertLocationPresence";
 import LineNotificationCard from "./LineNotificationCard";
 
 const DEFAULTS: NotificationPreferences = {
@@ -37,7 +39,7 @@ const ALERT_OPTIONS = [
   [
     "air_alerts",
     "PM2.5 ถึงหรือเกินค่าที่ตั้งไว้",
-    "ข้อมูลจาก Air4Thai ภายในพื้นที่และรัศมีที่เลือก",
+    "หมุดสถานีหรือรายงานชุมชนที่ใกล้ GPS จากการใช้งานล่าสุด",
   ],
 ] as const;
 
@@ -95,27 +97,23 @@ function NotificationSettingsContent() {
     };
   }, [auth.user, auth.localDemo, reload]);
 
-  function useCurrentArea() {
-    setError(null);
-    navigator.geolocation?.getCurrentPosition(
-      (position) =>
-        setPreferences((current) => ({
-          ...current,
-          center_lat: position.coords.latitude,
-          center_lon: position.coords.longitude,
-        })),
-      () => setError("ไม่สามารถอ่าน GPS สำหรับพื้นที่แจ้งเตือนได้"),
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
-    );
-  }
+  useEffect(() => {
+    const changed = () => {
+      if (!editingConditions) setReload((value) => value + 1);
+    };
+    window.addEventListener(ALERT_PREFERENCES_CHANGED, changed);
+    return () => window.removeEventListener(ALERT_PREFERENCES_CHANGED, changed);
+  }, [editingConditions]);
 
   async function savePreferences() {
     if (!persisted || loadState !== "ready" || saving) return;
     setSaving(true);
     setError(null);
     try {
-      await api.updateNotificationPreferences(preferences);
-      setPersisted({ ...preferences });
+      const saved = await api.updateNotificationPreferences(preferences);
+      setPreferences(saved);
+      setPersisted(saved);
+      window.dispatchEvent(new Event(ALERT_PREFERENCES_CHANGED));
       setMessage("บันทึกเงื่อนไขแจ้งเตือนแล้ว");
       setEditingConditions(false);
     } catch (cause) {
@@ -212,11 +210,9 @@ function NotificationSettingsContent() {
             <AppIcon name="location" size={19} />
           </span>
           <span>
-            <small>พื้นที่</small>
+            <small>ระยะค้นหาหมุด</small>
             <strong>
-              {preferences.center_lat == null
-                ? "ยังไม่ได้เลือกศูนย์กลาง"
-                : `ภายใน ${preferences.radius_km ?? 10} กม.`}
+              {`ค้นหาหมุดใกล้ที่สุดภายใน ${preferences.radius_km ?? 10} กม.`}
             </strong>
           </span>
         </div>
@@ -229,6 +225,10 @@ function NotificationSettingsContent() {
             <strong>คำขอให้ช่วยวัด · คำขอได้รับข้อมูลแล้ว · PM2.5</strong>
           </span>
         </div>
+
+        <AlertLocationControls
+          enabled={Boolean(persisted?.consent_granted && persisted?.air_alerts)}
+        />
 
         <button
           type="button"
@@ -279,7 +279,7 @@ function NotificationSettingsContent() {
               </label>
               <label>
                 <span>
-                  รัศมีแจ้งเตือน
+                  ระยะค้นหาหมุดสูงสุด
                   <output>{preferences.radius_km ?? 10} กม.</output>
                 </span>
                 <input
@@ -295,16 +295,6 @@ function NotificationSettingsContent() {
                   }
                 />
               </label>
-              <button
-                type="button"
-                onClick={useCurrentArea}
-                className="cp-focus cp-location-button"
-              >
-                <AppIcon name="location" size={17} />
-                {preferences.center_lat == null
-                  ? "ใช้ตำแหน่งปัจจุบัน"
-                  : "อัปเดตตำแหน่งปัจจุบัน"}
-              </button>
             </fieldset>
 
             <fieldset className="cp-notification-option-group">
@@ -397,7 +387,9 @@ function NotificationSettingsContent() {
                   }
                 />
                 <span>
-                  <strong>ยินยอมรับการแจ้งเตือนตามเงื่อนไขนี้</strong>
+                  <strong>
+                    ยินยอมรับแจ้งเตือนและใช้ GPS ล่าสุดเพื่อเลือกหมุดค่าฝุ่น
+                  </strong>
                   <small>
                     ยกเลิกเมื่อใดก็ได้ ระบบจะปิดช่องทางและลบ token ที่ใช้งาน
                   </small>
@@ -407,18 +399,13 @@ function NotificationSettingsContent() {
 
             <button
               type="button"
-              disabled={saving || preferences.center_lat == null}
+              disabled={saving}
               onClick={() => void savePreferences()}
               className="cp-focus cp-notification-save"
             >
               <AppIcon name="check" size={18} />
               บันทึกเงื่อนไข
             </button>
-            {preferences.center_lat == null && (
-              <small className="cp-notification-save-hint">
-                เลือกตำแหน่งปัจจุบันก่อนบันทึก เพื่อกำหนดพื้นที่แจ้งเตือน
-              </small>
-            )}
             {!preferences.consent_granted && (
               <small className="cp-notification-save-hint">
                 เมื่อบันทึกโดยไม่ยินยอม ระบบจะปิด LINE ของบัญชีนี้

@@ -52,6 +52,8 @@ import type {
   LineLinkCodeResponse,
   LineNotificationStatus,
   NotificationPreferences,
+  AlertLocationInput,
+  AlertLocationStatus,
   NotificationsResponse,
   OperationResponse,
   ReportCreateResponse,
@@ -498,6 +500,23 @@ export const api = {
     http<OwnedReportIDs>("/api/community/me/report-ids", {
       auth: true,
       cache: "no-store",
+    }),
+
+  alertLocation: () =>
+    http<AlertLocationStatus>("/api/notifications/location", {
+      auth: true,
+      cache: "no-store",
+    }),
+  updateAlertLocation: (body: AlertLocationInput) =>
+    http<AlertLocationStatus>("/api/notifications/location", {
+      auth: true,
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  clearAlertLocation: () =>
+    http<OperationResponse>("/api/notifications/location", {
+      auth: true,
+      method: "DELETE",
     }),
 
   notificationPreferences: () =>

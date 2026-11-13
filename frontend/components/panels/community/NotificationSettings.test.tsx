@@ -10,7 +10,12 @@ vi.mock("@/frontend/components/auth/LoginPromptProvider", () => ({
   useLoginPrompt: () => ({ openLoginPrompt: vi.fn() }),
 }));
 vi.mock("@/frontend/lib/api-client", () => ({
-  api: { notificationPreferences: mocks.load },
+  api: {
+    notificationPreferences: mocks.load,
+    alertLocation: vi
+      .fn()
+      .mockResolvedValue({ status: "missing", observed_at: null }),
+  },
   apiErrorMessage: () => "error",
 }));
 vi.mock("./LineNotificationCard", () => ({ default: () => null }));

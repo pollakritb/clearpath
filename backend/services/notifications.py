@@ -7,11 +7,11 @@ from time import monotonic
 
 from ..algorithms.line_notification_policy import (
     LINE_EVENT_TYPES,
-    air_alert_eligible,
     line_event_type,
     line_retry_key,
 )
 from ..algorithms.notification_policy import is_quiet_hour
+from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
 from . import line_messaging, supabase_client
 from .record_keys import creation_key
@@ -124,6 +124,46 @@ def enqueue_user_notification(
     if preference_key and preferences.get(preference_key, True) is False:
         return {}
     now = datetime.now(UTC).isoformat()
+    if settings.line_durable_delivery_enabled and not settings.local_demo_mode:
+        from . import store_client
+
+        notice = {
+            "event_type": event_type,
+            "title": title,
+            "body": body,
+            "url": url,
+            "entity_type": entity_type,
+            "entity_id": entity_id,
+            "payload": payload or {},
+            "deduplication_key": deduplication_key,
+        }
+        outbox = None
+        if (
+            event_type in LINE_EVENT_TYPES
+            and preferences.get("consent_granted") is True
+            and preferences.get("line_enabled", True)
+        ):
+            outbox = {
+                "event_key": f"{deduplication_key}:line",
+                "payload": {
+                    **(payload or {}),
+                    "channel": "line",
+                    "event_type": event_type,
+                    "title": title,
+                    "body": body,
+                    "url": url,
+                    "tag": deduplication_key,
+                },
+            }
+        return (
+            store_client.get_client()
+            .rpc(
+                "enqueue_notification",
+                {"p_user": user_id, "p_notice": notice, "p_outbox": outbox},
+            )
+            .execute()
+            .data
+        )
     notification = supabase_client.create_user_notification(
         {
             "id": creation_key("user_notifications"),
@@ -160,7 +200,17 @@ def enqueue_user_notification(
                     **(
                         {
                             k: (payload or {}).get(k)
-                            for k in ("source_at", "pm25", "lat", "lon")
+                            for k in (
+                                "source_at",
+                                "pm25",
+                                "lat",
+                                "lon",
+                                "source_type",
+                                "source_id",
+                                "policy_version",
+                                "location_version",
+                                "preferences_at",
+                            )
                         }
                         if event_type == "air_alert"
                         else {}
@@ -179,7 +229,17 @@ def enqueue_user_notification(
     return notification
 
 
+def _air_delivery_allowed(user_id: str, payload: dict) -> bool:
+    from .air_alerts import delivery_allowed
+
+    return delivery_allowed(user_id, payload)
+
+
 def process_outbox(limit: int = 100, budget_seconds: float | None = 20) -> dict:
+    if settings.line_durable_delivery_enabled and not settings.local_demo_mode:
+        from .line_delivery import process_outbox as consume
+
+        return consume(min(limit, 1))
     from .community import xp
 
     if xp.configured():
@@ -235,8 +295,8 @@ def process_outbox(limit: int = 100, budget_seconds: float | None = 20) -> dict:
                 )
             ):
                 reason = "measurement_context_missing"
-            elif event_type == "air_alert" and not air_alert_eligible(
-                payload, _delivery_preferences(str(event["user_id"])), datetime.now(UTC)
+            elif event_type == "air_alert" and not _air_delivery_allowed(
+                str(event["user_id"]), payload
             ):
                 reason = "air_alert_no_longer_eligible"
             if reason:

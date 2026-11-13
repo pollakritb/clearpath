@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/frontend/components/auth/AuthProvider";
 import { LoginPromptProvider } from "@/frontend/components/auth/LoginPromptProvider";
+import AlertLocationPresence from "@/frontend/components/auth/AlertLocationPresence";
 import HelperPresence from "@/frontend/components/measurement/HelperPresence";
 import PwaRegistrar from "@/frontend/components/app/PwaRegistrar";
 import NavigationEntryTracker from "@/frontend/components/app/NavigationEntryTracker";
@@ -50,6 +51,7 @@ export default function RootLayout({
             <AuthProvider>
               <LoginPromptProvider>
                 <HelperPresence />
+                <AlertLocationPresence />
                 <Suspense fallback={null}>
                   <NavigationEntryTracker />
                   <PersistentMapPage />

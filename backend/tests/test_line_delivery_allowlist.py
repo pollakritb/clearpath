@@ -7,9 +7,10 @@ from uuid import UUID
 import httpx
 import pytest
 
+from backend.algorithms.nearest_air_alert import nearest_source
 from backend.core.config import settings
 from backend.core.errors import UpstreamError
-from backend.services import line_messaging, notifications
+from backend.services import air_alerts, line_messaging, notifications
 from backend.services.community import xp
 from backend.services.measurement import store
 
@@ -23,6 +24,11 @@ def event(kind="air_alert"):
         "attempts": 0,
         "payload": {
             "channel": "line",
+            "policy_version": "nearest-pin-v1",
+            "location_version": "v1",
+            "preferences_at": "p1",
+            "source_type": "station",
+            "source_id": "test",
             "event_type": kind,
             "tag": "alert:pm25:test",
             "source_at": (datetime.now(UTC) - timedelta(minutes=10)).isoformat(),
@@ -38,6 +44,7 @@ def event(kind="air_alert"):
 @pytest.fixture
 def env(monkeypatch):
     preferences = {
+        "updated_at": "p1",
         "consent_granted": True,
         "line_enabled": True,
         "air_alerts": True,
@@ -48,6 +55,22 @@ def env(monkeypatch):
         "quiet_hours_end": None,
     }
     rows = []
+
+    def selected(_):
+        now = datetime.now(UTC)
+        point = {
+            "lat": preferences.get("center_lat"),
+            "lon": preferences.get("center_lon"),
+            "accuracy_m": 10,
+            "observed_at": now.isoformat(),
+            "version": "v1",
+        }
+        picked = nearest_source(
+            point, [rows[0]["payload"]] if rows else [], preferences["radius_km"], now
+        )
+        return preferences, point, picked
+
+    monkeypatch.setattr(air_alerts, "selected", selected)
     updates = []
     sends = []
     monkeypatch.setattr(xp, "configured", lambda: False)
@@ -115,7 +138,11 @@ def test_opted_out_events_are_terminal_but_never_marked_sent(env, patch):
     result = notifications.process_outbox()
     assert sends == [] and result["delivered"] == 0 and result["dead"] == 1
     assert updates[0][1]["status"] == "dead"
-    assert updates[0][1]["last_error"] == "notification_not_delivered"
+    assert updates[0][1]["last_error"] == (
+        "air_alert_no_longer_eligible"
+        if patch.get("consent_granted") is False
+        else "notification_not_delivered"
+    )
 
 
 def test_missing_line_link_is_not_reported_as_sent(env, monkeypatch):

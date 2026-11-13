@@ -5,7 +5,10 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
+from ..algorithms.nearest_air_alert import valid_location
 from ..core.auth import AuthenticatedUser, require_user
+from ..core.config import settings
+from ..models.notifications import AlertLocationInput, AlertLocationStatus
 from ..models.schemas import (
     LineLinkCodeResponse,
     LineNotificationStatus,
@@ -14,10 +17,51 @@ from ..models.schemas import (
     OperationResponse,
     UserNotification,
 )
-from ..services import line_messaging, supabase_client
+from ..services import air_alerts, line_delivery, line_messaging, supabase_client
 from ..services import notifications as notification_service
 
 router = APIRouter()
+
+
+def _location_status(point: dict | None) -> AlertLocationStatus:
+    return AlertLocationStatus(
+        status="missing"
+        if not point
+        else "ready"
+        if valid_location(point, datetime.now(UTC))
+        else "stale",
+        observed_at=point.get("observed_at") if point else None,
+        accuracy_m=point.get("accuracy_m") if point else None,
+        version=point.get("version") if point else None,
+    )
+
+
+@router.get("/notifications/location", response_model=AlertLocationStatus)
+async def get_alert_location(user: AuthenticatedUser = Depends(require_user)):
+    return _location_status(await run_in_threadpool(air_alerts.location, user.id))
+
+
+@router.put("/notifications/location", response_model=AlertLocationStatus)
+async def set_alert_location(
+    body: AlertLocationInput, user: AuthenticatedUser = Depends(require_user)
+):
+    if not await run_in_threadpool(
+        supabase_client.take_rate_limit, user.id, "alert_location", 60, 6
+    ):
+        raise HTTPException(429, detail="กรุณารอก่อนอัปเดตตำแหน่งอีกครั้ง")
+    try:
+        point = await run_in_threadpool(
+            air_alerts.save_location, user.id, body.model_dump(mode="json")
+        )
+    except ValueError as exc:
+        raise HTTPException(422, detail=str(exc)) from exc
+    return _location_status(point)
+
+
+@router.delete("/notifications/location", response_model=OperationResponse)
+async def delete_alert_location(user: AuthenticatedUser = Depends(require_user)):
+    await run_in_threadpool(air_alerts.clear_location, user.id)
+    return OperationResponse(ok=True, message="ลบตำแหน่งแจ้งเตือนแล้ว")
 
 
 @router.get("/notifications", response_model=NotificationsResponse)
@@ -65,12 +109,15 @@ async def update_preferences(
     user: AuthenticatedUser = Depends(require_user),
 ):
     values = body.model_dump()
+    values["pm25_threshold"] = max(37.6, values["pm25_threshold"])
     if values["consent_granted"] and not values.get("consent_granted_at"):
         values["consent_granted_at"] = datetime.now(UTC).isoformat()
     if not values["consent_granted"]:
         values["consent_granted_at"] = None
         values["line_enabled"] = False
         await run_in_threadpool(line_messaging.disconnect, user.id)
+    if not values["consent_granted"] or not values["air_alerts"]:
+        await run_in_threadpool(air_alerts.clear_location, user.id)
     row = await run_in_threadpool(
         supabase_client.upsert_notification_preferences,
         user.id,
@@ -159,10 +206,19 @@ async def line_webhook(
     request: Request,
     x_line_signature: str = Header(default="", alias="x-line-signature"),
 ):
-    body = await request.body()
+    chunks = bytearray()
+    async for chunk in request.stream():
+        if len(chunks) + len(chunk) > 1024 * 1024:
+            raise HTTPException(413, detail="LINE webhook มีขนาดเกินกำหนด")
+        chunks.extend(chunk)
+    body = bytes(chunks)
     try:
         return await run_in_threadpool(
-            line_messaging.handle_webhook, body, x_line_signature
+            line_delivery.accept_webhook
+            if settings.line_durable_delivery_enabled
+            else line_messaging.handle_webhook,
+            body,
+            x_line_signature,
         )
     except ValueError as exc:
         raise HTTPException(401, detail=str(exc)) from exc

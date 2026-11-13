@@ -13,6 +13,10 @@ from ..core.errors import ConfigurationError, UpstreamError
 from . import supabase_client as db
 
 SECTIONS = {
+    "alert_location": (
+        "air_alert_locations",
+        "lat,lon,accuracy_m,observed_at,received_at",
+    ),
     "reports": (
         "community_reports",
         "id,created_at,captured_at,status,pm25,lat,lon,province,district,subdistrict,device_model,measurement_environment,measurement_note",
@@ -120,10 +124,12 @@ def export_page(user_id: str, section: str, offset: int) -> dict:
                 if str(r["user_id"]) == user_id
             ]
         else:
+            from . import air_alerts
             from .community import xp
             from .measurement import registered, store
 
             sources = {
+                "alert_location": list(air_alerts.LOCATIONS.values()),
                 "points": xp._EVENTS,
                 "saved_locations": list(registered.LOCATIONS.values()),
                 "requests": list(store.REQUESTS.values()),
@@ -139,7 +145,9 @@ def export_page(user_id: str, section: str, offset: int) -> dict:
     else:
         try:
             key = (
-                "slot"
+                "user_id"
+                if section == "alert_location"
+                else "slot"
                 if section == "saved_locations"
                 else "report_id"
                 if section == "reactions"
