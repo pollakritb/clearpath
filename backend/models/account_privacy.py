@@ -22,7 +22,7 @@ class AccountPrivacyStatus(BaseModel):
     enabled: bool
     requests: list[PrivacyRequest]
     export_sections: list[str]
-    automatic_deletion: bool = False
+    automatic_deletion: bool = True
 
 
 class AccountExportPage(BaseModel):

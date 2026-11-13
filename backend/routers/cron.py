@@ -222,14 +222,20 @@ async def cron_gistda_air(
 @router.get("/cron/measurement-requests")
 def cron_measurement_requests(authorization: str | None = Header(default=None)):
     _verify_cron(authorization)
+    from ..services.account_erasure import process as erase_accounts
     from ..services.community import xp
     from ..services.measurement import service
 
+    erasure = erase_accounts()
     if xp.configured() and xp.control()["maintenance"]:
         return {"status": "maintenance"}
     if not service.enabled():
         return {"status": "disabled"}
-    return {"requests": service.process(), "outbox": notifications.process_outbox()}
+    return {
+        "requests": service.process(),
+        "outbox": notifications.process_outbox(),
+        "account_erasure": erasure,
+    }
 
 
 @router.get("/cron/cams-grid")
@@ -274,3 +280,11 @@ def line_delivery_status(authorization: str | None = Header(default=None)):
     from ..workers.line import probe
 
     return probe()
+
+
+@router.get("/cron/account-erasure")
+def account_erasure_job(authorization: str | None = Header(default=None)):
+    _verify_cron(authorization)
+    from ..services.account_erasure import process
+
+    return process()

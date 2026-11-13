@@ -26,9 +26,9 @@ interface AuthState {
   refreshRole: () => void;
   configured: boolean;
   localDemo: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (returnTo?: string) => Promise<void>;
   signInWithOtp: (email: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: (options?: { localOnly?: boolean }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -152,22 +152,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [client],
   );
 
-  const signInWithGoogle = useCallback(async () => {
-    if (!client) throw new Error("ยังไม่ได้ตั้งค่า Supabase Auth");
-    const { error } = await client.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) throw error;
-  }, [client]);
-
-  const signOut = useCallback(async () => {
-    if (client) {
-      const { error } = await client.auth.signOut();
+  const signInWithGoogle = useCallback(
+    async (returnTo?: string) => {
+      if (!client) throw new Error("ยังไม่ได้ตั้งค่า Supabase Auth");
+      const destination = returnTo
+        ? new URL(returnTo, window.location.origin)
+        : null;
+      const redirectTo =
+        destination?.origin === window.location.origin
+          ? destination.origin + destination.pathname
+          : window.location.origin;
+      const { error } = await client.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
       if (error) throw error;
-    }
-    clearAccountData(true);
-  }, [client]);
+    },
+    [client],
+  );
+
+  const signOut = useCallback(
+    async (options?: { localOnly?: boolean }) => {
+      if (client) {
+        const { error } = await client.auth.signOut({
+          scope: options?.localOnly ? "local" : "global",
+        });
+        if (error) throw error;
+      }
+      clearAccountData(true);
+    },
+    [client],
+  );
 
   const value = useMemo<AuthState>(
     () => ({

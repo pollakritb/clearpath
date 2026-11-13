@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   subject: "owner",
   loading: false,
   signin: vi.fn(),
+  signout: vi.fn(),
   status: vi.fn(),
   remove: vi.fn(),
 }));
@@ -19,6 +20,7 @@ vi.mock("@/frontend/components/auth/AuthProvider", () => ({
     loading: mocks.loading,
     localDemo: false,
     signInWithGoogle: mocks.signin,
+    signOut: mocks.signout,
   }),
 }));
 vi.mock("@/frontend/lib/api-client", async (importOriginal) => ({
@@ -31,7 +33,7 @@ const status = {
   enabled: true,
   requests: [],
   export_sections: ["reports"],
-  automatic_deletion: false,
+  automatic_deletion: true,
 };
 beforeEach(() => {
   mocks.subject = "owner";
@@ -39,6 +41,7 @@ beforeEach(() => {
   mocks.status.mockReset().mockResolvedValue(status);
   mocks.remove.mockReset();
   mocks.signin.mockReset().mockResolvedValue(undefined);
+  mocks.signout.mockReset().mockResolvedValue(undefined);
 });
 afterEach(cleanup);
 it("only presents the deletion action without export or an upfront reauthentication prompt", async () => {
@@ -120,13 +123,13 @@ it("requires both confirmations and shows a pending request rather than claiming
   expect(button.disabled).toBe(true);
   fireEvent.click(screen.getByRole("checkbox"));
   fireEvent.click(button);
-  await screen.findByText(/รับคำขอแล้ว ·/);
+  await screen.findByText("กำลังดำเนินการลบบัญชี");
   expect(mocks.remove).toHaveBeenCalledExactlyOnceWith({
     confirmation: "ลบบัญชี",
     acknowledges_retention: true,
   });
   expect(
-    screen.getByText("รับคำขอลบบัญชีแล้ว ยังไม่ได้ลบข้อมูลหรือบัญชี"),
+    screen.getByText("บัญชีถูกปิดการใช้งานแล้ว ระบบจะดำเนินการต่อโดยอัตโนมัติ"),
   ).toBeTruthy();
   expect(
     screen.queryByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
@@ -158,6 +161,22 @@ it("does not show another deletion form while processing", async () => {
   });
   render(<AccountPrivacyPanel />);
   await screen.findByText(/รับคำขอแล้ว · อยู่ระหว่างดำเนินการ/);
+  expect(
+    screen.queryByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
+  ).toBeNull();
+});
+
+it("shows completion only after server confirmation and clears the local session", async () => {
+  mocks.remove.mockResolvedValue({
+    id: "done",
+    status: "completed",
+    created_at: "2026-11-14",
+    completed_at: "2026-11-14",
+  });
+  render(<AccountPrivacyPanel />);
+  await confirm();
+  await screen.findByText("ลบบัญชี ClearPath แล้ว");
+  expect(mocks.signout).toHaveBeenCalledWith({ localOnly: true });
   expect(
     screen.queryByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
   ).toBeNull();

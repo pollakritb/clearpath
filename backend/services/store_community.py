@@ -38,6 +38,10 @@ def ensure_profile(
     ).data or []
     if existing:
         current = existing[0]
+        if current.get("deletion_started_at"):
+            from fastapi import HTTPException
+
+            raise HTTPException(401, detail="บัญชีนี้อยู่ระหว่างการลบหรือถูกลบแล้ว")
         updates = {}
         if display_name and display_name != current.get("display_name"):
             updates["display_name"] = display_name

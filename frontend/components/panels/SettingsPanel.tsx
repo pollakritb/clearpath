@@ -68,7 +68,7 @@ export default function SettingsPanel({
         </span>
         <span>
           <strong>ข้อมูลบัญชี</strong>
-          <small>คำขอลบบัญชี</small>
+          <small>ลบบัญชี</small>
         </span>
         <AppIcon name="chevron" size={18} />
       </SettingsLink>

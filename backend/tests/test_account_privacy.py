@@ -114,20 +114,20 @@ def test_old_login_cannot_export_or_request_deletion(privacy_client):
     )
 
 
-def test_deletion_is_idempotent_owner_request_not_false_completed_erasure(
+def test_demo_deletion_simulates_completion_without_mutating_hosted_data(
     privacy_client,
 ):
     client, subject = privacy_client
     payload = {"confirmation": "ลบบัญชี", "acknowledges_retention": True}
     first = client.post("/api/community/me/deletion-request", json=payload)
-    assert first.status_code == 202 and first.json()["status"] == "pending"
+    assert first.status_code == 202 and first.json()["status"] == "completed"
     assert "user_id" not in first.json()
     assert (
         client.post("/api/community/me/deletion-request", json=payload).json()["id"]
         == first.json()["id"]
     )
     status = client.get("/api/community/me/privacy").json()
-    assert not status["automatic_deletion"] and len(status["requests"]) == 1
+    assert status["automatic_deletion"] and len(status["requests"]) == 1
     subject[0] = AuthenticatedUser(
         id="other-user",
         email=None,

@@ -19,7 +19,7 @@ export default function SettingsPageClient({
         ...(section === "privacy"
           ? {
               title: "ข้อมูลบัญชี",
-              description: "คำขอลบบัญชี",
+              description: "ลบบัญชี",
             }
           : {}),
       }}

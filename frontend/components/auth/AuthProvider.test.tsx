@@ -117,6 +117,18 @@ describe("AuthProvider", () => {
       provider: "google",
       options: { redirectTo: window.location.origin },
     });
+    await act(async () => latestAuth?.signInWithGoogle("/settings/privacy"));
+    expect(client.auth.signInWithOAuth).toHaveBeenLastCalledWith({
+      provider: "google",
+      options: { redirectTo: window.location.origin + "/settings/privacy" },
+    });
+    await act(async () =>
+      latestAuth?.signInWithGoogle("https://external.invalid/"),
+    );
+    expect(client.auth.signInWithOAuth).toHaveBeenLastCalledWith({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
     expect(client.auth.signInWithOtp).toHaveBeenCalledWith({
       email: "user@example.com",
       options: { emailRedirectTo: window.location.origin },

@@ -57,8 +57,8 @@ For LINE, use consenting test recipients: linked/unlinked/wrong account, expiry,
 ## Privacy acceptance
 
 Export currently provides selected structured activity, not a complete legal subject-access package or image archive.
-Deletion is a request, not erasure. Before implementing final processing, decide retention periods and lawful grounds per table, anonymization of public identity, audit/point preservation, media/Auth removal, backup retention and verification after restore. Name the accountable owner and document an erasure completion check. Do not mark a request completed from the UI or assume Auth deletion covers stored media.
-The new hosted functions remain disabled by default with `ACCOUNT_PRIVACY_ENABLED=false`.
+Owner-confirmed account closure is implemented with durable retry and limited retention; see [account closure](account-closure.md) for the exact scope, completion checks and restore procedure.
+The hosted functions remain gated by `ACCOUNT_PRIVACY_ENABLED`; enable only after the account-closure migration and integration verification.
 
 ## Activation and rollback
 

@@ -1,6 +1,6 @@
-"""Account owner only; no Administrator data mutation and no automatic erasure.
+"""Owner-confirmed account closure with durable server-only retry.
 
-Deletion is explicitly a request pending the independent retention/identity review.
+Published anonymous measurements and audits follow existing retention.
 Export uses selected columns and subject filters, never entire database rows.
 """
 
@@ -81,12 +81,16 @@ def request_deletion(user_id: str) -> dict:
     _ready()
     if not settings.local_demo_mode:
         try:
-            return (
+            row = (
                 db.get_client()
                 .rpc("request_account_erasure", {"p_user": user_id})
                 .execute()
                 .data
             )
+            from .account_erasure import process
+
+            completed = process(request_id=row["id"])
+            return completed.get("request") or row
         except Exception as exc:
             raise UpstreamError("บันทึกคำขอลบบัญชีไม่สำเร็จ") from exc
     with _LOCK:
@@ -94,7 +98,8 @@ def request_deletion(user_id: str) -> dict:
             (
                 r
                 for r in DEMO_REQUESTS.values()
-                if r["user_id"] == user_id and r["status"] in {"pending", "processing"}
+                if r["user_id"] == user_id
+                and r["status"] in {"pending", "processing", "completed"}
             ),
             None,
         )
@@ -103,9 +108,9 @@ def request_deletion(user_id: str) -> dict:
         row = {
             "id": str(uuid4()),
             "user_id": user_id,
-            "status": "pending",
+            "status": "completed",
             "created_at": datetime.now(UTC).isoformat(),
-            "completed_at": None,
+            "completed_at": datetime.now(UTC).isoformat(),
         }
         DEMO_REQUESTS[row["id"]] = row
         return dict(row)

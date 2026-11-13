@@ -108,27 +108,27 @@ the staging exercise.
 
 Required in both Vercel Preview and Production unless marked optional:
 
-| Variable                        | Source / rule                                                       |
-| ------------------------------- | ------------------------------------------------------------------- |
-| `APP_ENVIRONMENT`               | `staging` for Preview; `production` for Production                  |
-| `RELEASE_SHA`                   | Git commit SHA; CI or Vercel system value                           |
-| `SUPABASE_URL`                  | Supabase project URL, server runtime                                |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server only; never `NEXT_PUBLIC_*`                                  |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Same project URL, browser build                                     |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable/anon browser key                                        |
-| `REPORT_IMAGE_BUCKET`           | `report-images`                                                     |
-| `CRON_SECRET`                   | Independent random secret, at least 32 characters                   |
-| `SUPABASE_CRON_SECRET`          | Separate token matching the ClearPath Supabase Vault                |
-| `CAPTURE_SESSION_SECRET`        | Different independent random secret                                 |
-| `CORS_ALLOWED_ORIGINS`          | Exact HTTPS origin, no `*`                                          |
-| `OPENMETEO_AIR_ENABLED`         | `true`; no key, with CAMS/Open-Meteo attribution                    |
-| `FIRMS_MAP_KEY`                 | Server only                                                         |
-| `OPENAI_API_KEY`                | Required before enabling real automatic review                      |
-| `PUSH_ENABLED`                  | Start `false`; enable after VAPID delivery test                     |
-| `VAPID_*`                       | Required when push is enabled                                       |
-| `REPORTER_TRUST_ENABLED`        | Default `false`; independent validation and private ledger required |
-| `REPORTER_TRUST_VALIDATION_REF` | Reviewed independent evidence reference, not a placeholder          |
-| `ACCOUNT_PRIVACY_ENABLED`       | Default `false`; staging schema and retention workflow required     |
+| Variable                        | Source / rule                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------------- |
+| `APP_ENVIRONMENT`               | `staging` for Preview; `production` for Production                               |
+| `RELEASE_SHA`                   | Git commit SHA; CI or Vercel system value                                        |
+| `SUPABASE_URL`                  | Supabase project URL, server runtime                                             |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server only; never `NEXT_PUBLIC_*`                                               |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Same project URL, browser build                                                  |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable/anon browser key                                                     |
+| `REPORT_IMAGE_BUCKET`           | `report-images`                                                                  |
+| `CRON_SECRET`                   | Independent random secret, at least 32 characters                                |
+| `SUPABASE_CRON_SECRET`          | Separate token matching the ClearPath Supabase Vault                             |
+| `CAPTURE_SESSION_SECRET`        | Different independent random secret                                              |
+| `CORS_ALLOWED_ORIGINS`          | Exact HTTPS origin, no `*`                                                       |
+| `OPENMETEO_AIR_ENABLED`         | `true`; no key, with CAMS/Open-Meteo attribution                                 |
+| `FIRMS_MAP_KEY`                 | Server only                                                                      |
+| `OPENAI_API_KEY`                | Required before enabling real automatic review                                   |
+| `PUSH_ENABLED`                  | Start `false`; enable after VAPID delivery test                                  |
+| `VAPID_*`                       | Required when push is enabled                                                    |
+| `REPORTER_TRUST_ENABLED`        | Default `false`; independent validation and private ledger required              |
+| `REPORTER_TRUST_VALIDATION_REF` | Reviewed independent evidence reference, not a placeholder                       |
+| `ACCOUNT_PRIVACY_ENABLED`       | Default `false`; account-closure migration and integration verification required |
 
 The retired ML/GISTDA/shadow pipeline is absent from this source. Old environment
 flags cannot re-enable it; do not treat those flags as current deployment prerequisites.

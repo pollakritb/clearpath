@@ -6,16 +6,57 @@ import AppIcon from "@/frontend/components/ui/AppIcon";
 import SettingsLink from "@/frontend/components/app/SettingsLink";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { api, ApiError, apiErrorMessage } from "@/frontend/lib/api-client";
+import { clearAccountData } from "@/frontend/lib/account-data-cache";
 import type { AccountPrivacyStatus } from "@/frontend/types/account-privacy";
 import styles from "./AccountPrivacyPanel.module.css";
 
 export default function AccountPrivacyPanel() {
   const auth = useAuth();
+  const [outcome, setOutcome] = useState<"completed" | "processing" | null>(
+    null,
+  );
+  if (outcome)
+    return (
+      <section className={styles.panel} aria-label="จัดการข้อมูลบัญชี">
+        <div className={styles.notice} role="status">
+          <AppIcon name="check" size={22} />
+          <div>
+            <h3>
+              {outcome === "completed"
+                ? auth.localDemo
+                  ? "สาธิตการลบบัญชีสำเร็จ"
+                  : "ลบบัญชี ClearPath แล้ว"
+                : "กำลังดำเนินการลบบัญชี"}
+            </h3>
+            <p>
+              {outcome === "completed"
+                ? "รายงานและประวัติการตรวจสอบที่เก็บตามนโยบายจะไม่แสดงตัวตนของคุณ"
+                : "บัญชีถูกปิดการใช้งานแล้ว ระบบจะดำเนินการต่อโดยอัตโนมัติ"}
+            </p>
+            <Link href="/" className={`${styles.secondary} cp-focus`}>
+              กลับไปแผนที่
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
   const subject = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
-  return <PrivacyContent key={subject} signedIn={subject !== "guest"} />;
+  return (
+    <PrivacyContent
+      key={subject}
+      signedIn={subject !== "guest"}
+      onAccepted={setOutcome}
+    />
+  );
 }
 
-function PrivacyContent({ signedIn }: { signedIn: boolean }) {
+function PrivacyContent({
+  signedIn,
+  onAccepted,
+}: {
+  signedIn: boolean;
+  onAccepted: (state: "completed" | "processing") => void;
+}) {
   const auth = useAuth();
   const alive = useRef(true);
   useEffect(() => {
@@ -30,7 +71,6 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
   const [action, setAction] = useState<"delete" | "signin" | null>(null);
   const busy = action !== null;
   const [loadError, setLoadError] = useState("");
-  const [message, setMessage] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [revision, retry] = useState(0);
@@ -61,28 +101,17 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
     setNeedsSignIn(false);
     setAction("delete");
     setError("");
-    setMessage("");
     try {
       const submitted = await api.requestDeletion({
         confirmation: "ลบบัญชี",
         acknowledges_retention: true,
       });
       if (!alive.current) return;
-      setStatus((previous) =>
-        previous
-          ? {
-              ...previous,
-              requests: [
-                submitted,
-                ...previous.requests.filter((row) => row.id !== submitted.id),
-              ],
-            }
-          : previous,
-      );
-      setConfirmation("");
-      setAcknowledged(false);
-      retry((v) => v + 1);
-      setMessage("รับคำขอลบบัญชีแล้ว ยังไม่ได้ลบข้อมูลหรือบัญชี");
+      clearAccountData(true);
+      onAccepted(submitted.status === "completed" ? "completed" : "processing");
+      // Auth has already been removed (or blocked pending retry). Clear the
+      // local session even when the remote logout endpoint no longer accepts it.
+      await auth.signOut({ localOnly: true }).catch(() => undefined);
     } catch (e) {
       if (alive.current) {
         setNeedsSignIn(
@@ -104,7 +133,7 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
     setAction("signin");
     setError("");
     try {
-      await auth.signInWithGoogle();
+      await auth.signInWithGoogle("/settings/privacy");
     } catch (e) {
       if (alive.current)
         setError(apiErrorMessage(e, "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่"));
@@ -209,7 +238,7 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
               <AppIcon name="user" size={21} />
               <h3 id="account-delete-title">คำขอลบบัญชี</h3>
             </div>
-            <p>การส่งคำขอยังไม่ลบบัญชีทันที</p>
+            <p>ลบบัญชีและข้อมูลตั้งค่าส่วนตัว การดำเนินการนี้ย้อนกลับไม่ได้</p>
             {pending ? (
               <div className={styles.pending} role="status">
                 <AppIcon name="clock" size={20} />
@@ -218,13 +247,9 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
                     รับคำขอแล้ว ·{" "}
                     {pending.status === "processing"
                       ? "อยู่ระหว่างดำเนินการ"
-                      : "รอตรวจยืนยัน"}
+                      : "กำลังดำเนินการ"}
                   </strong>
-                  <p>
-                    {message.startsWith("รับคำขอลบบัญชีแล้ว")
-                      ? message
-                      : "บัญชีและข้อมูลยังไม่ได้ถูกลบ"}
-                  </p>
+                  <p>ระบบจะดำเนินการต่อโดยอัตโนมัติ</p>
                 </div>
               </div>
             ) : (
@@ -234,7 +259,8 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
                 </summary>
                 <form onSubmit={request}>
                   <p className={styles.note}>
-                    ประวัติคะแนนและข้อมูลการตรวจสอบบางส่วนอาจต้องเก็บตามนโยบาย
+                    รายงานและประวัติคะแนนจะปิดบังตัวตน
+                    ส่วนหลักฐานการตรวจสอบเก็บตามนโยบายเดิม
                   </p>
                   <label>
                     พิมพ์ “ลบบัญชี” เพื่อยืนยัน
@@ -254,8 +280,8 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
                       onChange={(e) => setAcknowledged(e.target.checked)}
                     />
                     <span>
-                      รับทราบว่าบัญชียังไม่ถูกลบทันที
-                      และข้อมูลบางส่วนอาจต้องเก็บตามนโยบาย
+                      รับทราบว่ากู้คืนบัญชีไม่ได้
+                      และรายงานกับหลักฐานบางส่วนจะเก็บตามนโยบายโดยไม่แสดงตัวตน
                     </span>
                   </label>
                   <button
@@ -291,12 +317,6 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
               </button>
             )}
           </div>
-        </div>
-      )}
-      {message && !(pending && message.startsWith("รับคำขอลบบัญชีแล้ว")) && (
-        <div className={styles.feedback} role="status">
-          <AppIcon name="check" size={20} />
-          <p>{message}</p>
         </div>
       )}
       <Link href="/privacy" className={`${styles.policy} cp-focus`}>
