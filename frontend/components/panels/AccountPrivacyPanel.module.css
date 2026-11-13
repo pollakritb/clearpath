@@ -1,64 +1,140 @@
 .panel {
   display: grid;
-  gap: 12px;
+  gap: 20px;
   color: var(--cp-ink);
   overflow-wrap: anywhere;
+  padding: 0 2px 20px;
 }
-.panel h2,
 .panel h3,
 .panel p {
   margin: 0;
 }
-.panel h2 {
-  font-size: 20px;
-  line-height: 1.5;
-}
 .panel h3 {
   font-size: 16px;
   line-height: 1.5;
+  font-weight: 650;
 }
 .panel p {
   color: var(--cp-subink);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.7;
 }
-.panel section {
-  display: grid;
-  gap: 12px;
-  border-top: 1px solid var(--cp-line);
-  padding-top: 16px;
-  margin-top: 8px;
-}
-.panel a,
-.panel summary {
-  display: flex;
+.back {
+  display: inline-flex;
   align-items: center;
+  gap: 6px;
+  justify-self: start;
   min-height: 44px;
   color: var(--cp-teal);
+  text-decoration: none;
   font-size: 14px;
-  cursor: pointer;
+}
+.notice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  background: white;
+}
+.notice > svg {
+  flex: none;
+  color: var(--cp-teal);
+  margin-top: 3px;
+}
+.notice > div {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.section {
+  display: grid;
+  gap: 12px;
+}
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sectionTitle > svg {
+  color: var(--cp-teal);
+  flex: none;
+}
+.panel .note {
+  font-size: 13px;
 }
 .panel button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 48px;
-  padding: 10px 14px;
-  border: 1px solid var(--cp-teal);
+  padding: 11px 14px;
+  border: 1px solid transparent;
   border-radius: 12px;
-  background: var(--cp-panel);
-  color: var(--cp-teal);
-  font: inherit;
+  font: 600 14px/1.5 var(--font-sans);
   cursor: pointer;
 }
-.panel button:hover {
+.panel .primary {
+  background: var(--cp-teal);
+  color: white;
+}
+.panel .primary:hover {
+  background: #085f59;
+}
+.panel .secondary {
+  background: white;
+  color: var(--cp-teal);
+  border-color: #a4c5bc;
+}
+.panel .secondary:hover {
   background: var(--cp-teal-soft);
+}
+.panel .textButton {
+  padding: 8px 0;
+  justify-content: flex-start;
+  background: transparent;
+  color: var(--cp-teal);
+  text-align: left;
 }
 .panel button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
+.deleteDetails {
+  border: 1px solid #e1cbc6;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.deleteDetails summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 48px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #954336;
+  cursor: pointer;
+  list-style: none;
+}
+.deleteDetails summary::-webkit-details-marker {
+  display: none;
+}
+.deleteDetails[open] summary {
+  border-bottom: 1px solid #e1cbc6;
+}
+.deleteDetails[open] summary > svg {
+  transform: rotate(90deg);
+}
 .panel form {
   display: grid;
-  gap: 12px;
-  margin-top: 12px;
+  gap: 16px;
+  padding: 16px;
+  background: white;
 }
 .panel label {
   display: grid;
@@ -70,10 +146,11 @@
   min-height: 48px;
   min-width: 0;
   width: 100%;
-  border: 1px solid var(--cp-line);
+  box-sizing: border-box;
+  border: 1px solid #a8bcb5;
   border-radius: 10px;
-  padding: 10px;
-  background: var(--cp-panel);
+  padding: 10px 12px;
+  background: white;
   color: var(--cp-ink);
   font: inherit;
 }
@@ -84,12 +161,73 @@
 .panel .check {
   display: flex;
   align-items: flex-start;
+  gap: 10px;
   min-height: 44px;
-  padding-block: 8px;
 }
 .check input {
   flex: none;
   width: 22px;
   height: 22px;
+  margin: 2px 0 0;
   accent-color: var(--cp-teal);
+}
+.panel .danger {
+  background: #954336;
+  color: white;
+}
+.panel .danger:hover {
+  background: #793529;
+}
+.pending,
+.feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #e9f4ef;
+  color: #245b4b;
+}
+.pending > svg,
+.feedback > svg {
+  flex: none;
+  margin-top: 2px;
+}
+.pending strong {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.pending p {
+  margin-top: 4px;
+}
+.failure {
+  background: #fff4ef;
+  border-color: #e1cbc6;
+  color: #954336;
+}
+.failure p {
+  color: #7e4539;
+}
+.policy {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: 44px;
+  color: var(--cp-teal);
+  font-size: 13px;
+  text-underline-offset: 3px;
+}
+.feedback button {
+  margin-top: 12px;
+}
+@media (forced-colors: active) {
+  .notice,
+  .deleteDetails,
+  .pending,
+  .feedback {
+    border: 1px solid CanvasText;
+  }
+  .panel button {
+    border: 1px solid ButtonText;
+  }
 }

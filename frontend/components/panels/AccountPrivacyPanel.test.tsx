@@ -1,5 +1,4 @@
 import {
-  act,
   cleanup,
   fireEvent,
   render,
@@ -9,109 +8,157 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   subject: "owner",
+  loading: false,
+  signin: vi.fn(),
   status: vi.fn(),
-  export: vi.fn(),
   remove: vi.fn(),
 }));
 vi.mock("@/frontend/components/auth/AuthProvider", () => ({
   useAuth: () => ({
-    user: { id: mocks.subject },
+    user: mocks.subject ? { id: mocks.subject } : null,
+    loading: mocks.loading,
     localDemo: false,
-    signInWithGoogle: vi.fn(),
+    signInWithGoogle: mocks.signin,
   }),
 }));
-vi.mock("@/frontend/lib/api-client", () => ({
-  api: {
-    accountPrivacy: mocks.status,
-    accountExport: mocks.export,
-    requestDeletion: mocks.remove,
-  },
-  apiErrorMessage: (_error: unknown, fallback: string) => fallback,
+vi.mock("@/frontend/lib/api-client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/frontend/lib/api-client")>()),
+  api: { accountPrivacy: mocks.status, requestDeletion: mocks.remove },
 }));
 import AccountPrivacyPanel from "./AccountPrivacyPanel";
+import { ApiError } from "@/frontend/lib/api-client";
 const status = {
   enabled: true,
   requests: [],
-  export_sections: ["reports", "points"],
+  export_sections: ["reports"],
   automatic_deletion: false,
 };
 beforeEach(() => {
   mocks.subject = "owner";
+  mocks.loading = false;
   mocks.status.mockReset().mockResolvedValue(status);
-  mocks.export.mockReset();
   mocks.remove.mockReset();
+  mocks.signin.mockReset().mockResolvedValue(undefined);
 });
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
-it("does not create a partial download when a later section fails", async () => {
-  const click = vi
-    .spyOn(HTMLAnchorElement.prototype, "click")
-    .mockImplementation(() => {});
-  mocks.export
-    .mockResolvedValueOnce({ items: [{ id: "mine" }], next_offset: null })
-    .mockRejectedValueOnce(new Error("timeout"));
+afterEach(cleanup);
+it("only presents the deletion action without export or an upfront reauthentication prompt", async () => {
   render(<AccountPrivacyPanel />);
-  fireEvent.click(
-    await screen.findByRole("button", { name: "ดาวน์โหลดข้อมูล JSON" }),
-  );
-  await screen.findByText(/ไม่มีการบันทึกไฟล์ที่ไม่ครบ/);
-  expect(click).not.toHaveBeenCalled();
+  await screen.findByText("ส่งคำขอลบบัญชี", { selector: "summary" });
+  expect(screen.queryByText(/ดาวน์โหลด/)).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "ยืนยันตัวตนด้วย Google" }),
+  ).toBeNull();
+  expect(screen.queryByText(/ประวัติคำขอ/)).toBeNull();
 });
-it("abandons the previous account export when the account changes", async () => {
-  const click = vi
-    .spyOn(HTMLAnchorElement.prototype, "click")
-    .mockImplementation(() => {});
-  let finish!: (data: unknown) => void;
-  mocks.export.mockImplementation(
-    () =>
-      new Promise((resolve) => {
-        finish = resolve;
-      }),
-  );
-  const view = render(<AccountPrivacyPanel />);
-  fireEvent.click(
-    await screen.findByRole("button", { name: "ดาวน์โหลดข้อมูล JSON" }),
-  );
-  mocks.subject = "another-owner";
-  view.rerender(<AccountPrivacyPanel />);
-  await act(async () =>
-    finish({ items: [{ id: "old-owner-private-data" }], next_offset: null }),
-  );
-  expect(mocks.export).toHaveBeenCalledTimes(1);
-  expect(click).not.toHaveBeenCalled();
+it("explains disabled deletion and can refresh availability", async () => {
+  mocks.status.mockResolvedValueOnce({ ...status, enabled: false });
+  render(<AccountPrivacyPanel />);
+  await screen.findByText("การส่งคำขอลบบัญชียังไม่เปิดใช้งาน");
+  expect(
+    screen.queryByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
+  ).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "ตรวจสอบสถานะอีกครั้ง" }));
+  await screen.findByText("ส่งคำขอลบบัญชี", { selector: "summary" });
 });
-it("requires both confirmations and displays pending rather than completed deletion", async () => {
+it("lets a guest sign in without querying account data", async () => {
+  mocks.subject = "";
+  render(<AccountPrivacyPanel />);
+  expect(mocks.status).not.toHaveBeenCalled();
+  fireEvent.click(
+    screen.getByRole("button", { name: "เข้าสู่ระบบด้วย Google" }),
+  );
+  await waitFor(() => expect(mocks.signin).toHaveBeenCalledOnce());
+});
+it("offers retry after a status failure", async () => {
+  mocks.status.mockRejectedValueOnce(new Error("offline"));
+  render(<AccountPrivacyPanel />);
+  await screen.findByText("ยังโหลดข้อมูลบัญชีไม่ได้");
+  fireEvent.click(screen.getByRole("button", { name: "ลองโหลดใหม่" }));
+  await screen.findByText("ส่งคำขอลบบัญชี", { selector: "summary" });
+});
+it("does not offer sign in before identity loading ends", () => {
+  mocks.subject = "";
+  mocks.loading = true;
+  render(<AccountPrivacyPanel />);
+  expect(screen.getByText("กำลังตรวจสอบบัญชี")).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: "เข้าสู่ระบบด้วย Google" }),
+  ).toBeNull();
+});
+async function confirm() {
+  fireEvent.click(
+    await screen.findByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
+  );
+  fireEvent.change(screen.getByRole("textbox"), {
+    target: { value: "ลบบัญชี" },
+  });
+  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: "ยืนยันส่งคำขอ" }));
+}
+it("requires both confirmations and shows a pending request rather than claiming deletion", async () => {
+  const row = {
+    id: "r1",
+    status: "pending",
+    created_at: "2026-01-01",
+    completed_at: null,
+  };
   mocks.remove.mockImplementation(async () => {
-    mocks.status.mockResolvedValue({
-      ...status,
-      requests: [
-        {
-          id: "request1",
-          status: "pending",
-          created_at: "2026-01-01",
-          completed_at: null,
-        },
-      ],
-    });
-    return { id: "request1", status: "pending" };
+    mocks.status.mockResolvedValue({ ...status, requests: [row] });
+    return row;
   });
   render(<AccountPrivacyPanel />);
   fireEvent.click(
     await screen.findByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
   );
-  const submit = screen.getByRole("button", { name: "ยืนยันส่งคำขอ" });
-  expect((submit as HTMLButtonElement).disabled).toBe(true);
+  const button = screen.getByRole("button", {
+    name: "ยืนยันส่งคำขอ",
+  }) as HTMLButtonElement;
+  expect(button.disabled).toBe(true);
   fireEvent.change(screen.getByRole("textbox"), {
     target: { value: "ลบบัญชี" },
   });
-  expect((submit as HTMLButtonElement).disabled).toBe(true);
+  expect(button.disabled).toBe(true);
   fireEvent.click(screen.getByRole("checkbox"));
-  fireEvent.click(submit);
-  await waitFor(() => expect(mocks.remove).toHaveBeenCalledOnce());
+  fireEvent.click(button);
   await screen.findByText(/รับคำขอแล้ว ·/);
+  expect(mocks.remove).toHaveBeenCalledExactlyOnceWith({
+    confirmation: "ลบบัญชี",
+    acknowledges_retention: true,
+  });
   expect(
     screen.getByText("รับคำขอลบบัญชีแล้ว ยังไม่ได้ลบข้อมูลหรือบัญชี"),
   ).toBeTruthy();
+  expect(
+    screen.queryByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
+  ).toBeNull();
+});
+it("only offers reauthentication when the deletion endpoint requires it", async () => {
+  mocks.remove.mockRejectedValueOnce(
+    new ApiError("กรุณาเข้าสู่ระบบใหม่ก่อนจัดการข้อมูลบัญชี", 403),
+  );
+  render(<AccountPrivacyPanel />);
+  await confirm();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "ยืนยันตัวตนด้วย Google" }),
+  );
+  await waitFor(() => expect(mocks.signin).toHaveBeenCalledOnce());
+  expect(mocks.remove).toHaveBeenCalledTimes(1);
+});
+it("does not show another deletion form while processing", async () => {
+  mocks.status.mockResolvedValue({
+    ...status,
+    requests: [
+      {
+        id: "r1",
+        status: "processing",
+        created_at: "2026-01-01",
+        completed_at: null,
+      },
+    ],
+  });
+  render(<AccountPrivacyPanel />);
+  await screen.findByText(/รับคำขอแล้ว · อยู่ระหว่างดำเนินการ/);
+  expect(
+    screen.queryByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
+  ).toBeNull();
 });

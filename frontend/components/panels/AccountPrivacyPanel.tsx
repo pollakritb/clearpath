@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import AppIcon from "@/frontend/components/ui/AppIcon";
 import SettingsLink from "@/frontend/components/app/SettingsLink";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
-import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import { api, ApiError, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { AccountPrivacyStatus } from "@/frontend/types/account-privacy";
 import styles from "./AccountPrivacyPanel.module.css";
 
@@ -24,7 +26,10 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
   }, []);
   const [status, setStatus] = useState<AccountPrivacyStatus | null>(null);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [action, setAction] = useState<"delete" | "signin" | null>(null);
+  const busy = action !== null;
+  const [loadError, setLoadError] = useState("");
   const [message, setMessage] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
@@ -37,176 +42,207 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
       .then((data) => {
         if (active) {
           setStatus(data);
-          setError("");
+          setLoadError("");
         }
       })
       .catch((e) => {
-        if (active) setError(apiErrorMessage(e, "โหลดการจัดการบัญชีไม่สำเร็จ"));
+        if (active)
+          setLoadError(apiErrorMessage(e, "โหลดการจัดการบัญชีไม่สำเร็จ"));
       });
     return () => {
       active = false;
     };
   }, [signedIn, revision]);
 
-  async function download() {
-    if (!status || busy) return;
-    setBusy(true);
-    setError("");
-    setMessage("");
-    try {
-      const sections: Record<string, unknown[]> = {};
-      for (const section of status.export_sections) {
-        const items: unknown[] = [];
-        let offset: number | null = 0;
-        for (let page = 0; offset !== null; page++) {
-          if (page >= 100) throw new Error("export limit");
-          const result = await api.accountExport(section, offset);
-          if (!alive.current) return;
-          items.push(...result.items);
-          if (result.next_offset !== null && result.next_offset <= offset)
-            throw new Error("export cursor");
-          offset = result.next_offset;
-        }
-        sections[section] = items;
-      }
-      if (!alive.current) return;
-      const blob = new Blob(
-        [
-          JSON.stringify(
-            {
-              generated_at: new Date().toISOString(),
-              scope:
-                "structured_activity_without_media_binaries_or_other_users",
-              sections,
-            },
-            null,
-            2,
-          ),
-        ],
-        { type: "application/json" },
-      );
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = "clearpath-my-activity.json";
-      anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setMessage("ดาวน์โหลดข้อมูลกิจกรรมแล้ว ไฟล์นี้มีข้อมูลส่วนตัวของคุณ");
-    } catch (e) {
-      setError(
-        apiErrorMessage(
-          e,
-          "ดาวน์โหลดไม่สำเร็จ กรุณาลองใหม่ ไม่มีการบันทึกไฟล์ที่ไม่ครบ",
-        ),
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
   async function request(event: React.FormEvent) {
     event.preventDefault();
     if (busy || confirmation !== "ลบบัญชี" || !acknowledged) return;
-    setBusy(true);
+    if (!status?.enabled || pending) return;
+    setNeedsSignIn(false);
+    setAction("delete");
     setError("");
     setMessage("");
     try {
-      await api.requestDeletion({
+      const submitted = await api.requestDeletion({
         confirmation: "ลบบัญชี",
         acknowledges_retention: true,
       });
+      if (!alive.current) return;
+      setStatus((previous) =>
+        previous
+          ? {
+              ...previous,
+              requests: [
+                submitted,
+                ...previous.requests.filter((row) => row.id !== submitted.id),
+              ],
+            }
+          : previous,
+      );
       setConfirmation("");
       setAcknowledged(false);
       retry((v) => v + 1);
       setMessage("รับคำขอลบบัญชีแล้ว ยังไม่ได้ลบข้อมูลหรือบัญชี");
     } catch (e) {
-      setError(apiErrorMessage(e, "ส่งคำขอไม่สำเร็จ กรุณาลองใหม่"));
+      if (alive.current) {
+        setNeedsSignIn(
+          e instanceof ApiError &&
+            e.status === 403 &&
+            e.message === "กรุณาเข้าสู่ระบบใหม่ก่อนจัดการข้อมูลบัญชี",
+        );
+        setError(apiErrorMessage(e, "ส่งคำขอไม่สำเร็จ กรุณาลองใหม่"));
+      }
     } finally {
-      setBusy(false);
+      if (alive.current) setAction(null);
     }
   }
   const pending = status?.requests.find(
     (r) => r.status === "pending" || r.status === "processing",
   );
+  async function signIn() {
+    if (busy) return;
+    setAction("signin");
+    setError("");
+    try {
+      await auth.signInWithGoogle();
+    } catch (e) {
+      if (alive.current)
+        setError(apiErrorMessage(e, "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่"));
+    } finally {
+      if (alive.current) setAction(null);
+    }
+  }
+
   return (
     <section
       className={styles.panel}
       aria-label="จัดการข้อมูลบัญชี"
-      data-glass-surface="reading"
+      aria-busy={busy}
     >
       <SettingsLink
         href="/settings"
         replace
         data-safe-back
-        className="cp-focus"
+        className={`${styles.back} cp-focus`}
       >
-        ← กลับไปการตั้งค่า
+        <AppIcon name="back" size={18} /> กลับไปการตั้งค่า
       </SettingsLink>
-      <h2>ข้อมูลบัญชีของคุณ</h2>
-      <p>
-        ดาวน์โหลดข้อมูลกิจกรรมหรือส่งคำขอลบบัญชี โดยเข้าสู่ระบบใหม่ก่อนทำรายการ
-      </p>
-      {signedIn && (
-        <button
-          type="button"
-          className="cp-focus"
-          disabled={busy}
-          onClick={() =>
-            void auth
-              .signInWithGoogle()
-              .catch((e) =>
-                setError(apiErrorMessage(e, "เข้าสู่ระบบไม่สำเร็จ")),
-              )
-          }
-        >
-          ยืนยันตัวตนด้วย Google
-        </button>
-      )}
-      {!signedIn ? (
-        <p>กรุณาเข้าสู่ระบบก่อนจัดการข้อมูลบัญชี</p>
+
+      {auth.loading ? (
+        <div className={styles.notice} role="status">
+          <AppIcon name="clock" size={20} />
+          <div>
+            <h3>กำลังตรวจสอบบัญชี</h3>
+            <p>รอสักครู่เพื่อแสดงรายการที่คุณจัดการได้</p>
+          </div>
+        </div>
+      ) : !signedIn ? (
+        <div className={styles.notice}>
+          <AppIcon name="user" size={22} />
+          <div>
+            <h3>เข้าสู่ระบบเพื่อจัดการบัญชี</h3>
+            <p>ใช้บัญชี Google ที่คุณใช้กับ ClearPath</p>
+            <button
+              type="button"
+              className={`${styles.primary} cp-focus`}
+              disabled={busy}
+              onClick={() => void signIn()}
+            >
+              {action === "signin"
+                ? "กำลังเข้าสู่ระบบ…"
+                : "เข้าสู่ระบบด้วย Google"}
+            </button>
+          </div>
+        </div>
+      ) : loadError ? (
+        <div className={`${styles.notice} ${styles.failure}`} role="alert">
+          <AppIcon name="alert" size={22} />
+          <div>
+            <h3>ยังโหลดข้อมูลบัญชีไม่ได้</h3>
+            <p>{loadError}</p>
+            <button
+              type="button"
+              className={`${styles.secondary} cp-focus`}
+              disabled={busy}
+              onClick={() => {
+                setLoadError("");
+                retry((v) => v + 1);
+              }}
+            >
+              ลองโหลดใหม่
+            </button>
+          </div>
+        </div>
       ) : !status ? (
-        <p role="status">{error ? "ยังโหลดข้อมูลไม่ได้" : "กำลังโหลด…"}</p>
+        <div className={styles.notice} role="status">
+          <AppIcon name="clock" size={22} />
+          <div>
+            <h3>กำลังโหลดข้อมูลบัญชี</h3>
+            <p>กำลังตรวจสอบบริการและคำขอของคุณ</p>
+          </div>
+        </div>
       ) : !status.enabled ? (
-        <p>การจัดการข้อมูลบัญชียังไม่เปิดใช้งาน</p>
+        <div className={styles.notice} role="status">
+          <AppIcon name="info" size={22} />
+          <div>
+            <h3>การส่งคำขอลบบัญชียังไม่เปิดใช้งาน</h3>
+            <p>คุณยังใช้งานบัญชีได้ตามปกติ</p>
+            <button
+              type="button"
+              className={`${styles.textButton} cp-focus`}
+              onClick={() => {
+                setStatus(null);
+                retry((v) => v + 1);
+              }}
+            >
+              <AppIcon name="refresh" size={16} /> ตรวจสอบสถานะอีกครั้ง
+            </button>
+          </div>
+        </div>
       ) : (
         <>
-          <section>
-            <h3>ดาวน์โหลดข้อมูลกิจกรรม</h3>
-            <p>
-              ไฟล์ JSON ของรายงาน คะแนน พื้นที่ที่บันทึก คำขอ ความคิดเห็น
-              และแจ้งเตือนของคุณ ไม่รวมไฟล์รูปภาพหรือข้อมูลผู้ใช้อื่น
-            </p>
-            <button
-              className="cp-focus"
-              type="button"
-              disabled={busy}
-              onClick={() => void download()}
-            >
-              {busy ? "กำลังดำเนินการ…" : "ดาวน์โหลดข้อมูล JSON"}
-            </button>
-          </section>
-          <section>
-            <h3>คำขอลบบัญชี</h3>
-            <p>
-              การส่งคำขอยังไม่ลบบัญชีทันที ต้องตรวจยืนยันตัวตนและข้อมูล
-              audit/คะแนนที่ต้องเก็บตามนโยบายก่อนดำเนินการ
-            </p>
+          <section
+            className={styles.section}
+            aria-labelledby="account-delete-title"
+          >
+            <div className={styles.sectionTitle}>
+              <AppIcon name="user" size={21} />
+              <h3 id="account-delete-title">คำขอลบบัญชี</h3>
+            </div>
+            <p>การส่งคำขอยังไม่ลบบัญชีทันที</p>
             {pending ? (
-              <p role="status">
-                รับคำขอแล้ว ·{" "}
-                {pending.status === "processing"
-                  ? "อยู่ระหว่างดำเนินการ"
-                  : "รอตรวจยืนยัน"}
-              </p>
+              <div className={styles.pending} role="status">
+                <AppIcon name="clock" size={20} />
+                <div>
+                  <strong>
+                    รับคำขอแล้ว ·{" "}
+                    {pending.status === "processing"
+                      ? "อยู่ระหว่างดำเนินการ"
+                      : "รอตรวจยืนยัน"}
+                  </strong>
+                  <p>
+                    {message.startsWith("รับคำขอลบบัญชีแล้ว")
+                      ? message
+                      : "บัญชีและข้อมูลยังไม่ได้ถูกลบ"}
+                  </p>
+                </div>
+              </div>
             ) : (
-              <details>
-                <summary className="cp-focus">ส่งคำขอลบบัญชี</summary>
+              <details className={styles.deleteDetails}>
+                <summary className="cp-focus">
+                  ส่งคำขอลบบัญชี <AppIcon name="chevron" size={18} />
+                </summary>
                 <form onSubmit={request}>
+                  <p className={styles.note}>
+                    ประวัติคะแนนและข้อมูลการตรวจสอบบางส่วนอาจต้องเก็บตามนโยบาย
+                  </p>
                   <label>
                     พิมพ์ “ลบบัญชี” เพื่อยืนยัน
                     <input
                       value={confirmation}
                       name="confirmation"
                       autoComplete="off"
+                      disabled={busy}
                       onChange={(e) => setConfirmation(e.target.value)}
                     />
                   </label>
@@ -214,19 +250,22 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
                     <input
                       type="checkbox"
                       checked={acknowledged}
+                      disabled={busy}
                       onChange={(e) => setAcknowledged(e.target.checked)}
                     />
-                    รับทราบว่าคำขอยังไม่ใช่การลบเสร็จ และอาจต้องเก็บข้อมูล audit
-                    ตามนโยบาย
+                    <span>
+                      รับทราบว่าบัญชียังไม่ถูกลบทันที
+                      และข้อมูลบางส่วนอาจต้องเก็บตามนโยบาย
+                    </span>
                   </label>
                   <button
                     type="submit"
-                    className="cp-focus"
+                    className={`${styles.danger} cp-focus`}
                     disabled={
                       busy || !acknowledged || confirmation !== "ลบบัญชี"
                     }
                   >
-                    ยืนยันส่งคำขอ
+                    {action === "delete" ? "กำลังส่งคำขอ…" : "ยืนยันส่งคำขอ"}
                   </button>
                 </form>
               </details>
@@ -235,19 +274,34 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
         </>
       )}
       {error && (
-        <div role="alert">
-          <p>{error}</p>
-          <button
-            type="button"
-            className="cp-focus"
-            disabled={busy}
-            onClick={() => retry((v) => v + 1)}
-          >
-            ลองโหลดใหม่
-          </button>
+        <div className={`${styles.feedback} ${styles.failure}`} role="alert">
+          <AppIcon name="alert" size={20} />
+          <div>
+            <p>{error}</p>
+            {needsSignIn && (
+              <button
+                type="button"
+                className={`${styles.secondary} cp-focus`}
+                disabled={busy}
+                onClick={() => void signIn()}
+              >
+                {action === "signin"
+                  ? "กำลังเข้าสู่ระบบ…"
+                  : "ยืนยันตัวตนด้วย Google"}
+              </button>
+            )}
+          </div>
         </div>
       )}
-      {message && <p role="status">{message}</p>}
+      {message && !(pending && message.startsWith("รับคำขอลบบัญชีแล้ว")) && (
+        <div className={styles.feedback} role="status">
+          <AppIcon name="check" size={20} />
+          <p>{message}</p>
+        </div>
+      )}
+      <Link href="/privacy" className={`${styles.policy} cp-focus`}>
+        นโยบายความเป็นส่วนตัว
+      </Link>
     </section>
   );
 }

@@ -14,7 +14,15 @@ export default function SettingsPageClient({
     <UserPageShell
       tab="settings"
       icon="settings"
-      header={{ showDataStatus: false }}
+      header={{
+        showDataStatus: false,
+        ...(section === "privacy"
+          ? {
+              title: "ข้อมูลบัญชี",
+              description: "คำขอลบบัญชี",
+            }
+          : {}),
+      }}
     >
       <SettingsPanel section={section} />
     </UserPageShell>
