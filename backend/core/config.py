@@ -1,5 +1,7 @@
 """Centralized settings (อ่านจาก env / .env.local)."""
 
+from datetime import datetime
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -94,6 +96,8 @@ class Settings(BaseSettings):
     line_durable_delivery_enabled: bool = False
     line_requests_per_second: int = 5
     line_monthly_message_cap: int = 0
+    # Optional exclusive UTC cutoff for a time-bounded hosting trial.
+    line_delivery_until: datetime | None = None
     line_messaging_enabled: bool = False
     line_channel_secret: str = ""
     line_channel_access_token: str = ""

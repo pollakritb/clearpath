@@ -100,3 +100,83 @@ def test_worker_health_http_is_local_and_does_not_expose_secrets():
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_delivery_cutoff_is_exclusive_and_timezone_independent(monkeypatch):
+    from datetime import UTC, datetime
+
+    from backend.core.line_window import delivery_window_open
+
+    monkeypatch.setattr(
+        settings,
+        "line_delivery_until",
+        datetime.fromisoformat("2026-11-21T00:00:00+07:00"),
+    )
+    assert delivery_window_open(datetime(2026, 11, 20, 16, 59, 59, tzinfo=UTC))
+    assert not delivery_window_open(datetime(2026, 11, 20, 17, tzinfo=UTC))
+    assert not delivery_window_open(datetime(2026, 11, 21, tzinfo=UTC))
+    monkeypatch.setattr(settings, "line_delivery_until", None)
+    assert delivery_window_open(datetime(2030, 1, 1, tzinfo=UTC))
+
+
+def test_provider_blocks_even_reserved_or_legacy_sends_after_deadline(monkeypatch):
+    from datetime import UTC, datetime
+
+    import pytest
+
+    from backend.services import line_messaging
+
+    monkeypatch.setattr(
+        settings, "line_delivery_until", datetime(2000, 1, 1, tzinfo=UTC)
+    )
+    monkeypatch.setattr(
+        line_messaging.httpx,
+        "post",
+        lambda *a, **k: pytest.fail("Expired trial sent LINE"),
+    )
+    for reserved in (False, True):
+        with pytest.raises(line_messaging.LineProviderError) as error:
+            line_messaging._post("unused", {}, budget_reserved=reserved)
+        assert not error.value.attempted
+        assert not error.value.retryable
+
+
+def test_production_diagnostics_requires_cron_auth(monkeypatch):
+    import pytest
+    from fastapi import HTTPException
+
+    from backend.routers.cron import line_delivery_status
+
+    monkeypatch.setattr(settings, "local_demo_mode", False)
+    monkeypatch.setattr(settings, "cron_secret", "private")
+    monkeypatch.setattr(settings, "supabase_cron_secret", "other")
+    with pytest.raises(HTTPException) as error:
+        line_delivery_status(None)
+    assert error.value.status_code == 401
+    monkeypatch.setattr(line, "probe", lambda: {"database_ready": True})
+    assert line_delivery_status("Bearer private") == {"database_ready": True}
+
+
+def test_expired_worker_does_not_claim_or_prune(monkeypatch):
+    import sys
+    from datetime import UTC, datetime
+
+    import pytest
+
+    monkeypatch.setattr(
+        settings, "line_delivery_until", datetime(2000, 1, 1, tzinfo=UTC)
+    )
+    monkeypatch.setattr(settings, "line_durable_delivery_enabled", True)
+    monkeypatch.setattr(settings, "local_demo_mode", False)
+    monkeypatch.setattr(sys, "argv", ["worker", "--once"])
+    monkeypatch.setattr(line.signal, "signal", lambda *a: None)
+    monkeypatch.setattr(
+        line.store_client, "get_client", lambda: pytest.fail("Expired worker used DB")
+    )
+    monkeypatch.setattr(
+        line.line_delivery, "process_inbox", lambda *a: pytest.fail("Claimed inbox")
+    )
+    monkeypatch.setattr(
+        line.line_delivery, "process_outbox", lambda *a: pytest.fail("Claimed outbox")
+    )
+    line.main()

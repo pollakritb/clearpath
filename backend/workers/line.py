@@ -15,6 +15,7 @@ from threading import Thread
 import httpx
 
 from backend.core.config import settings
+from backend.core.line_window import delivery_window_open
 from backend.services import air_alerts, line_delivery, store_client
 
 log = logging.getLogger("clearpath.line_worker")
@@ -26,6 +27,13 @@ def probe() -> dict:
     result = {
         "database_ready": isinstance(metrics, dict),
         "durable_enabled": settings.line_durable_delivery_enabled,
+        "delivery_window_open": delivery_window_open(),
+        "delivery_until": settings.line_delivery_until.isoformat()
+        if settings.line_delivery_until
+        else None,
+        "monthly_cap": settings.line_monthly_message_cap,
+        "messaging_enabled": settings.line_messaging_enabled,
+        "push_enabled": settings.push_enabled,
         "line_token_present": bool(settings.line_channel_access_token),
         "pending": metrics.get("pending", 0),
         "webhook_pending": metrics.get("webhook_pending", 0),
@@ -146,6 +154,15 @@ def main() -> None:
                     break
                 time.sleep(0.1)
             continue
+        if not delivery_window_open():
+            # Stay healthy while the independent stop workflow scales to zero.
+            # Never claim jobs after the deadline, even if cron is delayed.
+            health.ready = True
+            health.last_success = time.monotonic()
+            if args.once:
+                break
+            time.sleep(1)
+            continue
         # Independent stages: a source/database failure must not starve replies
         # or previously persisted deliveries in another queue.
         for name, operation in (
@@ -153,7 +170,7 @@ def main() -> None:
             (
                 "evaluation",
                 lambda: (
-                    air_alerts.evaluate_batch(25)
+                    air_alerts.evaluate_batch(1)
                     if settings.push_enabled
                     else {"disabled": True}
                 ),

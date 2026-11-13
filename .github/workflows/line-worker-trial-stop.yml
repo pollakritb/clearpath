@@ -1,0 +1,26 @@
+name: Stop bounded LINE worker trial
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Repeated and date-guarded: delayed scheduled runs are safe. The runtime
+    # itself blocks delivery at the exact deadline independently of this job.
+    - cron: "7,22,37,52 * 20,21 11 *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: line-worker-trial-stop
+  cancel-in-progress: false
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop only after November 20 ends in Bangkok
+        env:
+          VERCEL_LINE_WORKER_TOKEN: ${{ secrets.VERCEL_LINE_WORKER_TOKEN }}
+        run: python3 scripts/stop_line_trial.py

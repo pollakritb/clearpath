@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["sin1"],
+  "regions": [
+    "sin1"
+  ],
   "functions": {
     "api/index.py": {
       "includeFiles": "backend/**",
@@ -23,7 +25,6 @@
         "python",
         "-m",
         "backend.workers.line",
-        "--probe",
         "--health-port",
         "8080"
       ],

@@ -28,3 +28,27 @@ Do not enable production durable webhook/LINE delivery on the assumption that an
 5. Keep `LINE_DURABLE_DELIVERY_ENABLED` unchanged. Enable actual queue consumers only after the LINE quota and continuous hosting decision are settled, with the existing canary/cutover runbook.
 
 References: [Vercel Daemons](https://vercel.com/docs/daemons), [configuration](https://vercel.com/docs/daemons/config-reference), [Hobby quotas](https://vercel.com/docs/daemons/limits).
+
+## Bounded November 2026 trial
+
+The user authorized operation through November 20 (Bangkok). Set
+`LINE_DELIVERY_UNTIL=2026-11-20T17:00:00Z` (exclusive), one `sin1` instance at
+1 GiB, and a positive `LINE_MONTHLY_MESSAGE_CAP` no larger than the provider's
+remaining included messages at activation. Do not upgrade the Hobby plan.
+
+Before activation, call `/api/cron/line-delivery-status` with the existing
+server cron bearer token. This read-only endpoint returns aggregate queue
+readiness and whitelisted LINE quota/consumption fields, never recipient IDs or
+credentials. Anonymous calls must return 401.
+
+The shared provider adapter blocks all sends at the cutoff, including cron and
+already-reserved requests; the worker stops claiming jobs. A GitHub scheduled
+workflow repeats the idempotent scale-to-zero request on November 20–21 using
+the project deployment token stored as `VERCEL_LINE_WORKER_TOKEN`. Scheduled
+GitHub runs can be delayed: the application cutoff does not depend on them.
+The checked-in instance default stays zero so deployments cannot accidentally
+restart the trial after its end. Scaling overrides persist across deployments.
+
+At activation, verify provider HTTP 200, remaining quota, durable queue health,
+and an alive daemon instance. Record the effective cap and release in the
+private deployment evidence. No diagnostic endpoint sends a test message.

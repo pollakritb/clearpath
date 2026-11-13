@@ -265,3 +265,12 @@ async def community_trust_job(
     from ..services.community.community_trust import reconcile
 
     return await run_in_threadpool(reconcile, after)
+
+
+@router.get("/cron/line-delivery-status")
+def line_delivery_status(authorization: str | None = Header(default=None)):
+    """Server-only aggregate readiness and provider quota; never send or claim."""
+    _verify_cron(authorization)
+    from ..workers.line import probe
+
+    return probe()

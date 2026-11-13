@@ -17,6 +17,7 @@ from ..algorithms.line_security import (
 )
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
+from ..core.line_window import delivery_window_open
 from . import supabase_client
 
 LINE_REPLY_URL = "https://api.line.me/v2/bot/message/reply"
@@ -84,6 +85,10 @@ def _post(
     *,
     budget_reserved: bool = False,
 ) -> str | None:
+    if not delivery_window_open():
+        raise LineProviderError(
+            "line_delivery_window_closed", retryable=False, attempted=False
+        )
     try:
         headers = _headers()
         if not budget_reserved:
