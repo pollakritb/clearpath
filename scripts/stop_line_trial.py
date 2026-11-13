@@ -10,7 +10,8 @@ PROJECT = "prj_LBBUoNxhDIIWfpqvXirlzWR1DrVO"
 
 
 def main() -> None:
-    if datetime.now(UTC) < DEADLINE:
+    now = datetime.now(UTC)
+    if now.year != DEADLINE.year or now < DEADLINE:
         print("Trial remains within the authorized window; no change")
         return
     token = os.environ["VERCEL_LINE_WORKER_TOKEN"]
