@@ -1,5 +1,4 @@
 import MapBottomSheet from "./MapBottomSheet";
-import SettingsLink from "@/frontend/components/app/SettingsLink";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { AQI_LEGEND } from "@/frontend/lib/aqi";
@@ -177,10 +176,6 @@ export default function MapLayersPanel({
           <AppIcon name={viewMode === "map" ? "menu" : "map"} size={19} />
           {viewMode === "map" ? "ดูรายการสถานี" : "กลับไปแผนที่"}
         </button>
-        <SettingsLink href="/settings" className="cp-focus">
-          <AppIcon name="settings" size={19} />
-          การตั้งค่า
-        </SettingsLink>
       </div>
     </MapBottomSheet>
   );

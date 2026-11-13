@@ -37,13 +37,6 @@ export default function AdminOverview({
             log เท่านั้น
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => onNavigate("reports")}
-          className="cp-admin-button cp-focus"
-        >
-          เปิดประวัติรายงาน
-        </button>
       </div>
 
       {error && (

@@ -14,6 +14,16 @@ test("demo user report shows evidence and opens its photo in-page", async ({
     .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
     .press("End");
   await expect(card.getByText("หลักฐานและการตรวจวัด")).toBeVisible();
+  await expect(
+    card.getByRole("link", {
+      name: /ดูรายงานนี้ในชุมชน|ดูสถานีชุมชนในเครือข่าย/,
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("navigation", { name: "เมนูหลักบนมือถือ" })
+      .getByRole("link", { name: "ข่าวสาร", exact: true }),
+  ).toBeVisible();
   await card
     .locator("summary")
     .filter({ hasText: "ข้อมูลเครื่องวัดและการตรวจข้อมูล" })

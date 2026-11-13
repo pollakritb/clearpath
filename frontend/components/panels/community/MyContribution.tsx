@@ -75,10 +75,6 @@ export default function MyContribution({
       <p className="cp-xp-note">ประวัติล่าสุดสูงสุด 50 รายงาน</p>
       <header className="cp-contribution-heading">
         <h2>รายงานล่าสุด</h2>
-        <Link href="/report" className="cp-focus">
-          <AppIcon name="report" size={17} />
-          ส่งรายงาน
-        </Link>
       </header>
       {profile.reports.length === 0 ? (
         <div className="cp-participation-empty">

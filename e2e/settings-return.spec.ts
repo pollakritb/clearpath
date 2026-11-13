@@ -45,13 +45,30 @@ for (const origin of ["/", "/air", "/report", "/community", "/requests"]) {
   });
 }
 
-test("settings opened from map layers returns to the map", async ({ page }) => {
+test("layers offer the station list while settings remain accessible from profile", async ({
+  page,
+}) => {
   await page.goto("/");
   await page
     .getByRole("button", { name: "เลือกข้อมูลที่แสดงบนแผนที่", exact: true })
     .click();
+  const layers = page.getByRole("region", {
+    name: "เลือกข้อมูลที่แสดงบนแผนที่",
+    exact: true,
+  });
+  await expect(
+    layers.getByRole("link", { name: "การตั้งค่า", exact: true }),
+  ).toHaveCount(0);
+  await layers
+    .getByRole("button", { name: "ดูรายการสถานี", exact: true })
+    .click();
   await page
-    .getByRole("region", { name: "เลือกข้อมูลที่แสดงบนแผนที่", exact: true })
+    .locator(".cp-list-view")
+    .getByRole("button", { name: "กลับไปแผนที่", exact: true })
+    .click();
+  await page.getByRole("button", { name: "เปิดโปรไฟล์", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "โปรไฟล์", exact: true })
     .getByRole("link", { name: "การตั้งค่า", exact: true })
     .click();
   const close = page.getByRole("link", { name: "ปิดการตั้งค่า", exact: true });

@@ -14,7 +14,6 @@ import {
 } from "@/frontend/lib/station-display";
 import panel from "./MapPanel.module.css";
 
-import Link from "next/link";
 import SettingsLink from "@/frontend/components/app/SettingsLink";
 
 import ReportEvidencePanel from "@/frontend/components/community/ReportEvidencePanel";
@@ -472,20 +471,6 @@ export default function MapStatusCard({
             report.image_url && evidenceImage === report.image_url,
           )}
         />
-      )}
-
-      {!station && (
-        <Link
-          href="/community"
-          className="cp-map-selection-card__action cp-focus"
-        >
-          <span>
-            {source === "sensor"
-              ? "ดูสถานีชุมชนในเครือข่าย"
-              : "ดูรายงานนี้ในชุมชน"}
-          </span>
-          <AppIcon name="chevron" size={19} />
-        </Link>
       )}
     </MapBottomSheet>
   );
