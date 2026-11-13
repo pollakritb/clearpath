@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import SettingsLink from "@/frontend/components/app/SettingsLink";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import styles from "@/frontend/styles/mobile-refinements.module.css";
@@ -22,10 +22,15 @@ export default function SettingsPanel({
       <section
         className={`cp-settings-page cp-section-enter ${styles.settings}`}
       >
-        <Link href="/settings" className="cp-settings-back cp-focus">
+        <SettingsLink
+          href="/settings"
+          replace
+          data-safe-back
+          className="cp-settings-back cp-focus"
+        >
           <AppIcon name="back" size={18} />
           กลับไปการตั้งค่า
-        </Link>
+        </SettingsLink>
         <div className="cp-settings-page__heading">
           <div>
             <h2>การแจ้งเตือน</h2>
@@ -40,7 +45,10 @@ export default function SettingsPanel({
 
   return (
     <section className={`cp-settings-page cp-section-enter ${styles.settings}`}>
-      <Link href="/settings/notifications" className="cp-settings-row cp-focus">
+      <SettingsLink
+        href="/settings/notifications"
+        className="cp-settings-row cp-focus"
+      >
         <span className="cp-settings-row__icon" aria-hidden="true">
           <AppIcon name="alert" size={20} />
         </span>
@@ -49,9 +57,12 @@ export default function SettingsPanel({
           <small>ช่องทาง ระดับฝุ่น และพื้นที่รับคำขอ</small>
         </span>
         <AppIcon name="chevron" size={18} />
-      </Link>
+      </SettingsLink>
 
-      <Link href="/settings/privacy" className="cp-settings-row cp-focus">
+      <SettingsLink
+        href="/settings/privacy"
+        className="cp-settings-row cp-focus"
+      >
         <span className="cp-settings-row__icon" aria-hidden="true">
           <AppIcon name="shield" size={20} />
         </span>
@@ -60,7 +71,7 @@ export default function SettingsPanel({
           <small>ดาวน์โหลดข้อมูลกิจกรรมและคำขอลบบัญชี</small>
         </span>
         <AppIcon name="chevron" size={18} />
-      </Link>
+      </SettingsLink>
 
       <section className="cp-settings-permissions" aria-label="สิทธิ์อุปกรณ์">
         <span aria-hidden="true">

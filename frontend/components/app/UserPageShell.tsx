@@ -25,6 +25,7 @@ interface HeaderState {
   onRefresh?: () => void;
   showDataStatus?: boolean;
   settingsCloseHref?: string;
+  settingsCloseFallback?: string;
 }
 
 interface UserPageShellProps {
@@ -87,6 +88,7 @@ export default function UserPageShell({
             onRefresh={header.onRefresh}
             showDataStatus={header.showDataStatus ?? false}
             settingsCloseHref={header.settingsCloseHref}
+            settingsCloseFallback={header.settingsCloseFallback}
           />
         }
       >

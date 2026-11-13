@@ -23,6 +23,7 @@ const eslintConfig = defineConfig([
     ".playwright-mcp/**",
     "playwright-report/**",
     "test-results/**",
+    "output/playwright/**",
     "docs/eval/**",
     ".forecast-reset-backups/**",
     "data/private/**",

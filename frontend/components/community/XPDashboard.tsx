@@ -1,7 +1,7 @@
 "use client";
 import CommunityTrustCard from "@/frontend/components/community/CommunityTrustCard";
 import { useCallback, useState } from "react";
-import Link from "next/link";
+import SettingsLink from "@/frontend/components/app/SettingsLink";
 import {
   useAuth,
   useCurrentUserId,
@@ -427,13 +427,13 @@ export default function XPDashboard({
                       {Array.from(user.alias)[0]}
                       <RankEmblem rank={user.title} decorative />
                     </span>
-                    <Link
+                    <SettingsLink
                       className="cp-xp-person cp-focus"
                       href={`/members/${user.member_id}`}
                     >
                       <strong>{user.alias}</strong>
                       <ParticipationBadge rank={user.title} />
-                    </Link>
+                    </SettingsLink>
                     <span>
                       {user.xp.toLocaleString()}
                       <small>คะแนน</small>

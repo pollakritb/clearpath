@@ -280,6 +280,11 @@ test("helper opens reporting from a request and can return to decline without ow
   await expect(
     page.getByRole("button", { name: "ช่วยรายงานค่าฝุ่น", exact: true }),
   ).toHaveCount(0);
+  // Returning from reporting must not create a detail/report Back loop.
+  await page.getByRole("link", { name: "← กลับ", exact: true }).click();
+  await expect(page).toHaveURL(/\/requests$/);
+  await page.getByRole("link", { name: "← กลับ", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("direct request detail Back stays inside the app through list and map fallbacks", async ({

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import SettingsCloseLink from "@/frontend/components/app/SettingsCloseLink";
 import styles from "@/frontend/styles/mobile-refinements.module.css";
 import AccountMenu from "@/frontend/components/auth/AccountMenu";
 
@@ -22,6 +22,7 @@ interface HeaderProps {
   onRefresh?: () => void;
   showDataStatus?: boolean;
   settingsCloseHref?: string;
+  settingsCloseFallback?: string;
 }
 
 function fmtTime(iso: string | null): string {
@@ -48,7 +49,8 @@ export default function Header({
   error,
   onRefresh,
   showDataStatus = true,
-  settingsCloseHref = "/air",
+  settingsCloseHref,
+  settingsCloseFallback,
 }: HeaderProps) {
   const freshCount =
     currentCount ?? Math.max(0, stationCount - delayedCount - expiredCount);
@@ -74,16 +76,10 @@ export default function Header({
             </button>
           )}
           {theme === "settings" ? (
-            <Link
+            <SettingsCloseLink
               href={settingsCloseHref}
-              replace
-              data-safe-back
-              className="cp-icon-button cp-focus"
-              aria-label="ปิดการตั้งค่า"
-              title="ปิดการตั้งค่า"
-            >
-              <AppIcon name="close" size={18} />
-            </Link>
+              fallback={settingsCloseFallback}
+            />
           ) : (
             <AccountMenu />
           )}

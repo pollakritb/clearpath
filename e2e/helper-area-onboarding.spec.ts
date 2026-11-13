@@ -274,7 +274,7 @@ test("saved helper areas edit, pause, resume, keep/delete and retry with working
     page.getByRole("button", { name: "เพิ่มพื้นที่รับคำขอ", exact: true }),
   ).toBeVisible();
   await page.getByRole("link", { name: "กลับไปการตั้งค่า" }).click();
-  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page).toHaveURL(/\/settings(?:\?returnTo=[^#]*)?$/);
 });
 
 test("existing helper areas still receive the first intro and settings load failures offer retry", async ({
@@ -349,7 +349,9 @@ test("existing helper areas still receive the first intro and settings load fail
   await page
     .getByRole("link", { name: "กลับไปการแจ้งเตือน", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/settings\/notifications$/);
+  await expect(page).toHaveURL(
+    /\/settings\/notifications(?:\?returnTo=[^#]*)?$/,
+  );
 });
 
 test("a three-day reminder returns on the next map visit and can be dismissed permanently", async ({

@@ -1,5 +1,6 @@
 "use client";
 import BrandMark from "@/frontend/components/ui/BrandMark";
+import AccountMenu from "@/frontend/components/auth/AccountMenu";
 
 import { useEffect, useState } from "react";
 
@@ -79,34 +80,27 @@ export default function MapChrome({
 
   return (
     <>
-      <div className="cp-map-topbar" aria-label="ข้อมูลแผนที่ ClearPath">
-        <div aria-hidden className="cp-map-topbar__mark">
-          <BrandMark />
-        </div>
-        <div className="cp-map-topbar__copy">
-          <strong>ClearPath</strong>
-          <small>คุณภาพอากาศทั่วไทย</small>
-        </div>
-        <span className="cp-map-topbar__count">
-          {camsEnabled ? (
-            "CAMS"
-          ) : (
-            <>
-              {stationCount + individualReportCount} <small>จุดข้อมูล</small>
-            </>
-          )}
-        </span>
-        {demoMode && <span className="cp-map-demo-badge">ข้อมูลจำลอง</span>}
+      <div className="cp-map-topbar" aria-label="ค้นหาและบัญชี ClearPath">
+        <button
+          type="button"
+          className="cp-map-search-trigger cp-focus"
+          aria-label="ค้นหาสถานที่หรือสถานี"
+          aria-expanded={openPanel === "search"}
+          aria-controls="cp-map-search-panel"
+          onClick={() => togglePanel("search")}
+        >
+          <span aria-hidden="true" className="cp-map-topbar__mark">
+            <BrandMark />
+          </span>
+          <span className="cp-map-search-trigger__copy">
+            <span>ค้นหาสถานที่หรือสถานี</span>
+            {demoMode && <small>ข้อมูลจำลอง</small>}
+          </span>
+        </button>
+        <AccountMenu />
       </div>
 
       <div className="cp-map-actions" aria-label="เครื่องมือแผนที่">
-        <MapAction
-          icon="search"
-          label="ค้นหาสถานที่หรือสถานี"
-          panelId="cp-map-search-panel"
-          active={openPanel === "search"}
-          onClick={() => togglePanel("search")}
-        />
         <MapAction
           icon="layers"
           label="เลือกข้อมูลที่แสดงบนแผนที่"

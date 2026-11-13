@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { submitUnreadableReport } from "./support/community-report";
 
 const pages = [
-  { path: "/", text: "คุณภาพอากาศทั่วไทย" },
+  { path: "/", text: "ค้นหาสถานที่หรือสถานี" },
   { path: "/air", text: "อากาศวันนี้" },
   { path: "/report", text: "ส่งรายงานค่าฝุ่น" },
   { path: "/community", text: "ข่าวสารล่าสุด" },
@@ -192,7 +192,7 @@ test("profile leaderboard shows monthly contribution independently of Trust", as
   await expect(entry).toContainText(/42\s*คะแนน/);
   await expect(entry.getByRole("link")).toHaveAttribute(
     "href",
-    "/members/MBR-000001",
+    "/members/MBR-000001?returnTo=%2Fprofile%3Ftab%3Dleaderboard",
   );
   await expect(entry.getByText(/Trust|ความน่าเชื่อถือ/i)).toHaveCount(0);
   await expectNoHorizontalPageOverflow(page);
@@ -208,13 +208,13 @@ test("header opens the account menu and dedicated settings page", async ({
   await page.getByRole("button", { name: "เปิดโปรไฟล์" }).click();
   const menu = page.getByRole("navigation", { name: "เมนูบัญชี" });
   await menu.getByRole("link", { name: "การตั้งค่า", exact: true }).click();
-  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page).toHaveURL(/\/settings\?returnTo=%2Fair$/);
   await expect(
     page.getByRole("region", { name: "สิทธิ์อุปกรณ์" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: /การแจ้งเตือน.*ช่องทาง/ }),
-  ).toHaveAttribute("href", "/settings/notifications");
+  ).toHaveAttribute("href", "/settings/notifications?returnTo=%2Fair");
 });
 
 test("news page prioritizes announcements and moves settings elsewhere", async ({

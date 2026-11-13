@@ -1,5 +1,6 @@
+import SignOutButton from "@/frontend/components/auth/SignOutButton";
 import BrandMark from "@/frontend/components/ui/BrandMark";
-import Link from "next/link";
+import ReturnToLink from "@/frontend/components/app/ReturnToLink";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
@@ -37,9 +38,9 @@ export default function AdminAccessGate() {
           >
             ตรวจสอบสิทธิ์อีกครั้ง
           </button>
-          <Link href="/air" className="cp-admin-back-link cp-focus">
-            กลับหน้าวันนี้
-          </Link>
+          <ReturnToLink fallback="/" className="cp-admin-back-link cp-focus">
+            กลับพื้นที่ผู้ใช้
+          </ReturnToLink>
         </div>
       </main>
     );
@@ -71,9 +72,9 @@ export default function AdminAccessGate() {
           >
             เข้าสู่ระบบด้วย Google
           </button>
-          <Link href="/" className="cp-admin-back-link cp-focus">
+          <ReturnToLink fallback="/" className="cp-admin-back-link cp-focus">
             <AppIcon name="back" size={17} /> กลับไปยังพื้นที่ผู้ใช้งาน
-          </Link>
+          </ReturnToLink>
         </div>
       </main>
     );
@@ -92,16 +93,10 @@ export default function AdminAccessGate() {
             หากต้องรับผิดชอบการดูแลระบบและ audit log
           </p>
           <div className="cp-admin-gate__actions">
-            <Link href="/" className="cp-admin-back-link cp-focus">
+            <ReturnToLink fallback="/" className="cp-admin-back-link cp-focus">
               กลับพื้นที่ผู้ใช้
-            </Link>
-            <button
-              type="button"
-              className="cp-admin-signout cp-focus"
-              onClick={() => void auth.signOut()}
-            >
-              ออกจากระบบ
-            </button>
+            </ReturnToLink>
+            <SignOutButton className="cp-admin-signout cp-focus" />
           </div>
         </div>
       </main>

@@ -18,7 +18,16 @@ export default function RequestContext({ requestId }: { requestId: string }) {
     loaded?.account === account && loaded.requestId === requestId
       ? loaded.row
       : null;
-  const [error, setError] = useState("");
+  const [failure, setFailure] = useState<{
+    account: string;
+    requestId: string;
+    message: string;
+  } | null>(null);
+  const error =
+    failure?.account === account && failure.requestId === requestId
+      ? failure.message
+      : "";
+  const [attempt, retry] = useState(0);
   useEffect(() => {
     if (auth.loading || !signedIn) return;
     let active = true;
@@ -28,12 +37,17 @@ export default function RequestContext({ requestId }: { requestId: string }) {
         if (active) setLoaded({ account, requestId, row: r });
       })
       .catch((e) => {
-        if (active) setError(apiErrorMessage(e, "โหลดคำขอไม่สำเร็จ"));
+        if (active)
+          setFailure({
+            account,
+            requestId,
+            message: apiErrorMessage(e, "โหลดคำขอไม่สำเร็จ"),
+          });
       });
     return () => {
       active = false;
     };
-  }, [requestId, account, signedIn, auth.loading]);
+  }, [requestId, account, signedIn, auth.loading, attempt]);
   return (
     <aside className="cp-measure-card">
       {row ? (
@@ -78,12 +92,33 @@ export default function RequestContext({ requestId }: { requestId: string }) {
               ? "ระบบใช้เวลาและ GPS ของภาพตรวจพื้นที่อัตโนมัติ ไม่ต้องกรอกเพิ่ม"
               : "คำขอนี้ยังไม่เปิดรับหรือสิ้นสุดแล้ว รายงานยังส่งเข้าชุมชนตามปกติได้"}
           </small>
-          <Link href={`/requests/${row.id}`} className="cp-measure-link">
+          <Link
+            href={`/requests/${row.id}`}
+            replace
+            data-safe-back
+            className="cp-measure-link"
+          >
             ดูสถานะคำขอ
           </Link>
         </>
+      ) : !auth.loading && !signedIn ? (
+        <p>เข้าสู่ระบบเพื่อดูรายละเอียดคำขอ</p>
       ) : (
-        <p role={error ? "alert" : "status"}>{error || "กำลังโหลดคำขอ…"}</p>
+        <div>
+          <p role={error ? "alert" : "status"}>{error || "กำลังโหลดคำขอ…"}</p>
+          {error && (
+            <button
+              type="button"
+              className="cp-focus"
+              onClick={() => {
+                setFailure(null);
+                retry((value) => value + 1);
+              }}
+            >
+              ลองโหลดรายละเอียดคำขออีกครั้ง
+            </button>
+          )}
+        </div>
       )}
     </aside>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import SourceBadge from "@/frontend/components/ui/SourceBadge";
@@ -20,6 +20,10 @@ export default function ListView({
   onSelectStation: (s: Station) => void;
   onClose?: () => void;
 }) {
+  const back = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    back.current?.focus();
+  }, []);
   const [sort, setSort] = useState<Sort>("low");
 
   const sorted = [...stations]
@@ -69,6 +73,7 @@ export default function ListView({
         <button
           type="button"
           className="cp-focus cp-list-back"
+          ref={back}
           onClick={onClose}
         >
           <AppIcon name="back" size={18} /> กลับไปแผนที่

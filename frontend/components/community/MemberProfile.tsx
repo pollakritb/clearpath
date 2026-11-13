@@ -1,28 +1,41 @@
 "use client";
 import CommunityTrustCard from "@/frontend/components/community/CommunityTrustCard";
 import { useEffect, useState } from "react";
-import SafeBackButton from "@/frontend/components/app/SafeBackButton";
+import ReturnToLink from "@/frontend/components/app/ReturnToLink";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { PublicMember } from "@/frontend/types/xp";
 import ParticipationBadge from "./ParticipationBadge";
 export default function MemberProfile({ memberId }: { memberId: string }) {
-  const [member, setMember] = useState<PublicMember | null>(null);
-  const [error, setError] = useState("");
+  const [loaded, setLoaded] = useState<{
+    id: string;
+    member: PublicMember;
+  } | null>(null);
+  const [failure, setFailure] = useState<{
+    id: string;
+    message: string;
+  } | null>(null);
+  const [attempt, retry] = useState(0);
+  const member = loaded?.id === memberId ? loaded.member : null;
+  const error = failure?.id === memberId ? failure.message : "";
   useEffect(() => {
     let active = true;
     void api
       .publicMember(memberId)
       .then((r) => {
-        if (active) setMember(r);
+        if (active) setLoaded({ id: memberId, member: r });
       })
       .catch((e) => {
-        if (active) setError(apiErrorMessage(e, "โหลดสมาชิกไม่สำเร็จ"));
+        if (active)
+          setFailure({
+            id: memberId,
+            message: apiErrorMessage(e, "โหลดสมาชิกไม่สำเร็จ"),
+          });
       });
     return () => {
       active = false;
     };
-  }, [memberId]);
+  }, [memberId, attempt]);
   return (
     <UserPageShell
       tab="settings"
@@ -31,10 +44,13 @@ export default function MemberProfile({ memberId }: { memberId: string }) {
         title: "สมาชิกชุมชน",
         description: "ผลงานและเสียงประเมินการรายงานจากชุมชน",
         showDataStatus: false,
+        settingsCloseFallback: "/profile?tab=leaderboard",
       }}
     >
       <section className="cp-xp">
-        <SafeBackButton fallback="/profile?tab=leaderboard" />
+        <ReturnToLink fallback="/profile?tab=leaderboard" className="cp-focus">
+          ← กลับ
+        </ReturnToLink>
         {member ? (
           <div className="cp-xp-profile">
             <h2>{member.alias}</h2>
@@ -80,7 +96,23 @@ export default function MemberProfile({ memberId }: { memberId: string }) {
             </p>
           </div>
         ) : (
-          <p role={error ? "alert" : "status"}>{error || "กำลังโหลดสมาชิก…"}</p>
+          <div>
+            <p role={error ? "alert" : "status"}>
+              {error || "กำลังโหลดสมาชิก…"}
+            </p>
+            {error && (
+              <button
+                type="button"
+                className="cp-focus"
+                onClick={() => {
+                  setFailure(null);
+                  retry((value) => value + 1);
+                }}
+              >
+                ลองโหลดสมาชิกอีกครั้ง
+              </button>
+            )}
+          </div>
         )}
       </section>
     </UserPageShell>

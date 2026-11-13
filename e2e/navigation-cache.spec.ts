@@ -13,9 +13,9 @@ test("switching tabs reuses recent public data without reloading it", async ({
   });
 
   await page.goto("/");
-  await expect(page.locator(".cp-map-topbar__count")).toContainText(
-    "จุดข้อมูล",
-  );
+  await expect(
+    page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี", exact: true }),
+  ).toBeVisible();
   await expect.poll(() => counts.pm25).toBe(1);
   await expect.poll(() => counts.reports).toBe(1);
   await expect.poll(() => counts.mapPoints).toBe(0);
@@ -25,9 +25,9 @@ test("switching tabs reuses recent public data without reloading it", async ({
   await expect(page).toHaveURL(/\/air$/);
   await navigation.getByRole("link", { name: "แผนที่" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.locator(".cp-map-topbar__count")).toContainText(
-    "จุดข้อมูล",
-  );
+  await expect(
+    page.getByRole("button", { name: "ค้นหาสถานที่หรือสถานี", exact: true }),
+  ).toBeVisible();
   expect(counts.pm25).toBe(1);
   expect(counts.reports).toBe(1);
   expect(counts.mapPoints).toBe(0);

@@ -34,7 +34,13 @@ export default function ProfilePanel({ tab = "overview" }: { tab?: string }) {
             type="button"
             onClick={() => {
               setVisited((previous) => new Set([...previous, value]));
-              window.history.replaceState(null, "", `/profile?tab=${value}`);
+              const url = new URL(window.location.href);
+              url.searchParams.set("tab", value);
+              window.history.replaceState(
+                window.history.state,
+                "",
+                url.pathname + url.search,
+              );
             }}
             aria-pressed={selected === value}
             className="cp-focus"

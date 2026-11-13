@@ -1499,3 +1499,19 @@
 .cp-admin-gate__mark--brand {
   background: transparent;
 }
+
+/* Keep sign-out recovery readable without widening the mobile top bar. */
+.cp-admin-topbar__actions .cp-signout-control {
+  position: relative;
+  flex: none;
+}
+.cp-admin-topbar__actions .cp-signout-error {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(240px, calc(100cqw - 32px));
+  padding: 10px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 4px 16px #163f3720;
+}

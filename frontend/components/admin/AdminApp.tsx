@@ -1,6 +1,7 @@
 "use client";
+import SignOutButton from "@/frontend/components/auth/SignOutButton";
 
-import Link from "next/link";
+import ReturnToLink from "@/frontend/components/app/ReturnToLink";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
@@ -173,23 +174,17 @@ export default function AdminApp() {
             <h1>{copy.title}</h1>
           </div>
           <div className="cp-admin-topbar__actions">
-            <Link
-              href="/"
+            <ReturnToLink
+              fallback="/"
               className="cp-admin-topbar__home cp-focus"
-              aria-label="กลับไปหน้าแผนที่"
+              aria-label="กลับไปหน้าก่อนหน้า"
             >
-              <AppIcon name="map" size={19} />
-            </Link>
+              <AppIcon name="back" size={19} />
+            </ReturnToLink>
             <span className="cp-admin-role-pill">
               <AppIcon name="shield" size={15} /> {auth.role}
             </span>
-            <button
-              type="button"
-              className="cp-admin-signout cp-focus"
-              onClick={() => void auth.signOut()}
-            >
-              ออกจากระบบ
-            </button>
+            <SignOutButton className="cp-admin-signout cp-focus" />
           </div>
         </header>
 

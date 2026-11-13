@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import SettingsLink from "@/frontend/components/app/SettingsLink";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import HelperSettings from "./HelperSettings";
@@ -16,11 +16,11 @@ export default function HelperAreasPage({ requestId }: { requestId?: string }) {
         showDataStatus: false,
         title: "พื้นที่รับคำขอ",
         description: "บ้าน ที่ทำงาน และจุดที่พร้อมช่วยวัด",
-        settingsCloseHref: returnHref,
+        settingsCloseHref: requestId ? returnHref : undefined,
       }}
     >
       <section className="cp-settings-page cp-helper-areas-page">
-        <Link
+        <SettingsLink
           href={returnHref}
           replace
           data-safe-back
@@ -28,7 +28,7 @@ export default function HelperAreasPage({ requestId }: { requestId?: string }) {
         >
           <AppIcon name="back" size={18} />
           {requestId ? "กลับไปคำขอของฉัน" : "กลับไปการแจ้งเตือน"}
-        </Link>
+        </SettingsLink>
         <h1>ช่วยวัดให้คนใกล้คุณ</h1>
         <p>รับคำขอจากคนใกล้บ้านหรือที่ทำงาน เมื่อคุณพร้อมช่วยวัด</p>
         <HelperSettings />

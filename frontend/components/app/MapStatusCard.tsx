@@ -15,6 +15,7 @@ import {
 import panel from "./MapPanel.module.css";
 
 import Link from "next/link";
+import SettingsLink from "@/frontend/components/app/SettingsLink";
 
 import ReportEvidencePanel from "@/frontend/components/community/ReportEvidencePanel";
 import ReportEngagement from "@/frontend/components/community/ReportEngagement";
@@ -420,9 +421,9 @@ export default function MapStatusCard({
               <strong>
                 {showReporterProfile ? (
                   report.member_id ? (
-                    <Link href={`/members/${report.member_id}`}>
+                    <SettingsLink href={`/members/${report.member_id}`}>
                       {report.display_name ?? "สมาชิกชุมชน"}
-                    </Link>
+                    </SettingsLink>
                   ) : (
                     (report.display_name ?? "สมาชิกชุมชน")
                   )

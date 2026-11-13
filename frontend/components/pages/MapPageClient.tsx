@@ -428,7 +428,7 @@ export default function MapPageClient(options: MapPageOptions) {
         }}
       />
       <HelperAreaIntro active={active} />
-      {requestStep === "idle" && (
+      {requestStep === "idle" && viewMode === "map" && (
         <button
           type="button"
           className="cp-map-request-button cp-focus"
@@ -437,7 +437,7 @@ export default function MapPageClient(options: MapPageOptions) {
           <AppIcon name="community" size={18} /> ขอค่าฝุ่น
         </button>
       )}
-      {requestStep !== "search" && (
+      {requestStep !== "search" && viewMode === "map" && (
         <MapChrome
           camsEnabled={camsEnabled}
           onToggleCams={() => {
@@ -532,7 +532,7 @@ export default function MapPageClient(options: MapPageOptions) {
           }}
         />
       )}
-      {requestStep === "search" ? (
+      {viewMode === "list" ? null : requestStep === "search" ? (
         <RequestPlaceSearch
           stations={serviceAreaStations}
           userLocation={userLocation}

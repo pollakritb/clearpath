@@ -3,7 +3,7 @@ import ConfirmAction from "@/frontend/components/ui/ConfirmAction";
 import Link from "next/link";
 import SafeBackButton from "@/frontend/components/app/SafeBackButton";
 import HelpRequestButton from "./HelpRequestButton";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
@@ -240,24 +240,35 @@ export default function RequestsPage({
       ];
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const load = useCallback(async () => {
-    if (!signedIn) return;
-    try {
-      const data = requestId
-        ? [await api.measurementRequest(requestId)]
-        : (
-            await (groupId
-              ? api.measurementRequestGroup(groupId)
-              : api.measurementRequests())
-          ).requests;
-      setLoaded({ account, requestId, groupId, rows: data });
-      setError("");
-    } catch (e) {
-      setError(apiErrorMessage(e, "โหลดคำขอไม่สำเร็จ"));
-    } finally {
-      setLoading(false);
-    }
-  }, [requestId, groupId, signedIn, account]);
+  const loadSequence = useRef(0);
+  const load = useCallback(
+    async (showLoading = false) => {
+      if (!signedIn) return;
+      const sequence = ++loadSequence.current;
+      if (showLoading) {
+        setLoading(true);
+        setError("");
+      }
+      try {
+        const data = requestId
+          ? [await api.measurementRequest(requestId)]
+          : (
+              await (groupId
+                ? api.measurementRequestGroup(groupId)
+                : api.measurementRequests())
+            ).requests;
+        if (sequence !== loadSequence.current) return;
+        setLoaded({ account, requestId, groupId, rows: data });
+        setError("");
+      } catch (e) {
+        if (sequence === loadSequence.current)
+          setError(apiErrorMessage(e, "โหลดคำขอไม่สำเร็จ"));
+      } finally {
+        if (sequence === loadSequence.current) setLoading(false);
+      }
+    },
+    [requestId, groupId, signedIn, account],
+  );
   useEffect(() => {
     let alive = true;
     const refresh = () => {
@@ -268,6 +279,7 @@ export default function RequestsPage({
     document.addEventListener("visibilitychange", refresh);
     return () => {
       alive = false;
+      loadSequence.current += 1;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", refresh);
     };
@@ -320,7 +332,18 @@ export default function RequestsPage({
               </div>
             )}
             {loading && <p role="status">กำลังโหลดคำขอ…</p>}
-            {error && <p role="alert">{error}</p>}
+            {error && (
+              <div role="alert">
+                <p>{error}</p>
+                <button
+                  type="button"
+                  className="cp-focus"
+                  onClick={() => void load(true)}
+                >
+                  ลองโหลดคำขออีกครั้ง
+                </button>
+              </div>
+            )}
             {groups.map((group) => (
               <section
                 key={group.label ?? "detail"}

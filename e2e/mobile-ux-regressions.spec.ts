@@ -547,10 +547,9 @@ test("secondary mobile targets retain 44px sizing across shared stylesheets", as
     .boundingBox();
   expect(back!.width).toBeGreaterThanOrEqual(44);
   expect(back!.height).toBeGreaterThanOrEqual(44);
-  const grip = await page
-    .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง", exact: true })
-    .boundingBox();
-  expect(grip!.height).toBeGreaterThanOrEqual(44);
+  await expect(
+    page.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง", exact: true }),
+  ).toHaveCount(0);
   await page.goto("/admin");
   const signout = page.getByRole("button", { name: "ออกจากระบบ", exact: true });
   await expect(signout).toBeVisible();

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import SettingsLink from "@/frontend/components/app/SettingsLink";
 import { useEffect, useId, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
@@ -118,22 +118,22 @@ export default function AccountMenu() {
             </div>
           )}
           <nav aria-label="เมนูบัญชี" className="cp-account-dialog__links">
-            <Link href="/profile" onClick={close} className="cp-focus">
+            <SettingsLink href="/profile" onClick={close} className="cp-focus">
               <AppIcon name="community" size={20} />
               <span>ผลงานและอันดับ</span>
               <AppIcon name="chevron" size={17} />
-            </Link>
-            <Link href="/settings" onClick={close} className="cp-focus">
+            </SettingsLink>
+            <SettingsLink href="/settings" onClick={close} className="cp-focus">
               <AppIcon name="settings" size={20} />
               <span>การตั้งค่า</span>
               <AppIcon name="chevron" size={17} />
-            </Link>
+            </SettingsLink>
             {["admin", "moderator"].includes(auth.role) && (
-              <Link href="/admin" onClick={close} className="cp-focus">
+              <SettingsLink href="/admin" onClick={close} className="cp-focus">
                 <AppIcon name="admin" size={20} />
                 <span>ภาพรวมผู้ดูแล</span>
                 <AppIcon name="chevron" size={17} />
-              </Link>
+              </SettingsLink>
             )}
             {auth.user && (
               <button

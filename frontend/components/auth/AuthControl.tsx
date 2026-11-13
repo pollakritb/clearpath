@@ -1,4 +1,5 @@
 "use client";
+import SignOutButton from "@/frontend/components/auth/SignOutButton";
 
 import { useState } from "react";
 
@@ -66,13 +67,7 @@ export default function AuthControl({
             </small>
           </span>
         </span>
-        <button
-          type="button"
-          onClick={() => void auth.signOut()}
-          className="cp-focus"
-        >
-          ออกจากระบบ
-        </button>
+        <SignOutButton className="cp-focus" />
       </div>
     );
   }

@@ -421,6 +421,7 @@ export default function MapSearchPanel({
       label="ค้นหาสถานที่หรือสถานี"
       className="cp-search-sheet"
       initialSnap="full"
+      expandable={false}
       onClose={onClose}
       showClose={false}
       header={searchForm}

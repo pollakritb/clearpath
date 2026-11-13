@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import SettingsLink from "@/frontend/components/app/SettingsLink";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import type { AccountPrivacyStatus } from "@/frontend/types/account-privacy";
@@ -129,9 +129,14 @@ function PrivacyContent({ signedIn }: { signedIn: boolean }) {
   );
   return (
     <section className={styles.panel} aria-label="จัดการข้อมูลบัญชี">
-      <Link href="/settings" className="cp-focus">
+      <SettingsLink
+        href="/settings"
+        replace
+        data-safe-back
+        className="cp-focus"
+      >
         ← กลับไปการตั้งค่า
-      </Link>
+      </SettingsLink>
       <h2>ข้อมูลบัญชีของคุณ</h2>
       <p>
         ดาวน์โหลดข้อมูลกิจกรรมหรือส่งคำขอลบบัญชี โดยเข้าสู่ระบบใหม่ก่อนทำรายการ

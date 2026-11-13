@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import SettingsLink from "@/frontend/components/app/SettingsLink";
 import {
   createContext,
   useCallback,
@@ -129,9 +129,9 @@ export function LoginPromptProvider({
             <h2 id="cp-login-modal-title">{visibleCopy.title}</h2>
             <p id="cp-login-modal-description">{visibleCopy.description}</p>
             <AuthControl compact />
-            <Link href="/settings" onClick={closeLoginPrompt}>
+            <SettingsLink href="/settings" onClick={closeLoginPrompt}>
               จัดการบัญชีและความเป็นส่วนตัว
-            </Link>
+            </SettingsLink>
           </section>
         </dialog>
       )}
