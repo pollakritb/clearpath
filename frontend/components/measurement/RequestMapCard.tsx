@@ -48,7 +48,7 @@ export default function RequestMapCard({
   return (
     <MapBottomSheet
       label="รายละเอียดจุดขอค่าฝุ่น"
-      expandable={false}
+      previewHeight={64}
       className="cp-request-sheet"
       onClose={onClose}
       closeLabel="ปิดจุดขอค่าฝุ่น"

@@ -118,6 +118,7 @@ export default function PlaceAirCard({
   return (
     <MapBottomSheet
       key="place-current"
+      previewHeight={64}
       label={`ค่าฝุ่นรอบ ${place.name}`}
       className={`cp-place-sheet ${styles.panel} ${styles.placePanel}`}
       initialSnap="peek"

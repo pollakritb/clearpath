@@ -170,7 +170,7 @@ it("does not carry counts, selections or a late response into another report", a
   );
 });
 
-it("keeps summary actions in one shared portal and reveals the comment composer", async () => {
+it("opens a readable discussion without focusing the mobile keyboard and preserves drafts", async () => {
   const host = document.createElement("div");
   host.dataset.testid = "summary-actions";
   document.body.append(host);
@@ -189,11 +189,18 @@ it("keeps summary actions in one shared portal and reveals the comment composer"
     await screen.findByText(/โหวตใกล้จุดวัด/);
     const button = screen.getByRole("button", { name: /^ความคิดเห็น/ });
     expect(host.contains(button)).toBe(true);
+    expect(button.getAttribute("data-active")).toBe("false");
     fireEvent.click(button);
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(button.getAttribute("data-active")).toBe("true");
     expect(reveal).toHaveBeenCalledOnce();
     const composer = screen.getByRole("textbox", { name: "เขียนความคิดเห็น" });
-    await waitFor(() => expect(document.activeElement).toBe(composer));
+    const discussion = screen.getByRole("region", {
+      name: "ความคิดเห็นของรายงาน",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(discussion));
     expect(scroll).toHaveBeenCalledWith({ block: "nearest", behavior: "auto" });
+    composer.focus();
     scroll.mockClear();
     fireEvent(window, new Event("resize"));
     await waitFor(() =>
@@ -206,7 +213,13 @@ it("keeps summary actions in one shared portal and reveals the comment composer"
       screen.getByText("ข้อความแนะนำ").closest("details")?.hasAttribute("open"),
     ).toBe(false);
     fireEvent.change(composer, { target: { value: "ข้อความที่ยังไม่ได้ส่ง" } });
-    fireEvent.click(button);
+    expect(
+      screen.getByText(`${"ข้อความที่ยังไม่ได้ส่ง".length}/500`),
+    ).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "ปิดความคิดเห็น" }));
+    expect(button.getAttribute("data-active")).toBe("false");
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(button);
     expect(
       screen.queryByRole("textbox", { name: "เขียนความคิดเห็น" }),
     ).toBeNull();

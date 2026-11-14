@@ -21,7 +21,13 @@ vi.mock("@/frontend/lib/api-client", () => ({
   },
   apiErrorMessage: (_e: unknown, fallback: string) => fallback,
 }));
-const render = renderUI;
+const render = (ui: Parameters<typeof renderUI>[0]) => {
+  const view = renderUI(ui);
+  fireEvent.click(
+    screen.getByRole("button", { name: "เปิดรายละเอียดทั้งหมด" }),
+  );
+  return view;
+};
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 const request = {
@@ -101,23 +107,26 @@ it("starts help straight from the map and opens reporting once the claim succeed
   expect(mocks.claim).toHaveBeenCalledOnce();
 });
 
-it("shows all request information and actions without expanding a sheet", () => {
-  render(
+it("previews a request and reveals its information and actions on expansion", () => {
+  renderUI(
     <RequestMapCard
       request={{ ...request, recipient_count: 2 }}
       now={Date.now()}
       onClose={vi.fn()}
     />,
   );
-  expect(
-    screen.queryByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
-  ).toBeNull();
+  expect(screen.getByRole("region").dataset.snap).toBe("peek");
+  expect(screen.getByRole("region").dataset.preview).toBe("true");
+  expect(screen.queryByRole("button", { name: "ยกเลิกคำขอ" })).toBeNull();
+  fireEvent.click(
+    screen.getByRole("button", { name: "เปิดรายละเอียดทั้งหมด" }),
+  );
   expect(screen.getByText("ส่งคำขอถึงผู้ช่วยวัด 2 คน")).toBeTruthy();
   expect(screen.getByText("ช่วงรับรายงาน · เวลาไทย")).toBeTruthy();
   expect(
     screen.getByRole("button", { name: "ยกเลิกคำขอ" }).closest("[inert]"),
   ).toBeNull();
-  expect(screen.getByRole("region").dataset.snap).toBe("fixed");
+  expect(screen.getByRole("region").dataset.snap).toBe("full");
 });
 
 it("does not offer cancellation after the report window has expired before polling catches up", () => {
@@ -153,7 +162,7 @@ it("does not resume a completed request even if a help claim has time remaining"
   ).toBeNull();
 });
 
-it("links the owner directly to the selected request without expanding the sheet", () => {
+it("links the owner directly to the selected request from the expanded sheet", () => {
   render(
     <RequestMapCard request={request} now={Date.now()} onClose={vi.fn()} />,
   );

@@ -1,0 +1,190 @@
+/* One discussion surface; the composer is the only framed control. */
+.comments.comments {
+  margin-top: 12px;
+  padding: 0 0 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  scroll-margin-block: 12px;
+  outline: none;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.heading h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  color: var(--cp-ink);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.heading h3 span {
+  color: var(--cp-subink);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.heading button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cp-teal);
+  cursor: pointer;
+}
+.heading button:hover {
+  background: var(--cp-teal-soft);
+}
+.comments .composer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  background: white;
+}
+.comments .composer:focus-within {
+  outline: 2px solid var(--cp-teal);
+  outline-offset: 2px;
+}
+.comments .composer textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 144px;
+  field-sizing: content;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: var(--cp-ink);
+  caret-color: var(--cp-teal);
+  font: 400 16px/1.5 var(--font-sans);
+  resize: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.comments .composer textarea::placeholder {
+  color: var(--cp-subink);
+}
+.composeFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: none;
+}
+.counter {
+  display: none;
+  color: var(--cp-subink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.comments .composeFooter button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--cp-teal);
+  color: white;
+  font: 650 14px var(--font-sans);
+  cursor: pointer;
+}
+.comments .composeFooter button span {
+  display: none;
+}
+.comments .composer:focus-within,
+.comments .composer[data-filled="true"] {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 10px;
+}
+.composer:focus-within .composeFooter,
+.composer[data-filled="true"] .composeFooter {
+  width: 100%;
+}
+.composer:focus-within .counter,
+.composer[data-filled="true"] .counter,
+.comments .composer:focus-within button span,
+.comments .composer[data-filled="true"] button span {
+  display: inline;
+}
+.comments .composeFooter button:disabled {
+  background: var(--cp-teal-soft);
+  color: var(--cp-subink);
+  opacity: 1;
+  cursor: not-allowed;
+}
+.comments .list {
+  gap: 0;
+  margin-top: 4px;
+}
+.comments .list li {
+  padding: 10px 0;
+}
+.comments .list li > div {
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.comments .list time {
+  color: var(--cp-subink);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.comments .list p {
+  margin: 6px 0 0;
+  color: var(--cp-ink);
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.comments .list li > button {
+  min-height: 44px;
+  padding-inline: 8px;
+  font-size: 13px;
+}
+.quick summary {
+  min-height: 44px;
+  align-content: center;
+  font-size: 14px;
+  color: var(--cp-teal);
+}
+.quick button {
+  min-height: 44px;
+  font-size: 14px;
+  touch-action: manipulation;
+}
+@container cp-mobile (max-width: 350px) {
+  .comments .list li > div {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+.engagement[data-comments-open="true"] :global(.cp-community-trust-notice) {
+  margin-top: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--cp-line);
+}

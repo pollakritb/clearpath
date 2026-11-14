@@ -51,6 +51,7 @@ export default function FireLayer({
           <MapSheetPortal key={f.id}>
             <MapBottomSheet
               className="cp-hotspot-sheet"
+              previewHeight={64}
               label="จุดความร้อนจากดาวเทียม"
               onClose={() => priority?.clear()}
               header={

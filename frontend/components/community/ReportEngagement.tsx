@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
+import styles from "./ReportEngagement.module.css";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
@@ -89,6 +90,7 @@ function EngagementContent({
   const signedIn = Boolean(auth.user || auth.localDemo);
   const reportId = report.id;
   const commentsRef = useRef<HTMLDivElement>(null);
+  const commentsButtonRef = useRef<HTMLButtonElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (!commentsOpen) return;
@@ -97,11 +99,13 @@ function EngagementContent({
     const reveal = () => {
       if (revealed) return;
       revealed = true;
-      composerRef.current?.scrollIntoView?.({
+      // Opening comments is a reading action. Focus the discussion without
+      // opening a phone's keyboard until the reader taps the writing field.
+      commentsRef.current?.querySelector("h3")?.scrollIntoView?.({
         block: "nearest",
         behavior: "auto",
       });
-      composerRef.current?.focus({ preventScroll: true });
+      commentsRef.current?.focus({ preventScroll: true });
     };
     const expanded = (event: Event) => {
       if (
@@ -114,17 +118,19 @@ function EngagementContent({
     const keepComposerVisible = () => {
       cancelAnimationFrame(resizeFrame);
       resizeFrame = requestAnimationFrame(() => {
-        if (revealed && document.activeElement === composerRef.current)
-          composerRef.current?.scrollIntoView?.({
-            block: "nearest",
-            behavior: "auto",
-          });
+        if (revealed && document.activeElement === composerRef.current) {
+          const editor =
+            composerRef.current?.closest<HTMLElement>(
+              ".cp-report-comments__composer",
+            ) ?? composerRef.current;
+          editor?.scrollIntoView?.({ block: "nearest", behavior: "auto" });
+        }
       });
     };
     window.addEventListener("resize", keepComposerVisible);
     window.visualViewport?.addEventListener("resize", keepComposerVisible);
     sheet?.addEventListener("transitionend", expanded);
-    // Let the 180ms sheet expansion finish before revealing/focusing the input.
+    // Let the 180ms sheet expansion finish before revealing the discussion.
     // The fallback handles content-sized sheets and reduced-motion transitions.
     const timer = setTimeout(
       reveal,
@@ -316,6 +322,8 @@ function EngagementContent({
       <button
         type="button"
         className="cp-focus"
+        ref={commentsButtonRef}
+        data-active={commentsOpen}
         aria-label={`ความคิดเห็น ${engagement.comment_count}`}
         aria-controls={`comments-${reportId}`}
         aria-expanded={commentsOpen}
@@ -348,7 +356,8 @@ function EngagementContent({
 
   return (
     <section
-      className="cp-report-engagement"
+      className={`cp-report-engagement ${styles.engagement}`}
+      data-comments-open={commentsOpen}
       aria-label="ปฏิกิริยาและความคิดเห็น"
     >
       {actionsContainer ? createPortal(actions, actionsContainer) : actions}
@@ -357,40 +366,77 @@ function EngagementContent({
         <div
           ref={commentsRef}
           id={`comments-${reportId}`}
-          className="cp-report-comments"
+          className={`cp-report-comments ${styles.comments}`}
+          role="region"
+          aria-label="ความคิดเห็นของรายงาน"
           tabIndex={-1}
         >
+          <div className={styles.heading}>
+            <h3>
+              ความคิดเห็น <span>{engagement.comment_count}</span>
+            </h3>
+            <button
+              type="button"
+              className="cp-focus"
+              aria-label="ปิดความคิดเห็น"
+              onClick={() => {
+                setCommentsOpen(false);
+                commentsButtonRef.current?.focus();
+              }}
+            >
+              <AppIcon name="close" size={18} />
+            </button>
+          </div>
           {signedIn && (
             <form onSubmit={submitComment}>
-              <label htmlFor={`comment-${report.id}`}>เขียนความคิดเห็น</label>
-              <p
-                className="cp-report-comments__hint"
-                id={`comment-hint-${report.id}`}
-              >
-                เลือกข้อความแนะนำแล้วแก้ไขได้ กรุณาแสดงความคิดเห็นอย่างสุภาพ
+              <label className="sr-only" htmlFor={`comment-${report.id}`}>
+                เขียนความคิดเห็น
+              </label>
+              <p className="sr-only" id={`comment-hint-${report.id}`}>
+                พูดคุยเกี่ยวกับรายงานนี้อย่างสุภาพ
               </p>
-              <div className="cp-report-comments__composer">
+              <div
+                className={`cp-report-comments__composer ${styles.composer}`}
+                data-filled={comment.length > 0}
+              >
                 <textarea
                   ref={composerRef}
                   id={`comment-${report.id}`}
-                  aria-describedby={`comment-hint-${report.id}`}
+                  aria-describedby={`comment-hint-${report.id} comment-count-${reportId}`}
                   value={comment}
                   maxLength={500}
-                  rows={2}
+                  rows={1}
                   disabled={pending}
                   placeholder="พิมพ์ความคิดเห็นของคุณ"
+                  onFocus={(event) => {
+                    event.currentTarget
+                      .closest(".cp-report-comments__composer")
+                      ?.scrollIntoView?.({
+                        block: "nearest",
+                        behavior: "auto",
+                      });
+                  }}
                   onChange={(event) => setComment(event.target.value)}
                 />
-                <button
-                  type="submit"
-                  className="cp-focus"
-                  disabled={pending || !comment.trim()}
-                  aria-label="ส่งความคิดเห็น"
-                >
-                  <AppIcon name="send" size={18} />
-                </button>
+                <div className={styles.composeFooter}>
+                  <span
+                    id={`comment-count-${reportId}`}
+                    className={styles.counter}
+                  >
+                    {comment.length}/500
+                  </span>
+                  <button
+                    type="submit"
+                    className="cp-focus"
+                    disabled={pending || !comment.trim()}
+                    aria-label="ส่งความคิดเห็น"
+                  >
+                    <AppIcon name="send" size={16} />
+                    <span>ส่ง</span>
+                  </button>
+                </div>
               </div>
-              <details className="cp-report-comments__quick">
+              <details className={`cp-report-comments__quick ${styles.quick}`}>
                 <summary className="cp-focus">ข้อความแนะนำ</summary>
                 <div
                   className="cp-report-comments__suggestions"
@@ -404,7 +450,10 @@ function EngagementContent({
                       className="cp-focus"
                       disabled={pending}
                       aria-pressed={comment === suggestion}
-                      onClick={() => setComment(suggestion)}
+                      onClick={() => {
+                        setComment(suggestion);
+                        composerRef.current?.focus({ preventScroll: true });
+                      }}
                     >
                       {suggestion}
                     </button>
@@ -422,7 +471,7 @@ function EngagementContent({
                   : "กำลังโหลดความคิดเห็น…"}
             </p>
           ) : (
-            <ul>
+            <ul className={styles.list} aria-label="รายการความคิดเห็น">
               {engagement.comments.map((item) => (
                 <li key={item.id}>
                   <div>

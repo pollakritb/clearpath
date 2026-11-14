@@ -137,6 +137,7 @@ export default function MapStatusCard({
   if (station && !report) {
     return (
       <MapBottomSheet
+        previewHeight={64}
         label={selectionLabel}
         onClose={onClose}
         closeLabel="ปิดรายละเอียดจุดบนแผนที่"
@@ -227,6 +228,7 @@ export default function MapStatusCard({
     <MapBottomSheet
       key={report?.id}
       expandSignal={expandSignal}
+      previewHeight={64}
       label={selectionLabel}
       onClose={onClose}
       closeLabel="ปิดรายละเอียดจุดบนแผนที่"

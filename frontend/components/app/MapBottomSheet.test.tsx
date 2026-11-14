@@ -170,3 +170,27 @@ it("expands an existing peek sheet when a summary action requests details", () =
   expect(sheet.getAttribute("data-snap")).toBe("full");
   expect(screen.getByRole("textbox", { name: "Comment" })).not.toBeNull();
 });
+
+it("previews report content while keeping its controls inert until expanded", () => {
+  render(
+    <MapBottomSheet
+      label="Preview sheet"
+      header={<h2>Report</h2>}
+      onClose={vi.fn()}
+      previewHeight={64}
+    >
+      <button>Evidence</button>
+    </MapBottomSheet>,
+  );
+  const sheet = screen.getByRole("region", { name: "Preview sheet" });
+  expect(sheet.getAttribute("data-preview")).toBe("true");
+  expect(screen.queryByRole("button", { name: "Evidence" })).toBeNull();
+  const content = screen.getByText("Evidence").parentElement!;
+  expect(content.hasAttribute("inert")).toBe(true);
+  fireEvent.click(
+    screen.getByRole("button", { name: "เปิดรายละเอียดทั้งหมด" }),
+  );
+  expect(sheet.getAttribute("data-snap")).toBe("full");
+  expect(content.hasAttribute("inert")).toBe(false);
+  expect(screen.getByRole("button", { name: "Evidence" })).not.toBeNull();
+});

@@ -1,0 +1,15 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": ["frontend/components/app/MapBottomSheet.module.css"],
+        "createdAt": "2026-11-14T08:41:38.488Z",
+        "reason": "Agent: intentional 180ms bottom-sheet height snap keeps the actual scroll viewport and keyboard clearance synchronized; disabled during dragging and for prefers-reduced-motion. Existing transition retained after 320/390/430px layout and synthesized touch-swipe verification."
+      }
+    ]
+  }
+}

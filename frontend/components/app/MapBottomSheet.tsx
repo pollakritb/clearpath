@@ -30,6 +30,7 @@ export default function MapBottomSheet({
   mapClearance = 8,
   expandable = true,
   expandSignal = 0,
+  previewHeight = 0,
 }: {
   id?: string;
   label: string;
@@ -46,6 +47,7 @@ export default function MapBottomSheet({
   mapClearance?: number;
   expandable?: boolean;
   expandSignal?: number;
+  previewHeight?: number;
 }) {
   const contentId = useId();
   const root = useRef<HTMLElement>(null),
@@ -154,14 +156,17 @@ export default function MapBottomSheet({
         120,
         height - (bottom - previousKeyboard + keyboard) - mapClearance,
       );
+      const headerHeight =
+        heading.current?.getBoundingClientRect().height || 180;
+      const contentHeight = content.current?.scrollHeight ?? 0;
       const peek = Math.min(
         available,
-        (heading.current?.getBoundingClientRect().height || 180) +
-          (expandable ? 0 : (content.current?.scrollHeight ?? 0)),
+        headerHeight +
+          (expandable ? Math.min(previewHeight, contentHeight) : contentHeight),
       );
       const max = Math.min(
         available,
-        Math.max(peek, peek + (content.current?.scrollHeight ?? 0)),
+        Math.max(peek, headerHeight + contentHeight),
       );
       setSizes((previous) =>
         previous.peek === peek &&
@@ -186,7 +191,7 @@ export default function MapBottomSheet({
       window.removeEventListener("resize", measure);
       window.visualViewport?.removeEventListener("resize", measure);
     };
-  }, [mapClearance, expandable]);
+  }, [mapClearance, expandable, previewHeight]);
   useLayoutEffect(() => {
     const element = scroll.current;
     if (!element || !expandable) return;
@@ -298,6 +303,7 @@ export default function MapBottomSheet({
       data-expanded={!expandable || snap === "full"}
       data-owns-focus={ownsFocus}
       data-dragging={dragHeight !== null}
+      data-preview={previewHeight > 0}
       style={
         {
           ...style,
@@ -387,6 +393,18 @@ export default function MapBottomSheet({
         >
           {children}
         </div>
+        {expandable && snap === "peek" && previewHeight > 0 && (
+          <button
+            type="button"
+            className={`${styles.previewHint} cp-focus`}
+            aria-label="เปิดรายละเอียดทั้งหมด"
+            aria-controls={contentId}
+            aria-expanded={false}
+            onClick={() => select("full")}
+          >
+            ลากขึ้นดูรายละเอียด
+          </button>
+        )}
       </div>
       {showClose && (
         <button

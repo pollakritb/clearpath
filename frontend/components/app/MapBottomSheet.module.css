@@ -106,6 +106,29 @@
 .sheet[data-snap="peek"] .content {
   visibility: hidden;
 }
+.sheet[data-snap="peek"][data-preview="true"] .content {
+  visibility: visible;
+}
+.previewHint {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  min-height: 44px;
+  padding: 20px 12px 8px;
+  border: 0;
+  background: linear-gradient(to bottom, #ffffff00, white 65%);
+  color: var(--cp-teal);
+  font: 600 12px/1.4 var(--font-sans);
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.sheet[data-dragging="true"] .previewHint {
+  visibility: hidden;
+}
 .content:empty {
   padding: 0;
 }

@@ -458,13 +458,13 @@
 .reportActions :global(.cp-report-engagement__actions) button {
   display: flex;
   gap: 5px;
-  min-height: 44px;
+  min-height: 48px;
   padding: 6px 4px;
   border: 0;
   border-radius: 10px;
   background: var(--cp-teal-soft);
   color: var(--cp-teal);
-  font-size: 12px;
+  font-size: 13px;
 }
 .reportActions :global(.cp-report-engagement__actions) button > svg {
   flex: none;
@@ -494,18 +494,6 @@
   margin-top: 8px;
   scroll-margin-block-start: 52px;
 }
-.reportPanel :global(.cp-report-comments__composer) {
-  align-items: end;
-  gap: 8px;
-}
-.reportPanel :global(.cp-report-comments__composer) textarea {
-  min-height: 88px;
-}
-.reportPanel :global(.cp-report-comments__composer) button {
-  height: 44px;
-  align-self: end;
-  background: var(--cp-teal);
-}
 .reportPanel :global(.cp-report-comments__quick) summary {
   min-height: 44px;
   align-content: center;
@@ -524,17 +512,10 @@
 @container cp-mobile (max-width: 350px) {
   .reportActions :global(.cp-report-engagement__actions) button {
     gap: 3px;
-    font-size: 11px;
+    font-size: 12px;
   }
   .reportPanel .level {
     max-width: 48%;
     font-size: 12px;
   }
-}
-.reportPanel :global(.cp-report-comments) textarea {
-  caret-color: var(--cp-teal);
-}
-.reportPanel :global(.cp-report-comments) textarea:focus-visible {
-  outline: 2px solid var(--cp-teal);
-  outline-offset: 2px;
 }

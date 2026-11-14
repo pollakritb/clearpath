@@ -56,6 +56,7 @@ export default function ReportStackCard({
   return (
     <MapBottomSheet
       label="รายงานค่าฝุ่นในบริเวณเดียวกัน"
+      previewHeight={64}
       className={`cp-stack-sheet ${panel.panel}`}
       initialSnap="peek"
       onClose={onClose}
