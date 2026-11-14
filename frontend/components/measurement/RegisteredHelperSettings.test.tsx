@@ -23,6 +23,11 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/frontend/lib/api-client", () => ({
   api: {
+    reverseLocation: vi.fn(async () => ({
+      name: "",
+      address: "",
+      source: "local",
+    })),
     measurementHelper: mocks.helper,
     saveMeasurementLocation: mocks.save,
     deleteMeasurementLocation: mocks.remove,
@@ -157,7 +162,10 @@ it("edits a name without symbol controls, map selection or changing the receivin
   await waitFor(() =>
     expect(mocks.save).toHaveBeenCalledWith(
       expect.objectContaining({
-        ...settings.locations![0],
+        lat: settings.locations![0].lat,
+        lon: settings.locations![0].lon,
+        address: settings.locations![0].address,
+        enabled: settings.locations![0].enabled,
         name: "บ้านใหม่",
         emoji: "🏠",
       }),

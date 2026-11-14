@@ -15,7 +15,14 @@ export function useRequestPlaceLabel(
     key: string;
     label: LocationLabelResponse;
   } | null>(null);
-  const needsLabel = active && point?.kind === "point";
+  const pickedPoint = point?.kind === "point";
+  const needsLabel = Boolean(
+    active &&
+    point &&
+    (pickedPoint ||
+      !point.address ||
+      /(^|[,·])\s*(บ้าน|หมู่บ้าน)/.test(point.address)),
+  );
   const key = point ? `${point.lat}:${point.lon}` : "";
   const lat = point?.lat;
   const lon = point?.lon;
@@ -51,10 +58,16 @@ export function useRequestPlaceLabel(
       needsLabel && point
         ? ({
             ...point,
-            name: label?.name ?? coordinatePlaceTitle(point.lat, point.lon),
-            address: label?.address ?? "",
-            source: label?.source ?? "local",
-            kind: "request-area",
+            name: pickedPoint
+              ? (label?.name ?? coordinatePlaceTitle(point.lat, point.lon))
+              : point.name,
+            address: pickedPoint
+              ? (label?.address ?? "")
+              : label
+                ? label.address || (label.source === "local" ? label.name : "")
+                : point.address,
+            source: label?.source ?? point.source,
+            kind: pickedPoint ? "request-area" : point.kind,
           } as LocationSuggestion)
         : point,
     loading: Boolean(needsLabel && !label),

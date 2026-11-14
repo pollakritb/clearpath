@@ -23,9 +23,9 @@ def test_named_poi_only_when_close_otherwise_use_returned_area():
     }
     label = geoapify_label({"results": [row]}, 13.8, 100.1)
     assert label["name"] == "บริเวณCentral Embassy"
-    assert label["address"] == "ปทุมวัน · กรุงเทพมหานคร"
+    assert label["address"] == "เขตปทุมวัน · กรุงเทพมหานคร"
     distant = geoapify_label({"results": [{**row, "lat": 14.0}]}, 13.8, 100.1)
-    assert distant["name"] == "บริเวณปทุมวัน"
+    assert distant["name"] == "บริเวณเขตปทุมวัน"
     assert "Central" not in distant["name"]
     assert (
         geoapify_label({"results": [{**row, "country_code": "my"}]}, 13.8, 100.1)
@@ -38,13 +38,14 @@ def test_photon_street_is_not_mistaken_for_a_named_poi():
         "countrycode": "TH",
         "name": "ทางหลวง 346",
         "osm_key": "highway",
-        "locality": "กำแพงแสน",
+        "locality": "บ้านใกล้เคียง",
+        "county": "อำเภอกำแพงแสน",
         "state": "นครปฐม",
     }
     feature = {"properties": properties, "geometry": {"coordinates": [99.97, 14.02]}}
     label = photon_label({"features": [feature]}, 14.02, 99.97)
-    assert label["name"] == "บริเวณกำแพงแสน"
-    assert label["address"] == "กำแพงแสน · นครปฐม"
+    assert label["name"] == "บริเวณทางหลวง 346"
+    assert label["address"] == "อำเภอกำแพงแสน · นครปฐม"
     assert (
         photon_label(
             {"features": [{**feature, "properties": {"countrycode": "TH"}}]},
@@ -210,3 +211,80 @@ def test_reverse_route_validates_coordinates_and_returns_private_response(monkey
     assert response.headers["cache-control"] == "private, no-store"
     assert response.json()["name"] == "บริเวณกำแพงแสน"
     assert client.get("/api/locations/reverse?lat=90&lon=99.97").status_code == 422
+
+
+def test_campus_label_does_not_turn_a_nearby_village_into_its_address():
+    # Public OSM/Photon campus feature: `city` is an indexed settlement, not tambon.
+    row = {
+        "countrycode": "TH",
+        "osm_key": "amenity",
+        "osm_value": "university",
+        "name": "มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน",
+        "city": "บ้านทะเลบก",
+        "county": "อำเภอกำแพงแสน",
+        "state": "จังหวัดนครปฐม",
+    }
+    result = photon_label(
+        {
+            "features": [
+                {
+                    "properties": row,
+                    "geometry": {"coordinates": [99.9738658, 14.0229993]},
+                }
+            ]
+        },
+        14.0229993,
+        99.9738658,
+    )
+    assert result["name"] == "บริเวณมหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน"
+    assert result["address"] == "อำเภอกำแพงแสน · จังหวัดนครปฐม"
+    assert "บ้านทะเลบก" not in str(result)
+
+
+def test_closest_named_poi_wins_over_provider_order():
+    features = [
+        {
+            "properties": {"countrycode": "TH", "osm_key": "amenity", "name": name},
+            "geometry": {"coordinates": [100, lat]},
+        }
+        for name, lat in [("จุดไกลกว่า", 14.0008), ("จุดใกล้กว่า", 14.0001)]
+    ]
+    assert photon_label({"features": features}, 14, 100)["name"] == "บริเวณจุดใกล้กว่า"
+
+
+def test_missing_provider_province_uses_containing_polygon_in_adapter(monkeypatch):
+    def transport(request):
+        return httpx.Response(
+            200,
+            json={
+                "features": [
+                    {
+                        "properties": {
+                            "countrycode": "TH",
+                            "osm_key": "amenity",
+                            "name": "สถานที่ทดสอบ",
+                            "county": "อำเภอกำแพงแสน",
+                        },
+                        "geometry": {"coordinates": [99.9738658, 14.0229993]},
+                    }
+                ]
+            },
+        )
+
+    real = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda **kw: real(transport=httpx.MockTransport(transport), **kw),
+    )
+    result = asyncio.run(photon_reverse.resolve(14.0229993, 99.9738658))
+    assert result["address"] == "อำเภอกำแพงแสน · จังหวัดนครปฐม"
+
+
+def test_containing_bangkok_province_keeps_the_district_when_provider_state_is_english():
+    from backend.algorithms.place_labels import place_address
+
+    assert (
+        place_address({"district": "ปทุมวัน", "state": "Bangkok"}, "กรุงเทพมหานคร")
+        == "เขตปทุมวัน · กรุงเทพมหานคร"
+    )

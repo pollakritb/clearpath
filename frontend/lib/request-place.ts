@@ -8,6 +8,16 @@ export function coordinatePlaceTitle(lat: number, lon: number) {
 }
 const clean = (value: string | undefined) =>
   (value ?? "").replace(/\s+/g, " ").trim();
+/** Keep a place name beside administrative parents without repeating an area. */
+export function locationLabelAddress(label: { name: string; address: string }) {
+  const name = clean(label.name);
+  const address = clean(label.address);
+  if (!name || name.startsWith("จุดที่เลือก")) return address;
+  const areaName = name.replace(/^บริเวณ\s*/, "");
+  return address.split(" · ").includes(areaName)
+    ? address
+    : [name, address].filter(Boolean).join(" · ");
+}
 export function requestPlaceTitle(name: string) {
   const value = clean(name).replace(/^บริเวณ\s*/, "");
   if (

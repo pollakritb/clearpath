@@ -5,7 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import LocationPickerActions from "./LocationPickerActions";
 import { api } from "@/frontend/lib/api-client";
 import { THAILAND_CENTER } from "@/frontend/lib/constants";
-import { coordinatePlaceTitle } from "@/frontend/lib/request-place";
+import {
+  coordinatePlaceTitle,
+  locationLabelAddress,
+} from "@/frontend/lib/request-place";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import MapSearchPanel from "@/frontend/components/app/MapSearchPanel";
 import type {
@@ -44,13 +47,13 @@ export default function HelperLocationEditor({
     lat: number;
     lon: number;
     address: string;
+    labelName?: string;
   } | null>(initial);
   const [currentLocation, setCurrentLocation] = useState<{
     lat: number;
     lon: number;
   } | null>(null);
   const [pointChosen, setPointChosen] = useState(Boolean(initial));
-  const [placeName, setPlaceName] = useState(initial?.name ?? "");
   const [name, setName] = useState(initial?.name ?? "");
   const [steps, setSteps] = useState<Step[]>([initial ? "details" : "search"]);
   const step = steps.at(-1)!;
@@ -67,17 +70,10 @@ export default function HelperLocationEditor({
     address: string;
   } | null>(null);
   const lat = point?.lat,
-    lon = point?.lon,
-    address = point?.address;
+    lon = point?.lon;
+  const resolvePoint = pointChosen && step !== "search";
   useEffect(() => {
-    if (
-      !pointChosen ||
-      lat == null ||
-      lon == null ||
-      address ||
-      step === "search"
-    )
-      return;
+    if (!resolvePoint || lat == null || lon == null) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       void api
@@ -99,9 +95,17 @@ export default function HelperLocationEditor({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [lat, lon, address, step, pointChosen]);
+  }, [lat, lon, resolvePoint]);
   const resolvedLabel =
     resolved?.lat === lat && resolved?.lon === lon ? resolved : null;
+  const locationName =
+    point?.labelName || resolvedLabel?.name || "จุดที่เลือกบนแผนที่";
+  const locationAddress = point
+    ? locationLabelAddress({
+        name: point.labelName || resolvedLabel?.name || "",
+        address: resolvedLabel?.address ?? point.address,
+      }) || `${point.lat.toFixed(5)}, ${point.lon.toFixed(5)}`
+    : "";
   useEffect(() => {
     const element = dialog.current;
     const trigger =
@@ -126,8 +130,12 @@ export default function HelperLocationEditor({
     if (place.id === "current-location")
       setCurrentLocation({ lat: place.lat, lon: place.lon });
     setPointChosen(true);
-    setPoint({ lat: place.lat, lon: place.lon, address: place.address });
-    setPlaceName(place.name);
+    setPoint({
+      lat: place.lat,
+      lon: place.lon,
+      address: place.address,
+      labelName: place.kind === "point" ? undefined : place.name,
+    });
     if (!name) setName(place.name.slice(0, 80));
     setMapZoom(15);
     go("map");
@@ -138,16 +146,8 @@ export default function HelperLocationEditor({
         <AppIcon name="location" size={22} />
       </span>
       <div>
-        <strong>
-          {point.address
-            ? placeName
-            : resolvedLabel?.name || "จุดที่เลือกบนแผนที่"}
-        </strong>
-        <small>
-          {point.address ||
-            resolvedLabel?.address ||
-            `${point.lat.toFixed(5)}, ${point.lon.toFixed(5)}`}
-        </small>
+        <strong>{locationName}</strong>
+        <small>{locationAddress}</small>
       </div>
     </div>
   );
@@ -191,11 +191,7 @@ export default function HelperLocationEditor({
             <span>
               <small>พื้นที่รับคำขอ</small>
               <strong>
-                {point.address
-                  ? placeName
-                  : pointChosen
-                    ? resolvedLabel?.name || "จุดที่เลือกบนแผนที่"
-                    : "ค้นหาหรือเลือกพื้นที่"}
+                {pointChosen ? locationName : "ค้นหาหรือเลือกพื้นที่"}
               </strong>
             </span>
             <AppIcon name="search" size={18} />
@@ -239,7 +235,6 @@ export default function HelperLocationEditor({
                   lon: THAILAND_CENTER[1],
                   address: "",
                 });
-                setPlaceName("จุดที่เลือกบนแผนที่");
                 setMapZoom(6);
               }
               go("map");
@@ -278,11 +273,7 @@ export default function HelperLocationEditor({
               เลื่อนแผนที่ให้หมุดตรงจุดที่ต้องการ หรือใช้ตำแหน่งของฉัน
             </p>
             <p className="cp-helper-editor__pick-address">
-              {pointChosen
-                ? point.address ||
-                  resolvedLabel?.address ||
-                  `${point.lat.toFixed(5)}, ${point.lon.toFixed(5)}`
-                : "ยังไม่ได้เลือกจุด"}
+              {pointChosen ? locationAddress : "ยังไม่ได้เลือกจุด"}
             </p>
             <button
               className="cp-measure-primary cp-focus"
@@ -302,10 +293,11 @@ export default function HelperLocationEditor({
             if (name.trim() && !busy)
               onSave(
                 {
-                  ...point,
+                  lat: point.lat,
+                  lon: point.lon,
                   name: name.trim(),
                   emoji: initial?.emoji ?? "📍",
-                  address: point.address || resolvedLabel?.address || "",
+                  address: locationAddress.slice(0, 240),
                   enabled: initial?.enabled ?? true,
                 },
                 initial?.slot,

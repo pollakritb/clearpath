@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import {
   escapeMarkerText,
+  locationLabelAddress,
   coordinatePlaceTitle,
   requestPlaceParts,
   requestPlaceTitle,
@@ -42,4 +43,19 @@ it("escapes untrusted provider names before marker HTML insertion", () => {
   expect(escapeMarkerText('<img src="x" onerror=alert(1)>&')).toBe(
     "&lt;img src=&quot;x&quot; onerror=alert(1)&gt;&amp;",
   );
+});
+
+it("keeps a saved area's place name and administrative parents without duplicate area names", () => {
+  expect(
+    locationLabelAddress({
+      name: "บริเวณมหาวิทยาลัยเกษตรศาสตร์",
+      address: "อำเภอกำแพงแสน · จังหวัดนครปฐม",
+    }),
+  ).toBe("บริเวณมหาวิทยาลัยเกษตรศาสตร์ · อำเภอกำแพงแสน · จังหวัดนครปฐม");
+  expect(
+    locationLabelAddress({
+      name: "บริเวณอำเภอกำแพงแสน",
+      address: "อำเภอกำแพงแสน · จังหวัดนครปฐม",
+    }),
+  ).toBe("อำเภอกำแพงแสน · จังหวัดนครปฐม");
 });

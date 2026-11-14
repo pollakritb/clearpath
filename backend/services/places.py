@@ -8,7 +8,9 @@ from threading import Lock
 
 import httpx
 
+from ..algorithms.place_labels import place_address
 from ..core.config import settings
+from . import province_labels
 from .gazetteer import search_locations
 
 logger = logging.getLogger("clearpath.places")
@@ -23,7 +25,7 @@ def _local_results(query: str, limit: int) -> list[dict]:
         {
             "id": row["id"],
             "name": row["name"],
-            "address": f"{row['district']}, นครปฐม",
+            "address": f"อำเภอ{row['district']} · จังหวัดนครปฐม",
             "kind": row["kind"],
             "source": "local",
             "lat": row["lat"],
@@ -51,7 +53,11 @@ def _parse_results(payload: dict, limit: int) -> list[dict]:
         if not (5 <= lat <= 21 and 97 <= lon <= 106):
             continue
         name = str(row.get("name") or row.get("address_line1") or "").strip()
-        address = str(row.get("formatted") or row.get("address_line2") or "").strip()
+        province = province_labels.resolve(lat, lon)
+        province_name = (
+            province["name"] if not province["name"].startswith("จุดที่เลือก") else ""
+        )
+        address = place_address(row, province_name, street=True)
         place_id = str(row.get("place_id") or f"{lat:.6f},{lon:.6f}")
         if not name or place_id in seen:
             continue
@@ -98,12 +104,11 @@ def _parse_photon_results(payload: dict, limit: int) -> list[dict]:
         name = str(properties.get("name") or "").strip()
         if not name:
             continue
-        area = [
-            str(properties[key]).strip()
-            for key in ("street", "locality", "district", "city", "state")
-            if properties.get(key)
-        ]
-        address = ", ".join(dict.fromkeys([*area, "ประเทศไทย"]))
+        province = province_labels.resolve(lat, lon)
+        province_name = (
+            province["name"] if not province["name"].startswith("จุดที่เลือก") else ""
+        )
+        address = place_address(properties, province_name, street=True)
         place_id = f"{properties.get('osm_type', 'place')}:{properties.get('osm_id', f'{lat},{lon}')}"
         if place_id in seen:
             continue

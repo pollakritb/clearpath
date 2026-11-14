@@ -11,6 +11,7 @@ import type {
 } from "@/frontend/types";
 import { HELPER_LOCATIONS_CHANGED } from "@/frontend/lib/measurement-events";
 import HelperLocationEditor from "./HelperLocationEditor";
+import HelperPlaceAddress from "./HelperPlaceAddress";
 
 export default function RegisteredHelperSettings({
   settings,
@@ -126,10 +127,7 @@ export default function RegisteredHelperSettings({
             >
               <div className="cp-helper-place-copy">
                 <strong>{place.name}</strong>
-                <small>
-                  {place.address ||
-                    `${place.lat.toFixed(5)}, ${place.lon.toFixed(5)}`}
-                </small>
+                <HelperPlaceAddress place={place} />
               </div>
               <label className="cp-helper-place-receiving">
                 <input

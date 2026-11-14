@@ -4,6 +4,7 @@ import httpx
 
 from ..algorithms.place_labels import photon_label
 from ..core.errors import UpstreamError
+from . import province_labels
 
 
 async def resolve(lat: float, lon: float) -> dict | None:
@@ -18,6 +19,12 @@ async def resolve(lat: float, lon: float) -> dict | None:
                 },
             )
             response.raise_for_status()
-            return photon_label(response.json(), lat, lon)
+            province = province_labels.resolve(lat, lon)["name"]
+            return photon_label(
+                response.json(),
+                lat,
+                lon,
+                province="" if province.startswith("จุดที่เลือก") else province,
+            )
     except (httpx.HTTPError, ValueError) as exc:
         raise UpstreamError("ระบุชื่อพื้นที่ไม่สำเร็จ") from exc

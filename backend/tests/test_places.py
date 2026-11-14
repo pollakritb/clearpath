@@ -148,3 +148,22 @@ def test_provider_failure_falls_back_without_exposing_key(monkeypatch):
     assert coverage == "limited"
     assert results[0]["source"] == "local"
     assert "test-only-key" not in str(results)
+
+
+def test_search_keeps_county_and_drops_unverified_nearby_settlement():
+    feature = {
+        "properties": {
+            "countrycode": "TH",
+            "name": "มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน",
+            "osm_key": "amenity",
+            "osm_value": "university",
+            "city": "บ้านทะเลบก",
+            "county": "อำเภอกำแพงแสน",
+            "street": "ถนนมาลัยแมน",
+        },
+        "geometry": {"coordinates": [99.9738658, 14.0229993]},
+    }
+    result = places._parse_photon_results({"features": [feature]}, 10)[0]
+    assert result["address"] == "ถนนมาลัยแมน · อำเภอกำแพงแสน · จังหวัดนครปฐม"
+    assert "บ้านทะเลบก" not in result["address"]
+    assert result["lat"] == 14.0229993 and result["lon"] == 99.9738658

@@ -15,6 +15,11 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/frontend/lib/api-client", () => ({
   api: {
+    reverseLocation: vi.fn(async () => ({
+      name: "",
+      address: "",
+      source: "local",
+    })),
     saveMeasurementLocation: mocks.save,
     setMeasurementHelper: mocks.enable,
     measurementHelper: mocks.settings,

@@ -64,7 +64,7 @@ test("helper picker uses a centered pin without a radius, GPS and editable top s
   const gpsX = await gpsMarker.evaluate((el) =>
     Math.round(el.getBoundingClientRect().x),
   );
-  await expect(d.locator(".cp-helper-editor__pick-address")).toHaveText(
+  await expect(d.locator(".cp-helper-editor__pick-address")).toContainText(
     "นครปฐม",
   );
   await expect
@@ -286,4 +286,100 @@ test("choosing current location from search shows the GPS marker after returning
     .click();
   await expect(d.locator(".cp-marker--current-location")).toBeVisible();
   await expect(d.locator(".cp-request-center-pin")).toBeVisible();
+});
+
+test("saved home and work keep their names while showing complete resolved addresses", async ({
+  page,
+}, testInfo) => {
+  const name = "บริเวณมหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตกำแพงแสน";
+  const address = "อำเภอกำแพงแสน · จังหวัดนครปฐม";
+  let areas = [
+    {
+      slot: 1,
+      name: "บ้าน",
+      address: "บ้านทะเลบก",
+      lat: 14.023,
+      lon: 99.974,
+      enabled: true,
+    },
+    {
+      slot: 2,
+      name: "ที่ทำงาน",
+      address: "",
+      lat: 13.746,
+      lon: 100.539,
+      enabled: true,
+    },
+  ];
+  await page.route("**/api/measurement-requests/helper", (r) =>
+    r.fulfill({
+      json: {
+        enabled: true,
+        registered_locations_enabled: true,
+        locations: areas,
+      },
+    }),
+  );
+  await page.route("**/api/locations/reverse?*", (r) => {
+    const lat = new URL(r.request().url()).searchParams.get("lat");
+    return r.fulfill({
+      json: lat?.startsWith("14.")
+        ? { name, address, source: "photon" }
+        : {
+            name: "บริเวณสถานที่ทำงาน",
+            address: "เขตปทุมวัน · กรุงเทพมหานคร",
+            source: "photon",
+          },
+    });
+  });
+  let saved: Record<string, unknown> | undefined;
+  await page.route(
+    "**/api/measurement-requests/helper/locations/1",
+    async (r) => {
+      saved = r.request().postDataJSON();
+      areas = [{ ...areas[0], ...saved }, areas[1]];
+      return r.fulfill({ json: areas[0] });
+    },
+  );
+  await page.goto("/settings/helper-areas");
+  const home = page.locator(".cp-helper-saved-row").filter({ hasText: "บ้าน" });
+  const work = page
+    .locator(".cp-helper-saved-row")
+    .filter({ hasText: "ที่ทำงาน" });
+  await expect(home.locator(".cp-helper-place-copy strong")).toHaveText("บ้าน");
+  await expect(home.locator(".cp-helper-place-copy small")).toHaveText(
+    `${name} · ${address}`,
+  );
+  await expect(work.locator(".cp-helper-place-copy small")).toHaveText(
+    "บริเวณสถานที่ทำงาน · เขตปทุมวัน · กรุงเทพมหานคร",
+  );
+  expect(
+    await home
+      .locator(".cp-helper-place-copy small")
+      .evaluate((el) => el.scrollHeight <= el.clientHeight + 1),
+  ).toBe(true);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await home.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `output/playwright/helper-address-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await home
+    .getByRole("button", { name: "แก้ไขสถานที่ บ้าน", exact: true })
+    .click();
+  const d = page.getByRole("dialog", { name: "แก้ไขพื้นที่รับคำขอ" });
+  await expect(d.locator(".cp-helper-editor__location small")).toHaveText(
+    `${name} · ${address}`,
+  );
+  await d.getByRole("button", { name: "บันทึกพื้นที่", exact: true }).click();
+  await expect(d).toHaveCount(0);
+  expect(saved).toMatchObject({
+    name: "บ้าน",
+    lat: 14.023,
+    lon: 99.974,
+    address: `${name} · ${address}`,
+    enabled: true,
+  });
 });

@@ -52,7 +52,12 @@ it("does not lookup an explicitly searched place or an inactive picker", async (
   expect(mocks.reverse).not.toHaveBeenCalled();
   expect(result.current.point).toBe(point);
   rerender({ active: false });
-  const known = { ...point, kind: "amenity", name: "Central Embassy" };
+  const known = {
+    ...point,
+    kind: "amenity",
+    name: "Central Embassy",
+    address: "เขตปทุมวัน · กรุงเทพมหานคร",
+  };
   renderHook(() => useRequestPlaceLabel(known, true));
   await act(async () => vi.advanceTimersByTimeAsync(500));
   expect(mocks.reverse).not.toHaveBeenCalled();
@@ -92,4 +97,27 @@ it("shows a containing province returned when no detailed place name is availabl
   await act(async () => vi.advanceTimersByTimeAsync(450));
   expect(result.current.point?.name).toBe("จังหวัดอุทัยธานี");
   expect(result.current.loading).toBe(false);
+});
+
+it("refreshes an old search address without changing the selected place's identity", async () => {
+  mocks.reverse.mockResolvedValue({
+    name: "บริเวณมหาวิทยาลัยเกษตรศาสตร์",
+    address: "อำเภอกำแพงแสน · จังหวัดนครปฐม",
+    source: "photon",
+  });
+  const known = {
+    ...point,
+    kind: "university",
+    source: "photon" as const,
+    name: "มหาวิทยาลัยเกษตรศาสตร์",
+    address: "ถนนมาลัยแมน, บ้านทะเลบก, จังหวัดนครปฐม",
+  };
+  const { result } = renderHook(() => useRequestPlaceLabel(known, true));
+  await act(async () => vi.advanceTimersByTimeAsync(450));
+  expect(result.current.point).toMatchObject({
+    name: known.name,
+    lat: point.lat,
+    lon: point.lon,
+    address: "อำเภอกำแพงแสน · จังหวัดนครปฐม",
+  });
 });

@@ -10929,10 +10929,7 @@
   overflow-wrap: anywhere;
 }
 .cp-helper-editor__location small {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  display: block;
   margin-top: 2px;
   color: var(--cp-subink);
   font-size: 12px;
@@ -12040,10 +12037,8 @@ dialog.cp-login-modal::backdrop {
   padding-top: 4px;
 }
 .cp-helper-areas .cp-helper-place-copy small {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: block;
+  overflow: visible;
 }
 .cp-helper-areas .cp-helper-place-actions {
   justify-content: flex-start;
