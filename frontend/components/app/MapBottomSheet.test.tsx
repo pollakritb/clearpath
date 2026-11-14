@@ -148,3 +148,25 @@ it("fits short details and caps asynchronously growing content to the map viewpo
   act(() => resize());
   expect(sheet.style.getPropertyValue("--sheet-height")).toBe("216px");
 });
+
+it("expands an existing peek sheet when a summary action requests details", () => {
+  const props = {
+    label: "Report actions",
+    header: <h2>Report</h2>,
+    onClose: vi.fn(),
+  };
+  const { rerender } = render(
+    <MapBottomSheet {...props} expandSignal={0}>
+      <textarea aria-label="Comment" />
+    </MapBottomSheet>,
+  );
+  const sheet = screen.getByRole("region", { name: "Report actions" });
+  expect(sheet.getAttribute("data-snap")).toBe("peek");
+  rerender(
+    <MapBottomSheet {...props} expandSignal={1}>
+      <textarea aria-label="Comment" />
+    </MapBottomSheet>,
+  );
+  expect(sheet.getAttribute("data-snap")).toBe("full");
+  expect(screen.getByRole("textbox", { name: "Comment" })).not.toBeNull();
+});

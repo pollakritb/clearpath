@@ -445,3 +445,96 @@
 .placePanel .empty {
   padding: 6px 0 0;
 }
+
+/* Report actions stay part of the compact summary, with one shared engagement state. */
+.reportActions {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--cp-line);
+}
+.reportActions :global(.cp-report-engagement__actions) {
+  gap: 4px;
+}
+.reportActions :global(.cp-report-engagement__actions) button {
+  display: flex;
+  gap: 5px;
+  min-height: 44px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--cp-teal-soft);
+  color: var(--cp-teal);
+  font-size: 12px;
+}
+.reportActions :global(.cp-report-engagement__actions) button > svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.reportActions :global(.cp-report-engagement__actions) button span {
+  white-space: nowrap;
+}
+.reportActions :global(.cp-report-engagement__actions) button b {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.reportActions
+  :global(.cp-report-engagement__actions)
+  button[data-active="true"] {
+  background: var(--cp-teal);
+  color: white;
+}
+.reportPanel :global(.cp-report-engagement) {
+  margin-top: 0;
+}
+.reportPanel :global(.cp-report-engagement:empty) {
+  display: none;
+}
+.reportPanel :global(.cp-report-comments) {
+  margin-top: 8px;
+  scroll-margin-block-start: 52px;
+}
+.reportPanel :global(.cp-report-comments__composer) {
+  align-items: end;
+  gap: 8px;
+}
+.reportPanel :global(.cp-report-comments__composer) textarea {
+  min-height: 88px;
+}
+.reportPanel :global(.cp-report-comments__composer) button {
+  height: 44px;
+  align-self: end;
+  background: var(--cp-teal);
+}
+.reportPanel :global(.cp-report-comments__quick) summary {
+  min-height: 44px;
+  align-content: center;
+  color: var(--cp-teal);
+  cursor: pointer;
+}
+.reporter a {
+  color: var(--cp-teal);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+.reporter a:hover,
+.reporter a:focus-visible {
+  text-decoration: underline;
+}
+@container cp-mobile (max-width: 350px) {
+  .reportActions :global(.cp-report-engagement__actions) button {
+    gap: 3px;
+    font-size: 11px;
+  }
+  .reportPanel .level {
+    max-width: 48%;
+    font-size: 12px;
+  }
+}
+.reportPanel :global(.cp-report-comments) textarea {
+  caret-color: var(--cp-teal);
+}
+.reportPanel :global(.cp-report-comments) textarea:focus-visible {
+  outline: 2px solid var(--cp-teal);
+  outline-offset: 2px;
+}

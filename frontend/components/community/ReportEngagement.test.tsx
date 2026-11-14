@@ -169,3 +169,49 @@ it("does not carry counts, selections or a late response into another report", a
     ),
   );
 });
+
+it("keeps summary actions in one shared portal and reveals the comment composer", async () => {
+  const host = document.createElement("div");
+  host.dataset.testid = "summary-actions";
+  document.body.append(host);
+  const reveal = vi.fn();
+  const scroll = vi.fn();
+  const previous = HTMLElement.prototype.scrollIntoView;
+  HTMLElement.prototype.scrollIntoView = scroll;
+  try {
+    render(
+      <ReportEngagement
+        report={report}
+        actionsContainer={host}
+        onRevealDetails={reveal}
+      />,
+    );
+    await screen.findByText(/โหวตใกล้จุดวัด/);
+    const button = screen.getByRole("button", { name: /^ความคิดเห็น/ });
+    expect(host.contains(button)).toBe(true);
+    fireEvent.click(button);
+    expect(reveal).toHaveBeenCalledOnce();
+    const composer = screen.getByRole("textbox", { name: "เขียนความคิดเห็น" });
+    await waitFor(() => expect(document.activeElement).toBe(composer));
+    expect(scroll).toHaveBeenCalledWith({ block: "nearest", behavior: "auto" });
+    expect(
+      screen.getByText("ข้อความแนะนำ").closest("details")?.hasAttribute("open"),
+    ).toBe(false);
+    fireEvent.change(composer, { target: { value: "ข้อความที่ยังไม่ได้ส่ง" } });
+    fireEvent.click(button);
+    expect(
+      screen.queryByRole("textbox", { name: "เขียนความคิดเห็น" }),
+    ).toBeNull();
+    fireEvent.click(button);
+    expect(
+      (
+        screen.getByRole("textbox", {
+          name: "เขียนความคิดเห็น",
+        }) as HTMLTextAreaElement
+      ).value,
+    ).toBe("ข้อความที่ยังไม่ได้ส่ง");
+  } finally {
+    host.remove();
+    HTMLElement.prototype.scrollIntoView = previous;
+  }
+});

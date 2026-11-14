@@ -85,6 +85,9 @@ export default function MapStatusCard({
   const [expandedStation, setExpandedStation] = useState<string | null>(null);
   const [evidenceImage, setEvidenceImage] = useState<string | null>(null);
   const photoButtonRef = useRef<HTMLButtonElement>(null);
+  const [actionsContainer, setActionsContainer] =
+    useState<HTMLDivElement | null>(null);
+  const [expandSignal, setExpandSignal] = useState(0);
   const selection = report ?? station;
 
   if (!selection)
@@ -222,10 +225,12 @@ export default function MapStatusCard({
 
   return (
     <MapBottomSheet
+      key={report?.id}
+      expandSignal={expandSignal}
       label={selectionLabel}
       onClose={onClose}
       closeLabel="ปิดรายละเอียดจุดบนแผนที่"
-      className={`cp-user-report-sheet ${panel.panel}`}
+      className={`cp-user-report-sheet ${panel.panel} ${panel.reportPanel}`}
       initialSnap="peek"
       style={
         {
@@ -264,9 +269,23 @@ export default function MapStatusCard({
               </>
             }
           />
+          {source === "individual" && report && !historicalAt && (
+            <div ref={setActionsContainer} className={panel.reportActions} />
+          )}
         </>
       }
     >
+      {source === "individual" && report && !historicalAt && (
+        <ReportEngagement
+          key={report.id}
+          report={report}
+          actionsContainer={actionsContainer}
+          onRevealDetails={() => setExpandSignal((value) => value + 1)}
+          evidenceReady={Boolean(
+            report.image_url && evidenceImage === report.image_url,
+          )}
+        />
+      )}
       <section
         className="cp-map-selection-section cp-map-report-evidence"
         aria-label="ข้อมูลรายงานค่าฝุ่น"
@@ -387,7 +406,10 @@ export default function MapStatusCard({
       </section>
 
       {source === "individual" && report && (
-        <section className="cp-map-selection-section" aria-label="ผู้รายงาน">
+        <section
+          className={`cp-map-selection-section ${panel.reporter}`}
+          aria-label="ผู้รายงาน"
+        >
           <h2>ผู้รายงาน</h2>
           <div
             className="cp-map-reporter-profile"
@@ -462,15 +484,6 @@ export default function MapStatusCard({
 
       {source === "individual" && report && (
         <ReportEvidencePanel report={report} />
-      )}
-      {source === "individual" && report && !historicalAt && (
-        <ReportEngagement
-          key={report.id}
-          report={report}
-          evidenceReady={Boolean(
-            report.image_url && evidenceImage === report.image_url,
-          )}
-        />
       )}
     </MapBottomSheet>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
@@ -34,9 +35,13 @@ function initialEngagement(report: CommunityReport): ReportEngagementResponse {
 export default function ReportEngagement({
   report,
   evidenceReady = false,
+  actionsContainer,
+  onRevealDetails,
 }: {
   report: CommunityReport;
   evidenceReady?: boolean;
+  actionsContainer?: HTMLElement | null;
+  onRevealDetails?: () => void;
 }) {
   const auth = useAuth();
   const viewer = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
@@ -45,6 +50,8 @@ export default function ReportEngagement({
       key={`${report.id}:${viewer}`}
       report={report}
       evidenceReady={evidenceReady}
+      actionsContainer={actionsContainer}
+      onRevealDetails={onRevealDetails}
     />
   );
 }
@@ -52,15 +59,20 @@ export default function ReportEngagement({
 function EngagementContent({
   report,
   evidenceReady,
+  actionsContainer,
+  onRevealDetails,
 }: {
   report: CommunityReport;
   evidenceReady: boolean;
+  actionsContainer?: HTMLElement | null;
+  onRevealDetails?: () => void;
 }) {
   const retryKey = useRef<{ intent: string; key: string } | null>(null);
   const auth = useAuth();
   const loginPrompt = useLoginPrompt();
   const [engagement, setEngagement] = useState(() => initialEngagement(report));
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentReveal, setCommentReveal] = useState(0);
   const [comment, setComment] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +88,40 @@ function EngagementContent({
   >(null);
   const signedIn = Boolean(auth.user || auth.localDemo);
   const reportId = report.id;
+  const commentsRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (!commentsOpen) return;
+    const sheet = commentsRef.current?.closest("[data-map-sheet]");
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      composerRef.current?.scrollIntoView?.({
+        block: "nearest",
+        behavior: "auto",
+      });
+      composerRef.current?.focus({ preventScroll: true });
+    };
+    const expanded = (event: Event) => {
+      if (
+        event.target === sheet &&
+        (event as TransitionEvent).propertyName === "height"
+      )
+        reveal();
+    };
+    sheet?.addEventListener("transitionend", expanded);
+    // Let the 180ms sheet expansion finish before revealing/focusing the input.
+    // The fallback handles content-sized sheets and reduced-motion transitions.
+    const timer = setTimeout(
+      reveal,
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? 0 : 220,
+    );
+    return () => {
+      clearTimeout(timer);
+      sheet?.removeEventListener("transitionend", expanded);
+    };
+  }, [commentsOpen, commentReveal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -201,80 +247,195 @@ function EngagementContent({
     }
   }
 
+  const actions = (
+    <div className="cp-report-engagement__actions">
+      <button
+        type="button"
+        className="cp-focus"
+        data-active={engagement.viewer_reaction === "like"}
+        disabled={
+          pending ||
+          (signedIn && loadStatus !== "loaded") ||
+          ((engagement.location_policy_ready === false ||
+            (engagement.community_trust_collecting && !evidenceReady)) &&
+            engagement.viewer_reaction !== "like")
+        }
+        aria-pressed={engagement.viewer_reaction === "like"}
+        onClick={() => void react("like")}
+      >
+        <AppIcon name="thumb-up" size={18} />
+        <span>ถูกใจ</span>
+        <b>{engagement.like_count}</b>
+      </button>
+      <button
+        type="button"
+        className="cp-focus"
+        data-active={engagement.viewer_reaction === "dislike"}
+        disabled={
+          pending ||
+          (signedIn && loadStatus !== "loaded") ||
+          ((engagement.location_policy_ready === false ||
+            (engagement.community_trust_collecting && !evidenceReady)) &&
+            engagement.viewer_reaction !== "dislike")
+        }
+        aria-pressed={engagement.viewer_reaction === "dislike"}
+        aria-expanded={reasonOpen}
+        aria-controls={`reaction-reason-${reportId}`}
+        onClick={() => {
+          if (
+            signedIn &&
+            engagement.location_required &&
+            engagement.viewer_reaction !== "dislike"
+          ) {
+            setError(null);
+            setReasonOpen(true);
+            onRevealDetails?.();
+          } else void react("dislike");
+        }}
+      >
+        <AppIcon name="thumb-down" size={18} />
+        <span>ไม่ถูกใจ</span>
+        <b>{engagement.dislike_count}</b>
+      </button>
+      <button
+        type="button"
+        className="cp-focus"
+        aria-label={`ความคิดเห็น ${engagement.comment_count}`}
+        aria-controls={`comments-${reportId}`}
+        aria-expanded={commentsOpen}
+        onClick={(event) => {
+          if (!signedIn) {
+            loginPrompt.openLoginPrompt({
+              title: "เข้าสู่ระบบเพื่อแสดงความคิดเห็น",
+              description:
+                "ใช้บัญชี Google เพื่อร่วมสนทนาและช่วยยืนยันข้อมูลจากชุมชน",
+            });
+            return;
+          }
+          const collapsed =
+            event.currentTarget
+              .closest("[data-map-sheet]")
+              ?.getAttribute("data-snap") === "peek";
+          if (!commentsOpen || collapsed) {
+            onRevealDetails?.();
+            setCommentsOpen(true);
+            setCommentReveal((value) => value + 1);
+          } else setCommentsOpen(false);
+        }}
+      >
+        <AppIcon name="comment" size={18} />
+        <span>{actionsContainer ? "ความเห็น" : "ความคิดเห็น"}</span>
+        <b>{engagement.comment_count}</b>
+      </button>
+    </div>
+  );
+
   return (
     <section
       className="cp-report-engagement"
       aria-label="ปฏิกิริยาและความคิดเห็น"
     >
-      <div className="cp-report-engagement__actions">
-        <button
-          type="button"
-          className="cp-focus"
-          data-active={engagement.viewer_reaction === "like"}
-          disabled={
-            pending ||
-            (signedIn && loadStatus !== "loaded") ||
-            ((engagement.location_policy_ready === false ||
-              (engagement.community_trust_collecting && !evidenceReady)) &&
-              engagement.viewer_reaction !== "like")
-          }
-          aria-pressed={engagement.viewer_reaction === "like"}
-          onClick={() => void react("like")}
+      {actionsContainer ? createPortal(actions, actionsContainer) : actions}
+
+      {commentsOpen && (
+        <div
+          ref={commentsRef}
+          id={`comments-${reportId}`}
+          className="cp-report-comments"
+          tabIndex={-1}
         >
-          <AppIcon name="thumb-up" size={18} />
-          <span>ถูกใจ</span>
-          <b>{engagement.like_count}</b>
-        </button>
-        <button
-          type="button"
-          className="cp-focus"
-          data-active={engagement.viewer_reaction === "dislike"}
-          disabled={
-            pending ||
-            (signedIn && loadStatus !== "loaded") ||
-            ((engagement.location_policy_ready === false ||
-              (engagement.community_trust_collecting && !evidenceReady)) &&
-              engagement.viewer_reaction !== "dislike")
-          }
-          aria-pressed={engagement.viewer_reaction === "dislike"}
-          aria-expanded={reasonOpen}
-          aria-controls={`reaction-reason-${reportId}`}
-          onClick={() => {
-            if (
-              signedIn &&
-              engagement.location_required &&
-              engagement.viewer_reaction !== "dislike"
-            ) {
-              setError(null);
-              setReasonOpen(true);
-            } else void react("dislike");
-          }}
-        >
-          <AppIcon name="thumb-down" size={18} />
-          <span>ไม่ถูกใจ</span>
-          <b>{engagement.dislike_count}</b>
-        </button>
-        <button
-          type="button"
-          className="cp-focus"
-          aria-expanded={commentsOpen}
-          onClick={() => {
-            if (!signedIn) {
-              loginPrompt.openLoginPrompt({
-                title: "เข้าสู่ระบบเพื่อแสดงความคิดเห็น",
-                description:
-                  "ใช้บัญชี Google เพื่อร่วมสนทนาและช่วยยืนยันข้อมูลจากชุมชน",
-              });
-              return;
-            }
-            setCommentsOpen((open) => !open);
-          }}
-        >
-          <AppIcon name="comment" size={18} />
-          <span>ความคิดเห็น</span>
-          <b>{engagement.comment_count}</b>
-        </button>
-      </div>
+          {signedIn && (
+            <form onSubmit={submitComment}>
+              <label htmlFor={`comment-${report.id}`}>เขียนความคิดเห็น</label>
+              <p
+                className="cp-report-comments__hint"
+                id={`comment-hint-${report.id}`}
+              >
+                เลือกข้อความแนะนำแล้วแก้ไขได้ กรุณาแสดงความคิดเห็นอย่างสุภาพ
+              </p>
+              <div className="cp-report-comments__composer">
+                <textarea
+                  ref={composerRef}
+                  id={`comment-${report.id}`}
+                  aria-describedby={`comment-hint-${report.id}`}
+                  value={comment}
+                  maxLength={500}
+                  rows={2}
+                  disabled={pending}
+                  placeholder="พิมพ์ความคิดเห็นของคุณ"
+                  onChange={(event) => setComment(event.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="cp-focus"
+                  disabled={pending || !comment.trim()}
+                  aria-label="ส่งความคิดเห็น"
+                >
+                  <AppIcon name="send" size={18} />
+                </button>
+              </div>
+              <details className="cp-report-comments__quick">
+                <summary className="cp-focus">ข้อความแนะนำ</summary>
+                <div
+                  className="cp-report-comments__suggestions"
+                  role="group"
+                  aria-label="ข้อความแนะนำ"
+                >
+                  {COMMENT_SUGGESTIONS.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      className="cp-focus"
+                      disabled={pending}
+                      aria-pressed={comment === suggestion}
+                      onClick={() => setComment(suggestion)}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </details>
+            </form>
+          )}
+          {engagement.comments.length === 0 ? (
+            <p className="cp-report-comments__empty">
+              {loadStatus === "loaded"
+                ? "ยังไม่มีความคิดเห็น"
+                : loadStatus === "error"
+                  ? "ยังโหลดความคิดเห็นไม่ได้ กดลองโหลดใหม่ด้านบน"
+                  : "กำลังโหลดความคิดเห็น…"}
+            </p>
+          ) : (
+            <ul>
+              {engagement.comments.map((item) => (
+                <li key={item.id}>
+                  <div>
+                    <strong>{item.display_name ?? "สมาชิก ClearPath"}</strong>
+                    <time dateTime={item.created_at}>
+                      {new Date(item.created_at).toLocaleString("th-TH", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                        timeZone: "Asia/Bangkok",
+                      })}
+                    </time>
+                  </div>
+                  <p>{item.body}</p>
+                  {item.is_own && (
+                    <button
+                      type="button"
+                      className="cp-focus"
+                      disabled={pending}
+                      onClick={() => void removeComment(item.id)}
+                    >
+                      ลบความคิดเห็น
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {engagement.community_trust_collecting && (
         <div className="cp-community-trust-notice">
@@ -478,96 +639,6 @@ function EngagementContent({
         </p>
       )}
 
-      {commentsOpen && (
-        <div className="cp-report-comments">
-          {signedIn && (
-            <form onSubmit={submitComment}>
-              <label htmlFor={`comment-${report.id}`}>เขียนความคิดเห็น</label>
-              <p
-                className="cp-report-comments__hint"
-                id={`comment-hint-${report.id}`}
-              >
-                เลือกข้อความแนะนำแล้วแก้ไขได้ กรุณาแสดงความคิดเห็นอย่างสุภาพ
-              </p>
-              <div
-                className="cp-report-comments__suggestions"
-                role="group"
-                aria-label="ข้อความแนะนำ"
-              >
-                {COMMENT_SUGGESTIONS.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    className="cp-focus"
-                    disabled={pending}
-                    aria-pressed={comment === suggestion}
-                    onClick={() => setComment(suggestion)}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-              <div className="cp-report-comments__composer">
-                <textarea
-                  id={`comment-${report.id}`}
-                  aria-describedby={`comment-hint-${report.id}`}
-                  value={comment}
-                  maxLength={500}
-                  rows={2}
-                  disabled={pending}
-                  placeholder="เลือกข้อความด้านบนหรือพิมพ์ความคิดเห็น"
-                  onChange={(event) => setComment(event.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="cp-focus"
-                  disabled={pending || !comment.trim()}
-                  aria-label="ส่งความคิดเห็น"
-                >
-                  <AppIcon name="send" size={18} />
-                </button>
-              </div>
-            </form>
-          )}
-          {engagement.comments.length === 0 ? (
-            <p className="cp-report-comments__empty">
-              {loadStatus === "loaded"
-                ? "ยังไม่มีความคิดเห็น"
-                : loadStatus === "error"
-                  ? "ยังโหลดความคิดเห็นไม่ได้ กดลองโหลดใหม่ด้านบน"
-                  : "กำลังโหลดความคิดเห็น…"}
-            </p>
-          ) : (
-            <ul>
-              {engagement.comments.map((item) => (
-                <li key={item.id}>
-                  <div>
-                    <strong>{item.display_name ?? "สมาชิก ClearPath"}</strong>
-                    <time dateTime={item.created_at}>
-                      {new Date(item.created_at).toLocaleString("th-TH", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                        timeZone: "Asia/Bangkok",
-                      })}
-                    </time>
-                  </div>
-                  <p>{item.body}</p>
-                  {item.is_own && (
-                    <button
-                      type="button"
-                      className="cp-focus"
-                      disabled={pending}
-                      onClick={() => void removeComment(item.id)}
-                    >
-                      ลบความคิดเห็น
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
       {error && <p role="alert">{error}</p>}
     </section>
   );

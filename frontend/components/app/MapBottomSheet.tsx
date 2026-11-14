@@ -29,6 +29,7 @@ export default function MapBottomSheet({
   ownsFocus = false,
   mapClearance = 8,
   expandable = true,
+  expandSignal = 0,
 }: {
   id?: string;
   label: string;
@@ -44,6 +45,7 @@ export default function MapBottomSheet({
   ownsFocus?: boolean;
   mapClearance?: number;
   expandable?: boolean;
+  expandSignal?: number;
 }) {
   const contentId = useId();
   const root = useRef<HTMLElement>(null),
@@ -94,8 +96,16 @@ export default function MapBottomSheet({
     touch?: boolean;
   } | null>(null);
   const dragged = useRef(false);
-  const [snap, setSnap] = useState<Snap>(initialSnap),
-    [dragHeight, setDragHeight] = useState<number | null>(null);
+  const [snapState, setSnapState] = useState({
+    snap: initialSnap,
+    expandSignal,
+  });
+  const [dragHeight, setDragHeight] = useState<number | null>(null);
+  if (snapState.expandSignal !== expandSignal) {
+    setSnapState({ snap: expandable ? "full" : snapState.snap, expandSignal });
+    setDragHeight(null);
+  }
+  const snap = snapState.snap;
   const [sizes, setSizes] = useState({ peek: 180, max: 600, keyboard: 0 });
   const current = useRef({ snap, sizes });
   useLayoutEffect(() => {
@@ -103,11 +113,18 @@ export default function MapBottomSheet({
   }, [snap, sizes]);
   function select(next: Snap) {
     if (!expandable) return;
-    setSnap(next);
+    setSnapState({ snap: next, expandSignal });
     setDragHeight(null);
     if (next === "peek" && scroll.current) scroll.current.scrollTop = 0;
     onSnapChange?.(next);
   }
+  const lastExpandSignal = useRef(expandSignal);
+  useEffect(() => {
+    if (lastExpandSignal.current === expandSignal) return;
+    lastExpandSignal.current = expandSignal;
+    if (!expandable) return;
+    onSnapChange?.("full");
+  }, [expandSignal, expandable, onSnapChange]);
   const finishRef = useRef(() => {});
   function finish() {
     const drag = gesture.current;
