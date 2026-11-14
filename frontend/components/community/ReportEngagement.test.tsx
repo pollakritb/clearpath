@@ -194,6 +194,14 @@ it("keeps summary actions in one shared portal and reveals the comment composer"
     const composer = screen.getByRole("textbox", { name: "เขียนความคิดเห็น" });
     await waitFor(() => expect(document.activeElement).toBe(composer));
     expect(scroll).toHaveBeenCalledWith({ block: "nearest", behavior: "auto" });
+    scroll.mockClear();
+    fireEvent(window, new Event("resize"));
+    await waitFor(() =>
+      expect(scroll).toHaveBeenCalledWith({
+        block: "nearest",
+        behavior: "auto",
+      }),
+    );
     expect(
       screen.getByText("ข้อความแนะนำ").closest("details")?.hasAttribute("open"),
     ).toBe(false);

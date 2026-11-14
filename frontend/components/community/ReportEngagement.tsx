@@ -110,6 +110,19 @@ function EngagementContent({
       )
         reveal();
     };
+    let resizeFrame = 0;
+    const keepComposerVisible = () => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        if (revealed && document.activeElement === composerRef.current)
+          composerRef.current?.scrollIntoView?.({
+            block: "nearest",
+            behavior: "auto",
+          });
+      });
+    };
+    window.addEventListener("resize", keepComposerVisible);
+    window.visualViewport?.addEventListener("resize", keepComposerVisible);
     sheet?.addEventListener("transitionend", expanded);
     // Let the 180ms sheet expansion finish before revealing/focusing the input.
     // The fallback handles content-sized sheets and reduced-motion transitions.
@@ -120,6 +133,9 @@ function EngagementContent({
     return () => {
       clearTimeout(timer);
       sheet?.removeEventListener("transitionend", expanded);
+      window.removeEventListener("resize", keepComposerVisible);
+      window.visualViewport?.removeEventListener("resize", keepComposerVisible);
+      cancelAnimationFrame(resizeFrame);
     };
   }, [commentsOpen, commentReveal]);
 
