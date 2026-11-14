@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
@@ -18,7 +18,6 @@ export default function ProfilePanel({ tab = "overview" }: { tab?: string }) {
   const loginPrompt = useLoginPrompt();
   const signedIn = Boolean(auth.user || auth.localDemo);
   const searchParams = useSearchParams();
-  const router = useRouter();
   const requested = searchParams.get("tab") ?? tab;
   const selected = SECTIONS.some(([value]) => value === requested)
     ? requested
@@ -37,7 +36,17 @@ export default function ProfilePanel({ tab = "overview" }: { tab?: string }) {
               setVisited((previous) => new Set([...previous, value]));
               const url = new URL(window.location.href);
               url.searchParams.set("tab", value);
-              router.replace(url.pathname + url.search, { scroll: false });
+              // These panels load their own data; changing tabs must not wait
+              // for a server navigation. Pass only our state, never Next's
+              // internal markers, so useSearchParams receives the new URL.
+              window.history.replaceState(
+                {
+                  cpInternalEntry:
+                    window.history.state?.cpInternalEntry === true,
+                },
+                "",
+                url.pathname + url.search,
+              );
             }}
             aria-pressed={selected === value}
             className="cp-focus"

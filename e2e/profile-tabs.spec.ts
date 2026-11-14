@@ -71,3 +71,32 @@ for (const [tab, endpoint, message, panel] of [
     await expect(page.getByText(message, { exact: true })).toHaveCount(0);
   });
 }
+
+test("profile tabs and cached revisits work without a server navigation", async ({
+  page,
+}) => {
+  await page.goto("/profile?returnTo=%2Fair&tab=overview");
+  await expect(page.locator(".cp-xp-profile")).toBeVisible();
+  let serverNavigations = 0;
+  await page.route("**/profile?*", (route) => {
+    if (route.request().headers()["rsc"] === "1") {
+      serverNavigations++;
+      return route.abort("failed");
+    }
+    return route.continue();
+  });
+  const nav = page.getByRole("navigation", {
+    name: "ผลงานและอันดับ",
+    exact: true,
+  });
+  for (const [tab, label, panel] of [...sections, ...sections, ...sections]) {
+    await nav.getByRole("button", { name: label, exact: true }).click();
+    await expect(
+      nav.getByRole("button", { name: label, exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(panel)).toBeVisible();
+    expect(new URL(page.url()).searchParams.get("tab")).toBe(tab);
+    expect(new URL(page.url()).searchParams.get("returnTo")).toBe("/air");
+  }
+  expect(serverNavigations).toBe(0);
+});
