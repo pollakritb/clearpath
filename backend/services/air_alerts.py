@@ -122,8 +122,13 @@ def candidates(point: dict, radius: float) -> list[dict]:
         return (
             db.get_client()
             .rpc(
-                "air_alert_candidates",
-                {"p_lat": point["lat"], "p_lon": point["lon"], "p_radius": radius},
+                "air_alert_candidates_for_user",
+                {
+                    "p_user": point["user_id"],
+                    "p_lat": point["lat"],
+                    "p_lon": point["lon"],
+                    "p_radius": radius,
+                },
             )
             .execute()
             .data
@@ -142,6 +147,8 @@ def candidates(point: dict, radius: float) -> list[dict]:
         for s in supabase_client.get_stations()
     ]
     for r in local_store.list_reports("approved", 100000):
+        if str(r.get("user_id")) == str(point.get("user_id")):
+            continue
         if r.get("public_lat") is None or r.get("public_lon") is None:
             continue
         result.append(
@@ -171,7 +178,9 @@ def selected(
     return (
         preferences,
         point,
-        nearest_source(point, candidates(point, radius), radius, now),
+        nearest_source(
+            point, candidates({**point, "user_id": user_id}, radius), radius, now
+        ),
     )
 
 
@@ -179,16 +188,26 @@ def notice_for(source: dict, point: dict, preferences: dict, key: str) -> dict:
     kind = source["source_type"]
     origin = "สถานี Air4Thai" if kind == "station" else "รายงานชุมชน"
     level = air_quality_level(source["pm25"])
-    value = str(float(source["pm25"]))
-    title = f"PM2.5 {value} µg/m³ ใกล้ตำแหน่งใช้งานล่าสุด"
+    value = format(float(source["pm25"]), "g")
     source_time = (
         timestamp(source["source_at"]).astimezone(BANGKOK_TZ).strftime("%d/%m/%Y %H:%M")
     )
     name = str(source.get("name") or "") if kind == "station" else ""
-    body = (
-        f"{origin} {name} · ห่างประมาณ {source['distance_km']:.1f} กม. · "
-        f"เวลาวัด {source_time} น. (เวลาไทย) · {level['advice']}"
+    distance = float(source["distance_km"])
+    distance_label = (
+        f"{round(distance * 1000):,} เมตร" if distance < 1 else f"{distance:.1f} กม."
     )
+    threshold = max(37.6, float(preferences.get("pm25_threshold", 37.6)))
+    title = f"ค่าฝุ่นถึงเกณฑ์แจ้งเตือน · PM2.5 {value} µg/m³"
+    body = (
+        f"เกณฑ์ที่คุณตั้งไว้: {threshold:g} µg/m³ ขึ้นไป\n"
+        f"แหล่งข้อมูล: {origin}{' · ' + name if name else ''}\n"
+        f"ระยะห่าง: ประมาณ {distance_label} จาก GPS ล่าสุดของคุณ\n"
+        f"วัดเมื่อ: {source_time} น. (เวลาไทย)\n\n"
+        f"คำแนะนำ: {level['advice']}"
+    )
+    if kind == "community":
+        body += "\nข้อมูลชุมชนเป็นข้อมูลเสริม ไม่ใช่ค่าจากสถานีทางการ"
     return {
         "title": title,
         "body": body,
@@ -200,6 +219,35 @@ def notice_for(source: dict, point: dict, preferences: dict, key: str) -> dict:
             "preferences_at": preferences.get("updated_at"),
         },
     }
+
+
+AUDIENCE_POLICY = "exclude-own-v1"
+
+
+def episode_for_other_reports(user_id: str, state: dict) -> dict:
+    """One-time, evidence-bound upgrade; existing valid episodes are preserved."""
+    if state.get("audience_policy") == AUDIENCE_POLICY:
+        return state
+    updated = dict(state)
+    last = timestamp(state.get("last_notified_at"))
+    if state.get("severity") and last and not settings.local_demo_mode:
+        was_own = (
+            db.get_client()
+            .rpc(
+                "air_alert_previous_was_own",
+                {
+                    "p_user": user_id,
+                    "p_last": last.isoformat(),
+                },
+            )
+            .execute()
+            .data
+        )
+        if was_own is True:
+            for field in ("severity", "last_notified_at", "low_since"):
+                updated.pop(field, None)
+    updated["audience_policy"] = AUDIENCE_POLICY
+    return updated
 
 
 @storage_errors
@@ -232,7 +280,7 @@ def evaluate(user_id: str) -> bool:
         with _LOCK:
             row = STATES.get(user_id, {"revision": 0, "state": {}})
             updated = transition(
-                row["state"],
+                episode_for_other_reports(user_id, row["state"]),
                 source,
                 float(preferences.get("pm25_threshold", 37.6)),
                 now,
@@ -274,7 +322,10 @@ def evaluate(user_id: str) -> bool:
         ).eq("user_id", user_id).eq("revision", row["revision"]).execute()
         return False
     updated = transition(
-        row["state"], source, float(preferences.get("pm25_threshold", 37.6)), now
+        episode_for_other_reports(user_id, row["state"]),
+        source,
+        float(preferences.get("pm25_threshold", 37.6)),
+        now,
     )
     should_notify = updated.pop("notify")
     notice = (

@@ -105,6 +105,8 @@ REFERENCES = {
 }
 
 RPC_PARAMETERS = {
+    "air_alert_candidates_for_user": {"p_user": "profiles"},
+    "air_alert_previous_was_own": {"p_user": "profiles"},
     "touch_line_outbox": {"p_event": "notification_outbox"},
     "finish_line_outbox": {"p_event": "notification_outbox"},
     "resolve_air_alert": {"p_user": "profiles"},
