@@ -72,8 +72,10 @@ def fixture(monkeypatch, age=1, null_at=None):
     return row
 
 
-def test_area_reads_one_grid_cell_for_full_horizon(monkeypatch):
+@pytest.mark.parametrize("station_cutover", [False, True])
+def test_area_reads_one_grid_cell_for_full_horizon(monkeypatch, station_cutover):
     fixture(monkeypatch)
+    monkeypatch.setattr(service.settings, "cams_grid_forecast_enabled", station_cutover)
     result = asyncio.run(service.area_forecast(14, 100.4, 120))
     assert len(result["points"]) == 120
     assert result["grid_lat"] == 14 and result["grid_lon"] == 100.4

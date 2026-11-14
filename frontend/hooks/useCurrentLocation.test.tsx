@@ -115,3 +115,36 @@ it("ignores an older GPS success arriving after the latest request was denied", 
   expect(result.current.status).toBe("denied");
   expect(result.current.location).toBeNull();
 });
+
+it("follows location changes and clears its watch on unmount", () => {
+  let update: PositionCallback = () => undefined;
+  const clearWatch = vi.fn();
+  const getCurrentPosition = vi.fn();
+  Object.defineProperty(navigator, "geolocation", {
+    configurable: true,
+    value: {
+      getCurrentPosition,
+      clearWatch,
+      watchPosition: vi.fn((success: PositionCallback) => {
+        update = success;
+        return 7;
+      }),
+    },
+  });
+  const view = renderHook(() => useCurrentLocation(true, true));
+  act(() =>
+    update({
+      coords: { latitude: 13.8, longitude: 100.1, accuracy: 20 },
+    } as GeolocationPosition),
+  );
+  expect(view.result.current.location?.lat).toBe(13.8);
+  act(() =>
+    update({
+      coords: { latitude: 18.8, longitude: 98.9, accuracy: 20 },
+    } as GeolocationPosition),
+  );
+  expect(view.result.current.location?.lat).toBe(18.8);
+  expect(getCurrentPosition).not.toHaveBeenCalled();
+  view.unmount();
+  expect(clearWatch).toHaveBeenCalledWith(7);
+});

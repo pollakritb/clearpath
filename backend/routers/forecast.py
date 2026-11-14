@@ -51,7 +51,7 @@ async def forecast(
     if settings.external_forecast_enabled:
         response.headers["Cache-Control"] = "no-store, max-age=0"
         try:
-            if generation_id and not settings.cams_grid_forecast_enabled:
+            if station_id and generation_id and not settings.cams_grid_forecast_enabled:
                 raise HTTPException(409, "forecast_grid_read_not_enabled")
             if station_id:
                 result = (

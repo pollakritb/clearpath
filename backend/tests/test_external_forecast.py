@@ -109,48 +109,27 @@ def test_area_forecast_target_is_validated_and_served(monkeypatch):
     assert client.get("/api/forecast?lat=35&lon=100").status_code == 422
 
 
-def test_area_forecast_reads_five_day_stored_series(monkeypatch):
-    fetched = datetime.now(UTC).replace(microsecond=0)
-    first = fetched.replace(minute=0, second=0) + timedelta(hours=1)
-    station = {"id": "103t", "name_th": "สถานีนครปฐม", "lat": 13.8, "lon": 100.1}
-    rows = [
-        {
-            "sync_run_id": "completed-run",
-            "issued_at": fetched.isoformat(),
-            "forecast_at": (first + timedelta(hours=hour)).isoformat(),
-            "pm25": 10 + hour / 10,
-            "raw_metadata": {
-                "grid_lat": 13.75,
-                "grid_lon": 100.25,
-                "fetched_at": fetched.isoformat(),
-            },
-        }
-        for hour in range(106)
-    ]
-    monkeypatch.setattr(
-        external_forecast.supabase_client, "get_stations", lambda: [station]
-    )
-    monkeypatch.setattr(
-        external_forecast.supabase_client,
-        "get_recent_cams_snapshots",
-        lambda station_id, *_: rows if station_id == "103t" else [],
-    )
-    monkeypatch.setattr(
-        external_forecast.supabase_client,
-        "get_provider_sync_run",
-        lambda _run_id: {"status": "success"},
-    )
+def test_area_forecast_uses_requested_grid_point_without_station_fallback(monkeypatch):
+    async def grid_result(station_id, lat, lon, station, hours, generation_id):
+        assert (station_id, lat, lon, station, hours, generation_id) == (
+            None,
+            13.8,
+            100.1,
+            None,
+            120,
+            None,
+        )
+        return {"target_kind": "area", "generation_id": "CGN-000032"}
+
+    monkeypatch.setattr(external_forecast.settings, "cams_grid_forecast_enabled", False)
+    monkeypatch.setattr(external_forecast, "_grid_forecast", grid_result)
+
+    def forbidden():
+        raise AssertionError("area forecast must not search nearby stations")
+
+    monkeypatch.setattr(external_forecast.supabase_client, "get_stations", forbidden)
     result = asyncio.run(external_forecast.area_forecast(13.8, 100.1, 120))
-    assert len(result["points"]) == 106
-    assert result["requested_lat"] == 13.8
-    assert result["requested_lon"] == 100.1
-    assert result["grid_lat"] == 13.75
-    assert result["grid_lon"] == 100.25
-    assert result["points"][0]["valid_at"] == result["points"][0]["forecast_at"]
-    assert result["points"][-1]["horizon_hours"] == 106
-    assert result["provenance"]["source_station_id"] == "103t"
-    assert result["provenance"]["value_policy"] == "stored_raw_provider_value"
-    assert "external_provider_partial_horizon" in result["limitation_reason_codes"]
+    assert result["generation_id"] == "CGN-000032"
 
 
 def test_forecast_does_not_serve_running_or_stale_snapshots(monkeypatch):

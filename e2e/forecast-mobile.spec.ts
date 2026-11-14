@@ -184,7 +184,16 @@ test("forecast card exposes a time-based timeline and accessible table", async (
   page,
 }) => {
   await page.route("**/api/forecast?**", async (route) => {
-    await route.fulfill({ json: externalForecastFixture() });
+    const params = new URL(route.request().url()).searchParams;
+    await route.fulfill({
+      json: {
+        ...externalForecastFixture(),
+        station_id: null,
+        target_kind: "area",
+        requested_lat: Number(params.get("lat")),
+        requested_lon: Number(params.get("lon")),
+      },
+    });
   });
   await page.goto("/air?station=81t");
   await expect(
@@ -256,7 +265,14 @@ test("today page shows forecast unavailable without zero, mock, or comparison", 
   await page.route("**/api/forecast?**", async (route) => {
     await route.fulfill({
       json: {
-        station_id: "81t",
+        target_kind: "area",
+        requested_lat: Number(
+          new URL(route.request().url()).searchParams.get("lat"),
+        ),
+        requested_lon: Number(
+          new URL(route.request().url()).searchParams.get("lon"),
+        ),
+        station_id: null,
         station_name: "สถานีทดสอบ",
         generated_at: new Date().toISOString(),
         forecast_status: "unavailable",
@@ -291,7 +307,16 @@ test("external provider comparison keeps raw values separate on mobile", async (
   page,
 }) => {
   await page.route("**/api/forecast?**", async (route) => {
-    await route.fulfill({ json: externalForecastFixture() });
+    const params = new URL(route.request().url()).searchParams;
+    await route.fulfill({
+      json: {
+        ...externalForecastFixture(),
+        station_id: null,
+        target_kind: "area",
+        requested_lat: Number(params.get("lat")),
+        requested_lon: Number(params.get("lon")),
+      },
+    });
   });
   await page.goto("/air?station=81t");
   await expect(
@@ -312,4 +337,65 @@ test("external provider comparison keeps raw values separate on mobile", async (
     document: document.documentElement.scrollWidth,
   }));
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
+});
+
+test("Today follows the displayed station's grid coordinates when GPS moves", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: 13.8, longitude: 100.1 });
+  const stations = [
+    {
+      id: "south",
+      name_th: "สถานีจุดเริ่มต้น",
+      lat: 13.8,
+      lon: 100.1,
+      pm25: 12,
+    },
+    { id: "north", name_th: "สถานีจุดใหม่", lat: 18.8, lon: 98.9, pm25: 24 },
+  ].map((station) => ({
+    ...station,
+    in_service_area: true,
+    eligible_for_surface: true,
+    data_status: "fresh",
+    age_minutes: 1,
+    recorded_at: new Date().toISOString(),
+  }));
+  await page.route("**/api/pm25/current", (route) =>
+    route.fulfill({ json: { stations, count: 2 } }),
+  );
+  await page.route("**/api/community/reports", (route) =>
+    route.fulfill({ json: { reports: [], stacks: [], count: 0 } }),
+  );
+  const targets: string[] = [];
+  await page.route("**/api/forecast?**", async (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    expect(params.has("station_id")).toBe(false);
+    targets.push(`${params.get("lat")},${params.get("lon")}`);
+    await route.fulfill({
+      json: {
+        ...externalForecastFixture(),
+        station_id: null,
+        target_kind: "area",
+        requested_lat: Number(params.get("lat")),
+        requested_lon: Number(params.get("lon")),
+        generation_id: "CGN-000032",
+        provenance: {},
+      },
+    });
+  });
+  await page.goto("/air");
+  const card = page.locator(".cp-forecast-card");
+  await expect(
+    card.getByText("สถานีจุดเริ่มต้น", { exact: true }),
+  ).toBeVisible();
+  await expect.poll(() => targets.includes("13.80,100.10")).toBe(true);
+  await context.setGeolocation({ latitude: 18.8, longitude: 98.9 });
+  await expect(card.getByText("สถานีจุดใหม่", { exact: true })).toBeVisible();
+  await expect.poll(() => targets.includes("18.80,98.90")).toBe(true);
+  await expect(
+    card.getByRole("group", { name: "พยากรณ์ตามเวลา" }),
+  ).toBeVisible();
+  await expect(card.getByText(/ใช้ข้อมูลที่เก็บของสถานี/)).toHaveCount(0);
 });

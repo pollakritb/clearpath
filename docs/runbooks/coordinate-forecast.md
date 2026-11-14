@@ -1,0 +1,11 @@
+# Coordinate forecasts on Today
+
+The forecast card uses the same public coordinates as the reading shown above: the selected station, the nearest other-user report, or an explicitly selected area. The normal Today view watches GPS updates; a change in the nearest source loads a new coordinate forecast. Station-pinned links stay pinned. Old target results are hidden while loading the next target.
+
+Coordinate `/api/forecast?lat=...&lon=...` reads the nearest cell of the active stored national CAMS grid. It does not borrow station snapshots, blend measurements, fill missing cells or call the provider per user. Existing grid freshness and contiguous-horizon rules apply. No grid data means an unavailable forecast.
+
+Before deploying this code, apply only the additive `coordinate_forecast_grid_reader` migration to the intended database. It installs the bounded scalar reader with service-role-only execution and does not change publishing, retention, ingestion, cron or Vault. This is a scoped coordinate read feature; `CAMS_GRID_FORECAST_ENABLED` still gates station-forecast cutover and the unrelated database retirement remains subject to its existing readiness gates. Do not blanket-push older staged migrations.
+
+Local checks cover switching between community/station points as GPS changes, fixed station/area targets, GPS watch cleanup, grid-cell reads without nearby-station fallback, unavailable/stale/null cells and reader permissions. The owner subsequently authorized commit/push/deploy. On 14 November 2026 the scoped reader migration was applied to production project `kmvxwfrmmictzuxbsncr`; its exact body and service-role-only grants were verified. Read-only integration at coordinates (14.02, 99.97) and (18.79, 98.98) returned distinct grid cells/values, 95 available forecast hours, the same active generation and no source-station fallback. No publishing/retention/cron cutover was performed.
+
+Release checks: 537 frontend tests, 3,761 backend tests, 20 forecast browser tests (including GPS movement), 24 request-flow browser tests, isolated scalar-reader permissions/bounds checks, format/lint/typecheck and production build passed. Request map details now use a fixed full-content sheet; owner tracking/cancellation actions are immediately available.

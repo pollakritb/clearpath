@@ -29,6 +29,7 @@ await pg.exec(migration("retire_model_feature_storage"));
 await pg.exec("begin");
 await pg.exec(migration("unified_cams_grid_reads"));
 await pg.exec("commit");
+await pg.exec(migration("coordinate_forecast_grid_reader"));
 await pg.exec(
   "insert into cams_grid_definitions(id,latitudes,longitudes) values('test',array[13.6,14.0],array[100.0,100.4])",
 );

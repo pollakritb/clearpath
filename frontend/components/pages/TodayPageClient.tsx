@@ -30,7 +30,7 @@ export default function TodayPageClient({
   const currentUserId = useCurrentUserId();
   const history = useHistory();
   const forecast = useForecast();
-  const currentLocation = useCurrentLocation(true);
+  const currentLocation = useCurrentLocation(true, true);
   const [showHistory, setShowHistory] = useState(false);
 
   const serviceAreaStations = useMemo(
@@ -88,26 +88,19 @@ export default function TodayPageClient({
         )
       : null;
   const forecastTarget = useMemo(() => {
-    if (stationId) return routeStation?.id ?? null;
-    if (area) return { lat: area.lat, lon: area.lon };
-    if (selectedReport)
-      return { lat: selectedReport.lat, lon: selectedReport.lon };
-    return selectedStation?.id ?? null;
-  }, [area, routeStation?.id, selectedReport, selectedStation?.id, stationId]);
+    const point = stationId
+      ? routeStation
+      : (area ?? selectedReport ?? selectedStation);
+    return point ? { lat: point.lat, lon: point.lon } : null;
+  }, [area, routeStation, selectedReport, selectedStation, stationId]);
 
   const forecastForCurrentTarget =
-    forecast.data && forecastTarget
-      ? typeof forecastTarget === "string"
-        ? forecast.data.station_id === forecastTarget
-          ? forecast.data
-          : null
-        : forecast.data.target_kind === "area" &&
-            forecast.data.requested_lat ===
-              Number(forecastTarget.lat.toFixed(2)) &&
-            forecast.data.requested_lon ===
-              Number(forecastTarget.lon.toFixed(2))
-          ? forecast.data
-          : null
+    forecast.data &&
+    forecastTarget &&
+    forecast.data.target_kind === "area" &&
+    forecast.data.requested_lat === Number(forecastTarget.lat.toFixed(2)) &&
+    forecast.data.requested_lon === Number(forecastTarget.lon.toFixed(2))
+      ? forecast.data
       : null;
 
   const forecastLoad = forecast.load;
@@ -183,14 +176,16 @@ export default function TodayPageClient({
           />
           <ForecastPanel
             compact
-            station={selectedReport || area ? null : selectedStation}
+            station={null}
             areaLabel={
-              stationId
-                ? undefined
-                : area
-                  ? (area.name ?? "บริเวณที่เลือก")
-                  : selectedReport
-                    ? "บริเวณรายงานที่ใกล้คุณที่สุด"
+              area && !stationId
+                ? (area.name ?? "บริเวณที่เลือก")
+                : selectedReport
+                  ? `บริเวณรายงานจาก ${selectedReport.display_name ?? "สมาชิกชุมชน"}`
+                  : selectedStation
+                    ? (selectedStation.name_th ??
+                      selectedStation.name_en ??
+                      selectedStation.id)
                     : undefined
             }
             data={forecastForCurrentTarget}

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from math import isfinite
 
 from starlette.concurrency import run_in_threadpool
 
@@ -155,24 +154,9 @@ async def station_forecast(
 async def area_forecast(
     lat: float, lon: float, hours: int, generation_id: str | None = None
 ) -> dict:
-    if settings.cams_grid_forecast_enabled:
-        return await _grid_forecast(None, lat, lon, None, hours, generation_id)
-    stations = await run_in_threadpool(supabase_client.get_stations)
-    candidates = []
-    for station in stations:
-        try:
-            distance = haversine_km(
-                lat, lon, float(station["lat"]), float(station["lon"])
-            )
-        except (KeyError, TypeError, ValueError):
-            continue
-        if isfinite(distance) and distance <= MAX_AREA_SOURCE_DISTANCE_KM:
-            candidates.append((distance, station))
-    for _, station in sorted(candidates, key=lambda item: item[0])[:5]:
-        result = await _target_forecast(None, lat, lon, station, hours)
-        if result["forecast_status"] != "unavailable":
-            return result
-    return _unavailable(None, lat, lon, max(1, min(MAX_CAMS_FORECAST_HOURS, hours)))
+    # Coordinate forecasts follow the selected point, never a nearby station's
+    # snapshot. Station snapshot rollout/retirement remains independent.
+    return await _grid_forecast(None, lat, lon, None, hours, generation_id)
 
 
 async def _target_forecast(

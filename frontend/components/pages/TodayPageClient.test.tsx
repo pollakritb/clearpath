@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import TodayPageClient from "./TodayPageClient";
 
 const state = vi.hoisted(() => ({
+  location: { lat: 13.8, lon: 100.1 },
   listRequests: vi.fn(),
   viewerId: "viewer",
   noop: vi.fn(),
@@ -58,7 +59,7 @@ vi.mock("@/frontend/components/panels/ForecastPanel", () => ({
 }));
 vi.mock("@/frontend/hooks/useCurrentLocation", () => ({
   useCurrentLocation: () => ({
-    location: { lat: 13.8, lon: 100.1 },
+    location: state.location,
     request: state.noop,
   }),
 }));
@@ -85,6 +86,7 @@ vi.mock("@/frontend/hooks/useForecast", () => ({
 afterEach(cleanup);
 beforeEach(() => {
   state.viewerId = "viewer";
+  state.location = { lat: 13.8, lon: 100.1 };
   vi.clearAllMocks();
   state.listRequests.mockResolvedValue({ requests: [] });
 });
@@ -114,7 +116,25 @@ describe("Today nearest source", () => {
   it("keeps an explicitly selected station separate from automatic GPS selection", () => {
     render(<TodayPageClient stationId="station" />);
     expect(screen.getByText("10.2")).toBeTruthy();
-    expect(state.noop).toHaveBeenCalledWith("station", 120);
+    expect(state.noop).toHaveBeenCalledWith({ lat: 13.9, lon: 100.1 }, 120);
     expect(screen.queryByText("รายงานจาก เพื่อนบ้าน")).toBeNull();
   });
+});
+
+it("moves forecast coordinates with the nearest displayed source as GPS changes", async () => {
+  const view = render(<TodayPageClient />);
+  await screen.findByText("รายงานจาก เพื่อนบ้าน");
+  expect(state.noop).toHaveBeenCalledWith({ lat: 13.801, lon: 100.1 }, 120);
+  state.noop.mockClear();
+  state.location = { lat: 13.9, lon: 100.1 };
+  view.rerender(<TodayPageClient />);
+  expect(screen.getByText("10.2")).toBeTruthy();
+  expect(state.noop).toHaveBeenCalledWith({ lat: 13.9, lon: 100.1 }, 120);
+});
+
+it("uses an explicitly selected area's coordinates", () => {
+  render(
+    <TodayPageClient area={{ lat: 18.8, lon: 98.9, name: "เชียงใหม่" }} />,
+  );
+  expect(state.noop).toHaveBeenCalledWith({ lat: 18.8, lon: 98.9 }, 120);
 });

@@ -10,6 +10,8 @@ cron/Vault, restore data or purchase services. Database cutover remains gated by
 the recovery and observation evidence below; application deployment alone does
 not establish database readiness.
 
+The later [coordinate forecast feature](coordinate-forecast.md) separately scopes a scalar reader for coordinate cards. It does not authorize the global station cutover, publishing/retention changes or destructive retirement described here.
+
 ## Evidence and current state
 
 Baseline captured on November 14, 2026 Bangkok time (November 13 UTC):

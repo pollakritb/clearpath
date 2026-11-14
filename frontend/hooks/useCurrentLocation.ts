@@ -11,7 +11,7 @@ export interface CurrentLocation {
   accuracy: number;
 }
 
-export function useCurrentLocation(enabled: boolean) {
+export function useCurrentLocation(enabled: boolean, follow = false) {
   const requestSequence = useRef(0);
   useEffect(
     () => () => {
@@ -56,10 +56,50 @@ export function useCurrentLocation(enabled: boolean) {
   }, []);
 
   useEffect(() => {
-    if (!enabled || status !== "idle") return;
+    if (
+      !enabled ||
+      !follow ||
+      typeof navigator.geolocation?.watchPosition !== "function"
+    )
+      return;
+    let active = true;
+    const id = navigator.geolocation.watchPosition(
+      (position) => {
+        if (!active) return;
+        requestSequence.current += 1;
+        setLocation({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        });
+        setStatus("ready");
+      },
+      (error) => {
+        if (!active) return;
+        requestSequence.current += 1;
+        setLocation(null);
+        setStatus(
+          error.code === error.PERMISSION_DENIED ? "denied" : "unavailable",
+        );
+      },
+      { enableHighAccuracy: false, timeout: 12_000, maximumAge: 60_000 },
+    );
+    return () => {
+      active = false;
+      navigator.geolocation.clearWatch(id);
+    };
+  }, [enabled, follow]);
+
+  useEffect(() => {
+    if (
+      !enabled ||
+      status !== "idle" ||
+      (follow && typeof navigator.geolocation?.watchPosition === "function")
+    )
+      return;
     const timer = window.setTimeout(request, 0);
     return () => window.clearTimeout(timer);
-  }, [enabled, request, status]);
+  }, [enabled, follow, request, status]);
 
   return { location, status, request };
 }
