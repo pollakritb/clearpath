@@ -106,7 +106,23 @@ async def collect_snapshots() -> dict:
         {"id": str(row["id"]), "lat": row["lat"], "lon": row["lon"]} for row in stations
     ]
     try:
-        forecasts = await openmeteo_air.get_forecasts(locations, forecast_hours=28)
+        if settings.cams_grid_forecast_enabled:
+            from . import external_forecast, forecast_grid_store
+
+            # Pin all cohort reads to one published generation; never fetch upstream.
+            generation = await run_in_threadpool(forecast_grid_store.active)
+            forecasts = {}
+            if generation:
+                for location in locations:
+                    result = await external_forecast.area_forecast(
+                        location["lat"], location["lon"], 28, str(generation["id"])
+                    )
+                    forecasts[location["id"]] = [
+                        {**point, "fetched_at": result["fetched_at"]}
+                        for point in result["points"]
+                    ]
+        else:
+            forecasts = await openmeteo_air.get_forecasts(locations, forecast_hours=28)
     except UpstreamError:
         await run_in_threadpool(
             supabase_client.upsert_forecast_validation_collection_run,

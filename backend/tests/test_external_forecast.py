@@ -264,4 +264,4 @@ def test_forecast_route_serves_only_openmeteo_cams(monkeypatch):
     assert response.status_code == 200
     assert response.json()["recommended_source"] == "openmeteo_cams"
     assert response.json()["points"][0]["pm25"] == 12.5
-    assert response.headers["cache-control"].startswith("public")
+    assert response.headers["cache-control"] == "no-store"

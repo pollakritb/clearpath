@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     # Isolated forecast evidence collection. No production schedule is registered.
     forecast_validation_enabled: bool = False
     # Storage-only CAMS collection; independent of the paused model pipeline.
+    # Additive rollout: enable only after unified_cams_grid_reads is verified.
+    cams_grid_forecast_enabled: bool = False
     cams_grid_collection_enabled: bool = False
     cams_snapshot_collection_enabled: bool = False
     cams_snapshot_expected_supabase_ref: str = ""

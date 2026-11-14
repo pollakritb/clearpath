@@ -16,7 +16,8 @@ export default function MapStationForecast({
   stationId,
   area,
   hideUnavailable = false,
-}: { hideUnavailable?: boolean } & (
+  generationId,
+}: { hideUnavailable?: boolean; generationId?: string } & (
   | { stationId: string; area?: never }
   | { stationId?: never; area: { lat: number; lon: number } }
 )) {
@@ -30,14 +31,18 @@ export default function MapStationForecast({
     [stationId, areaLat, areaLon],
   );
   useEffect(() => {
-    void load(target, 120);
-  }, [load, target]);
+    if (generationId) void load(target, 120, false, generationId);
+    else void load(target, 120);
+  }, [load, target, generationId]);
   const matchesTarget = stationId
     ? data?.station_id === stationId
     : data?.target_kind === "area" &&
       data.requested_lat?.toFixed(2) === areaLat?.toFixed(2) &&
       data.requested_lon?.toFixed(2) === areaLon?.toFixed(2);
-  const current = matchesTarget ? data : null;
+  const current =
+    matchesTarget && (!generationId || data?.generation_id === generationId)
+      ? data
+      : null;
   const points = useMemo(
     () =>
       (current?.points ?? [])

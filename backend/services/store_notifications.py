@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from ..core.config import settings
+from ..core.errors import UpstreamError
 from . import local_store
 from . import store_client as db
 
@@ -154,20 +155,25 @@ def list_notification_preferences() -> list[dict]:
     if settings.local_demo_mode:
         return local_store.list_notification_preferences()
     rows = []
+    cursor = None
     while True:
-        page = (
+        query = (
             db.get_client()
             .table("notification_preferences")
             .select("*")
             .order("user_id")
-            .range(len(rows), len(rows) + 999)
-            .execute()
-            .data
-            or []
+            .limit(1000)
         )
+        if cursor is not None:
+            query = query.gt("user_id", cursor)
+        page = query.execute().data or []
         rows.extend(page)
         if len(page) < 1000:
             return rows
+        next_cursor = page[-1]["user_id"]
+        if next_cursor == cursor:
+            raise UpstreamError("notification_preferences_cursor_stalled")
+        cursor = next_cursor
 
 
 def create_alert_if_new(row: dict) -> dict | None:

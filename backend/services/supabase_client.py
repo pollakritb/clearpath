@@ -86,6 +86,7 @@ from .store_operations import (  # noqa: F401 - stable workflow persistence API
     create_sync_run,
     latest_primary_sync_run,
     list_audit_logs,
+    list_audit_logs_after,
     list_data_issues,
     list_sync_runs,
     take_rate_limit,

@@ -70,6 +70,35 @@ def list_audit_logs(
     )
 
 
+def list_audit_logs_after(
+    limit: int, cursor=None, action=None, entity_type=None
+) -> list[dict]:
+    if settings.local_demo_mode:
+        return local_store.list_audit_logs_after(limit, cursor, action, entity_type)
+    query = (
+        db.get_client()
+        .table("audit_logs")
+        .select("id,actor_id,action,entity_type,entity_id,details,created_at")
+    )
+    if action:
+        query = query.eq("action", action)
+    if entity_type:
+        query = query.eq("entity_type", entity_type)
+    if cursor:
+        at, identifier = cursor
+        query = query.or_(
+            f"created_at.lt.{at},and(created_at.eq.{at},id.lt.{identifier})"
+        )
+    return (
+        query.order("created_at", desc=True)
+        .order("id", desc=True)
+        .limit(limit)
+        .execute()
+        .data
+        or []
+    )
+
+
 def list_data_issues(limit: int = 100) -> list[dict]:
     if settings.local_demo_mode:
         return local_store.list_data_issues(limit)

@@ -25,6 +25,8 @@ function key(meta: ForecastGridMetadata, times: string[]) {
   return `${meta.generation_id}:${meta.grid_version}:${times[0]}:${times.at(-1)}`;
 }
 export function cachedGridWindow(meta: ForecastGridMetadata, at: string) {
+  if (meta.expires_at && Date.now() >= Date.parse(meta.expires_at))
+    return undefined;
   return packets.get(key(meta, gridWindow(meta, at)));
 }
 export function preparedGridFrames(
@@ -58,7 +60,11 @@ export function loadGridWindow(
   meta: ForecastGridMetadata,
   times: string[],
 ): Promise<ForecastGridFrames> {
-  if (!meta.generation_id || !times.length)
+  if (
+    !meta.generation_id ||
+    !times.length ||
+    (meta.expires_at && Date.now() >= Date.parse(meta.expires_at))
+  )
     return Promise.reject(new Error("grid window unavailable"));
   const id = key(meta, times),
     hit = packets.get(id);

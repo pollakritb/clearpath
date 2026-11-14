@@ -163,6 +163,7 @@ RPC_PARAMETERS = {
     "release_cams_grid": {"p_job": "cams_grid_jobs"},
     "checkpoint_cams_grid": {"p_job": "cams_grid_jobs"},
     "publish_cams_grid": {"p_job": "cams_grid_jobs"},
+    "read_cams_grid_point": {"p_generation": "cams_grid_generations"},
     "claim_measurement_delivery": {"p_event": "notification_outbox"},
     "set_measurement_presence": {"p_user": "profiles"},
     "finish_measurement_request": {

@@ -129,3 +129,46 @@ def crop_indices(
     r0, r1 = span(lats, south, north)
     c0, c1 = span(lons, west, east)
     return r0, r1, c0, c1
+
+
+STALE_AFTER_HOURS = 18
+EXPIRE_AFTER_HOURS = 36
+
+
+def axis_index(axis: list[float], value: float) -> int | None:
+    """Nearest native cell; midpoint ties select the higher index (as in TS)."""
+    if not axis or not math.isfinite(value):
+        return None
+    if len(axis) == 1:
+        return 0 if value == axis[0] else None
+    if (
+        value < axis[0] - (axis[1] - axis[0]) / 2
+        or value > axis[-1] + (axis[-1] - axis[-2]) / 2
+    ):
+        return None
+    lo, hi = 0, len(axis) - 1
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if value < (axis[mid] + axis[mid + 1]) / 2:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
+
+
+def freshness(retrieved_at: str | None, *, now: datetime) -> dict:
+    """Fail closed on invalid/future timestamps. Exact expiry is unavailable."""
+    from datetime import timedelta
+
+    try:
+        fetched = datetime.fromisoformat(str(retrieved_at).replace("Z", "+00:00"))
+        if fetched.tzinfo is None or fetched > now:
+            raise ValueError("grid_retrieval_time_invalid")
+    except (TypeError, ValueError):
+        return {"stale": True, "expired": True, "expires_at": None}
+    expires = fetched + timedelta(hours=EXPIRE_AFTER_HOURS)
+    return {
+        "stale": now - fetched > timedelta(hours=STALE_AFTER_HOURS),
+        "expired": now >= expires,
+        "expires_at": expires.isoformat(),
+    }

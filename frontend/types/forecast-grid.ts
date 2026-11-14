@@ -9,6 +9,8 @@ export interface ForecastGridMetadata {
   retrieval_started_at: string | null;
   model_issued_at: string | null;
   stale: boolean;
+  expires_at?: string | null;
+
   coverage_as_of?: string | null;
   available_from?: string | null;
   available_until?: string | null;

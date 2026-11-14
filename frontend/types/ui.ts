@@ -96,6 +96,7 @@ export interface AuditLogRow {
 }
 
 export interface AuditLogsResponse {
+  next_cursor?: string | null;
   logs: AuditLogRow[];
   count: number;
   limit: number;

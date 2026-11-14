@@ -3,7 +3,7 @@ name: CAMS snapshots (ClearPath Production)
 on:
   workflow_dispatch:
   schedule:
-    # UTC schedule: 01:30, 07:30, 13:30, 19:30 Asia/Bangkok.
+    # UTC 00:30/06:30/12:30/18:30 = Bangkok 07:30/13:30/19:30/01:30.
     - cron: "30 0,6,12,18 * * *"
 
 permissions:
@@ -16,7 +16,7 @@ concurrency:
 jobs:
   collect:
     # Inert until the ClearPath-only rollout has verified DB target and quota.
-    if: ${{ github.repository == 'pollakritb/clearpath' && vars.CLEARPATH_CAMS_SNAPSHOTS_PRODUCTION_ENABLED == 'true' }}
+    if: ${{ github.repository == 'pollakritb/clearpath' && vars.CLEARPATH_CAMS_SNAPSHOTS_PRODUCTION_ENABLED == 'true' && vars.CLEARPATH_CAMS_GRID_READS_ENABLED != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -34,7 +34,7 @@ jobs:
             printf '%s\n' "$response" | jq -c \
               '{status, reason, batch_index, station_count, snapshot_count, missing_station_count, retention}'
             printf '%s\n' "$response" | jq -e \
-              '.status == "success" or .status == "partial" or .status == "not_due"' >/dev/null
+              '.status == "success" or .status == "partial" or .status == "not_due" or .status == "retired"' >/dev/null
           done
 
   grid:
@@ -52,7 +52,8 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$CRON_SECRET"
-          sleep 60
+          # No snapshot delay in grid-only mode.
+          if [ "${{ needs.collect.result }}" = "success" ]; then sleep 60; fi
           for checkpoint in $(seq 1 80); do
             response=$(curl --fail --silent --show-error --retry 2 --retry-delay 3 --max-time 58 \
               -H "Authorization: Bearer $CRON_SECRET" \

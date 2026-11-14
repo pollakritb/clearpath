@@ -7,8 +7,11 @@ from math import isfinite
 
 from starlette.concurrency import run_in_threadpool
 
+from ..algorithms.cams_grid import axis_index, freshness
 from ..algorithms.distance import haversine_km
 from ..algorithms.external_forecast import MAX_CAMS_FORECAST_HOURS, select_hourly_rows
+from ..core.config import settings
+from . import forecast_grid_store as grid_store
 from . import supabase_client
 
 PROVIDER = "openmeteo_cams"
@@ -130,7 +133,9 @@ def _unavailable(
     }
 
 
-async def station_forecast(station_id: str, hours: int) -> dict:
+async def station_forecast(
+    station_id: str, hours: int, generation_id: str | None = None
+) -> dict:
     station = await run_in_threadpool(supabase_client.get_station_by_id, station_id)
     if not station:
         raise ValueError("station_not_found")
@@ -138,11 +143,20 @@ async def station_forecast(station_id: str, hours: int) -> dict:
         raise ValueError("station_coordinates_missing")
 
     return await _target_forecast(
-        station_id, float(station["lat"]), float(station["lon"]), station, hours
+        station_id,
+        float(station["lat"]),
+        float(station["lon"]),
+        station,
+        hours,
+        generation_id,
     )
 
 
-async def area_forecast(lat: float, lon: float, hours: int) -> dict:
+async def area_forecast(
+    lat: float, lon: float, hours: int, generation_id: str | None = None
+) -> dict:
+    if settings.cams_grid_forecast_enabled:
+        return await _grid_forecast(None, lat, lon, None, hours, generation_id)
     stations = await run_in_threadpool(supabase_client.get_stations)
     candidates = []
     for station in stations:
@@ -167,7 +181,12 @@ async def _target_forecast(
     lon: float,
     source_station: dict,
     hours: int,
+    generation_id: str | None = None,
 ) -> dict:
+    if settings.cams_grid_forecast_enabled:
+        return await _grid_forecast(
+            station_id, lat, lon, source_station, hours, generation_id
+        )
     requested_hours = max(1, min(MAX_CAMS_FORECAST_HOURS, hours))
     now = datetime.now(UTC)
     snapshots = await run_in_threadpool(
@@ -210,11 +229,80 @@ async def _target_forecast(
     return _unavailable(station_id, lat, lon, requested_hours)
 
 
+async def _grid_forecast(
+    station_id: str | None,
+    lat: float,
+    lon: float,
+    station: dict | None,
+    hours: int,
+    generation_id: str | None = None,
+) -> dict:
+    requested = max(1, min(MAX_CAMS_FORECAST_HOURS, hours))
+    now = datetime.now(UTC)
+    row = (
+        await run_in_threadpool(grid_store.generation, generation_id)
+        if generation_id
+        else await run_in_threadpool(grid_store.active)
+    )
+    if not row:
+        if generation_id:
+            raise LookupError("forecast_grid_generation_unavailable")
+        return _unavailable(station_id, lat, lon, requested)
+    state = freshness(row.get("retrieved_at"), now=now)
+    info = {
+        "generation_id": str(row["id"]),
+        "grid_version": row["grid_id"],
+        "sampling_method": "nearest",
+        "stale": state["stale"],
+        "expires_at": state["expires_at"],
+    }
+    if state["expired"]:
+        return {**_unavailable(station_id, lat, lon, requested), **info}
+    grid = await run_in_threadpool(grid_store.grid, row["grid_id"])
+    r = axis_index(grid["latitudes"], lat)
+    c = axis_index(grid["longitudes"], lon)
+    if r is None or c is None:
+        return {**_unavailable(station_id, lat, lon, requested), **info}
+    rows = await run_in_threadpool(
+        grid_store.point,
+        str(row["id"]),
+        r * len(grid["longitudes"]) + c,
+        now.isoformat(),
+        (now + timedelta(hours=requested + 1)).isoformat(),
+    )
+    selected = select_hourly_rows(rows, requested, now=now)
+    if not selected:
+        return {**_unavailable(station_id, lat, lon, requested), **info}
+    for item in selected:
+        item.update(
+            source_lat=grid["latitudes"][r],
+            source_lon=grid["longitudes"][c],
+            fetched_at=row["retrieved_at"],
+        )
+    result = _response(
+        station_id, lat, lon, station, row["retrieved_at"], selected, requested
+    )
+    result.update(info)
+    for source in result["sources"]:
+        source["issued_at"] = row.get("model_issued_at")
+    result["provenance"].update(info)
+    result["provenance"].update(
+        source_station_id=None,
+        source_station_name=None,
+        source_station_distance_km=None,
+        model_issued_at=row.get("model_issued_at"),
+    )
+    if state["stale"]:
+        result["warnings"].append("stored_cams_stale")
+        result["providers"][0]["freshness_status"] = "stale"
+    return result
+
+
 def _response(
     station_id: str | None,
     lat: float,
     lon: float,
-    source_station: dict,
+    source_station: dict | None,
     issued_at: str,
     selected: list[dict],
     requested_hours: int,
@@ -292,19 +380,22 @@ def _response(
             "source_lon": selected[0].get("source_lon"),
             "requested_lat": lat,
             "requested_lon": lon,
-            "source_station_id": str(source_station["id"]),
-            "source_station_name": source_station.get("name_th")
-            or source_station.get("name_en")
-            or str(source_station["id"]),
+            "source_station_id": str(source_station["id"]) if source_station else None,
+            "source_station_name": (
+                source_station.get("name_th")
+                or source_station.get("name_en")
+                or str(source_station["id"])
+            )
+            if source_station
+            else None,
             "source_station_distance_km": round(
                 haversine_km(
-                    lat,
-                    lon,
-                    float(source_station["lat"]),
-                    float(source_station["lon"]),
+                    lat, lon, float(source_station["lat"]), float(source_station["lon"])
                 ),
                 1,
-            ),
+            )
+            if source_station
+            else None,
             "domain": "cams_global",
             "value_policy": "stored_raw_provider_value",
         },

@@ -78,3 +78,19 @@ def job_start(job_id: str) -> str:
     if not rows or not rows[0].get("created_at"):
         raise UpstreamError("ไม่พบเวลาเริ่มเก็บกริดพยากรณ์")
     return rows[0]["created_at"]
+
+
+def point(generation_id: str, index: int, start: str, end: str) -> list[dict]:
+    """Bounded scalar read, not the six-frame viewport helper."""
+    return (
+        rpc(
+            "read_cams_grid_point",
+            {
+                "p_generation": generation_id,
+                "p_index": index,
+                "p_start": start,
+                "p_end": end,
+            },
+        )
+        or []
+    )

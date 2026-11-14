@@ -90,3 +90,12 @@ describe("CAMS concentration sampler", () => {
     expect(nearestTime([], 0)).toBeNull();
   });
 });
+
+it("never returns cached display times for expired metadata", () => {
+  const meta = {
+    status: "ready",
+    valid_times: ["2030-01-01T01:00:00Z"],
+    expires_at: "2030-01-01T00:00:00Z",
+  } as ForecastGridMetadata;
+  expect(forecastTimes(meta, Date.parse("2030-01-01T00:00:00Z"))).toEqual([]);
+});

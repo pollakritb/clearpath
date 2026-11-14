@@ -44,6 +44,25 @@ export function useForecastGrid(
   const [error, setError] = useState<string | null>(null);
   const [revision, reload] = useState(0);
   const [, cacheChanged] = useState(0);
+  useEffect(() => {
+    if (!meta?.expires_at) return;
+    const expire = () => {
+      setMeta((current) =>
+        current?.generation_id === meta.generation_id
+          ? { ...current, status: "unavailable", valid_times: [] }
+          : current,
+      );
+      setPacket(null);
+      setPlaying(false);
+    };
+    const delay = Date.parse(meta.expires_at) - Date.now();
+    if (!Number.isFinite(delay)) {
+      expire();
+      return;
+    }
+    const timer = setTimeout(expire, Math.max(0, delay));
+    return () => clearTimeout(timer);
+  }, [meta?.generation_id, meta?.expires_at]);
   const previousMeta = useRef<ForecastGridMetadata | null>(null);
   const selectedRef = useRef<string | null>(null),
     playingRef = useRef(playing);

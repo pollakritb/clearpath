@@ -44,5 +44,6 @@ def frames(
         )
     except LookupError as exc:
         raise HTTPException(410, "forecast_grid_generation_unavailable") from exc
-    response.headers["Cache-Control"] = "public, max-age=300, s-maxage=3600"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["CDN-Cache-Control"] = "no-store"
     return result

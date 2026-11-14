@@ -1,8 +1,8 @@
 """Read only published stored grids. Never fetch upstream on a public read."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
-from ..algorithms.cams_grid import crop_indices
+from ..algorithms.cams_grid import crop_indices, freshness
 from ..algorithms.forecast_horizon import forecast_horizon
 from . import forecast_grid_store as store
 
@@ -11,10 +11,10 @@ def metadata() -> dict:
     row = store.active()
     now = datetime.now(UTC)
     coverage = forecast_horizon(row["valid_times"] if row else [], now)
-    if not row or coverage["coverage_status"] == "unavailable":
+    state = freshness(row.get("retrieved_at") if row else None, now=now)
+    if not row or state["expired"] or coverage["coverage_status"] == "unavailable":
         return {"status": "unavailable", **coverage}
     grid = store.grid(row["grid_id"])
-    fetched = datetime.fromisoformat(row["retrieved_at"].replace("Z", "+00:00"))
     return {
         "status": "ready",
         **coverage,
@@ -25,14 +25,15 @@ def metadata() -> dict:
         "valid_times": row["valid_times"],
         "retrieved_at": row["retrieved_at"],
         "retrieval_started_at": row["started_at"],
-        "model_issued_at": None,
-        "stale": now - fetched > timedelta(hours=18),
+        "model_issued_at": row.get("model_issued_at"),
+        "stale": state["stale"],
+        "expires_at": state["expires_at"],
     }
 
 
 def frames(generation_id: str, start: datetime, end: datetime, bounds: tuple) -> dict:
     row = store.generation(generation_id)
-    if not row:
+    if not row or freshness(row.get("retrieved_at"), now=datetime.now(UTC))["expired"]:
         raise LookupError("forecast_grid_generation_unavailable")
     grid = store.grid(row["grid_id"])
     r0, r1, c0, c1 = crop_indices(grid["latitudes"], grid["longitudes"], bounds)

@@ -16,6 +16,8 @@ class ForecastGridMetadata(BaseModel):
     retrieval_started_at: str | None = None
     model_issued_at: str | None = None
     stale: bool = False
+    expires_at: str | None = None
+
     coverage_as_of: str | None = None
     available_from: str | None = None
     available_until: str | None = None

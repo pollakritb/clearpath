@@ -1,5 +1,17 @@
 # Backup and restore rehearsal
 
+Current local implementation, Free-plan safeguards and pending release gates:
+[Database readiness](database-readiness.md). The owner subsequently authorized application commit/push/deploy. Hosted
+database changes remain gated; do not execute the hosted change window below
+merely because the application deployment is authorized. Metadata audits and the old
+identifier-cutover backup are not current complete production backups.
+
+A complete current backup must cover application/private/Trust schemas, required
+Auth data, grants/functions/triggers/sequences, migration history, Storage metadata
+and object bytes. Reconcile the owner-confirmed account-closure journal before
+opening a restored environment; never revive erased identities or replay sent LINE
+messages. Preserve retention/expiry rules for the backup copies as well.
+
 Complete this before applying the destructive foundation migration to any
 project that might contain reports or evidence.
 
@@ -33,14 +45,17 @@ Verify:
 
 ## Restore rehearsal
 
-1. Create a disposable Supabase staging project.
+1. Use an isolated disposable local environment first, with cron, email, push,
+   LINE and all external collectors disabled. A managed Supabase staging restore
+   is a separate verification step only when available without new cost. A local
+   rehearsal alone does not certify managed Auth/OAuth recovery.
 2. Restore the database backup using the official Supabase restore procedure.
 3. Restore `report-images` object bodies with the original keys.
 4. Point a local backend at the disposable project and run:
 
-   ```powershell
-   .venv\Scripts\python -m scripts.production_preflight
-   .venv\Scripts\python -m scripts.verify_deployment http://127.0.0.1:3000
+   ```sh
+   .venv/bin/python -m scripts.production_preflight
+   .venv/bin/python -m scripts.verify_deployment http://127.0.0.1:3000
    ```
 
 5. Verify row counts for `community_reports`, `report_evidence`, `audit_logs`

@@ -115,6 +115,12 @@ class ForecastResponse(BaseModel):
     grid_lat: float | None = None
     grid_lon: float | None = None
     fetched_at: str | None = None
+    generation_id: str | None = None
+    grid_version: str | None = None
+    sampling_method: Literal["nearest"] | None = None
+    stale: bool = False
+    expires_at: str | None = None
+
     generated_at: str
     source_recorded_at: str | None = None
     horizon_hours: int

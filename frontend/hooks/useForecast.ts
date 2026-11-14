@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import { api, ApiError, apiErrorMessage } from "@/frontend/lib/api-client";
 import {
   cachedPublicValue,
   loadPublicData,
+  invalidatePublicData,
 } from "@/frontend/lib/public-data-cache";
 import type { ForecastResponse } from "@/frontend/types";
 
@@ -22,15 +23,18 @@ export function useForecast() {
       target: string | { lat: number; lon: number },
       hours = 120,
       force = false,
+      generationId?: string,
     ) => {
       const targetKey =
         typeof target === "string"
           ? `station:${target}`
           : `area:${target.lat.toFixed(2)}:${target.lon.toFixed(2)}`;
-      const key = `forecast:${targetKey}:${hours}`;
+      const key = `forecast:${targetKey}:${hours}:${generationId ?? "active"}`;
       const serial = ++requestSerial.current;
       const cached = force ? null : cachedPublicValue<ForecastResponse>(key);
-      if (cached) {
+      const expired =
+        cached?.expires_at && Date.now() >= Date.parse(cached.expires_at);
+      if (cached && !expired) {
         setData(cached);
         setError(null);
         setLoading(false);
@@ -43,8 +47,23 @@ export function useForecast() {
         const result = await loadPublicData(
           key,
           FORECAST_CACHE_MS,
-          () => api.forecast(target, hours),
-          force,
+          async () => {
+            try {
+              return await api.forecast(target, hours, generationId);
+            } catch (error) {
+              if (
+                !generationId ||
+                !(error instanceof ApiError) ||
+                error.status !== 410
+              )
+                throw error;
+              invalidatePublicData(key);
+              const meta = await api.forecastGridMetadata();
+              if (meta.status !== "ready" || !meta.generation_id) throw error;
+              return api.forecast(target, hours, meta.generation_id);
+            }
+          },
+          force || !!expired,
         );
         if (serial === requestSerial.current) setData(result);
       } catch (error) {
@@ -58,6 +77,16 @@ export function useForecast() {
     },
     [],
   );
+
+  useEffect(() => {
+    if (!data?.expires_at) return;
+    const expire = () => setData(null);
+    const timer = setTimeout(
+      expire,
+      Math.max(0, Date.parse(data.expires_at) - Date.now()),
+    );
+    return () => clearTimeout(timer);
+  }, [data]);
 
   return { data, loading, error, load };
 }

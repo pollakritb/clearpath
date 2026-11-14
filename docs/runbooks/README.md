@@ -3,6 +3,11 @@
 Current forecast source of truth: [stored CAMS and retired boundaries](forecast-reset.md).
 Historical model/promotion/provider plans below are retained as design records; their retired commands are not current operational steps.
 
+- [Database readiness and release gates](database-readiness.md) — local grid reader,
+  pagination, Free-plan safety, read-only production evidence and pending recovery gates.
+- [Current database inventory](database-inventory.md) — catalog-based application tables,
+  columns, constraints and retention classifications.
+
 - [Replacement database](fresh-project-2026-11-01.md) — ClearPath_Final, numeric keys, 72-hour seed, fresh accounts and bounded retention.
 
 - [Production deployment](production-deployment.md) — Supabase, secrets, Vercel,

@@ -108,6 +108,12 @@ export interface ForecastResponse {
   grid_lat: number | null;
   grid_lon: number | null;
   fetched_at: string | null;
+  generation_id?: string | null;
+  grid_version?: string | null;
+  sampling_method?: "nearest" | null;
+  stale?: boolean;
+  expires_at?: string | null;
+
   generated_at: string;
   source_recorded_at: string | null;
   horizon_hours: number;

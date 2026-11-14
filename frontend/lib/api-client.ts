@@ -274,8 +274,13 @@ export const api = {
     });
   },
 
-  forecast: (target: string | { lat: number; lon: number }, hours = 120) => {
+  forecast: (
+    target: string | { lat: number; lon: number },
+    hours = 120,
+    generationId?: string,
+  ) => {
     const params = new URLSearchParams({ hours: String(hours) });
+    if (generationId) params.set("generation_id", generationId);
     if (typeof target === "string") {
       params.set("station_id", target);
     } else {
@@ -607,11 +612,16 @@ export const api = {
       auth: true,
     }),
 
-  adminAuditLogs: (limit = 100, offset = 0) =>
-    http<AuditLogsResponse>(
-      `/api/admin/audit-logs?limit=${limit}&offset=${offset}`,
-      { auth: true },
-    ),
+  adminAuditLogs: (limit = 100, offset = 0, cursor?: string | null) => {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+    });
+    if (cursor) params.set("cursor", cursor);
+    return http<AuditLogsResponse>(`/api/admin/audit-logs?${params}`, {
+      auth: true,
+    });
+  },
 
   downloadAdminAuditLogs: async () => {
     const token = await getAccessToken();

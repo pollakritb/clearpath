@@ -511,6 +511,21 @@ def list_audit_logs(
     return rows[offset : offset + limit]
 
 
+def list_audit_logs_after(limit, cursor=None, action=None, entity_type=None):
+    with _LOCK:
+        rows = [dict(row) for row in _AUDIT_LOGS]
+    rows = [
+        row
+        for row in rows
+        if (not action or row.get("action") == action)
+        and (not entity_type or row.get("entity_type") == entity_type)
+    ]
+    rows.sort(key=lambda row: (row["created_at"], int(row["id"])), reverse=True)
+    if cursor:
+        rows = [row for row in rows if (row["created_at"], int(row["id"])) < cursor]
+    return rows[:limit]
+
+
 def list_data_issues(limit: int) -> list[dict]:
     with _LOCK:
         return [dict(row) for row in _DATA_ISSUES[:limit]]

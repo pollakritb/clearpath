@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from dotenv import dotenv_values
@@ -49,7 +50,7 @@ def optional_tables(config: Settings) -> tuple[str, ...]:
     tables = []
     if config.account_privacy_enabled:
         tables.append("account_privacy_requests")
-    if config.cams_grid_collection_enabled:
+    if config.cams_grid_collection_enabled or config.cams_grid_forecast_enabled:
         tables.extend(
             (
                 "cams_grid_jobs",
@@ -61,6 +62,16 @@ def optional_tables(config: Settings) -> tuple[str, ...]:
             )
         )
     return tuple(tables)
+
+
+def required_tables(config: Settings) -> tuple[str, ...]:
+    if not config.cams_grid_forecast_enabled:
+        return REQUIRED_TABLES
+    return tuple(
+        table
+        for table in REQUIRED_TABLES
+        if table not in {"forecast_provider_sync_runs", "forecast_provider_snapshots"}
+    )
 
 
 def run_preflight(
@@ -121,12 +132,12 @@ def run_preflight(
                 else ()
             )
             for table in (
-                *REQUIRED_TABLES,
+                *required_tables(runtime_settings),
                 *v2_tables,
                 *optional_tables(runtime_settings),
             ):
                 try:
-                    client.table(table).select("*", count="exact").limit(0).execute()
+                    client.table(table).select("*").limit(0).execute()
                     table_checks[table] = True
                 except Exception as exc:
                     table_checks[table] = False
@@ -134,6 +145,21 @@ def run_preflight(
                     table_error_types[error_type] = (
                         table_error_types.get(error_type, 0) + 1
                     )
+            if runtime_settings.cams_grid_forecast_enabled:
+                try:
+                    now = datetime.now(UTC)
+                    client.rpc(
+                        "read_cams_grid_point",
+                        {
+                            "p_generation": 0,
+                            "p_index": 0,
+                            "p_start": now.isoformat(),
+                            "p_end": (now + timedelta(hours=1)).isoformat(),
+                        },
+                    ).execute()
+                    checks["cams_grid_scalar_rpc"] = True
+                except Exception:
+                    checks["cams_grid_scalar_rpc"] = False
         except Exception as exc:
             supabase_error = type(exc).__name__
     checks["supabase_schema"] = bool(table_checks) and all(table_checks.values())

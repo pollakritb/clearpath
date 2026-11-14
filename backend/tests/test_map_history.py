@@ -191,15 +191,20 @@ def test_history_service_uses_selected_time_and_public_coordinates(monkeypatch):
 def test_history_query_pages_beyond_default_report_and_database_limits(monkeypatch):
     from backend.services import supabase_client
 
-    rows = [{"id": str(i)} for i in range(1005)]
+    rows = [
+        {"id": str(i), "captured_at": "2026-10-30T16:00:00+00:00"} for i in range(1005)
+    ]
     calls = []
 
     class Query:
         def __getattr__(self, name):
             def method(*args, **kwargs):
                 calls.append((name, args))
-                if name == "range":
-                    self.start, self.end = args
+                if name == "limit":
+                    self.start, self.end = 0, args[0] - 1
+                if name == "or_":
+                    self.start = int(args[0].split("id.gt.")[-1].rstrip(")")) + 1
+                    self.end = self.start + 999
                 return self
 
             return method
@@ -215,7 +220,9 @@ def test_history_query_pages_beyond_default_report_and_database_limits(monkeypat
         datetime(2026, 10, 30, 17, tzinfo=UTC)
     )
     assert len(result) == 1005
-    assert [args for name, args in calls if name == "range"] == [(0, 999), (1000, 1999)]
+    assert not any(name == "range" for name, _ in calls)
+    assert len([name for name, _ in calls if name == "or_"]) == 1
+    assert len({r["id"] for r in result}) == 1005
     assert ("eq", ("status", "approved")) in calls
     assert ("gt", ("captured_at", "2026-10-30T14:00:00+00:00")) in calls
 

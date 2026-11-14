@@ -193,6 +193,8 @@ async def cron_cams_snapshots(
     batch_index: int | None = Query(default=None, ge=0, lt=6),
 ):
     _verify_cron(authorization)
+    if settings.cams_grid_forecast_enabled:
+        return {"status": "retired", "reason": "cams_grid_is_single_source"}
     if not settings.cams_snapshot_collection_enabled:
         return {"status": "disabled", "reason": "cams_snapshot_collection_not_enabled"}
     expected_ref = settings.cams_snapshot_expected_supabase_ref.strip()

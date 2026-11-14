@@ -6,6 +6,11 @@ import type { GridSurface, ViewportBounds } from "@/frontend/types/ui";
 
 const keyTime = (at: string) => new Date(at).getTime();
 export function forecastTimes(meta: ForecastGridMetadata, now = Date.now()) {
+  if (
+    meta.status === "unavailable" ||
+    (meta.expires_at && now >= Date.parse(meta.expires_at))
+  )
+    return [];
   const floor = Math.floor(now / 3_600_000) * 3_600_000;
   return meta.valid_times.filter((at) => keyTime(at) >= floor);
 }
@@ -40,6 +45,7 @@ export function surfaceFor(
   at: string,
 ): GridSurface | null {
   if (
+    (meta.expires_at && Date.now() >= Date.parse(meta.expires_at)) ||
     data.generation_id !== meta.generation_id ||
     data.grid_version !== meta.grid_version
   )

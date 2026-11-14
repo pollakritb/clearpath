@@ -8,8 +8,10 @@ from urllib.parse import quote
 from postgrest.exceptions import APIError
 
 from ..core.config import settings
+from ..core.errors import UpstreamError
 from . import local_store
 from . import store_client as db
+from .identifier_client import IdentifierClient
 from .store_stations import get_stations
 
 
@@ -371,29 +373,44 @@ def get_map_history_reports(
     cutoff = target - timedelta(minutes=max_age_minutes)
     rows: list[dict] = []
     page_size = 1000
+    cursor = None
     while True:
-        offset = len(rows)
-        page = (
-            db._execute_read(
-                lambda start=offset: (
-                    db.get_client()
-                    .table("community_reports")
-                    .select("*")
-                    .eq("status", "approved")
-                    .gt("captured_at", cutoff.isoformat())
-                    .lte("captured_at", target.isoformat())
-                    .lte("created_at", target.isoformat())
-                    .order("captured_at")
-                    .order("id")
-                    .range(start, start + page_size - 1)
-                    .execute()
+
+        def read_page(cursor=cursor):
+            client = db.get_client()
+            query = (
+                client.table("community_reports")
+                .select("*")
+                .eq("status", "approved")
+                .gt("captured_at", cutoff.isoformat())
+                .lte("captured_at", target.isoformat())
+                .lte("created_at", target.isoformat())
+                .order("captured_at")
+                .order("id")
+                .limit(page_size)
+            )
+            if cursor is not None:
+                at, identifier = cursor
+                # .or_ is raw PostgREST syntax: only server-produced timestamps
+                # and resolved numeric IDs are allowed inside this expression.
+                numeric = (
+                    client.resolve("community_reports", identifier)
+                    if isinstance(client, IdentifierClient)
+                    else int(identifier)
                 )
-            ).data
-            or []
-        )
+                query = query.or_(
+                    f"captured_at.gt.{at},and(captured_at.eq.{at},id.gt.{numeric})"
+                )
+            return query.execute()
+
+        page = db._execute_read(read_page).data or []
         rows.extend(page)
         if len(page) < page_size:
             return rows
+        next_cursor = (page[-1]["captured_at"], page[-1]["id"])
+        if next_cursor == cursor:
+            raise UpstreamError("map_history_cursor_stalled")
+        cursor = next_cursor
 
 
 def list_user_reports(user_id: str, limit: int = 50) -> list[dict]:

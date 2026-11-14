@@ -35,6 +35,7 @@ interface OverviewData {
   dataIssues: DataIssueRow[];
   auditLogs: AuditLogRow[];
   auditHasMore: boolean;
+  auditCursor: string | null;
   dataHealth: DataHealthResponse | null;
 }
 
@@ -46,6 +47,7 @@ const EMPTY_OVERVIEW: OverviewData = {
   dataIssues: [],
   auditLogs: [],
   auditHasMore: false,
+  auditCursor: null,
   dataHealth: null,
 };
 
@@ -76,6 +78,7 @@ export default function AdminApp() {
             limit: 100,
             offset: 0,
             has_more: false,
+            next_cursor: null,
           }),
       api.adminDataHealth(),
     ]);
@@ -102,6 +105,10 @@ export default function AdminApp() {
         results[4].status === "fulfilled"
           ? results[4].value.logs
           : current.auditLogs,
+      auditCursor:
+        results[4].status === "fulfilled"
+          ? (results[4].value.next_cursor ?? null)
+          : current.auditCursor,
       auditHasMore:
         results[4].status === "fulfilled"
           ? results[4].value.has_more
@@ -226,7 +233,8 @@ export default function AdminApp() {
                 try {
                   const result = await api.adminAuditLogs(
                     100,
-                    overview.auditLogs.length,
+                    overview.auditCursor ? 0 : overview.auditLogs.length,
+                    overview.auditCursor,
                   );
                   setOverview((current) => ({
                     ...current,
@@ -240,6 +248,7 @@ export default function AdminApp() {
                       ),
                     ],
                     auditHasMore: result.has_more,
+                    auditCursor: result.next_cursor ?? null,
                   }));
                 } catch (cause) {
                   setError(

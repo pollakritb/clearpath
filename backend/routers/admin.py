@@ -4,9 +4,10 @@ import csv
 import io
 import json
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from starlette.concurrency import run_in_threadpool
 
+from ..algorithms.page_cursor import decode_audit_cursor, encode_audit_cursor
 from ..core.auth import AuthenticatedUser, require_admin, require_moderator
 from ..models.admin import (
     DataHealthResponse,
@@ -41,19 +42,41 @@ async def data_issues(
 async def audit_logs(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0, le=100_000),
+    cursor: str | None = Query(default=None, max_length=1024),
     action: str | None = Query(default=None, max_length=100),
     entity_type: str | None = Query(default=None, max_length=100),
     _user: AuthenticatedUser = Depends(require_admin),
 ):
-    rows = await run_in_threadpool(
-        supabase_client.list_audit_logs, limit, offset, action, entity_type
-    )
+    try:
+        decoded = decode_audit_cursor(cursor, action, entity_type) if cursor else None
+    except ValueError as exc:
+        raise HTTPException(422, detail="audit_cursor_invalid") from exc
+    if cursor and offset:
+        raise HTTPException(422, detail="audit_cursor_offset_conflict")
+    if offset:
+        # Compatibility only; new clients always use the cursor path.
+        rows = await run_in_threadpool(
+            supabase_client.list_audit_logs, limit + 1, offset, action, entity_type
+        )
+    else:
+        rows = await run_in_threadpool(
+            supabase_client.list_audit_logs_after,
+            limit + 1,
+            decoded,
+            action,
+            entity_type,
+        )
+    more = len(rows) > limit
+    rows = rows[:limit]
     return {
         "logs": rows,
         "count": len(rows),
         "limit": limit,
         "offset": offset,
-        "has_more": len(rows) == limit,
+        "has_more": more,
+        "next_cursor": encode_audit_cursor(rows[-1], action, entity_type)
+        if more and rows
+        else None,
     }
 
 
@@ -64,9 +87,19 @@ async def export_audit_logs(
     entity_type: str | None = Query(default=None, max_length=100),
     _user: AuthenticatedUser = Depends(require_admin),
 ):
-    rows = await run_in_threadpool(
-        supabase_client.list_audit_logs, limit, 0, action, entity_type
-    )
+    rows = []
+    cursor = None
+    while len(rows) < limit:
+        size = min(500, limit - len(rows))
+        page = await run_in_threadpool(
+            supabase_client.list_audit_logs_after, size, cursor, action, entity_type
+        )
+        rows.extend(page)
+        if len(page) < size:
+            break
+        cursor = decode_audit_cursor(
+            encode_audit_cursor(page[-1], action, entity_type), action, entity_type
+        )
     output = io.StringIO(newline="")
     writer = csv.writer(output)
     writer.writerow(
@@ -159,6 +192,15 @@ async def forecast_data_quality(
 async def forecast_provider_health(
     _user: AuthenticatedUser = Depends(require_admin),
 ):
+    from ..core.config import settings
+
+    if settings.cams_grid_forecast_enabled:
+        from ..services import forecast_grid
+
+        return {
+            "source": "cams_grid",
+            "grid": await run_in_threadpool(forecast_grid.metadata),
+        }
     return await run_in_threadpool(supabase_client.forecast_provider_health)
 
 

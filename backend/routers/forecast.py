@@ -5,6 +5,7 @@ from starlette.concurrency import run_in_threadpool
 
 from ..algorithms.distance import haversine_km
 from ..core.config import settings
+from ..core.identifiers import GenerationID
 from ..models.schemas import (
     ForecastResponse,
     ForecastSurfaceResponse,
@@ -40,6 +41,7 @@ async def forecast(
     lat: float | None = Query(default=None, ge=-90, le=90),
     lon: float | None = Query(default=None, ge=-180, le=180),
     hours: int = Query(120, ge=1, le=120),
+    generation_id: GenerationID | None = None,
 ):
     has_area = lat is not None or lon is not None
     if bool(station_id) == has_area or (has_area and (lat is None or lon is None)):
@@ -49,16 +51,33 @@ async def forecast(
     if settings.external_forecast_enabled:
         response.headers["Cache-Control"] = "no-store, max-age=0"
         try:
-            result = (
-                await external_forecast.station_forecast(station_id, hours)
-                if station_id
-                else await external_forecast.area_forecast(lat, lon, hours)
-            )
+            if generation_id and not settings.cams_grid_forecast_enabled:
+                raise HTTPException(409, "forecast_grid_read_not_enabled")
+            if station_id:
+                result = (
+                    await external_forecast.station_forecast(
+                        station_id, hours, generation_id
+                    )
+                    if generation_id
+                    else await external_forecast.station_forecast(station_id, hours)
+                )
+            else:
+                result = (
+                    await external_forecast.area_forecast(
+                        lat, lon, hours, generation_id
+                    )
+                    if generation_id
+                    else await external_forecast.area_forecast(lat, lon, hours)
+                )
+        except LookupError as exc:
+            raise HTTPException(
+                410, detail="forecast_grid_generation_unavailable"
+            ) from exc
         except ValueError as exc:
             raise HTTPException(422, detail=str(exc)) from exc
-        response.headers["Cache-Control"] = (
-            "public, max-age=300, s-maxage=1800, stale-while-revalidate=300"
-        )
+        # No CDN copy may survive the data's expiry or mix active generations.
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["CDN-Cache-Control"] = "no-store"
         return ForecastResponse(**result)
     response.headers["Cache-Control"] = "no-store, max-age=0"
     response.headers["CDN-Cache-Control"] = "no-store"
@@ -102,9 +121,9 @@ async def surface(
         if bounds is None:
             raise HTTPException(422, detail="surface_bounds_required")
         result = await external_forecast.surface_forecast(horizon, grid_size, bounds)
-        response.headers["Cache-Control"] = (
-            "public, max-age=300, s-maxage=1800, stale-while-revalidate=300"
-        )
+        # No CDN copy may survive the data's expiry or mix active generations.
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["CDN-Cache-Control"] = "no-store"
         return ForecastSurfaceResponse(**result)
     return ForecastSurfaceResponse(
         **forecast_status.unavailable_surface_response(horizon, grid_size, bounds)
