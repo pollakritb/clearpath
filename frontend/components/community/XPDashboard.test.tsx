@@ -20,7 +20,7 @@ vi.mock("@/frontend/components/auth/AuthProvider", () => ({
 }));
 vi.mock("@/frontend/lib/api-client", () => ({
   api: {
-    xpSummary: mocks.summary,
+    xpOverview: mocks.summary,
     xpEvents: mocks.events,
     myLeaderboard: mocks.board,
     leaderboard: mocks.board,
@@ -78,7 +78,7 @@ it("separates lifetime progress from calendar-month leaderboard filters", async 
   fireEvent.click(screen.getByRole("button", { name: "ทั้งหมด" }));
   await waitFor(() => expect(mocks.board).toHaveBeenLastCalledWith("all"));
   expect(screen.getByText(/180\/500 คะแนน/)).toBeTruthy();
-  expect(screen.getByText(/อันดับการมีส่วนร่วม/)).toBeTruthy();
+  expect(screen.queryByText(/อันดับการมีส่วนร่วม/)).toBeNull();
 });
 it("saves the ClearPath alias and leaderboard opt-out without erasing XP", async () => {
   mocks.settings.mockResolvedValue({
@@ -140,7 +140,8 @@ it("loads personal progress without the leaderboard in the overview", async () =
   await screen.findByText("สายลม");
   expect(mocks.board).not.toHaveBeenCalled();
   expect(screen.queryByRole("region", { name: "อันดับชุมชน" })).toBeNull();
-  expect(screen.getByText("ประวัติคะแนนส่วนตัว")).toBeTruthy();
+  expect(screen.queryByText("ประวัติคะแนนส่วนตัว")).toBeNull();
+  expect(mocks.events).not.toHaveBeenCalled();
 });
 
 it("keeps personal history out of the standalone leaderboard section", async () => {
@@ -206,20 +207,33 @@ it("explains an unlaunched monthly season and links back to preserved lifetime p
     next_offset: null,
   }));
   render(<XPDashboard section="leaderboard" />);
-  await screen.findByText(/อันดับเดือนนี้จะเริ่มเมื่อเปิดกติกาใหม่/);
+  await screen.findByText(/ยังไม่มีอันดับเดือนนี้/);
   expect(screen.queryByText(/รอสรุปผล 72/)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "ดูคะแนนสะสมทั้งหมด" }));
   await waitFor(() => expect(mocks.board).toHaveBeenLastCalledWith("all"));
 });
 
-it("announces the scheduled v3 month boundary while preserving existing lifetime XP", async () => {
+it("keeps policy rollout details out of the personal overview", async () => {
   mocks.summary.mockResolvedValue({
     ...summary,
     scheduled_policy_version: "contribution-v3",
     scheduled_starts_at: "2026-12-01T00:00:00+07:00",
   });
   render(<XPDashboard />);
-  expect(await screen.findByText(/กติกา contribution-v3 เริ่ม/)).toBeTruthy();
-  expect(screen.getByText(/คะแนนและยศเดิมยังอยู่ครบ/)).toBeTruthy();
+  await screen.findByText("สายลม");
+  expect(screen.queryByText(/กติกา contribution-v3 เริ่ม/)).toBeNull();
+  expect(screen.queryByText("กติกาคะแนน")).toBeNull();
   expect(screen.getByText(/180\/500 คะแนน/)).toBeTruthy();
+});
+
+it("keeps a successful identity save when the leaderboard refresh fails", async () => {
+  mocks.settings.mockResolvedValue(summary);
+  render(<XPDashboard />);
+  await screen.findByText("ฟ้าใส");
+  mocks.board.mockRejectedValue(new Error("temporary leaderboard failure"));
+  fireEvent.click(screen.getByText("ชื่อที่แสดงในอันดับ"));
+  fireEvent.click(screen.getByRole("button", { name: "บันทึก" }));
+  expect(await screen.findByText("บันทึกการแสดงชื่อแล้ว")).toBeTruthy();
+  await waitFor(() => expect(mocks.board).toHaveBeenCalledTimes(2));
+  expect(screen.queryByText("บันทึกไม่สำเร็จ")).toBeNull();
 });

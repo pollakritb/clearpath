@@ -10,7 +10,7 @@ export default function ProfilePageClient({ tab }: { tab?: string }) {
       icon="user"
       header={{
         title: "ผลงานและอันดับ",
-        description: "คะแนน ยศ และข้อมูลที่คุณช่วยชุมชน",
+        description: "",
         showDataStatus: false,
       }}
     >

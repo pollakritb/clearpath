@@ -420,6 +420,13 @@ def account_access(user: AuthenticatedUser = Depends(require_user)):
     return AccountAccessResponse(role=user.role)
 
 
+@router.get("/community/me/reports", response_model=CommunityReportsResponse)
+def my_reports(user: AuthenticatedUser = Depends(require_user)):
+    """Load owned reports independently of XP, ranks and weekly scores."""
+    rows = supabase_client.list_user_reports(user.id, 50)
+    return CommunityReportsResponse(reports=rows, count=len(rows))
+
+
 @router.get("/community/me", response_model=CommunityProfileResponse)
 async def my_profile(user: AuthenticatedUser = Depends(require_user)):
     profile = await run_in_threadpool(supabase_client.get_profile, user.id)

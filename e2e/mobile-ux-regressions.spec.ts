@@ -468,10 +468,10 @@ test("helper editor restores focus and deletion requires explicit confirmation",
   await expect.poll(() => deleted).toBe(true);
 });
 
-test("XP event labels and v3 policy distinguish participation from community Trust", async ({
+test("profile overview does not load hidden score events or show policy essays", async ({
   page,
 }) => {
-  await page.route("**/api/community/me/xp", async (route) => {
+  await page.route(/\/api\/community\/me\/xp(?:\?.*)?$/, async (route) => {
     const response = await route.fetch();
     await route.fulfill({
       json: { ...(await response.json()), policy_version: "contribution-v3" },
@@ -492,15 +492,11 @@ test("XP event labels and v3 policy distinguish participation from community Tru
     }),
   );
   await page.goto("/profile");
-  await page.getByText("ประวัติคะแนนส่วนตัว", { exact: true }).click();
-  await expect(page.locator(".cp-xp-event strong")).toHaveText([
-    "โบนัสรายงานแรกของวัน",
-    "โบนัสมีส่วนร่วมครบ 5 วัน",
-  ]);
-  await page.getByText("กติกาคะแนน", { exact: true }).click();
+  await expect(page.locator(".cp-xp-total")).toBeVisible();
   await expect(
-    page.getByText(/เสียงประเมินที่ผ่านเงื่อนไขมีผลต่อ Trust ชุมชนแยกต่างหาก/),
-  ).toBeVisible();
+    page.getByText("ประวัติคะแนนส่วนตัว", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByText("กติกาคะแนน", { exact: true })).toHaveCount(0);
 });
 
 test("station list offers a direct mobile map return", async ({ page }) => {

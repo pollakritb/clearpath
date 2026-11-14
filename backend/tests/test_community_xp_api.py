@@ -82,3 +82,66 @@ def test_dashboard_cannot_reverse_xp(client):
     assert c.post(path, json={"reason": "confirmed manipulation"}).status_code == 404
     assert xp.summary("owner")["lifetime_xp"] == 10
     assert len(c.get("/api/community/xp/admin").json()["events"]) == 1
+
+
+def test_profile_overview_does_not_depend_on_optional_trust_or_evidence(
+    client, monkeypatch
+):
+    from backend.core.errors import UpstreamError
+    from backend.services.community import community_trust, policy_v2, policy_v3
+
+    c, _ = client
+    monkeypatch.setattr(
+        policy_v2,
+        "release",
+        lambda: {"active_version": "v2", "launched_at": "2026-11-01T00:00:00Z"},
+    )
+    monkeypatch.setattr(policy_v3, "release", lambda: {})
+    monkeypatch.setattr(policy_v3, "applies", lambda **kwargs: False)
+    calls = []
+    monkeypatch.setattr(
+        policy_v2, "counters", lambda uid: calls.append(uid) or {"month_points": 35}
+    )
+
+    def unavailable(*args, **kwargs):
+        raise UpstreamError("optional details unavailable")
+
+    monkeypatch.setattr(policy_v2, "outcomes", unavailable)
+    monkeypatch.setattr(community_trust, "summary", unavailable)
+    response = c.get("/api/community/me/xp?details=false")
+    assert response.status_code == 200
+    assert response.json()["month_points"] == 35
+    assert response.json()["community_trust"] is None
+    assert response.json()["evidence_history"] is None
+    assert calls == ["owner"]
+    saved = c.put(
+        "/api/community/me/xp?details=false",
+        json={"alias": "สายลม", "hidden": True},
+    )
+    assert saved.status_code == 200
+    assert saved.json()["alias"] == "สายลม"
+    assert saved.json()["hidden"] is True
+    # Full summary clients still receive an explicit failure for unavailable details.
+    assert c.get("/api/community/me/xp").status_code == 502
+
+
+def test_owned_reports_load_independently_of_scores(client, monkeypatch):
+    from backend.services import supabase_client
+
+    c, _ = client
+
+    def unwanted(*args, **kwargs):
+        pytest.fail("Owned reports must not load unrelated account or score data")
+
+    monkeypatch.setattr(xp, "summary", unwanted)
+    monkeypatch.setattr(supabase_client, "get_profile", unwanted)
+    monkeypatch.setattr(supabase_client, "get_user_weekly_points", unwanted)
+    monkeypatch.setattr(
+        supabase_client,
+        "list_user_reports",
+        lambda uid, limit: [] if uid == "owner" else unwanted(),
+    )
+    response = c.get("/api/community/me/reports")
+    assert response.status_code == 200
+    assert response.json()["reports"] == []
+    assert response.json()["count"] == 0

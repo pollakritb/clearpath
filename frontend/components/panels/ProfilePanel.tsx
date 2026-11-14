@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import { useLoginPrompt } from "@/frontend/components/auth/LoginPromptProvider";
@@ -18,6 +18,7 @@ export default function ProfilePanel({ tab = "overview" }: { tab?: string }) {
   const loginPrompt = useLoginPrompt();
   const signedIn = Boolean(auth.user || auth.localDemo);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const requested = searchParams.get("tab") ?? tab;
   const selected = SECTIONS.some(([value]) => value === requested)
     ? requested
@@ -36,11 +37,7 @@ export default function ProfilePanel({ tab = "overview" }: { tab?: string }) {
               setVisited((previous) => new Set([...previous, value]));
               const url = new URL(window.location.href);
               url.searchParams.set("tab", value);
-              window.history.replaceState(
-                window.history.state,
-                "",
-                url.pathname + url.search,
-              );
+              router.replace(url.pathname + url.search, { scroll: false });
             }}
             aria-pressed={selected === value}
             className="cp-focus"
@@ -55,8 +52,8 @@ export default function ProfilePanel({ tab = "overview" }: { tab?: string }) {
         </p>
       ) : !signedIn && selected !== "leaderboard" ? (
         <section className="cp-participation-empty">
-          <h2>ผลงานของคุณเริ่มที่รายงานแรก</h2>
-          <p>เข้าสู่ระบบเพื่อดูคะแนน ยศ และรายงานที่คุณส่ง</p>
+          <h2>เข้าสู่ระบบ</h2>
+          <p>ดูคะแนนและรายงานของคุณ</p>
           <button
             type="button"
             className="cp-focus"

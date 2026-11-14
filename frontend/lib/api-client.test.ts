@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAccessToken } from "./supabase";
+import { accountDataGeneration } from "./account-data-cache";
 import {
   cachedPublicValue,
   clearPublicDataCache,
@@ -33,6 +34,19 @@ describe("api client", () => {
       vi.fn(async () => jsonResponse()),
     );
     mockedGetAccessToken.mockResolvedValue("access-token");
+  });
+
+  it("invalidates private profile data after saving identity with a query string", async () => {
+    const before = accountDataGeneration();
+    await api.xpSettings({
+      alias: "สายลม",
+      hidden: false,
+      identity_mode: "alias",
+    });
+    expect(accountDataGeneration()).toBe(before + 1);
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe(
+      "/api/community/me/xp?details=false",
+    );
   });
 
   it("encodes a historical endpoint and keeps cancellation on the request", async () => {
@@ -203,6 +217,8 @@ describe("api client", () => {
       () => api.markAllNotificationsRead(),
       () => api.searchLocations("Nakhon Pathom / center"),
       () => api.myProfile(),
+      () => api.myReports(),
+      () => api.xpOverview(),
       () => api.adminReports(),
       () => api.adminAnnouncements(),
       () => api.adminSyncRuns(),

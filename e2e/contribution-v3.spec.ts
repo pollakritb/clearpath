@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-test("v3 mobile profile separates preserved lifetime XP, shared quota and policy rules", async ({
+test("profile keeps scores visible without policy and quota essays", async ({
   page,
 }) => {
-  await page.route("**/api/community/me/xp", async (route) => {
+  await page.route(/\/api\/community\/me\/xp(?:\?.*)?$/, async (route) => {
     const response = await route.fetch();
     const summary = await response.json();
     await route.fulfill({
@@ -22,12 +22,10 @@ test("v3 mobile profile separates preserved lifetime XP, shared quota and policy
     });
   });
   await page.goto("/profile");
-  await expect(page.getByText(/รายงาน 5\/5 · โบนัสบริการ 1\/3/)).toBeVisible();
-  await expect(page.getByText(/สัปดาห์นี้มีผลงาน 3\/5/)).toBeVisible();
-  await page.getByText("กติกาคะแนน", { exact: true }).click();
-  await expect(page.getByText(/กิจกรรมสูงสุด 70 คะแนน\/วัน/)).toBeVisible();
-  await expect(page.getByText(/โบนัสสัปดาห์อีก 20/)).toBeVisible();
-  await expect(page.getByText(/คะแนนสะสมไม่หมดอายุ/)).toBeVisible();
+  await expect(page.locator(".cp-xp-total")).toContainText("180");
+  await expect(page.getByText("คะแนนเดือนนี้", { exact: true })).toBeVisible();
+  await expect(page.getByText("กติกาคะแนน", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/สัปดาห์นี้มีผลงาน/)).toHaveCount(0);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(page.viewportSize()!.width);
@@ -46,7 +44,7 @@ test("v3 reporting sends outdoor context and fresh bonus GPS without a prior hel
     longitude: 100.0622,
     accuracy: 10,
   });
-  await page.route("**/api/community/me/xp", async (route) => {
+  await page.route(/\/api\/community\/me\/xp(?:\?.*)?$/, async (route) => {
     const response = await route.fetch();
     await route.fulfill({
       json: { ...(await response.json()), policy_version: "contribution-v3" },

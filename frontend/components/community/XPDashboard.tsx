@@ -1,5 +1,4 @@
 "use client";
-import CommunityTrustCard from "@/frontend/components/community/CommunityTrustCard";
 import { useCallback, useState } from "react";
 import SettingsLink from "@/frontend/components/app/SettingsLink";
 import {
@@ -8,16 +7,10 @@ import {
 } from "@/frontend/components/auth/AuthProvider";
 import { useAccountData } from "@/frontend/hooks/useAccountData";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
-import type {
-  XPEventsResponse,
-  XPLeaderboard,
-  XPSummary,
-} from "@/frontend/types/xp";
+import type { XPLeaderboard, XPSummary } from "@/frontend/types/xp";
 import { googleReporterProfile } from "@/frontend/lib/reporter-profile";
-import ContributionOverview from "./ContributionOverview";
 import RankEmblem from "./RankEmblem";
 import ParticipationBadge from "./ParticipationBadge";
-import RankDetails from "./RankDetails";
 
 type Period = string;
 const PERIODS: [Period, string][] = [
@@ -43,15 +36,8 @@ export default function XPDashboard({
   const owner = signedIn ? currentUserId : "guest";
   const summaryQuery = useAccountData<XPSummary | null>(
     owner,
-    "xp-summary",
-    api.xpSummary,
-    active && signedIn && showProfile,
-  );
-  const eventsLoader = useCallback(() => api.xpEvents(), []);
-  const eventsQuery = useAccountData<XPEventsResponse>(
-    owner,
-    "xp-events",
-    eventsLoader,
+    "xp-overview",
+    api.xpOverview,
     active && signedIn && showProfile,
   );
   const boardLoader = useCallback(
@@ -67,7 +53,6 @@ export default function XPDashboard({
   const summary = summaryQuery.data;
   const profileLoaded = summary !== undefined;
   const board = boardQuery.data;
-  const events = eventsQuery.data;
   const selectedMonthDate =
     board?.month && /^\d{4}-(0[1-9]|1[0-2])$/.test(board.month)
       ? new Date(`${board.month}-01T12:00:00+07:00`)
@@ -95,7 +80,6 @@ export default function XPDashboard({
   );
   const setSummary = summaryQuery.setData;
   const setBoard = boardQuery.setData;
-  const setEvents = eventsQuery.setData;
   const [draftSettings, setDraftSettings] = useState<{
     alias: string;
     hidden: boolean;
@@ -108,7 +92,6 @@ export default function XPDashboard({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [eventsLoadingMore, setEventsLoadingMore] = useState(false);
   const [notice, setNotice] = useState("");
   const validAlias =
     alias.trim().length >= 3 &&
@@ -127,11 +110,8 @@ export default function XPDashboard({
       });
       setSummary(s);
       setDraftSettings(null);
-      const refreshed = await api.myLeaderboard(period);
-      setBoard((previous) =>
-        previous?.period === refreshed.period ? refreshed : previous,
-      );
       setNotice("บันทึกการแสดงชื่อแล้ว");
+      boardQuery.refresh();
     } catch (e) {
       setError(apiErrorMessage(e, "บันทึกไม่สำเร็จ"));
     } finally {
@@ -176,7 +156,6 @@ export default function XPDashboard({
       )}
       {showProfile && summary && (
         <section className="cp-xp-profile" aria-label="คะแนนและยศของฉัน">
-          <span className="cp-xp-eyebrow">การมีส่วนร่วมของคุณ</span>
           <div className="cp-xp-profile-heading">
             <span className="cp-xp-profile-avatar" aria-hidden="true">
               {summary.identity_mode === "google" && google?.avatarUrl ? (
@@ -205,11 +184,7 @@ export default function XPDashboard({
                   ? (google?.displayName ?? summary.alias)
                   : summary.alias}
               </h2>
-              <RankDetails
-                rank={summary.rank}
-                xp={summary.lifetime_xp}
-                active={active}
-              />
+              <ParticipationBadge rank={summary.rank} />
             </div>
           </div>
           <p className="cp-xp-total">
@@ -239,44 +214,14 @@ export default function XPDashboard({
               <span>รายงานรับคะแนน</span>
             </div>
             <div>
-              <strong>{summary.help_count ?? 0}</strong>
-              <span>โบนัสบริการสะสม</span>
+              <strong>{summary.month_points ?? 0}</strong>
+              <span>คะแนนเดือนนี้</span>
             </div>
             <div>
               <strong>{summary.contribution_days}</strong>
               <span>วันที่มีผลงาน</span>
             </div>
           </div>
-          <CommunityTrustCard
-            key={owner}
-            trust={summary.community_trust}
-            reviewable
-          />
-          <ContributionOverview summary={summary} active={active} />
-          <div className="cp-xp-chips">
-            {summary.achievements.map((a) => (
-              <span key={a}>✦ {a}</span>
-            ))}
-          </div>
-          {summary.scheduled_starts_at && (
-            <p className="cp-xp-note">
-              กติกา {summary.scheduled_policy_version} เริ่ม{" "}
-              {new Date(summary.scheduled_starts_at).toLocaleDateString(
-                "th-TH",
-                { timeZone: "Asia/Bangkok" },
-              )}{" "}
-              · คะแนนและยศเดิมยังอยู่ครบ
-            </p>
-          )}
-          {summary.xp_paused && (
-            <p role="status">
-              พักการให้ XP รุ่นใหม่ชั่วคราว รายงานยังส่งได้และคะแนนเดิมยังอยู่
-            </p>
-          )}
-          <p className="cp-xp-note">
-            วันนี้: รายงาน {summary.today_reports}/5 · โบนัสบริการ{" "}
-            {summary.today_help}/3
-          </p>
           <details>
             <summary>ชื่อที่แสดงในอันดับ</summary>
             <label>
@@ -337,19 +282,12 @@ export default function XPDashboard({
             >
               {saving ? "กำลังบันทึก…" : "บันทึก"}
             </button>
-            <p className="cp-xp-note">
-              ใช้ชื่อเล่นแล้วจะไม่แสดงชื่อ Google ในอันดับ
-              การปิดบังในแต่ละรายงานเลือกแยกได้ และได้รับคะแนน เท่าเดิม
-            </p>
           </details>
         </section>
       )}
       {showBoard && (
         <section className="cp-xp-board" aria-label="อันดับชุมชน">
           <h2>อันดับชุมชน</h2>
-          <p className="cp-xp-note">
-            อันดับการมีส่วนร่วม ไม่ใช่อันดับความแม่นยำของข้อมูล
-          </p>
           <div
             className="cp-xp-periods"
             role="group"
@@ -366,35 +304,12 @@ export default function XPDashboard({
               </button>
             ))}
           </div>
-          <label className="cp-season-month">
-            เลือกเดือนย้อนหลัง
-            <input
-              type="month"
-              aria-label="เดือนอันดับย้อนหลัง"
-              value={/^\d{4}-\d{2}$/.test(period) ? period : ""}
-              max={new Intl.DateTimeFormat("sv-SE", {
-                year: "numeric",
-                month: "2-digit",
-                timeZone: "Asia/Bangkok",
-              }).format(new Date())}
-              onChange={(event) => {
-                if (event.target.value) setPeriod(event.target.value);
-              }}
-            />
-          </label>
           {board?.month && (
             <p className="cp-xp-note">
-              {selectedMonthLabel} · เวลาไทย{" "}
-              {seasonNotStarted
-                ? "· อันดับรายเดือนยังไม่เริ่ม"
-                : beforeLaunch
-                  ? "· เดือนนี้อยู่ก่อนวันเริ่มกติกาใหม่"
-                  : board.provisional
-                    ? "· รอสรุปผล 72 ชม. หลังสิ้นเดือน"
-                    : `· ปิดรอบแล้ว รุ่น ${board.revision}`}
-              {launchDate &&
-                Number.isFinite(launchDate.getTime()) &&
-                ` · เริ่มนับ ${launchDate.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok" })}`}
+              {selectedMonthLabel}
+              {!seasonNotStarted && board.provisional
+                ? " · ยังไม่สรุปอันดับ"
+                : ""}
             </p>
           )}
           {board?.period !== period ? (
@@ -444,9 +359,9 @@ export default function XPDashboard({
               {board.users.length === 0 && (
                 <p className="cp-xp-empty">
                   {seasonNotStarted
-                    ? "อันดับเดือนนี้จะเริ่มเมื่อเปิดกติกาใหม่ คะแนนสะสมเดิมยังอยู่ครบ"
+                    ? "ยังไม่มีอันดับเดือนนี้"
                     : beforeLaunch
-                      ? "เดือนนี้ยังไม่เริ่มนับคะแนนตามกติกาใหม่"
+                      ? "ยังไม่มีอันดับเดือนนี้"
                       : "ยังไม่มีผลงานที่ได้รับคะแนน ในช่วงนี้"}
                   {(seasonNotStarted || beforeLaunch) && (
                     <button
@@ -472,133 +387,10 @@ export default function XPDashboard({
           )}
         </section>
       )}
-      {showProfile && (
-        <details>
-          <summary>กติกาคะแนน</summary>
-          {["contribution-v2", "contribution-v3"].includes(
-            summary?.policy_version ?? "",
-          ) ? (
-            <>
-              <p>
-                รายงานที่เข้าเกณฑ์ +10 สูงสุด 5 รายงานต่อวัน · รายงานแรกของวัน
-                +5 · ช่วยคำขอคนอื่นหรือภารกิจพื้นที่ +5 สูงสุด 3
-                ครั้งต่อวันรวมกัน
-              </p>
-              <p>
-                มีรายงานรับคะแนนครบ 5 วันในสัปดาห์จันทร์–อาทิตย์ +20
-                วันไม่ต้องติดต่อกัน · กิจกรรมสูงสุด 70 คะแนน/วัน
-                และโบนัสสัปดาห์อีก 20 · ทุกช่วงเวลาใช้เวลาไทย
-              </p>
-              <p>
-                กิจกรรมที่รับแต้มรายงานหรือโบนัสบริการห่างกัน 30 นาที ·
-                รายงานส่งภายใน 3 ชั่วโมงหลังวัด และโบนัสบริการภายใน 15
-                นาทีและหลักฐานตำแหน่งครบสำหรับโบนัสบริการ ·
-                คำขอที่อยู่ในรัศมีรับผลอัตโนมัติ ไม่ต้องกดช่วยก่อน ·
-                ช่วยหลายคำขอได้โบนัสครั้งเดียว
-              </p>
-              <p>
-                คู่ผู้ขอ–ผู้ช่วยเดิมรับโบนัสได้ 1 ครั้งต่อวัน และ 3 ครั้งใน 7
-                วัน · รายงานของตนเองอาจตอบคำขอได้แต่ไม่รับโบนัสช่วยตนเอง
-              </p>
-              <p>
-                คะแนนและยศเดิมเก็บไว้ทั้งหมด ·
-                อันดับรายเดือนรวมแต้มที่ได้รับจริงทุกเวอร์ชันในเดือนนั้น ·
-                คะแนนสะสมไม่หมดอายุเพราะหยุดใช้งาน
-              </p>
-              <p>
-                ไลก์ ไม่ถูกใจ ความคิดเห็น และการสร้างคำขอไม่มี XP
-                เสียงประเมินที่ผ่านเงื่อนไขมีผลต่อ Trust ชุมชนแยกต่างหาก
-                และไม่เปลี่ยนค่าฝุ่น
-              </p>
-            </>
-          ) : (
-            <>
-              <p>
-                กติกาเดิม: รายงาน +10 สูงสุด 5 ครั้ง/วัน · โบนัสช่วยคำขอ +5
-                สูงสุด 3 ครั้ง/วัน · รายงานที่รับคะแนนห่างกัน 30 นาที
-              </p>
-              <p>
-                คะแนนสะสมตลอดอายุบัญชี และยศเดิมยังอยู่ครบ
-                กติกาใหม่เริ่มเมื่อระบบเปิดใช้
-              </p>
-            </>
-          )}
-        </details>
-      )}
-      {showProfile && signedIn && (
-        <details>
-          <summary>ประวัติคะแนนส่วนตัว</summary>
-          {events?.events.map((event) => (
-            <div className="cp-xp-event" key={event.id}>
-              <span>
-                <strong>
-                  {(
-                    {
-                      report: "รายงานค่าฝุ่น",
-                      help: "โบนัสบริการ",
-                      first_day: "โบนัสรายงานแรกของวัน",
-                      contribution_week: "โบนัสมีส่วนร่วมครบ 5 วัน",
-                      reversal: "ย้อนคืนคะแนน",
-                    } as Record<string, string>
-                  )[event.kind] ?? "กิจกรรม"}
-                </strong>
-                <small>
-                  {event.reason} ·{" "}
-                  {new Date(event.occurred_at).toLocaleString("th-TH")}
-                </small>
-              </span>
-              <b>
-                {event.points > 0 ? "+" : ""}
-                {event.points} คะแนน
-              </b>
-            </div>
-          ))}
-          {events?.next_offset != null && (
-            <button
-              type="button"
-              disabled={eventsLoadingMore}
-              onClick={() => {
-                if (eventsLoadingMore) return;
-                setEventsLoadingMore(true);
-                void api
-                  .xpEvents(events.next_offset!)
-                  .then((next) =>
-                    setEvents({
-                      ...next,
-                      events: [
-                        ...new Map(
-                          [...events.events, ...next.events].map((event) => [
-                            event.id,
-                            event,
-                          ]),
-                        ).values(),
-                      ],
-                    }),
-                  )
-                  .catch((e) =>
-                    setError(apiErrorMessage(e, "โหลดประวัติไม่สำเร็จ")),
-                  )
-                  .finally(() => setEventsLoadingMore(false));
-              }}
-            >
-              ประวัติเพิ่มเติม
-            </button>
-          )}
-        </details>
-      )}
-
       {summaryQuery.error && showProfile && (
         <div role="alert">
           <p>โหลดคะแนนไม่สำเร็จ</p>
           <button type="button" onClick={() => summaryQuery.refresh()}>
-            ลองใหม่
-          </button>
-        </div>
-      )}
-      {eventsQuery.error && showProfile && (
-        <div role="alert">
-          <p>โหลดประวัติคะแนนไม่สำเร็จ</p>
-          <button type="button" onClick={() => eventsQuery.refresh()}>
             ลองใหม่
           </button>
         </div>

@@ -12583,3 +12583,17 @@ dialog.cp-login-modal::backdrop {
     );
   }
 }
+
+.cp-participation-page .cp-xp-profile {
+  background: #fff;
+  border: 1px solid var(--cp-line);
+  box-shadow: none;
+}
+.cp-participation-report-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  color: var(--cp-teal);
+}

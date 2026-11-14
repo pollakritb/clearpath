@@ -7,7 +7,7 @@ import { useAuth } from "@/frontend/components/auth/AuthProvider";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { useAccountData } from "@/frontend/hooks/useAccountData";
 import { api } from "@/frontend/lib/api-client";
-import type { CommunityProfileResponse } from "@/frontend/types";
+import type { CommunityReportsResponse } from "@/frontend/types";
 
 const STATUS_LABEL = {
   pending: "กำลังประมวลผล",
@@ -22,10 +22,10 @@ export default function MyContribution({
 }) {
   const auth = useAuth();
   const ownerId = auth.user?.id ?? (auth.localDemo ? "local" : null);
-  const query = useAccountData<CommunityProfileResponse>(
+  const query = useAccountData<CommunityReportsResponse>(
     ownerId,
     "my-reports",
-    api.myProfile,
+    api.myReports,
     active,
   );
   const profile = query.data;
@@ -62,17 +62,6 @@ export default function MyContribution({
           </button>
         </p>
       )}
-      <div className="cp-participation-stats">
-        <div>
-          <strong>{profile.reports.length}</strong>
-          <span>รายการล่าสุด</span>
-        </div>
-        <div>
-          <strong>{profile.approved_reports}</strong>
-          <span>เผยแพร่แล้ว</span>
-        </div>
-      </div>
-      <p className="cp-xp-note">ประวัติล่าสุดสูงสุด 50 รายงาน</p>
       <header className="cp-contribution-heading">
         <h2>รายงานล่าสุด</h2>
       </header>
@@ -80,7 +69,12 @@ export default function MyContribution({
         <div className="cp-participation-empty">
           <AppIcon name="report" size={28} />
           <h3>ยังไม่มีรายงาน</h3>
-          <p>ส่งภาพเครื่องวัดเพื่อช่วยให้ชุมชนเห็นค่าฝุ่นใกล้คุณ</p>
+          <Link
+            href="/report"
+            className="cp-focus cp-participation-report-link"
+          >
+            ส่งรายงาน
+          </Link>
         </div>
       ) : (
         <ul className="cp-contribution-list">
@@ -105,6 +99,14 @@ export default function MyContribution({
               <strong className="cp-contribution-value">
                 {report.verified_pm25 ?? "—"} <small>µg/m³</small>
               </strong>
+              {report.status === "approved" && (
+                <Link
+                  href={`/?report=${encodeURIComponent(report.id)}`}
+                  className="cp-focus"
+                >
+                  ดูบนแผนที่
+                </Link>
+              )}
               {report.status === "rejected" && (
                 <div>
                   <p>
@@ -124,7 +126,10 @@ export default function MyContribution({
                       )[report.rejection_reason_code ?? "other"]
                     }
                   </p>
-                  <Link href="/report" className="cp-focus">
+                  <Link
+                    href="/report"
+                    className="cp-focus cp-participation-report-link"
+                  >
                     ถ่ายภาพใหม่และส่งอีกครั้ง
                   </Link>
                 </div>

@@ -132,7 +132,7 @@ async function http<T>(url: string, init?: HttpOptions): Promise<T> {
   if (
     init?.auth &&
     (init.method ?? "GET") !== "GET" &&
-    (url.endsWith("/submit") || url === "/api/community/me/xp")
+    (url.endsWith("/submit") || url.split("?")[0] === "/api/community/me/xp")
   )
     clearAccountData();
   return result;
@@ -480,13 +480,18 @@ export const api = {
       auth: true,
       cache: "no-store",
     }),
+  xpOverview: () =>
+    http<XPSummary | null>("/api/community/me/xp?details=false", {
+      auth: true,
+      cache: "no-store",
+    }),
   xpEvents: (offset = 0) =>
     http<XPEventsResponse>(`/api/community/me/xp-events?offset=${offset}`, {
       auth: true,
       cache: "no-store",
     }),
   xpSettings: (body: XPSettings) =>
-    http<XPSummary>("/api/community/me/xp", {
+    http<XPSummary>("/api/community/me/xp?details=false", {
       method: "PUT",
       auth: true,
       body: JSON.stringify(body),
@@ -582,6 +587,12 @@ export const api = {
     http<LocationSearchResponse>(
       `/api/locations/search?q=${encodeURIComponent(query)}`,
     ),
+
+  myReports: () =>
+    http<CommunityReportsResponse>("/api/community/me/reports", {
+      auth: true,
+      cache: "no-store",
+    }),
 
   myProfile: () =>
     http<CommunityProfileResponse>("/api/community/me", { auth: true }),

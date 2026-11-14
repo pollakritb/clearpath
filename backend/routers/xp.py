@@ -45,14 +45,14 @@ def my_board(
 
 
 @router.get("/me/xp", response_model=XPSummary | None)
-def summary(user: User):
-    return xp.summary(user.id)
+def summary(user: User, details: bool = True):
+    return xp.summary(user.id, include_details=details)
 
 
 @router.put("/me/xp", response_model=XPSummary)
-def settings(body: XPSettings, user: User):
+def settings(body: XPSettings, user: User, details: bool = True):
     try:
-        return xp.update_settings(user.id, body.model_dump())
+        return xp.update_settings(user.id, body.model_dump(), include_details=details)
     except ValueError as exc:
         raise HTTPException(400, detail=str(exc)) from exc
 

@@ -164,7 +164,7 @@ def totals(user_id: str) -> dict:
     )
 
 
-def summary(user_id: str) -> dict | None:
+def summary(user_id: str, *, include_details: bool = True) -> dict | None:
     if not configured() or not control()["enabled"]:
         return None
     a = account(user_id)
@@ -181,7 +181,9 @@ def summary(user_id: str) -> dict | None:
             else "xp-v1",
             "launched_at": policy["launched_at"],
             **policy_v2.counters(user_id),
-            "evidence_history": policy_v2.outcomes(user_id),
+            "evidence_history": policy_v2.outcomes(user_id)
+            if include_details
+            else None,
         }
         if policy.get("launched_at") is not None
         else {}
@@ -190,7 +192,11 @@ def summary(user_id: str) -> dict | None:
         extra.update(
             policy_version="contribution-v3",
             launched_at=v3["starts_at"],
-            **policy_v2.counters(user_id),
+            **(
+                {}
+                if policy.get("launched_at") is not None
+                else policy_v2.counters(user_id)
+            ),
         )
     extra.update(
         scheduled_policy_version="contribution-v3"
@@ -202,7 +208,9 @@ def summary(user_id: str) -> dict | None:
     return (
         extra
         | {
-            "community_trust": community_trust.summary(user_id, owner=True),
+            "community_trust": community_trust.summary(user_id, owner=True)
+            if include_details
+            else None,
         }
         | {key: a[key] for key in ("member_id", "alias", "hidden")}
         | dict(
@@ -219,7 +227,9 @@ def summary(user_id: str) -> dict | None:
     )
 
 
-def update_settings(user_id: str, values: dict) -> dict:
+def update_settings(
+    user_id: str, values: dict, *, include_details: bool = True
+) -> dict:
     previous = account(user_id)
     values = {
         "alias": values["alias"].strip(),
@@ -239,7 +249,7 @@ def update_settings(user_id: str, values: dict) -> dict:
             ).execute()
         except Exception as exc:
             raise UpstreamError("บันทึกนามแฝงไม่สำเร็จ") from exc
-    return summary(user_id)
+    return summary(user_id, include_details=include_details)
 
 
 def _legacy_board(period: str, offset: int, user_id: str | None = None) -> dict:
