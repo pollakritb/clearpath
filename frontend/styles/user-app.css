@@ -12386,3 +12386,200 @@ dialog.cp-login-modal::backdrop {
 .cp-alert-location [role="alert"] {
   color: #a32e22;
 }
+
+/* Compact map groups preserve the original station marker family. */
+.cp-marker--cluster .cp-official-cluster {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  margin: 5px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 3px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--marker-aqi);
+  color: #07130f;
+  box-shadow:
+    -3px -3px 0 0 #d8e4e0,
+    0 2px 5px rgba(19, 47, 43, 0.18);
+}
+.cp-marker--cluster .cp-official-cluster > svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+.cp-marker--cluster .cp-cluster-value {
+  font: 800 13px/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.cp-marker--cluster .cp-cluster-count {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  border: 1px solid #7a918a;
+  border-radius: 9px;
+  background: #fff;
+  color: #173f37;
+  font: 700 10px/1 var(--font-sans);
+}
+.cp-marker--cluster .cp-official-cluster > .cp-marker-previous {
+  top: auto;
+  right: -5px;
+  bottom: -5px;
+  width: 16px;
+  height: 16px;
+}
+.cp-reading-stale-label {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 650;
+  color: var(--cp-subink);
+}
+.cp-current-reading[data-current="false"]
+  > div:first-child
+  > div:first-child
+  > div:first-child {
+  flex: 1 1 190px;
+  min-width: 0;
+}
+.cp-app
+  .cp-news-mobile
+  .cp-community-announcements__list
+  article[data-external="true"] {
+  padding: 16px;
+  border-radius: 14px;
+  box-shadow: none;
+  background: #fff;
+}
+.cp-app
+  .cp-news-mobile
+  .cp-community-announcements__list
+  article[data-external="true"]
+  h3 {
+  margin: 10px 0;
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.cp-app
+  .cp-news-mobile
+  .cp-community-announcements__list
+  article[data-external="true"]
+  .cp-community-announcements__source {
+  margin-top: 8px;
+  padding-top: 8px;
+  min-height: 44px;
+  font-size: 14px;
+}
+.cp-app .cp-settings-back,
+.cp-list-back {
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Community groups use the existing person-marker silhouette. */
+.cp-community-map-group {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  margin: 5px;
+  box-sizing: border-box;
+  border: 3px solid #fff;
+  border-radius: 13px;
+  background: var(--marker-aqi);
+  color: #07130f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  box-shadow:
+    -3px -3px 0 0 #d8e4e0,
+    0 2px 5px rgba(19, 47, 43, 0.18);
+}
+.cp-community-map-group svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cp-community-map-group strong {
+  font: 800 13px/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.cp-community-map-group__count {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  border: 1px solid #7a918a;
+  border-radius: 9px;
+  background: #fff;
+  color: #173f37;
+  font: 700 10px/1 var(--font-sans);
+}
+.cp-community-map-group__clock {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #5b6966;
+  border-radius: 50%;
+  background: #fff;
+}
+.cp-community-map-group__clock svg {
+  width: 12px;
+  height: 12px;
+}
+
+.leaflet-marker-icon.cp-marker--community-group:focus-visible {
+  outline: 3px solid #123d38;
+  outline-offset: 3px;
+  border-radius: 13px;
+}
+
+/* Keep map actions above the measured detail preview, including after tab return. */
+@container cp-mobile (max-width: 767px) {
+  .cp-app
+    .cp-map:has(
+      :is(
+        .cp-station-sheet,
+        .cp-user-report-sheet,
+        .cp-stack-sheet,
+        .cp-place-sheet
+      )[data-snap="peek"]
+    )
+    .cp-mapctrls {
+    top: auto;
+    bottom: calc(
+      var(--cp-mobile-nav-h, 76px) + var(--cp-map-peek-height, 240px) + 24px
+    );
+  }
+}

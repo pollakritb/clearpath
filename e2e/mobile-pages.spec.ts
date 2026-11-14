@@ -761,7 +761,7 @@ test("map separates official stations from individual reports", async ({
   await expect(
     panel.getByRole("switch", { name: /สถานีเซนเซอร์ชุมชน/ }),
   ).toHaveCount(0);
-  await panel.getByText("สีระดับ PM2.5", { exact: true }).click();
+  await panel.getByText("สีและสัญลักษณ์ PM2.5", { exact: true }).click();
   await expect(
     panel.getByText(/วงสีใช้ค่าล่าสุดที่มีของจุดตรวจใกล้ GPS/),
   ).toBeVisible();
@@ -968,6 +968,7 @@ test("community marker opens a distinct privacy-safe report card", async ({
     "true",
   );
   await card.getByRole("button", { name: /ความคิดเห็น 0/ }).click();
+  await card.locator("summary").filter({ hasText: "ข้อความแนะนำ" }).click();
   await card
     .getByRole("button", { name: "ขอบคุณที่แบ่งปันข้อมูล", exact: true })
     .click();

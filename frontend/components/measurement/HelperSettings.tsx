@@ -64,6 +64,7 @@ export default function HelperSettings() {
       setBusy(false);
     }
   }
+  if (!signedIn) return null;
   if (signedIn && !settings)
     return (
       <section

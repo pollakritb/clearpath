@@ -80,7 +80,7 @@ it("keeps old station readings distinct from a current estimate and omits empty 
   expect(
     screen
       .getByRole("button", {
-        name: /สถานีใกล้ห้าง.*9 ชม.ที่แล้ว.*ไม่ผ่านเกณฑ์/,
+        name: /สถานีใกล้ห้าง.*9 ชม. 0 นาทีที่แล้ว.*ไม่ผ่านเกณฑ์/,
       })
       .getAttribute("data-stale"),
   ).toBe("true");
@@ -155,7 +155,7 @@ it("labels a single community source and keeps excluded readings behind a disclo
     />,
   );
   expect(screen.getByText("อ้างอิง ผู้รายงาน 1 คน")).toBeTruthy();
-  expect(screen.getByText("2 ชม.ที่แล้ว · ประมาณ 451 ม.")).toBeTruthy();
+  expect(screen.getByText("2 ชม. 0 นาทีที่แล้ว · ประมาณ 451 ม.")).toBeTruthy();
   fireEvent.keyDown(
     screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
     { key: "End" },
@@ -177,7 +177,7 @@ it("labels a single community source and keeps excluded readings behind a disclo
   ).toBeTruthy();
 });
 
-it("shows a reading just beyond the freshness limit in minutes", () => {
+it("shows hours and minutes just beyond the freshness limit", () => {
   const air = {
     ...empty,
     stations: [
@@ -204,7 +204,7 @@ it("shows a reading just beyond the freshness limit in minutes", () => {
   );
   fireEvent.click(screen.getByText("ข้อมูลอื่นที่ไม่ใช้คำนวณ (1)"));
   expect(
-    screen.getByRole("button", { name: /สถานีรออัปเดต.*67 นาทีที่แล้ว/ }),
+    screen.getByRole("button", { name: /สถานีรออัปเดต.*1 ชม. 7 นาทีที่แล้ว/ }),
   ).toBeTruthy();
   expect(screen.getByText("ยังไม่มีค่าปัจจุบัน")).toBeTruthy();
 });

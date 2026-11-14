@@ -2,6 +2,9 @@
 import PriorityMarker from "./PriorityMarker";
 
 import L from "leaflet";
+import { useState } from "react";
+import { useMapEvents } from "react-leaflet";
+import { clusterMapPoints } from "@/frontend/lib/station-clusters";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { formatCommunityArea } from "@/frontend/lib/community-location";
@@ -82,6 +85,34 @@ function stackIcon(
   });
 }
 
+function reportGroupSummary(reports: CommunityReport[]) {
+  const values = reports
+    .filter(
+      (report) =>
+        report.pm25 != null && report.pm25 >= 0 && Number.isFinite(report.pm25),
+    )
+    .map((report) => report.pm25!);
+  return {
+    value: values.length
+      ? values.reduce((sum, value) => sum + value, 0) / values.length
+      : null,
+    previous: reports.some(
+      (report) => !report.is_fresh || (report.age_minutes ?? Infinity) > 180,
+    ),
+  };
+}
+
+function reportGroupIcon(reports: CommunityReport[]) {
+  const { value, previous } = reportGroupSummary(reports);
+  const color = previous ? "#7b8583" : classifyPm25(value).color;
+  return L.divIcon({
+    className: "cp-marker cp-marker--community-group",
+    html: `<div class="cp-community-map-group" style="--marker-aqi:${color}"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c.5-4 2.7-6 6.5-6s6 2 6.5 6"/></svg><strong>${value == null ? "×" : Math.round(value)}</strong>${previous ? '<span class="cp-community-map-group__clock"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg></span>' : ""}<span class="cp-community-map-group__count">${reports.length}</span></div>`,
+    iconSize: [56, 56],
+    iconAnchor: [28, 28],
+  });
+}
+
 export default function ReportMarkers({
   reports,
   stacks,
@@ -97,9 +128,53 @@ export default function ReportMarkers({
   selectedId?: string | null;
   selectedStackId?: string | null;
 }) {
+  const [, redraw] = useState(0);
+  const map = useMapEvents({
+    zoomend: () => redraw((v) => v + 1),
+  });
   const groupedReportIds = new Set(stacks.flatMap((stack) => stack.report_ids));
+  const individualReports = reports.filter(
+    (report) =>
+      report.pm25 != null &&
+      Number.isFinite(report.pm25) &&
+      report.pm25 >= 0 &&
+      !groupedReportIds.has(report.id) &&
+      communitySourceKind(report) === "individual",
+  );
+  const groups = clusterMapPoints(
+    individualReports.filter((report) => report.id !== selectedId),
+    map.getZoom(),
+  );
+  const selected = individualReports.find((report) => report.id === selectedId);
+  if (selected)
+    groups.push({
+      id: `report:${selected.id}`,
+      lat: selected.lat,
+      lon: selected.lon,
+      stations: [selected],
+    });
   return (
     <>
+      {groups
+        .filter((group) => group.stations.length > 1)
+        .map((group) => (
+          <PriorityMarker
+            key={group.id}
+            priorityId={`report-group:${group.id}`}
+            position={[group.lat, group.lon]}
+            icon={reportGroupIcon(group.stations)}
+            zIndexOffset={1500}
+            title={`${group.stations.length} รายงานชุมชน · ${`ค่าเฉลี่ยรายงานในกลุ่ม ${Math.round(reportGroupSummary(group.stations).value!)} µg/m³ · ${reportGroupSummary(group.stations).previous ? "มีข้อมูลเก่า" : "ข้อมูลปัจจุบัน"}`} · แตะเพื่อดูรายงานและเวลาวัด`}
+            alt={`กลุ่ม ${group.stations.length} รายงานชุมชน`}
+            eventHandlers={{
+              click: () =>
+                map.fitBounds(
+                  group.stations.map((report) => [report.lat, report.lon]),
+                  { padding: [48, 48], maxZoom: 14 },
+                ),
+            }}
+          />
+        ))}
       {stacks.map((stack) => (
         <PriorityMarker
           priorityId={`stack:${stack.id}`}
@@ -117,32 +192,35 @@ export default function ReportMarkers({
           }}
         />
       ))}
-      {reports.map((report) => {
-        if (report.pm25 == null || groupedReportIds.has(report.id)) return null;
-        const source = communitySourceKind(report);
-        if (source !== "individual") return null;
-        const cls = classifyPm25(report.pm25);
-        const avatarUrl = publicReporterAvatar(report);
-        const area = formatCommunityArea(report);
-        const label = `${SOURCE_LABELS[source].label} ${area} PM2.5 ${report.pm25} ไมโครกรัมต่อลูกบาศก์เมตร ${cls.level}`;
-        return (
-          <PriorityMarker
-            priorityId={`report:${report.id}`}
-            key={report.id}
-            position={[report.lat, report.lon]}
-            icon={reportIcon(
-              cls.color,
-              report.pm25,
-              report.id === selectedId,
-              avatarUrl,
-            )}
-            title={label}
-            alt={label}
-            zIndexOffset={report.id === selectedId ? 1700 : 1500}
-            eventHandlers={{ click: () => onSelect?.(report) }}
-          />
-        );
-      })}
+      {groups
+        .filter((group) => group.stations.length === 1)
+        .map(({ stations: [report] }) => {
+          if (report.pm25 == null || groupedReportIds.has(report.id))
+            return null;
+          const source = communitySourceKind(report);
+          if (source !== "individual") return null;
+          const cls = classifyPm25(report.pm25);
+          const avatarUrl = publicReporterAvatar(report);
+          const area = formatCommunityArea(report);
+          const label = `${SOURCE_LABELS[source].label} ${area} PM2.5 ${report.pm25} ไมโครกรัมต่อลูกบาศก์เมตร ${cls.level}`;
+          return (
+            <PriorityMarker
+              priorityId={`report:${report.id}`}
+              key={report.id}
+              position={[report.lat, report.lon]}
+              icon={reportIcon(
+                cls.color,
+                report.pm25,
+                report.id === selectedId,
+                avatarUrl,
+              )}
+              title={label}
+              alt={label}
+              zIndexOffset={report.id === selectedId ? 1700 : 1500}
+              eventHandlers={{ click: () => onSelect?.(report) }}
+            />
+          );
+        })}
     </>
   );
 }

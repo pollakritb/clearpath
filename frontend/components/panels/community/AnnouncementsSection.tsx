@@ -11,6 +11,14 @@ const KIND_LABEL = {
   community: "ชุมชน",
 } as const;
 
+function displayTitle(item: Announcement): string {
+  if (!item.external || !item.source_name) return item.title;
+  const suffix = ` - ${item.source_name}`;
+  return item.title.endsWith(suffix)
+    ? item.title.slice(0, -suffix.length)
+    : item.title;
+}
+
 function formatPublishedAt(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -85,7 +93,11 @@ export default function AnnouncementsSection({
       ) : (
         <div className="cp-community-announcements__list">
           {visible.map((item) => (
-            <article key={item.id} data-kind={item.kind}>
+            <article
+              key={item.id}
+              data-kind={item.kind}
+              data-external={Boolean(item.external)}
+            >
               {item.image_url && (
                 <Image
                   unoptimized
@@ -102,8 +114,10 @@ export default function AnnouncementsSection({
                   {formatPublishedAt(item.published_at)}
                 </time>
               </div>
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
+              <h3>{displayTitle(item)}</h3>
+              {item.body &&
+                item.body.trim() !==
+                  "เปิดอ่านรายละเอียดจากสำนักข่าวต้นฉบับ" && <p>{item.body}</p>}
               {item.external && item.source_url && (
                 <a
                   className="cp-community-announcements__source"

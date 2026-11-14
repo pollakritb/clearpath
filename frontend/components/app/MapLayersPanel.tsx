@@ -142,11 +142,17 @@ export default function MapLayersPanel({
         aria-labelledby="cp-layer-legend-title"
       >
         <summary className="cp-layer-legend__heading cp-focus">
-          <strong id="cp-layer-legend-title">สีระดับ PM2.5</strong>
+          <strong id="cp-layer-legend-title">สีและสัญลักษณ์ PM2.5</strong>
           <span>
             µg/m³ <AppIcon name="chevron" size={16} />
           </span>
         </summary>
+        <p className="cp-map-layer-note">
+          รูปสถานีคือข้อมูล Air4Thai รูปคนคือรายงานชุมชน
+          หมุดซ้อนแสดงค่าเฉลี่ยของจุดในกลุ่ม ป้ายมุมบนบอกจำนวนจุด
+          และนาฬิกาบอกข้อมูลเก่า แตะเพื่อขยายดูค่าของแต่ละหมุด
+          ตัวเลขกลุ่มไม่ใช่ค่าประมาณของพื้นที่ทั้งหมด
+        </p>
         <div className="cp-layer-legend__items">
           {AQI_LEGEND.map((item) => (
             <div key={item.range} className="cp-layer-legend__item">

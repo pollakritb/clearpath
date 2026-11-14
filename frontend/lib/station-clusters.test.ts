@@ -49,3 +49,28 @@ describe("clusterStations", () => {
     expect(clusters[0].id).toContain(`cluster:${zoom}:`);
   });
 });
+
+it("merges nearby stations across the former degree-grid boundary", () => {
+  const clusters = clusterStations(
+    [station("a", 13.99, 100.79), station("b", 14.01, 100.81)],
+    6,
+  );
+  expect(clusters).toHaveLength(1);
+  expect(
+    clusterStations(
+      [station("b", 14.01, 100.81), station("a", 13.99, 100.79)],
+      6,
+    ),
+  ).toEqual(clusters);
+});
+
+it("does not chain nearby centres into a group spanning distant provinces", () => {
+  const points = Array.from({ length: 12 }, (_, i) =>
+    station(String(i), 13.5 + i * 0.3, 100.5),
+  );
+  const groups = clusterStations(points, 6);
+  for (const group of groups) {
+    const latitudes = group.stations.map((s) => s.lat);
+    expect(Math.max(...latitudes) - Math.min(...latitudes)).toBeLessThan(2);
+  }
+});

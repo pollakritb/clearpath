@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import SettingsPageClient from "@/frontend/components/pages/SettingsPageClient";
 export const metadata: Metadata = {
-  title: "ข้อมูลบัญชี — ClearPath",
-  description: "จัดการลบบัญชี",
+  title: "ลบบัญชี — ClearPath",
+  description: "ลบบัญชี ClearPath ของคุณ",
 };
 export default function PrivacySettingsPage() {
   return <SettingsPageClient section="privacy" />;

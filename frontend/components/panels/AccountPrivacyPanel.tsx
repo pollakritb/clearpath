@@ -12,9 +12,15 @@ import styles from "./AccountPrivacyPanel.module.css";
 
 export default function AccountPrivacyPanel() {
   const auth = useAuth();
-  const [outcome, setOutcome] = useState<"completed" | "processing" | null>(
-    null,
-  );
+  const [receipt, setReceipt] = useState<{
+    owner: string;
+    status: "completed" | "processing";
+  } | null>(null);
+  const subject = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
+  const outcome =
+    receipt && (subject === "guest" || subject === receipt.owner)
+      ? receipt.status
+      : null;
   if (outcome)
     return (
       <section className={styles.panel} aria-label="จัดการข้อมูลบัญชี">
@@ -40,12 +46,11 @@ export default function AccountPrivacyPanel() {
         </div>
       </section>
     );
-  const subject = auth.user?.id ?? (auth.localDemo ? "local" : "guest");
   return (
     <PrivacyContent
       key={subject}
       signedIn={subject !== "guest"}
-      onAccepted={setOutcome}
+      onAccepted={(status) => setReceipt({ owner: subject, status })}
     />
   );
 }
@@ -236,7 +241,7 @@ function PrivacyContent({
           >
             <div className={styles.sectionTitle}>
               <AppIcon name="user" size={21} />
-              <h3 id="account-delete-title">คำขอลบบัญชี</h3>
+              <h3 id="account-delete-title">ลบบัญชี ClearPath</h3>
             </div>
             <p>ลบบัญชีและข้อมูลตั้งค่าส่วนตัว การดำเนินการนี้ย้อนกลับไม่ได้</p>
             {pending ? (
@@ -255,7 +260,7 @@ function PrivacyContent({
             ) : (
               <details className={styles.deleteDetails}>
                 <summary className="cp-focus">
-                  ส่งคำขอลบบัญชี <AppIcon name="chevron" size={18} />
+                  ลบบัญชี <AppIcon name="chevron" size={18} />
                 </summary>
                 <form onSubmit={request}>
                   <p className={styles.note}>
@@ -291,7 +296,7 @@ function PrivacyContent({
                       busy || !acknowledged || confirmation !== "ลบบัญชี"
                     }
                   >
-                    {action === "delete" ? "กำลังส่งคำขอ…" : "ยืนยันส่งคำขอ"}
+                    {action === "delete" ? "กำลังลบบัญชี…" : "ยืนยันลบบัญชี"}
                   </button>
                 </form>
               </details>

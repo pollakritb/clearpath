@@ -75,6 +75,8 @@
 }
 
 .settings > :global(.cp-settings-row) {
+  background: #fff;
+  box-shadow: none;
   border: 1px solid var(--cp-line);
   border-radius: 16px;
   padding: 16px;

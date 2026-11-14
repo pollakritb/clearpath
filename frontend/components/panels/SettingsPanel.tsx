@@ -67,8 +67,8 @@ export default function SettingsPanel({
           <AppIcon name="shield" size={20} />
         </span>
         <span>
-          <strong>ข้อมูลบัญชี</strong>
-          <small>ลบบัญชี</small>
+          <strong>ลบบัญชี</strong>
+          <small>ปิดบัญชี ClearPath ของคุณ</small>
         </span>
         <AppIcon name="chevron" size={18} />
       </SettingsLink>

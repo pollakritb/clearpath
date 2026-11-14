@@ -18,10 +18,15 @@ export default function SettingsPageClient({
         showDataStatus: false,
         ...(section === "privacy"
           ? {
-              title: "ข้อมูลบัญชี",
-              description: "ลบบัญชี",
+              title: "ลบบัญชี",
+              description: "บัญชี ClearPath ของคุณ",
             }
-          : {}),
+          : section === "notifications"
+            ? {
+                title: "การแจ้งเตือน",
+                description: "ช่องทางและเงื่อนไขรับแจ้งเตือน",
+              }
+            : {}),
       }}
     >
       <SettingsPanel section={section} />

@@ -532,7 +532,8 @@ test("cluster keyboard focus remains visible after the Leaflet CSS cascade", asy
   expect(focus.visible).toBe(true);
   expect(focus.style).not.toBe("none");
   expect(focus.width).toBeGreaterThanOrEqual(2);
-  await expect(cluster).toContainText("สถานี");
+  await expect(cluster).toHaveAttribute("title", /สถานี/);
+  await expect(cluster.locator(".cp-cluster-value")).toHaveText(/^\d+$/);
 });
 
 test("secondary mobile targets retain 44px sizing across shared stylesheets", async ({

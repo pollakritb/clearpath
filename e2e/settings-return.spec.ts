@@ -34,7 +34,7 @@ for (const origin of ["/", "/air", "/report", "/community", "/requests"]) {
       .getByRole("link", { name: "กลับไปการตั้งค่า", exact: true })
       .click();
     await expect(close).toHaveAttribute("href", origin);
-    await page.getByRole("link", { name: /ข้อมูลบัญชี.*ดาวน์โหลด/ }).click();
+    await page.getByRole("link", { name: /ลบบัญชี.*ClearPath/ }).click();
     await expect(close).toHaveAttribute("href", origin);
     await page.reload();
     await expect(close).toHaveAttribute("href", origin);

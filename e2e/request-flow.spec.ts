@@ -145,7 +145,10 @@ test("request submit failure retries once, cancel can be kept, history and detai
   const card = page.getByRole("region", { name: "รายละเอียดจุดขอค่าฝุ่น" });
   await expect(card).toBeVisible();
   expect(calls).toBe(2);
-  await expect(card.locator("[data-sheet-grip]")).toHaveCount(0);
+  const grip = card.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" });
+  await expect(grip).toBeVisible();
+  await grip.press("End");
+  await expect(card).toHaveAttribute("data-expanded", "true");
   await card
     .getByRole("link", { name: "ติดตามคำขอ", exact: true })
     .scrollIntoViewIfNeeded();

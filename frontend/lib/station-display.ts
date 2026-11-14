@@ -14,6 +14,15 @@ export function currentStationValue(station: Station): number | null {
     : null;
 }
 
+/** Latest numeric observation for display only; never a surface/IDW input. */
+export function latestStationValue(station: Station): number | null {
+  return station.pm25 != null &&
+    Number.isFinite(station.pm25) &&
+    station.pm25 >= 0
+    ? station.pm25
+    : null;
+}
+
 /** Display-only context: never use previous readings for current calculations. */
 export function stationMarkerDisplay(station: Station): {
   value: number | null;

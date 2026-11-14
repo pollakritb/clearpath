@@ -44,6 +44,7 @@ await pg.exec(migration("line_nearest_pin_notifications"));
 await pg.exec(migration("account_erasure_lifecycle"));
 await pg.exec(migration("account_erasure_identity_guard_fix"));
 await pg.exec(migration("account_erasure_comment_scope"));
+await pg.exec(migration("account_closure_retention_fix"));
 const ids = (await pg.query("select id,auth_user_id from profiles order by id"))
   .rows;
 const uid = ids.find((r) => r.auth_user_id === owner).id;
@@ -71,6 +72,22 @@ const report = (
 await pg.query(
   "insert into reputation_events(user_id,report_id,points,reason,idempotency_key) values($1,$2,10,'audit','closure-fixture')",
   [uid, report],
+);
+const expiredCapture = (
+  await pg.query(
+    "insert into capture_sessions(user_id,issued_at,expires_at) values($1,now(),now()+interval '1 hour') returning id",
+    [uid],
+  )
+).rows[0].id;
+const expiredReport = (
+  await pg.query(
+    "insert into community_reports(user_id,lat,lon,public_lat,public_lon,capture_session_id,captured_at,status,pm25,audit_hold,retention_until,image_path) values($1,13.5,100,13.51,100.01,$2,now(),'approved',25,false,now()-interval '1 day','expired/evidence.jpg') returning id",
+    [uid, expiredCapture],
+  )
+).rows[0].id;
+await pg.query(
+  "insert into report_evidence(report_id,retention_until,image_path) values($1,now()-interval '1 day','expired/evidence.jpg')",
+  [expiredReport],
 );
 const job = (await pg.query("select request_account_erasure($1) value", [uid]))
   .rows[0].value;
@@ -168,6 +185,37 @@ assert.equal(
     )
   ).rows[0].points,
   10,
+);
+// Closure must not prevent lawful evidence retention cleanup or public counters.
+await pg.query(
+  "update report_evidence set image_path=null,purged_at=now() where report_id=$1",
+  [expiredReport],
+);
+await pg.query(
+  "update community_reports set image_path=null,lat=public_lat,lon=public_lon,gps_accuracy_m=null,image_metadata='{}',image_sha256=null,image_ahash=null,burst_hashes='[]',ocr_raw_text=null,evidence_purged_at=now() where id=$1",
+  [expiredReport],
+);
+await pg.query(
+  "update community_reports set like_count=like_count+1 where id=$1",
+  [report],
+);
+await assert.rejects(
+  pg.query(
+    "update community_reports set display_name='Restore identity' where id=$1",
+    [report],
+  ),
+  /account_closed/,
+);
+await assert.rejects(
+  pg.query("update community_reports set pm25=999 where id=$1", [report]),
+  /account_closed/,
+);
+await assert.rejects(
+  pg.query(
+    "update community_reports set image_path=null,evidence_purged_at=now() where id=$1",
+    [report],
+  ),
+  /account_closed/,
 );
 await pg.exec("set role authenticated");
 await assert.rejects(

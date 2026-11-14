@@ -31,7 +31,7 @@ const source = (id: string, age: number, pm25: number): Station =>
     eligible_for_surface: age <= 60,
   }) as Station;
 
-it("colours a previous-only cluster with a clock and excludes readings older than two hours", () => {
+it("shows latest values from every station with an old-data indicator", () => {
   const { container } = render(
     <StationMarkers
       stations={[
@@ -44,19 +44,68 @@ it("colours a previous-only cluster with a clock and excludes readings older tha
   const cluster = container.querySelector(
     ".cp-official-cluster",
   ) as HTMLElement;
-  expect(cluster.style.getPropertyValue("--marker-aqi")).toBe("#eab308");
+  expect(cluster.querySelector(".cp-cluster-count")?.textContent).toBe("3");
   expect(cluster.querySelector(".cp-marker-previous")).not.toBeNull();
-  expect(
-    screen.getByTitle(/สีจากข้อมูลก่อนหน้า ไม่ใช่ค่าปัจจุบัน/),
-  ).toBeTruthy();
+  expect(screen.getByTitle(/มีข้อมูลเก่า/)).toBeTruthy();
+  expect(cluster.querySelector(".cp-cluster-value")?.textContent).toBe("187");
 });
-it("keeps current cluster colour independent of previous concentrations", () => {
+it("keeps cluster count neutral when current and previous readings are mixed", () => {
   const { container } = render(
     <StationMarkers stations={[source("a", 10, 20), source("b", 100, 150)]} />,
   );
   const cluster = container.querySelector(
     ".cp-official-cluster",
   ) as HTMLElement;
-  expect(cluster.style.getPropertyValue("--marker-aqi")).toBe("#22c55e");
-  expect(cluster.querySelector(".cp-marker-previous")).toBeNull();
+  expect(cluster.querySelector(".cp-cluster-value")?.textContent).toBe("85");
+  expect(cluster.querySelector(".cp-cluster-count")?.textContent).toBe("2");
+  expect(cluster.querySelector(".cp-marker-previous")).not.toBeNull();
+});
+
+it.each([116, 120])(
+  "preserves the original single-station colour at %s minutes",
+  (age) => {
+    const { container } = render(
+      <StationMarkers stations={[source("single", age, 9)]} />,
+    );
+    const marker = container.querySelector(".cp-station-marker") as HTMLElement;
+    expect(marker.style.getPropertyValue("--marker-aqi")).toBe("#3b82f6");
+    expect(marker.querySelector("b")?.textContent).toBe("9");
+    expect(marker.querySelector(".cp-marker-previous")).not.toBeNull();
+  },
+);
+it("preserves the original gray marker beyond 120 minutes", () => {
+  const { container } = render(
+    <StationMarkers stations={[source("single", 121, 9)]} />,
+  );
+  expect(
+    (
+      container.querySelector(".cp-station-marker") as HTMLElement
+    ).style.getPropertyValue("--marker-aqi"),
+  ).toBe("#7b8583");
+});
+
+it("keeps the selected singleton visible while nearby points are grouped", () => {
+  const { container } = render(
+    <StationMarkers
+      stations={[source("a", 10, 9), source("b", 10, 20), source("c", 10, 25)]}
+      selectedId="a"
+    />,
+  );
+  expect(
+    container.querySelectorAll(".cp-station-marker.is-selected"),
+  ).toHaveLength(1);
+  expect(container.querySelector(".cp-cluster-count")?.textContent).toBe("2");
+});
+it("uses the unrounded mean when choosing a group colour", () => {
+  const { container } = render(
+    <StationMarkers
+      stations={[source("a", 10, 15.1), source("b", 10, 15.7)]}
+    />,
+  );
+  expect(
+    (
+      container.querySelector(".cp-official-cluster") as HTMLElement
+    ).style.getPropertyValue("--marker-aqi"),
+  ).toBe("#22c55e");
+  expect(container.querySelector(".cp-cluster-value")?.textContent).toBe("15");
 });

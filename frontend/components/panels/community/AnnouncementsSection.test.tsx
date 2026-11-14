@@ -1,7 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Announcement } from "@/frontend/types";
 import AnnouncementsSection from "./AnnouncementsSection";
+
+afterEach(cleanup);
 
 const items: Announcement[] = Array.from({ length: 12 }, (_, i) => ({
   id: `news-${i}`,
@@ -55,4 +57,35 @@ describe("news metadata pagination", () => {
         .disabled,
     ).toBe(true);
   });
+});
+
+it("keeps the article headline and meaningful summary without repeating the source boilerplate", () => {
+  const { rerender } = render(
+    <AnnouncementsSection
+      announcements={[
+        {
+          ...items[0],
+          title: "ฝุ่นวันนี้ - สำนักข่าวทดสอบ",
+          body: "เปิดอ่านรายละเอียดจากสำนักข่าวต้นฉบับ",
+        },
+      ]}
+    />,
+  );
+  expect(screen.getByRole("heading", { name: "ฝุ่นวันนี้" })).toBeTruthy();
+  expect(
+    screen.queryByText("เปิดอ่านรายละเอียดจากสำนักข่าวต้นฉบับ"),
+  ).toBeNull();
+  expect(
+    screen
+      .getByRole("link", { name: /อ่านจาก สำนักข่าวทดสอบ/ })
+      .getAttribute("rel"),
+  ).toContain("noopener");
+  rerender(
+    <AnnouncementsSection
+      announcements={[
+        { ...items[0], body: "คำแนะนำหลีกเลี่ยงกิจกรรมกลางแจ้ง" },
+      ]}
+    />,
+  );
+  expect(screen.getByText("คำแนะนำหลีกเลี่ยงกิจกรรมกลางแจ้ง")).toBeTruthy();
 });

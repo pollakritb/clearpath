@@ -15,7 +15,7 @@ export function sourceTimeLabel(value: string | null | undefined): string {
 export function readingAgeLabel(minutes: number | null | undefined): string {
   if (minutes == null || !Number.isFinite(minutes) || minutes < 0)
     return "ไม่ทราบเวลาข้อมูล";
-  return minutes < 120
-    ? `${Math.round(minutes)} นาทีที่แล้ว`
-    : `${Math.round(minutes / 60)} ชม.ที่แล้ว`;
+  const elapsed = Math.floor(minutes);
+  if (elapsed < 60) return `${elapsed} นาทีที่แล้ว`;
+  return `${Math.floor(elapsed / 60)} ชม. ${elapsed % 60} นาทีที่แล้ว`;
 }

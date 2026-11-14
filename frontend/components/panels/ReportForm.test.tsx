@@ -375,3 +375,19 @@ it("restores an unsent OCR draft after remount without uploading the image again
   expect(screen.getByLabelText("PM2.5 42.5 µg/m³")).toBeTruthy();
   expect(mocks.draft).toHaveBeenCalledOnce();
 });
+
+it("offers one sign-in action before mounting camera or private report fields for guests", () => {
+  mocks.auth.mockReturnValue({ user: null, localDemo: false });
+  render(
+    <ReportForm
+      location={null}
+      onRequestLocation={vi.fn()}
+      onSubmitted={vi.fn()}
+    />,
+  );
+  expect(
+    screen.getByRole("button", { name: "เข้าสู่ระบบด้วย Google" }),
+  ).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "เลือกภาพทดสอบ" })).toBeNull();
+  expect(mocks.draft).not.toHaveBeenCalled();
+});

@@ -74,7 +74,13 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   expect(marker!.y + marker!.height).toBeLessThan(collapsedCard!.y);
   await expect(page.locator('.cp-mapctrls__error[role="status"]')).toBeHidden();
   // The summary should leave the map visible while controls remain touchable.
-  expect(collapsedCard!.height).toBeLessThanOrEqual(180);
+  // Current sheet deliberately previews up to 64px of detail below its header.
+  const headerHeight = await card
+    .locator("[data-sheet-grip]")
+    .evaluate(
+      (element) => element.parentElement!.getBoundingClientRect().height,
+    );
+  expect(collapsedCard!.height).toBeLessThanOrEqual(headerHeight + 64 + 1);
   // Read both rectangles together so an in-flight height transition cannot skew the comparison.
   await expect
     .poll(() =>

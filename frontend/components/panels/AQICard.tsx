@@ -98,6 +98,7 @@ export default function AQICard({
     <section
       aria-label="คุณภาพอากาศจากจุดอ้างอิงที่ใกล้ที่สุด"
       className="cp-current-reading cp-anim-rise"
+      data-current={current}
       style={{
         border: `1px solid ${T.line}`,
         borderRadius: "14px",
@@ -117,6 +118,8 @@ export default function AQICard({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: "8px",
           }}
         >
           <div>
@@ -151,9 +154,11 @@ export default function AQICard({
               borderRadius: "7px",
               fontSize: ".74em",
               fontWeight: 700,
+              flexShrink: 0,
+              whiteSpace: "nowrap",
             }}
           >
-            <span aria-hidden>{cls.glyph}</span>
+            {current && <span aria-hidden>{cls.glyph}</span>}
             <span>
               {current
                 ? cls.level
@@ -165,6 +170,11 @@ export default function AQICard({
             </span>
           </div>
         </div>
+        {!current && (
+          <p className="cp-reading-stale-label">
+            ค่าที่วัดได้ก่อนหน้า · ยังไม่มีค่าปัจจุบัน
+          </p>
+        )}
         <div
           style={{
             display: "flex",
@@ -177,7 +187,7 @@ export default function AQICard({
             style={{
               fontFamily: T.mono,
               fontWeight: 600,
-              fontSize: "3em",
+              fontSize: current ? "3em" : "2em",
               lineHeight: 0.9,
             }}
           >

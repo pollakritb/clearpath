@@ -2,8 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("map keeps its Leaflet instance, zoom and selected station across tabs", async ({
   page,
-}, testInfo) => {
-  if (testInfo.project.name !== "mobile-390") test.skip();
+}) => {
   await page.goto("/");
   const controls = page.locator(".cp-mapctrls");
   await expect(controls).toHaveAttribute("data-zoom", "6");
@@ -29,7 +28,20 @@ test("map keeps its Leaflet instance, zoom and selected station across tabs", as
   );
   await expect(controls).toHaveAttribute("data-zoom", "15");
 
-  await page.getByRole("button", { name: "กลับมุมมองแผนที่กว้าง" }).click();
+  const overview = page.getByRole("button", { name: "กลับมุมมองแผนที่กว้าง" });
+  const sheet = page.getByRole("region", {
+    name: "รายละเอียดสถานีตรวจวัดทางการ",
+  });
+  await expect
+    .poll(async () => {
+      const controlBounds = await overview.boundingBox();
+      const sheetBounds = await sheet.boundingBox();
+      return controlBounds && sheetBounds
+        ? controlBounds.y + controlBounds.height <= sheetBounds.y
+        : false;
+    })
+    .toBe(true);
+  await overview.click();
   await expect(controls).toHaveAttribute("data-zoom", "6");
   await page.screenshot({ path: "test-results/map-continuity-mobile.png" });
 });

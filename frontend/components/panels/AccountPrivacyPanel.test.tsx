@@ -46,7 +46,7 @@ beforeEach(() => {
 afterEach(cleanup);
 it("only presents the deletion action without export or an upfront reauthentication prompt", async () => {
   render(<AccountPrivacyPanel />);
-  await screen.findByText("ส่งคำขอลบบัญชี", { selector: "summary" });
+  await screen.findByText("ลบบัญชี", { selector: "summary" });
   expect(screen.queryByText(/ดาวน์โหลด/)).toBeNull();
   expect(
     screen.queryByRole("button", { name: "ยืนยันตัวตนด้วย Google" }),
@@ -57,11 +57,9 @@ it("explains disabled deletion and can refresh availability", async () => {
   mocks.status.mockResolvedValueOnce({ ...status, enabled: false });
   render(<AccountPrivacyPanel />);
   await screen.findByText("การส่งคำขอลบบัญชียังไม่เปิดใช้งาน");
-  expect(
-    screen.queryByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
-  ).toBeNull();
+  expect(screen.queryByText("ลบบัญชี", { selector: "summary" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "ตรวจสอบสถานะอีกครั้ง" }));
-  await screen.findByText("ส่งคำขอลบบัญชี", { selector: "summary" });
+  await screen.findByText("ลบบัญชี", { selector: "summary" });
 });
 it("lets a guest sign in without querying account data", async () => {
   mocks.subject = "";
@@ -77,7 +75,7 @@ it("offers retry after a status failure", async () => {
   render(<AccountPrivacyPanel />);
   await screen.findByText("ยังโหลดข้อมูลบัญชีไม่ได้");
   fireEvent.click(screen.getByRole("button", { name: "ลองโหลดใหม่" }));
-  await screen.findByText("ส่งคำขอลบบัญชี", { selector: "summary" });
+  await screen.findByText("ลบบัญชี", { selector: "summary" });
 });
 it("does not offer sign in before identity loading ends", () => {
   mocks.subject = "";
@@ -89,14 +87,12 @@ it("does not offer sign in before identity loading ends", () => {
   ).toBeNull();
 });
 async function confirm() {
-  fireEvent.click(
-    await screen.findByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
-  );
+  fireEvent.click(await screen.findByText("ลบบัญชี", { selector: "summary" }));
   fireEvent.change(screen.getByRole("textbox"), {
     target: { value: "ลบบัญชี" },
   });
   fireEvent.click(screen.getByRole("checkbox"));
-  fireEvent.click(screen.getByRole("button", { name: "ยืนยันส่งคำขอ" }));
+  fireEvent.click(screen.getByRole("button", { name: "ยืนยันลบบัญชี" }));
 }
 it("requires both confirmations and shows a pending request rather than claiming deletion", async () => {
   const row = {
@@ -110,11 +106,9 @@ it("requires both confirmations and shows a pending request rather than claiming
     return row;
   });
   render(<AccountPrivacyPanel />);
-  fireEvent.click(
-    await screen.findByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
-  );
+  fireEvent.click(await screen.findByText("ลบบัญชี", { selector: "summary" }));
   const button = screen.getByRole("button", {
-    name: "ยืนยันส่งคำขอ",
+    name: "ยืนยันลบบัญชี",
   }) as HTMLButtonElement;
   expect(button.disabled).toBe(true);
   fireEvent.change(screen.getByRole("textbox"), {
@@ -131,9 +125,7 @@ it("requires both confirmations and shows a pending request rather than claiming
   expect(
     screen.getByText("บัญชีถูกปิดการใช้งานแล้ว ระบบจะดำเนินการต่อโดยอัตโนมัติ"),
   ).toBeTruthy();
-  expect(
-    screen.queryByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
-  ).toBeNull();
+  expect(screen.queryByText("ลบบัญชี", { selector: "summary" })).toBeNull();
 });
 it("only offers reauthentication when the deletion endpoint requires it", async () => {
   mocks.remove.mockRejectedValueOnce(
@@ -161,9 +153,7 @@ it("does not show another deletion form while processing", async () => {
   });
   render(<AccountPrivacyPanel />);
   await screen.findByText(/รับคำขอแล้ว · อยู่ระหว่างดำเนินการ/);
-  expect(
-    screen.queryByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
-  ).toBeNull();
+  expect(screen.queryByText("ลบบัญชี", { selector: "summary" })).toBeNull();
 });
 
 it("shows completion only after server confirmation and clears the local session", async () => {
@@ -177,7 +167,21 @@ it("shows completion only after server confirmation and clears the local session
   await confirm();
   await screen.findByText("ลบบัญชี ClearPath แล้ว");
   expect(mocks.signout).toHaveBeenCalledWith({ localOnly: true });
-  expect(
-    screen.queryByText("ส่งคำขอลบบัญชี", { selector: "summary" }),
-  ).toBeNull();
+  expect(screen.queryByText("ลบบัญชี", { selector: "summary" })).toBeNull();
+});
+
+it("does not reuse the previous account closure receipt after switching accounts", async () => {
+  mocks.remove.mockResolvedValue({
+    id: "done",
+    status: "completed",
+    created_at: "2026-11-14",
+    completed_at: "2026-11-14",
+  });
+  const { rerender } = render(<AccountPrivacyPanel />);
+  await confirm();
+  await screen.findByText("ลบบัญชี ClearPath แล้ว");
+  mocks.subject = "different-owner";
+  rerender(<AccountPrivacyPanel />);
+  await screen.findByText("ลบบัญชี", { selector: "summary" });
+  expect(screen.queryByText("ลบบัญชี ClearPath แล้ว")).toBeNull();
 });

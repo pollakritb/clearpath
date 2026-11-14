@@ -168,6 +168,8 @@ export default function MapBottomSheet({
         available,
         Math.max(peek, headerHeight + contentHeight),
       );
+      if (parent instanceof HTMLElement)
+        parent.style.setProperty("--cp-map-peek-height", `${peek}px`);
       setSizes((previous) =>
         previous.peek === peek &&
         previous.max === max &&
@@ -188,6 +190,8 @@ export default function MapBottomSheet({
     window.visualViewport?.addEventListener("resize", measure);
     return () => {
       observer?.disconnect();
+      if (parent instanceof HTMLElement)
+        parent.style.removeProperty("--cp-map-peek-height");
       window.removeEventListener("resize", measure);
       window.visualViewport?.removeEventListener("resize", measure);
     };
