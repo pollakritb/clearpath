@@ -3,9 +3,9 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { DivIcon } from "leaflet";
 import type { CommunityReport } from "@/frontend/types";
 import ReportMarkers from "./ReportMarkers";
-const mocks = vi.hoisted(() => ({ fitBounds: vi.fn() }));
+const mocks = vi.hoisted(() => ({ flyToBounds: vi.fn() }));
 vi.mock("react-leaflet", () => ({
-  useMapEvents: () => ({ getZoom: () => 6, fitBounds: mocks.fitBounds }),
+  useMapEvents: () => ({ getZoom: () => 6, flyToBounds: mocks.flyToBounds }),
 }));
 vi.mock("./PriorityMarker", () => ({
   default: ({
@@ -50,13 +50,13 @@ it("keeps nearby public report locations in their own group and expands to indiv
   expect(screen.getByText("3")).toBeTruthy();
   expect(screen.queryByText("999")).toBeNull();
   fireEvent.click(screen.getByRole("button"));
-  expect(mocks.fitBounds).toHaveBeenCalledWith(
+  expect(mocks.flyToBounds).toHaveBeenCalledWith(
     [
       [13.8, 100.5],
       [13.8, 100.5],
       [13.8, 100.5],
     ],
-    { padding: [48, 48], maxZoom: 14 },
+    { padding: [48, 48], maxZoom: 14, animate: true, duration: 0.65 },
   );
 });
 it("never shows an old report range as current", () => {

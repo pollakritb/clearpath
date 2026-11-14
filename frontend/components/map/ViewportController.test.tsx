@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ViewportController } from "./MapBehaviors";
 const map = {
   flyTo: vi.fn(),
-  fitBounds: vi.fn(),
+  flyToBounds: vi.fn(),
   getZoom: vi.fn(() => 6),
   getMaxZoom: () => 19,
   getCenter: () => ({ lat: 14, lng: 100 }),
@@ -27,6 +27,7 @@ it("zooms to a selected pin and leaves it above the bottom detail card", () => {
   expect(map.project).toHaveBeenCalledWith([13.75, 100.5], 15);
   expect(map.unproject.mock.calls[0][0].y).toBeGreaterThan(200);
   expect(map.flyTo).toHaveBeenCalledWith(L.latLng(13.75, 100.5), 15, {
+    animate: true,
     duration: 0.65,
   });
 });
@@ -58,6 +59,11 @@ it("preserves the viewport when changing data mode without a new pin selection",
 });
 it("keeps fitting the complete radius for requests instead of cropping their area", () => {
   render(<ViewportController target={{ lat: 14, lon: 100 }} radiusKm={3} />);
-  expect(map.fitBounds).toHaveBeenCalledTimes(1);
+  expect(map.flyToBounds).toHaveBeenCalledWith(expect.anything(), {
+    animate: true,
+    duration: 0.65,
+    paddingTopLeft: [18, 130],
+    paddingBottomRight: [18, expect.any(Number)],
+  });
   expect(map.flyTo).not.toHaveBeenCalled();
 });

@@ -1,4 +1,5 @@
 "use client";
+import { flyMapToBounds } from "@/frontend/lib/map-motion";
 import PriorityMarker from "./PriorityMarker";
 
 import L from "leaflet";
@@ -168,7 +169,8 @@ export default function ReportMarkers({
             alt={`กลุ่ม ${group.stations.length} รายงานชุมชน`}
             eventHandlers={{
               click: () =>
-                map.fitBounds(
+                flyMapToBounds(
+                  map,
                   group.stations.map((report) => [report.lat, report.lon]),
                   { padding: [48, 48], maxZoom: 14 },
                 ),

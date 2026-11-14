@@ -11,6 +11,7 @@ import { useMap, useMapEvents } from "react-leaflet";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { T } from "@/frontend/lib/ui";
+import { flyMapTo } from "@/frontend/lib/map-motion";
 
 const CONTROL_BUTTON_STYLE: CSSProperties = {
   width: "2.7em",
@@ -31,7 +32,7 @@ interface MapControlsProps {
   hasLocation?: boolean;
   locationUnavailable?: boolean;
   showZoom?: boolean;
-  animateLocate?: boolean;
+  manageLocateViewport?: boolean;
 }
 
 export default function MapControls({
@@ -40,7 +41,7 @@ export default function MapControls({
   hasLocation = false,
   locationUnavailable = false,
   showZoom = true,
-  animateLocate = true,
+  manageLocateViewport = true,
 }: MapControlsProps) {
   const alive = useRef(true);
   useEffect(() => {
@@ -69,12 +70,8 @@ export default function MapControls({
         if (!alive.current) return;
         const { latitude, longitude, accuracy } = position.coords;
         setLocating(false);
-        if (animateLocate)
-          map.flyTo([latitude, longitude], Math.max(map.getZoom(), 15));
-        else
-          map.setView([latitude, longitude], Math.max(map.getZoom(), 15), {
-            animate: false,
-          });
+        if (manageLocateViewport)
+          flyMapTo(map, [latitude, longitude], Math.max(map.getZoom(), 15));
         onLocate?.(latitude, longitude, accuracy);
       },
       (error) => {
@@ -118,7 +115,13 @@ export default function MapControls({
             type="button"
             aria-label="ซูมเข้า"
             className="cp-focus"
-            onClick={() => map.zoomIn()}
+            onClick={() =>
+              flyMapTo(
+                map,
+                map.getCenter(),
+                Math.min(map.getMaxZoom(), map.getZoom() + 1),
+              )
+            }
             style={CONTROL_BUTTON_STYLE}
           >
             +
@@ -127,7 +130,13 @@ export default function MapControls({
             type="button"
             aria-label="ซูมออก"
             className="cp-focus"
-            onClick={() => map.zoomOut()}
+            onClick={() =>
+              flyMapTo(
+                map,
+                map.getCenter(),
+                Math.max(map.getMinZoom(), map.getZoom() - 1),
+              )
+            }
             style={{
               ...CONTROL_BUTTON_STYLE,
               borderTop: `1px solid ${T.line}`,

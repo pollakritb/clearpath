@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useMap, useMapEvents } from "react-leaflet";
 import type { MapFocusPoint, ViewportBounds } from "@/frontend/types/ui";
 import { DEFAULT_ZOOM, THAILAND_CENTER } from "@/frontend/lib/constants";
+import { flyMapTo, flyMapToBounds } from "@/frontend/lib/map-motion";
 
 export function AutoResize() {
   const map = useMap();
@@ -97,7 +98,7 @@ export function ViewportController({
     if (resetViewSignal !== previousResetSignal.current) {
       previousResetSignal.current = resetViewSignal;
       previousView.current = null;
-      map.flyTo(THAILAND_CENTER, DEFAULT_ZOOM, { duration: 0.8 });
+      flyMapTo(map, THAILAND_CENTER, DEFAULT_ZOOM);
       return;
     }
     if (pin) {
@@ -111,7 +112,7 @@ export function ViewportController({
         map.project([lat, lon], zoom).add([0, (bottom - top) / 2]),
         zoom,
       );
-      map.flyTo(center, zoom, { duration: 0.65 });
+      flyMapTo(map, center, zoom);
       return;
     }
     if (radiusKm) {
@@ -125,20 +126,16 @@ export function ViewportController({
         };
       }
       const bounds = L.latLng(lat, lon).toBounds(radiusKm * 2000);
-      map.fitBounds(bounds, {
-        animate: true,
+      flyMapToBounds(map, bounds, {
         paddingTopLeft: [18, 130],
         paddingBottomRight: [18, Math.min(window.innerHeight * 0.42, 330)],
       });
     } else {
       const previous = previousView.current;
       previousView.current = null;
-      if (lat != null && lon != null)
-        map.flyTo([lat, lon], 13, { duration: 0.8 });
+      if (lat != null && lon != null) flyMapTo(map, [lat, lon], 13);
       else if (previous)
-        map.flyTo([previous.lat, previous.lon], previous.zoom, {
-          duration: 0.8,
-        });
+        flyMapTo(map, [previous.lat, previous.lon], previous.zoom);
     }
   }, [map, lat, lon, pin, token, radiusKm, resetViewSignal, dataMode]);
   return null;

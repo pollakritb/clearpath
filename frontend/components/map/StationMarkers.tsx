@@ -1,4 +1,5 @@
 "use client";
+import { flyMapToBounds } from "@/frontend/lib/map-motion";
 import PriorityMarker from "./PriorityMarker";
 
 import L from "leaflet";
@@ -116,7 +117,8 @@ export default function StationMarkers({
               icon={clusterIcon(summary)}
               eventHandlers={{
                 click: () =>
-                  map.fitBounds(
+                  flyMapToBounds(
+                    map,
                     cluster.stations.map((station) => [
                       station.lat,
                       station.lon,

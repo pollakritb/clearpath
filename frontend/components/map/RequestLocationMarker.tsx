@@ -5,6 +5,7 @@ import L from "leaflet";
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Circle, useMap, useMapEvents } from "react-leaflet";
+import { flyMapTo } from "@/frontend/lib/map-motion";
 
 const pinSvg =
   '<svg width="56" height="82" viewBox="0 0 56 82" fill="none" aria-hidden="true" style="display:block"><path d="M28 49V77" stroke="#0d3b29" stroke-width="5" stroke-linecap="round"/><circle cx="28" cy="28" r="24" fill="#0d3b29"/><circle cx="28" cy="28" r="8" fill="white"/></svg>';
@@ -31,8 +32,13 @@ function CenterPicker({
   const circle = useRef<L.Circle>(null);
   const published = useRef<Point | null>(null);
   const initialized = useRef(false);
+  const previousMinimumZoom = useRef(minimumZoom);
   const positioning = useRef(false);
   const userMove = useRef(false);
+  const onMoveRef = useRef(onMove);
+  useEffect(() => {
+    onMoveRef.current = onMove;
+  }, [onMove]);
   const lat = position?.lat,
     lon = position?.lon;
   const publish = useCallback(() => {
@@ -44,10 +50,11 @@ function CenterPicker({
     )
       return;
     published.current = { lat: center.lat, lon: center.lng };
-    onMove(center.lat, center.lng);
-  }, [map, onMove]);
+    onMoveRef.current(center.lat, center.lng);
+  }, [map]);
   useMapEvents({
     dragstart() {
+      positioning.current = false;
       userMove.current = true;
     },
     keydown(event) {
@@ -61,8 +68,10 @@ function CenterPicker({
           "-",
           "=",
         ].includes(event.originalEvent.key)
-      )
+      ) {
+        positioning.current = false;
         userMove.current = true;
+      }
     },
     move() {
       circle.current?.setLatLng(map.getCenter());
@@ -93,10 +102,14 @@ function CenterPicker({
   useEffect(() => {
     const container = map.getContainer();
     const wheel = () => {
+      positioning.current = false;
       userMove.current = true;
     };
     const pinch = (event: TouchEvent) => {
-      if (event.touches.length > 1) userMove.current = true;
+      if (event.touches.length > 1) {
+        positioning.current = false;
+        userMove.current = true;
+      }
     };
     container.addEventListener("wheel", wheel, { passive: true });
     container.addEventListener("touchmove", pinch, { passive: true });
@@ -106,23 +119,38 @@ function CenterPicker({
     };
   }, [map]);
   useEffect(() => {
+    const zoomRequested = minimumZoom > previousMinimumZoom.current;
+    previousMinimumZoom.current = minimumZoom;
     // Points emitted by this picker must never recenter the map or reset its zoom.
     if (
       initialized.current &&
       lat === published.current?.lat &&
-      lon === published.current?.lon
+      lon === published.current?.lon &&
+      !(zoomRequested && map.getZoom() < minimumZoom)
     )
       return;
     const center =
       lat != null && lon != null ? L.latLng(lat, lon) : map.getCenter();
-    const zoom = initialized.current
-      ? map.getZoom()
-      : Math.max(minimumZoom, map.getZoom());
+    const animate = initialized.current;
+    const zoom = Math.max(minimumZoom, map.getZoom());
     initialized.current = true;
     // setView/stop emit moveend too. Those events are not a user-selected point.
     positioning.current = true;
     userMove.current = false;
     map.stop();
+    if (animate) {
+      // Keep intermediate animation frames out of the chosen location/address.
+      published.current = { lat: center.lat, lon: center.lng };
+      const finished = () => {
+        positioning.current = false;
+        circle.current?.setLatLng(map.getCenter());
+      };
+      map.once("moveend", finished);
+      flyMapTo(map, center, zoom);
+      return () => {
+        map.off("moveend", finished);
+      };
+    }
     map.setView(center, zoom, { animate: false });
     circle.current?.setLatLng(map.getCenter());
     if (lat != null && lon != null) {

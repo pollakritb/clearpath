@@ -68,7 +68,7 @@ export default function HelperLocationMap({
       <ResizeMap onZoomChange={onZoomChange} />
       <MapControls
         showZoom={false}
-        animateLocate={false}
+        manageLocateViewport={false}
         hasLocation={Boolean(userLocation)}
         onLocate={onLocate ?? onMove}
       />

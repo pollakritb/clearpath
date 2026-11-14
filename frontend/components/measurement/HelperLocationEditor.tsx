@@ -253,6 +253,7 @@ export default function HelperLocationEditor({
               userLocation={currentLocation}
               onLocate={(lat, lon) => {
                 setCurrentLocation({ lat, lon });
+                setMapZoom((zoom) => Math.max(zoom, 15));
                 setPointChosen(true);
                 setPoint({ lat, lon, address: "" });
               }}

@@ -67,6 +67,14 @@ test("place focus shows a compact two-kilometre evidence area and restores the m
   await expect(
     card.getByRole("heading", { name: /สถานีที่ใช้คำนวณ/ }),
   ).toHaveCount(0);
+  // Check the destination after the shared camera animation reveals the pin.
+  await expect
+    .poll(async () => {
+      const marker = await page.locator(".cp-place-marker").boundingBox();
+      const sheet = await card.boundingBox();
+      return marker && sheet ? marker.y + marker.height - sheet.y : Infinity;
+    })
+    .toBeLessThan(0);
   const marker = await page.locator(".cp-place-marker").boundingBox();
   const collapsedCard = await card.boundingBox();
   expect(marker).not.toBeNull();
