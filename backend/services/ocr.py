@@ -7,6 +7,7 @@ import json
 
 import httpx
 
+from ..algorithms.ocr_reading import parse_pm25_display
 from ..core.config import settings
 from ..core.errors import UpstreamError
 
@@ -15,9 +16,12 @@ RESPONSES_URL = "https://api.openai.com/v1/responses"
 OCR_SCHEMA = {
     "type": "object",
     "properties": {
-        "pm25": {"type": ["number", "null"]},
+        "pm25_text": {
+            "type": ["string", "null"],
+            "description": "Exact visible PM2.5 reading, preserving leading zeros and only visibly present decimal separators. No units or other numbers.",
+        },
     },
-    "required": ["pm25"],
+    "required": ["pm25_text"],
     "additionalProperties": False,
 }
 
@@ -36,7 +40,10 @@ def _output_text(payload: dict) -> str:
 
 def _image_input(image: bytes, content_type: str) -> dict:
     data_url = f"data:{content_type};base64,{base64.b64encode(image).decode('ascii')}"
-    return {"type": "input_image", "image_url": data_url, "detail": "high"}
+    # Preserve fine display details on the deployed 5.4 family. Other configured
+    # models retain the broadly supported high-detail input.
+    detail = "original" if settings.openai_ocr_model.startswith("gpt-5.4") else "high"
+    return {"type": "input_image", "image_url": data_url, "detail": detail}
 
 
 async def read_pm25(
@@ -64,7 +71,7 @@ async def read_pm25(
                 "pm25_field_verified": {"type": ["boolean", "null"]},
                 "unit_verified": {"type": ["boolean", "null"]},
             },
-            "required": ["pm25", "pm25_field_verified", "unit_verified"],
+            "required": ["pm25_text", "pm25_field_verified", "unit_verified"],
         }
     frames = [(image, content_type), *(additional_images or [])][:3]
     body = {
@@ -78,12 +85,17 @@ async def read_pm25(
                         "type": "input_text",
                         "text": (
                             "ภาพทั้งหมดเป็นเฟรมต่อเนื่องของเครื่องวัดเครื่องเดียวกัน "
-                            "ให้เปรียบเทียบทุกเฟรมและอ่านเฉพาะตัวเลขค่า PM2.5 "
+                            "ให้เปรียบเทียบทุกเฟรมและถอดตัวอักษรตัวเลขค่า PM2.5 ลงใน pm25_text ตามที่เห็นจริง "
                             "มองหาป้าย PM2.5, PM 2.5 หรือหน่วย µg/m³ ที่สัมพันธ์กับตัวเลข "
-                            "รักษาจุดทศนิยมตามหน้าจอ ห้ามใช้ค่า AQI, PM10, อุณหภูมิ, "
+                            "เก็บเลขศูนย์นำหน้า ห้ามแทรก ย้าย หรือลบจุดทศนิยม "
+                            "จุดในป้าย PM2.5 ไม่ใช่จุดทศนิยมของค่าที่วัด "
+                            'ตัวอย่าง: หน้าจอ 017 ต้องคืนข้อความ "017" ไม่ใช่ "0.17"; '
+                            'หน้าจอ 17.0 คืน "17.0"; หน้าจอ 0.17 คืน "0.17" เฉพาะเมื่อเห็นจุดจริง '
+                            "ห้ามหารด้วย 10 หรือ 100 เพื่อแปลงเลขศูนย์นำหน้า และห้ามเดาจากค่าฝุ่นที่คาดว่าจะเป็น "
+                            "ห้ามใช้ค่า AQI, PM10, อุณหภูมิ, "
                             "ความชื้น, เวลา หรือแบตเตอรี่ และห้ามเดาตัวเลขที่มองไม่ชัด "
                             "เลือกค่าจากเฟรมที่คมชัดที่สุด หากไม่มีค่า PM2.5 ที่ยืนยันได้ "
-                            "ให้คืน pm25 เป็น null โดยไม่ต้องอธิบาย"
+                            "หรือไม่แน่ใจว่ามีจุดทศนิยมหรือไม่ ให้คืน pm25_text เป็น null โดยไม่ต้องอธิบาย"
                             + (
                                 " พร้อมบันทึก pm25_field_verified ว่าเห็นป้าย PM2.5 ที่สัมพันธ์กับตัวเลขจริง และ unit_verified ว่าเห็นหน่วย µg/m³ ที่สัมพันธ์กัน ใช้ true เมื่อเห็นตรง false เมื่อขัดแย้ง null เมื่อมองไม่เห็นหรือไม่แน่ใจ ห้ามอนุมานจากชื่อเครื่องหรือการอ่านตัวเลขได้ ข้อมูลสองช่องนี้เป็นหลักฐานเพิ่มเติมเท่านั้น"
                                 if settings.community_v2_enabled
@@ -120,9 +132,12 @@ async def read_pm25(
     except (httpx.HTTPError, json.JSONDecodeError, KeyError, TypeError) as exc:
         raise UpstreamError("OCR ประมวลผลไม่สำเร็จ") from exc
 
-    value = result.get("pm25")
+    if not isinstance(result, dict):
+        raise UpstreamError("OCR ประมวลผลไม่สำเร็จ")
+    display_text = result.get("pm25_text")
+    value = parse_pm25_display(display_text)
     if value is not None:
-        value = max(0.0, min(1000.0, float(value)))
+        value = max(0.0, min(1000.0, value))
     reading_found = value is not None
     return {
         **(
@@ -143,5 +158,5 @@ async def read_pm25(
         "confidence": 1.0 if reading_found else 0.0,
         "device_detected": reading_found,
         "display_clear": reading_found,
-        "raw_text": "" if value is None else str(value),
+        "raw_text": display_text.strip() if isinstance(display_text, str) else "",
     }
