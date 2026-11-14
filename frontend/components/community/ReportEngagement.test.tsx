@@ -64,7 +64,7 @@ it("sends a fresh fix and lets an uncertain vote retry with another fix", async 
     new Error("ตำแหน่งยังคลาดเคลื่อนคร่อมขอบเขต กรุณาขอตำแหน่งใหม่"),
   );
   render(<ReportEngagement report={report} />);
-  await screen.findByText(/โหวตใกล้จุดวัด/);
+  await screen.findByText(/โหวตได้เมื่ออยู่ภายใน/);
   fireEvent.click(screen.getByRole("button", { name: /^ถูกใจ/ }));
   await screen.findByRole("alert");
   expect(mocks.set).toHaveBeenCalledWith(report.id, {
@@ -105,7 +105,7 @@ it("blocks voting until policy loads and lets a failed load retry", async () => 
   expect(mocks.location).not.toHaveBeenCalled();
   expect(mocks.set).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "ลองโหลดใหม่" }));
-  await screen.findByText(/โหวตใกล้จุดวัด/);
+  await screen.findByText(/โหวตได้เมื่ออยู่ภายใน/);
   expect(
     (screen.getByRole("button", { name: /^ถูกใจ/ }) as HTMLButtonElement)
       .disabled,
@@ -121,7 +121,7 @@ it("asks for a dislike reason before requesting GPS and preserves the selected r
     dislike_count: 1,
   });
   render(<ReportEngagement report={report} />);
-  await screen.findByText(/โหวตใกล้จุดวัด/);
+  await screen.findByText(/โหวตได้เมื่ออยู่ภายใน/);
   expect(screen.queryByLabelText("เหตุผลเมื่อไม่ถูกใจ")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: /^ไม่ถูกใจ/ }));
   const send = screen.getByRole("button", {
@@ -158,7 +158,7 @@ it("does not carry counts, selections or a late response into another report", a
     <ReportEngagement report={{ ...report, id: "RPT-other", like_count: 7 }} />,
   );
   await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("RPT-other"));
-  await screen.findByText(/โหวตใกล้จุดวัด/);
+  await screen.findByText(/โหวตได้เมื่ออยู่ภายใน/);
   resolveFirst({ ...empty, like_count: 99 });
   await waitFor(() => expect(screen.queryByText("99")).toBeNull());
   fireEvent.click(screen.getByRole("button", { name: /^ถูกใจ/ }));
@@ -186,7 +186,7 @@ it("opens a readable discussion without focusing the mobile keyboard and preserv
         onRevealDetails={reveal}
       />,
     );
-    await screen.findByText(/โหวตใกล้จุดวัด/);
+    await screen.findByText(/โหวตได้เมื่ออยู่ภายใน/);
     const button = screen.getByRole("button", { name: /^ความคิดเห็น/ });
     expect(host.contains(button)).toBe(true);
     expect(button.getAttribute("data-active")).toBe("false");
@@ -235,4 +235,13 @@ it("opens a readable discussion without focusing the mobile keyboard and preserv
     host.remove();
     HTMLElement.prototype.scrollIntoView = previous;
   }
+});
+
+it("keeps the voting requirement concise without policy essays", async () => {
+  mocks.get.mockResolvedValue({ ...empty, community_trust_collecting: true });
+  render(<ReportEngagement report={report} />);
+  await screen.findByText(/โหวตได้เมื่ออยู่ภายใน 500 เมตรจากจุดวัด/);
+  expect(screen.queryByText(/เสียงที่ผ่านเงื่อนไขมีผลต่อ/)).toBeNull();
+  expect(screen.queryByText(/ใช้นโยบายทดลอง/)).toBeNull();
+  expect(screen.queryByText(/นับเฉพาะเสียงที่ผ่านเกณฑ์/)).toBeNull();
 });

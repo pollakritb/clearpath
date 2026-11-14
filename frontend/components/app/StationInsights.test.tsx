@@ -48,7 +48,9 @@ it("defers history until expansion and keeps missing hours visible", async () =>
   );
   expect(await screen.findByText(/มีข้อมูล 2\/24/)).toBeTruthy();
   expect(screen.getByText("ข้อมูลไม่พอเปรียบเทียบกับชั่วโมงก่อน")).toBeTruthy();
-  expect(screen.getByText(/ข้อมูลนี้เป็นค่าก่อนหน้า/)).toBeTruthy();
+  expect(screen.queryByText("คำแนะนำตามค่าที่บันทึก")).toBeNull();
+  expect(screen.queryByText("ดูเกณฑ์ทั้ง 5 ระดับ")).toBeNull();
+  expect(screen.getByText(/รหัสสถานี test/)).toBeTruthy();
   fireEvent.change(screen.getByRole("slider"), { target: { value: "22" } });
   expect(screen.getByRole("slider").getAttribute("aria-valuetext")).toContain(
     "ไม่มีข้อมูล",

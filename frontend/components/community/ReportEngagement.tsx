@@ -504,25 +504,7 @@ function EngagementContent({
 
       {engagement.community_trust_collecting && (
         <div className="cp-community-trust-notice">
-          <details>
-            <summary className="cp-focus">
-              เสียงที่ผ่านเงื่อนไขมีผลต่อ Trust ชุมชน
-            </summary>
-            <p>
-              ถูกใจ: หลักฐานและบริบททำให้เชื่อถือการรายงานนี้ได้ · ไม่ถูกใจ:
-              มีข้อสงสัยต่อหลักฐานหรือบริบท
-            </p>
-            <p>
-              นับเฉพาะเสียงที่ผ่านเกณฑ์ แยกจากยอดถูกใจ แต้มและยศ
-              เป็นนโยบายทดลองของ ClearPath
-            </p>
-          </details>
-          {!evidenceReady && (
-            <p role="status">
-              กรุณาเปิดภาพและข้อมูลสำคัญด้านบนให้พร้อมก่อนประเมิน
-              หากภาพเปิดไม่ได้ ยังไม่รับเป็นเสียง Trust
-            </p>
-          )}
+          {!evidenceReady && <p role="status">เปิดภาพหลักฐานก่อนโหวต</p>}
           {engagement.trust_exclusion_reason && (
             <p role="status">
               เสียงนี้ไม่เข้า Trust:{" "}
@@ -576,16 +558,10 @@ function EngagementContent({
               แสดงความคิดเห็นได้ตามปกติ
             </p>
           ) : (
-            <details>
-              <summary>
-                โหวตใกล้จุดวัดภายใน {engagement.reaction_radius_m ?? 500} เมตร
-              </summary>
-              <p>
-                {engagement.community_trust_collecting
-                  ? "ใช้นโยบายทดลอง ระยะถึงจุดวัดจริงรวมความคลาดเคลื่อน GPS ของคุณต้องไม่เกิน 500 ม. ตำแหน่งต้องไม่เกิน 2 นาที GPS ตรวจเพียงความใกล้เคียง ไม่รับรองว่ามีเครื่องวัดหรือป้องกันการปลอมตำแหน่งได้ทั้งหมด"
-                  : "รัศมีชั่วคราว รวมความคลาดเคลื่อน GPS ของทั้งสองฝั่ง หากคร่อมขอบเขตให้ขอตำแหน่งใหม่ การโหวตไม่มีผลต่อแต้ม"}
-              </p>
-            </details>
+            <p>
+              โหวตได้เมื่ออยู่ภายใน {engagement.reaction_radius_m ?? 500}{" "}
+              เมตรจากจุดวัด
+            </p>
           )}
         </div>
       )}

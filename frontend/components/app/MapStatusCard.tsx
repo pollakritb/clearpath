@@ -467,23 +467,6 @@ export default function MapStatusCard({
         </section>
       )}
 
-      {report && (
-        <details className="cp-map-selection-attribution">
-          <summary className="cp-focus">
-            ที่มาและข้อควรรู้ <AppIcon name="chevron" size={16} />
-          </summary>
-          <div>
-            <p>
-              {SOURCE_LABELS[source].description} ·{" "}
-              {report.verification_method === "automatic"
-                ? "ระบบอ่านตัวเลขจากภาพอัตโนมัติ"
-                : "ข้อมูลที่ตรวจด้วยระบบเดิม"}{" "}
-              ข้อมูลผู้ใช้เป็นข้อมูลเสริม ไม่ใช่สถานีทางการ
-            </p>
-          </div>
-        </details>
-      )}
-
       {source === "individual" && report && (
         <ReportEvidencePanel report={report} />
       )}

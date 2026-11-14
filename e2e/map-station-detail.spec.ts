@@ -43,7 +43,6 @@ test("station popup contains metadata and returns from its own history without c
   });
   await expect(pin.getByText("18.5", { exact: true })).toBeVisible();
   await pin.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }).press("End");
-  await pin.getByText("ข้อมูลสถานีและที่มา", { exact: true }).click();
   await expect(pin.getByText(/รหัสสถานี 103t/)).toBeVisible();
   await expect(pin.locator("time")).toHaveAttribute(
     "datetime",
@@ -183,15 +182,13 @@ test("full station insights load on expansion and show genuine gaps and hourly c
   await page.screenshot({
     path: `test-results/station-insights-chart-${page.viewportSize()?.width}.png`,
   });
-  await pin
-    .getByRole("heading", { name: "ค่าที่บันทึกอยู่ระดับไหน" })
-    .scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: `test-results/station-insights-top-${page.viewportSize()?.width}.png`,
-  });
-  const advice = pin.getByRole("heading", { name: "คำแนะนำตามค่าที่บันทึก" });
-  await advice.scrollIntoViewIfNeeded();
-  await expect(advice).toBeVisible();
+  await expect(
+    pin.getByRole("heading", { name: "คำแนะนำตามค่าที่บันทึก" }),
+  ).toHaveCount(0);
+  await expect(
+    pin.getByText("ดูเกณฑ์ทั้ง 5 ระดับ", { exact: true }),
+  ).toHaveCount(0);
+  await expect(pin.getByText(/รหัสสถานี 103t/)).toBeAttached();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
