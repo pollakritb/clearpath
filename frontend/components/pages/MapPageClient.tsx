@@ -1,7 +1,7 @@
 "use client";
+import { useStationTimeline } from "@/frontend/hooks/useStationTimeline";
 import dynamic from "next/dynamic";
 import noticeStyles from "./MapLinkNotice.module.css";
-import { useCallback, useEffect, useState } from "react";
 import MapChrome from "@/frontend/components/app/MapChrome";
 import MapStatusCard from "@/frontend/components/app/MapStatusCard";
 import PlaceAirCard from "@/frontend/components/app/PlaceAirCard";
@@ -9,11 +9,6 @@ import ReportStackCard from "@/frontend/components/app/ReportStackCard";
 import UserPageShell from "@/frontend/components/app/UserPageShell";
 import CamsForecastControls from "@/frontend/components/map/CamsForecastControls";
 import StationTimelineControls from "@/frontend/components/map/StationTimelineControls";
-import { gridValue, nearestTime } from "@/frontend/lib/forecast-grid";
-import type {
-  StationTime,
-  StationTimeMode,
-} from "@/frontend/lib/station-timeline";
 import MapHistoryControls from "@/frontend/components/map/MapHistoryControls";
 import RequestPlaceSearch from "@/frontend/components/measurement/RequestPlaceSearch";
 import MapRequestPanel from "@/frontend/components/measurement/MapRequestPanel";
@@ -32,9 +27,11 @@ const MapView = dynamic(() => import("@/frontend/components/map/MapView"), {
 });
 
 export default function MapPageClient(options: MapPageOptions) {
+  const mapPage = useMapPage(options);
   const {
     active,
     reportLinkError,
+    refreshImage,
     selectedStation,
     selectedReport,
     selectedRequestId,
@@ -71,7 +68,6 @@ export default function MapPageClient(options: MapPageOptions) {
     viewMode,
     setViewMode,
     mode,
-    setDataMode,
     camsEnabled,
     historyEnabled,
     setHistoryEnabled,
@@ -81,7 +77,6 @@ export default function MapPageClient(options: MapPageOptions) {
     setCamsPoint,
     cams,
     pauseCams,
-    setHistoryAnchor,
     onPanelChange,
     changeCams,
     historyOffsetHours,
@@ -110,136 +105,24 @@ export default function MapPageClient(options: MapPageOptions) {
     selectReport,
     selectStack,
     selectRequest,
-  } = useMapPage(options);
+  } = mapPage;
 
-  const [historyStation, setHistoryStation] = useState<{
-    id: string;
-    name: string;
-    lat: number;
-    lon: number;
-  } | null>(null);
-  const [timelineOpen, setTimelineOpen] = useState(false);
-  const [timelineMode, setTimelineMode] = useState<StationTimeMode>("history");
-  const [timelineAnchor, setTimelineAnchor] = useState(
-    () => Math.floor(Date.now() / 3600000) * 3600000,
-  );
-  const [timelineTime, setTimelineTime] = useState<StationTime>({
-    kind: "current",
-  });
-  const selectStationTime = useCallback(
-    (next: StationTime) => {
-      setTimelineTime(next);
-      if (next.kind === "history") setHistoryOffsetHours(next.hours);
-      setDataMode(
-        next.kind === "forecast"
-          ? "cams"
-          : next.kind === "history"
-            ? "history"
-            : "current",
-      );
-    },
-    [setHistoryOffsetHours, setDataMode],
-  );
   const {
-    times: camsTimes,
-    requestedAt: camsRequestedAt,
-    select: selectCamsTime,
-  } = cams;
-  useEffect(() => {
-    if (!timelineOpen || timelineTime.kind !== "forecast" || !camsTimes.length)
-      return;
-    const at = nearestTime(camsTimes, timelineTime.at);
-    const frame = requestAnimationFrame(() => {
-      if (at && at !== timelineTime.at)
-        setTimelineTime({ kind: "forecast", at });
-      else if (camsRequestedAt !== timelineTime.at)
-        selectCamsTime(timelineTime.at);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [timelineOpen, timelineTime, camsTimes, camsRequestedAt, selectCamsTime]);
-  const forecastTimeError =
-    cams.error ??
-    (cams.noFrame || cams.unavailable
-      ? "ไม่มีข้อมูลพยากรณ์ในเวลาที่เลือก"
-      : null);
-  const timelineLoading =
-    timelineTime.kind === "history"
-      ? mapHistory.loading
-      : timelineTime.kind === "forecast"
-        ? !forecastTimeError &&
-          (cams.loading ||
-            !!cams.pendingAt ||
-            cams.surface?.validAt !== timelineTime.at)
-        : pm25.loading;
-  const timelineError =
-    timelineTime.kind === "history"
-      ? mapHistory.error
-      : timelineTime.kind === "forecast"
-        ? forecastTimeError
-        : pm25.error;
-  const timelineReading =
-    historyStation && timelineTime.kind !== "forecast"
-      ? (timelineTime.kind === "history"
-          ? mapHistory.stations
-          : pm25.stations
-        ).find((row) => row.id === historyStation.id)
-      : null;
-  const timelineStation = historyStation
-    ? {
-        ...historyStation,
-        recorded_at: timelineReading?.recorded_at,
-        data_status: timelineReading?.data_status,
-        pm25:
-          timelineTime.kind === "forecast"
-            ? cams.surface?.validAt === timelineTime.at
-              ? gridValue(cams.surface, historyStation.lat, historyStation.lon)
-              : null
-            : (timelineReading?.pm25 ?? null),
-      }
-    : null;
-  const closeStationTime = () => {
-    setTimelineOpen(false);
-    setHistoryStation(null);
-    setTimelineTime({ kind: "current" });
-    setDataMode("current");
-    pauseCams();
-  };
-
-  const backToStation = () => {
-    const station = pm25.stations.find((row) => row.id === historyStation?.id);
-    closeStationTime();
-    if (station) selectStation(station);
-  };
-
-  const openStationTime = (nextMode: StationTimeMode) => {
-    setHistoryStation(
-      selectedStation
-        ? {
-            id: selectedStation.id,
-            name:
-              selectedStation.name_th ??
-              selectedStation.name_en ??
-              selectedStation.id,
-            lat: selectedStation.lat,
-            lon: selectedStation.lon,
-          }
-        : null,
-    );
-    const anchor = Math.floor(Date.now() / 3600000) * 3600000;
-    setTimelineAnchor(anchor);
-    setHistoryAnchor(anchor);
-    setTimelineMode(nextMode);
-    setTimelineOpen(true);
-    selectStationTime(
-      nextMode === "history"
-        ? { kind: "current" }
-        : { kind: "forecast", at: new Date(anchor).toISOString() },
-    );
-    setSelectedStation(null);
-    setSelectedReport(null);
-    setSelectedPlace(null);
-    setSelectedStackId(null);
-  };
+    historyStation,
+    setHistoryStation,
+    timelineOpen,
+    setTimelineOpen,
+    timelineMode,
+    timelineAnchor,
+    timelineTime,
+    selectStationTime,
+    timelineLoading,
+    timelineError,
+    timelineStation,
+    closeStationTime,
+    backToStation,
+    openStationTime,
+  } = useStationTimeline(mapPage);
 
   const map = (
     <main className="cp-map" data-mode={mode}>
@@ -692,6 +575,7 @@ export default function MapPageClient(options: MapPageOptions) {
           key={selectedReport?.id ?? selectedStation?.id ?? "map-current"}
           station={selectedStation}
           report={selectedReport}
+          onRefreshImage={refreshImage}
           updatedAt={pm25.updatedAt}
           freshStationCount={pm25.loading ? undefined : pm25.counts.fresh}
           historicalAt={historyEnabled ? mapHistory.targetAt : null}

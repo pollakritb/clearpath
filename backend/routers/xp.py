@@ -11,6 +11,7 @@ from ..core.auth import (
     require_admin,
     require_user,
 )
+from ..core.config import settings as app_settings
 from ..core.identifiers import MemberID, ReportID, RequestID
 from ..models.evidence import ContributionMissions
 from ..models.xp import (
@@ -94,7 +95,7 @@ def owned_ids(user: User):
 
     from ..services.measurement.store import pages
 
-    if xp.settings.local_demo_mode:
+    if app_settings.local_demo_mode:
         from ..services import local_store
 
         return {

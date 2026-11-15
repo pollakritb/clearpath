@@ -3,9 +3,11 @@
 from datetime import UTC, datetime
 from time import monotonic
 
+from backend.services.community import xp_runtime
+
 from ...algorithms.report_evidence import history_summary, score_evidence
 from ...core.config import settings
-from ...core.errors import UpstreamError
+from ...core.errors import ConfigurationError, UpstreamError
 from .. import supabase_client as db
 
 _CACHE = None
@@ -50,6 +52,20 @@ def release() -> dict:
         return dict(rows[0])
     except Exception as exc:
         raise UpstreamError("โหลดนโยบายชุมชนไม่สำเร็จ") from exc
+
+
+def publication_snapshot() -> dict:
+    """Policy outages cannot block OCR publication or grant legacy eligibility."""
+    try:
+        return release()
+    except (ConfigurationError, UpstreamError):
+        return {
+            "active_version": "unavailable",
+            "launched_at": None,
+            "evidence_threshold": None,
+            "reaction_radius_m": None,
+            "reaction_validation_ref": None,
+        }
 
 
 def active() -> bool:
@@ -145,7 +161,7 @@ def counters(user_id: str) -> dict:
             or {}
         )
     from ..measurement import registered
-    from . import policy_v3, xp
+    from . import policy_v3
 
     now = datetime.now(UTC)
     from zoneinfo import ZoneInfo
@@ -154,11 +170,11 @@ def counters(user_id: str) -> dict:
     monday = local.date().toordinal() - local.weekday()
     own = [
         e
-        for e in xp._EVENTS
+        for e in xp_runtime._EVENTS
         if e["user_id"] == user_id
         and (policy_v3.applies() or e.get("policy_version") == "contribution-v2")
         and e["points"] > 0
-        and not any(r.get("reverses") == e["id"] for r in xp._EVENTS)
+        and not any(r.get("reverses") == e["id"] for r in xp_runtime._EVENTS)
     ]
     from ...algorithms.community_xp import stamp, thai_day
     from . import seasons
@@ -188,7 +204,9 @@ def counters(user_id: str) -> dict:
             len(ids)
             for rid, ids in registered.MATCHES.items()
             if any(
-                e.get("report_id") == rid for e in xp._EVENTS if e["user_id"] == user_id
+                e.get("report_id") == rid
+                for e in xp_runtime._EVENTS
+                if e["user_id"] == user_id
             )
         ),
         missions_completed=sum(

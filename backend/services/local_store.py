@@ -22,7 +22,6 @@ _STATIONS: dict[str, dict] = {}
 _HISTORY: list[dict] = []
 _PROFILES: dict[str, dict] = {}
 _REPORTS: dict[str, dict] = {}
-_REVIEWS: dict[tuple[str, str], dict] = {}
 _REPORT_REACTIONS: dict[tuple[str, str], dict] = {}
 _REPORT_COMMENTS: dict[str, dict] = {}
 _EVENTS: list[dict] = []
@@ -919,8 +918,6 @@ def delete_community_report(report_id: str) -> None:
     with _LOCK:
         _REPORTS.pop(report_id, None)
         _REPORT_EVIDENCE.pop(report_id, None)
-        for key in [key for key in _REVIEWS if key[0] == report_id]:
-            _REVIEWS.pop(key, None)
         for key in [key for key in _REPORT_REACTIONS if key[0] == report_id]:
             _REPORT_REACTIONS.pop(key, None)
         for comment_id in [
@@ -929,11 +926,6 @@ def delete_community_report(report_id: str) -> None:
             if str(row["report_id"]) == report_id
         ]:
             _REPORT_COMMENTS.pop(comment_id, None)
-
-
-def get_reviews(report_id: str) -> list[dict]:
-    with _LOCK:
-        return [dict(row) for (rid, _), row in _REVIEWS.items() if rid == report_id]
 
 
 def _refresh_report_engagement(report_id: str) -> None:

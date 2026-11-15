@@ -8,7 +8,15 @@ from backend.main import create_app
 
 
 @pytest.mark.parametrize(
-    "domain", ["stations", "community", "notifications", "operations"]
+    "domain",
+    [
+        "stations",
+        "community",
+        "profiles",
+        "report_media",
+        "notifications",
+        "operations",
+    ],
 )
 def test_persistence_domain_imports_independently_without_connecting(domain):
     # A fresh interpreter catches cycles masked by importing create_app first.
@@ -37,7 +45,7 @@ def test_new_product_api_surface_and_no_navigation_api():
     assert "/api/cron/forecast-consensus" not in paths
     assert "/api/community/reports" in paths
     assert "/api/community/capture-session" in paths
-    assert "/api/community/review-queue" in paths
+    assert "/api/community/review-queue" not in paths
     assert "/api/community/reports/{report_id}/reviews" not in paths
     assert "post" not in openapi["paths"]["/api/community/reports"]
     assert "/api/community/reports/{report_id}/ratings" not in paths
@@ -120,3 +128,17 @@ def test_air_quality_freshness_contract_is_explicit():
         "fresh_max_age_minutes",
         "surface_max_age_minutes",
     } <= set(readiness_fields)
+
+
+@pytest.mark.parametrize("domain", ["xp_runtime", "xp_accounts", "xp_rewards"])
+def test_xp_domain_imports_independently_without_connecting(domain):
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            f'from unittest.mock import patch; import importlib\nwith patch("supabase.create_client", side_effect=AssertionError("import must not connect")):\n importlib.import_module("backend.services.community.{domain}")',
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr

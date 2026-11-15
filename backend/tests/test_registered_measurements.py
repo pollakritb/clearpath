@@ -9,7 +9,7 @@ from backend.core.auth import AuthenticatedUser, require_user
 from backend.core.config import settings
 from backend.main import create_app
 from backend.services import local_store
-from backend.services.community import xp
+from backend.services.community import xp, xp_runtime
 from backend.services.measurement import registered, service, store
 
 
@@ -32,9 +32,9 @@ def feature(monkeypatch):
         local_store._REPORT_EVIDENCE,
         local_store._USER_NOTIFICATIONS,
         local_store._NOTIFICATION_OUTBOX,
-        xp._ACCOUNTS,
-        xp._EVENTS,
-        xp._CLAIMS,
+        xp_runtime._ACCOUNTS,
+        xp_runtime._EVENTS,
+        xp_runtime._CLAIMS,
     ]
     for mapping in data:
         mapping.clear()
@@ -157,8 +157,11 @@ def test_five_requests_one_report_no_claim_one_bonus(feature):
     result = xp.reward_report(r)
     xp.reward_report(r)
     assert result["matched_request_count"] == 5 and result["help_xp"] == 5
-    assert len([e for e in xp._EVENTS if e["kind"] == "help" and e["points"] > 0]) == 1
-    assert not xp._CLAIMS
+    assert (
+        len([e for e in xp_runtime._EVENTS if e["kind"] == "help" and e["points"] > 0])
+        == 1
+    )
+    assert not xp_runtime._CLAIMS
     assert registered.prepare_group(batch["id"], helper) is None
 
 

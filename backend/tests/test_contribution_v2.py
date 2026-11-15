@@ -15,7 +15,7 @@ from backend.algorithms.report_evidence import (
     score_evidence,
 )
 from backend.core.config import settings
-from backend.services.community import policy_v2, seasons, xp
+from backend.services.community import policy_v2, seasons, xp, xp_accounts, xp_runtime
 from backend.tests.test_community_xp import report
 
 LAUNCH = "2026-10-01T00:00:00Z"
@@ -26,17 +26,17 @@ def v2(monkeypatch):
     monkeypatch.setattr(settings, "local_demo_mode", True)
     monkeypatch.setattr(settings, "community_v2_enabled", True)
     monkeypatch.setattr(settings, "community_v2_demo_launch", LAUNCH)
-    monkeypatch.setattr(xp.db, "get_report_evidence", lambda _: {})
-    xp._EVENTS.clear()
-    xp._ACCOUNTS.clear()
-    xp._CLAIMS.clear()
+    monkeypatch.setattr(xp_accounts.db, "get_report_evidence", lambda _: {})
+    xp_runtime._EVENTS.clear()
+    xp_runtime._ACCOUNTS.clear()
+    xp_runtime._CLAIMS.clear()
     policy_v2.DEMO_MISSIONS.clear()
     policy_v2.DEMO_OUTCOMES.clear()
     seasons._FROZEN.clear()
     yield
-    xp._EVENTS.clear()
-    xp._ACCOUNTS.clear()
-    xp._CLAIMS.clear()
+    xp_runtime._EVENTS.clear()
+    xp_runtime._ACCOUNTS.clear()
+    xp_runtime._CLAIMS.clear()
     policy_v2.DEMO_MISSIONS.clear()
     policy_v2.DEMO_OUTCOMES.clear()
     seasons._FROZEN.clear()
@@ -115,7 +115,7 @@ def test_thai_month_midnight_and_t0():
 
 
 def test_new_month_ties_keep_old_points_and_hidden_own_total(v2):
-    xp._EVENTS.append(
+    xp_runtime._EVENTS.append(
         dict(
             id="old",
             user_id="helper",

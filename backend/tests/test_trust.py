@@ -6,7 +6,6 @@ from backend.algorithms.trust import (
     is_report_fresh,
     is_thailand_area,
     nearest_official_station,
-    peer_adjustment,
 )
 
 
@@ -67,12 +66,6 @@ def test_nationwide_community_area_accepts_bangkok_and_chiang_mai():
     assert is_thailand_area(13.7563, 100.5018)
     assert is_thailand_area(18.7883, 98.9853)
     assert not is_thailand_area(35.6762, 139.6503)
-
-
-def test_peer_adjustment_is_bounded():
-    assert peer_adjustment(10, 0) == 8
-    assert peer_adjustment(0, 10) == -8
-    assert peer_adjustment(3, 3) == 0
 
 
 def test_nearest_official_station_ignores_stale_readings():

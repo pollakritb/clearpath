@@ -8,6 +8,8 @@ from datetime import UTC, datetime
 from threading import RLock
 from uuid import uuid4
 
+from backend.services.community import xp_runtime
+
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
 from . import supabase_client as db
@@ -130,12 +132,11 @@ def export_page(user_id: str, section: str, offset: int) -> dict:
             ]
         else:
             from . import air_alerts
-            from .community import xp
             from .measurement import registered, store
 
             sources = {
                 "alert_location": list(air_alerts.LOCATIONS.values()),
-                "points": xp._EVENTS,
+                "points": xp_runtime._EVENTS,
                 "saved_locations": list(registered.LOCATIONS.values()),
                 "requests": list(store.REQUESTS.values()),
                 "comments": list(local_store._REPORT_COMMENTS.values()),

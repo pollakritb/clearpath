@@ -4,6 +4,8 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from threading import RLock
 
+from backend.services.community import xp_runtime
+
 from ...algorithms.community_xp import rank_progress, stamp
 from ...algorithms.contribution_v2 import month_window
 from ...core.config import settings
@@ -19,12 +21,12 @@ def _local_rows(month: str) -> list[dict]:
     start, end = month_window(month, datetime.now(UTC))
     v3 = policy_v3.release()
     v3_month = bool(v3.get("starts_at") and end > stamp(v3["starts_at"]))
-    reversed_ids = {e.get("reverses") for e in xp._EVENTS}
+    reversed_ids = {e.get("reverses") for e in xp_runtime._EVENTS}
     result = []
-    for uid, a in list(xp._ACCOUNTS.items()):
+    for uid, a in list(xp_runtime._ACCOUNTS.items()):
         points = sum(
             e["points"]
-            for e in xp._EVENTS
+            for e in xp_runtime._EVENTS
             if e["user_id"] == uid
             and (v3_month or e.get("policy_version") == "contribution-v2")
             and e["points"] > 0
@@ -68,7 +70,7 @@ def freeze_due() -> int:
             stamp(e["occurred_at"])
             .astimezone(month_window("month", now)[0].tzinfo)
             .strftime("%Y-%m")
-            for e in xp._EVENTS
+            for e in xp_runtime._EVENTS
             if e.get("policy_version") == "contribution-v2"
             or (
                 policy_v3.applies()
@@ -133,7 +135,7 @@ def board(period: str, offset: int, user_id: str | None) -> dict:
         rows = [
             r
             for r in rows
-            if not xp._ACCOUNTS.get(r["user_id"], {}).get("hidden", True)
+            if not xp_runtime._ACCOUNTS.get(r["user_id"], {}).get("hidden", True)
         ]
         previous_points, position = None, 0
         for index, item in enumerate(rows, 1):

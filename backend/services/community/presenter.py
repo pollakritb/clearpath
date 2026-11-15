@@ -18,7 +18,6 @@ from ...core.config import settings
 from .. import supabase_client
 from .constants import (
     OFFICIAL_PRIORITY_KM,
-    PEER_REVIEW_RADIUS_KM,
     PUBLIC_REPORT_MAX_AGE_MINUTES,
 )
 
@@ -145,6 +144,12 @@ def present_report(
             "basis": "none",
             "reason": "ผลตรวจอิสระพบปัญหาในหลักฐาน ต้องใช้ผลตรวจที่แก้ข้อสงสัยได้ก่อน",
         }
+    if policy["active_version"] == "unavailable":
+        eligibility = {
+            "eligible": False,
+            "basis": "none",
+            "reason": "ยังอ่านนโยบายการใช้หลักฐานไม่ได้ กรุณาลองใหม่ภายหลัง",
+        }
     source_type = row.get("source_type") or "individual"
     show_reporter_profile = bool(row.get("show_reporter_profile")) and (
         source_type == "individual"
@@ -177,7 +182,7 @@ def present_report(
     from . import public_images, xp
 
     identity = {}
-    if show_reporter_profile and xp.enabled():
+    if show_reporter_profile:
         try:
             identity = (
                 (identities.get(str(row["user_id"])) or {})
@@ -254,7 +259,11 @@ def present_report(
         "created_at": str(row["created_at"]),
         "status": row["status"],
         "evidence": row.get("evidence_v2") if v2 else None,
-        "evidence_policy": "evidence-v2" if v2 else "legacy",
+        "evidence_policy": "unavailable"
+        if policy["active_version"] == "unavailable"
+        else "evidence-v2"
+        if v2
+        else "legacy",
         "trust_score": trust_score,
         "trust_reasons": reasons,
         "peer_up": int(row.get("peer_up") or 0),
@@ -427,48 +436,6 @@ def list_public_map_reports(limit: int = 200) -> tuple[list[dict], list[dict]]:
         anchor = public_by_id[stack["report_ids"][0]]
         stack["lat"], stack["lon"] = anchor["lat"], anchor["lon"]
     return reports, stacks
-
-
-def list_reviewable_reports(
-    reviewer_id: str,
-    reviewer_lat: float,
-    reviewer_lon: float,
-    limit: int = 50,
-) -> list[dict]:
-    from . import policy_v2
-
-    batch_policy = policy_v2.release()
-    official = supabase_client.get_stations()
-    rows = supabase_client.list_community_reports("approved", max(limit * 4, 100))
-    nearby: list[tuple[float, dict]] = []
-
-    for row in rows:
-        if str(row["user_id"]) == reviewer_id:
-            continue
-        reviews = supabase_client.get_report_reviews(str(row["id"]))
-        if any(str(review.get("reviewer_id")) == reviewer_id for review in reviews):
-            continue
-        distance = haversine_km(
-            reviewer_lat,
-            reviewer_lon,
-            float(row["lat"]),
-            float(row["lon"]),
-        )
-        if distance > PEER_REVIEW_RADIUS_KM:
-            continue
-        report = present_report(
-            row,
-            policy_snapshot=batch_policy,
-            official_stations=official,
-            approved_reports=rows,
-            include_image=True,
-            include_exact_location=False,
-        )
-        if report["is_fresh"]:
-            nearby.append((distance, report))
-
-    nearby.sort(key=lambda item: item[0])
-    return [report for _, report in nearby[:limit]]
 
 
 def list_map_points() -> list[dict]:

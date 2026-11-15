@@ -36,6 +36,7 @@ interface MapStatusCardProps {
   onOpenHistory?: () => void;
   onOpenForecast?: () => void;
   historicalAt?: string | null;
+  onRefreshImage?: () => void;
 }
 
 function formatTime(value: string | null) {
@@ -80,6 +81,7 @@ export default function MapStatusCard({
   onOpenHistory,
   onOpenForecast,
   historicalAt = null,
+  onRefreshImage,
 }: MapStatusCardProps) {
   const photoDialogRef = useRef<HTMLDialogElement>(null);
   const [expandedStation, setExpandedStation] = useState<string | null>(null);
@@ -308,6 +310,9 @@ export default function MapStatusCard({
               : "ข้อมูลระบบเดิม"}
           </span>
         </div>
+        {source === "individual" && report && !report.image_url && (
+          <p role="status">ภาพหลักฐานไม่พร้อมแสดง หรือพ้นระยะเก็บรักษาแล้ว</p>
+        )}
         {source === "individual" && report?.image_url && (
           <>
             <button
@@ -320,7 +325,10 @@ export default function MapStatusCard({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 onLoad={() => setEvidenceImage(report.image_url)}
-                onError={() => setEvidenceImage(null)}
+                onError={() => {
+                  setEvidenceImage(null);
+                  onRefreshImage?.();
+                }}
                 className={panel.reportImage}
                 src={report.image_url}
                 alt="ภาพหน้าจอเครื่องวัด PM2.5 จากผู้รายงาน"

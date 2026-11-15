@@ -17,6 +17,7 @@ from ...core.errors import ReportInProgressError, UpstreamError
 from .. import capture, image_fingerprint, ocr, photo_metadata, supabase_client
 from ..record_keys import creation_key
 from ..stations import get_current_stations
+from . import policy_v2
 from .automatic_review import finalize_automatic_review
 from .evidence import IMAGE_EXTENSIONS, find_duplicate
 from .presenter import present_report
@@ -226,7 +227,9 @@ async def create_draft(
     }
 
 
-async def _completed_retry(report: dict, official: list | None = None) -> dict:
+async def _completed_retry(
+    report: dict, official: list | None = None, draft: dict | None = None
+) -> dict:
     # Wait briefly for the first submission; no duplicate finalization or rewards.
     import asyncio
 
@@ -234,8 +237,32 @@ async def _completed_retry(report: dict, official: list | None = None) -> dict:
         if report.get("status") in {"approved", "rejected"}:
             if official is None:
                 official, _source = await get_current_stations()
-            presented = present_report(
-                report, official_stations=official, include_exact_location=True
+            policy = await run_in_threadpool(policy_v2.publication_snapshot)
+            if (
+                policy["active_version"] == "v2"
+                and not report.get("evidence_v2")
+                and draft
+            ):
+                # The original draft contains extraction/context facts; replay is
+                # idempotent and never repeats OCR, moderation or XP writes.
+                with suppress(UpstreamError):
+                    value = await run_in_threadpool(
+                        policy_v2.save_evidence,
+                        report,
+                        draft
+                        | {
+                            "image_metadata": report.get("image_metadata")
+                            or draft.get("image_metadata")
+                            or {}
+                        },
+                    )
+                    report = report | {"evidence_v2": value}
+            presented = await run_in_threadpool(
+                present_report,
+                report,
+                official_stations=official,
+                include_exact_location=True,
+                policy_snapshot=policy,
             )
             presented["_review_outcome"] = (
                 "automatic_approved"
@@ -269,7 +296,7 @@ async def submit_draft(
         supabase_client.get_community_report, report_id
     )
     if existing_report:
-        return await _completed_retry(existing_report)
+        return await _completed_retry(existing_report, draft=draft)
     if draft.get("submitted_at"):
         raise ValueError("draft นี้ถูกส่งแล้ว แต่ไม่พบรายงานเดิม กรุณาติดต่อผู้ดูแล")
     expires_at = datetime.fromisoformat(str(draft["expires_at"]).replace("Z", "+00:00"))
@@ -302,21 +329,16 @@ async def submit_draft(
                     "bonus_gps_at_submission": values.get("bonus_gps"),
                     "bonus_gps_received_at": datetime.now(UTC).isoformat(),
                 }
-    from ..measurement import registered
-    from . import policy_v2
-
-    evidence_v2_active = await run_in_threadpool(policy_v2.active)
-    if evidence_v2_active or await run_in_threadpool(registered.enabled):
-        draft["image_metadata"] = {
-            **(draft.get("image_metadata") or {}),
-            "bonus_gps_at_submission": values.get("bonus_gps"),
-            "bonus_gps_received_at": datetime.now(UTC).isoformat(),
-        }
-    if evidence_v2_active:
-        draft["image_metadata"] = {
-            **(draft.get("image_metadata") or {}),
-            "context_recorded": bool(values.get("_context_explicit")),
-        }
+    policy = await run_in_threadpool(policy_v2.publication_snapshot)
+    evidence_v2_active = policy["active_version"] == "v2"
+    # Persist neutral submission facts even if optional policy/bonus controls
+    # are unavailable. Only their authoritative workers may grant eligibility.
+    draft["image_metadata"] = {
+        **(draft.get("image_metadata") or {}),
+        "bonus_gps_at_submission": values.get("bonus_gps"),
+        "bonus_gps_received_at": datetime.now(UTC).isoformat(),
+        "context_recorded": bool(values.get("_context_explicit")),
+    }
     profile = await run_in_threadpool(supabase_client.ensure_profile, user_id)
     official, _source = await get_current_stations()
     nearest_location = min(
@@ -383,9 +405,9 @@ async def submit_draft(
     anonymous_alias = None
     if values.get("hide_identity"):
         anonymous_alias = "สมาชิก ClearPath"
-        if xp.enabled():
-            # Identity/XP decoration must never block an otherwise valid report.
-            with suppress(Exception):
+        # Identity/XP decoration must never block an otherwise valid report.
+        with suppress(UpstreamError):
+            if xp.enabled():
                 anonymous_alias = xp.account(user_id)["alias"]
     report_row = {
         "id": report_id,
@@ -446,7 +468,7 @@ async def submit_draft(
             if values.get("_context_explicit")
             else "unknown"
         )
-        if evidence_v2_active
+        if evidence_v2_active or policy["active_version"] == "unavailable"
         else values.get("averaging_period") or "instant",
         "measurement_duration_seconds": int(
             values.get("measurement_duration_seconds") or 0
@@ -456,7 +478,7 @@ async def submit_draft(
             if values.get("_context_explicit")
             else "unknown"
         )
-        if evidence_v2_active
+        if evidence_v2_active or policy["active_version"] == "unavailable"
         else "outdoor",
         "measurement_stable": bool(values.get("measurement_stable")),
         "near_emission_source": bool(values.get("near_emission_source")),
@@ -486,7 +508,7 @@ async def submit_draft(
         supabase_client.insert_community_report_once, report_row
     )
     if not created:
-        return await _completed_retry(saved, official)
+        return await _completed_retry(saved, official, draft)
     evidence = {
         "report_id": report_id,
         "image_metadata": draft.get("image_metadata") or {},
@@ -525,6 +547,7 @@ async def submit_draft(
             draft=draft,
             claimed_pm25=claimed_pm25,
             official_stations=official,
+            policy_snapshot=policy,
         )
     except Exception:
         # A presentation/evidence outage after a committed machine decision must

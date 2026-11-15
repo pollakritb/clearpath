@@ -200,3 +200,24 @@ test("full station insights load on expansion and show genuine gaps and hourly c
   ).toHaveCount(0);
   await expect(pin.getByText("18.5", { exact: true })).toBeVisible();
 });
+
+test("station notification deep link selects its pin after loading and survives tab return", async ({
+  page,
+}) => {
+  await page.goto(`/?station=${station.id}`);
+  const pin = page.getByRole("region", {
+    name: "รายละเอียดสถานีตรวจวัดทางการ",
+  });
+  await expect(pin).toBeVisible();
+  await expect(pin.getByText("18.5", { exact: true })).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "เมนูหลักบนมือถือ" })
+    .getByRole("link", { name: "ข่าวสาร", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/community$/);
+  await page
+    .getByRole("navigation", { name: "เมนูหลักบนมือถือ" })
+    .getByRole("link", { name: "แผนที่", exact: true })
+    .click();
+  await expect(pin).toBeVisible();
+});

@@ -3,6 +3,8 @@
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from backend.services.community import xp_runtime
+
 from ...algorithms.community_xp import stamp, thai_day
 from ..record_keys import creation_key
 from . import policy_v2
@@ -11,20 +13,22 @@ from . import policy_v2
 def reconcile_demo() -> int:
     from . import xp
 
-    with xp._LOCK:
+    with xp_runtime._LOCK:
         invalid = {
             r["report_id"]
             for r in policy_v2.DEMO_OUTCOMES
             if r["outcome"] == "problem" and r.get("invalidates_contribution")
         }
         count = 0
-        for event in list(xp._EVENTS):
+        for event in list(xp_runtime._EVENTS):
             if (
                 event.get("policy_version") == "contribution-v2"
                 and event["kind"] in {"report", "help"}
                 and event.get("report_id") in invalid
                 and event["points"] > 0
-                and not any(r.get("reverses") == event["id"] for r in xp._EVENTS)
+                and not any(
+                    r.get("reverses") == event["id"] for r in xp_runtime._EVENTS
+                )
             ):
                 xp.reverse_event(
                     event["id"],
@@ -34,10 +38,10 @@ def reconcile_demo() -> int:
                 count += 1
 
         def live():
-            reversed_ids = {e.get("reverses") for e in xp._EVENTS}
+            reversed_ids = {e.get("reverses") for e in xp_runtime._EVENTS}
             return [
                 e
-                for e in xp._EVENTS
+                for e in xp_runtime._EVENTS
                 if e["points"] > 0
                 and e.get("policy_version") == "contribution-v2"
                 and e["id"] not in reversed_ids
@@ -104,7 +108,7 @@ def reconcile_demo() -> int:
                     for e in live()
                 ):
                     continue
-                xp._EVENTS.append(
+                xp_runtime._EVENTS.append(
                     dict(
                         id=creation_key("community_xp_events"),
                         user_id=uid,
@@ -125,8 +129,8 @@ def reconcile_demo_v3() -> int:
     from ...algorithms.contribution_v3 import dependent_bonus_actions
     from . import xp
 
-    with xp._LOCK:
-        actions = dependent_bonus_actions(xp._EVENTS)
+    with xp_runtime._LOCK:
+        actions = dependent_bonus_actions(xp_runtime._EVENTS)
         for action in actions:
             if action["action"] == "reverse":
                 xp.reverse_event(
@@ -135,7 +139,7 @@ def reconcile_demo_v3() -> int:
                     "automatic-contribution-v3-worker",
                 )
             else:
-                xp._EVENTS.append(
+                xp_runtime._EVENTS.append(
                     {k: v for k, v in action.items() if k != "action"}
                     | {
                         "id": creation_key("community_xp_events"),

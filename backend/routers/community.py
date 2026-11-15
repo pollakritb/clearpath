@@ -119,21 +119,6 @@ async def community_map_points():
     )
 
 
-@router.get("/community/review-queue", response_model=CommunityReportsResponse)
-async def review_queue(
-    lat: float = Query(..., ge=-90, le=90),
-    lon: float = Query(..., ge=-180, le=180),
-    limit: int = Query(50, ge=1, le=100),
-    user: AuthenticatedUser = Depends(require_user),
-):
-    rows = await run_in_threadpool(
-        community_service.list_reviewable_reports, user.id, lat, lon, limit
-    )
-    return CommunityReportsResponse(
-        reports=[CommunityReport(**r) for r in rows], count=len(rows)
-    )
-
-
 @router.post("/community/image-metadata", response_model=PhotoMetadata)
 async def image_metadata(
     image: UploadFile = File(...), user: AuthenticatedUser = Depends(require_user)

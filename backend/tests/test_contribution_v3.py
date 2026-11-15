@@ -4,6 +4,7 @@ import pytest
 
 from backend.algorithms.contribution_v3 import contribution_awards, service_eligibility
 from backend.algorithms.coverage_missions import missing_coverage
+from backend.services.community import xp_accounts, xp_rewards, xp_runtime
 from backend.tests.test_community_xp import report
 
 LAUNCH = "2026-10-01T00:00:00+07:00"
@@ -220,11 +221,11 @@ def test_demo_v3_preserves_balance_and_assigns_report_policy_by_server_submissio
     monkeypatch.setattr(settings, "contribution_v3_enabled", True)
     monkeypatch.setattr(settings, "contribution_v3_demo_start", LAUNCH)
     monkeypatch.setattr(settings, "community_v2_enabled", False)
-    monkeypatch.setattr(xp, "_EVENTS", [])
-    monkeypatch.setattr(xp, "_ACCOUNTS", {})
-    monkeypatch.setattr(xp, "_CLAIMS", {})
+    monkeypatch.setattr(xp_runtime, "_EVENTS", [])
+    monkeypatch.setattr(xp_runtime, "_ACCOUNTS", {})
+    monkeypatch.setattr(xp_runtime, "_CLAIMS", {})
     monkeypatch.setattr(policy_v2, "DEMO_MISSIONS", {})
-    monkeypatch.setattr(xp.db, "get_report_evidence", lambda _: {})
+    monkeypatch.setattr(xp_accounts.db, "get_report_evidence", lambda _: {})
     old = report(
         id="old-policy",
         created_at="2026-09-29T03:00:00Z",
@@ -316,7 +317,7 @@ def test_request_help_counts_exclude_missions_but_service_quota_keeps_both(monke
     monkeypatch.setattr(settings, "local_demo_mode", True)
     now = datetime.now(UTC).isoformat()
     monkeypatch.setattr(
-        xp,
+        xp_runtime,
         "_EVENTS",
         [
             dict(
@@ -359,11 +360,11 @@ def test_unrewarded_rejected_report_does_not_stay_pending_forever(monkeypatch):
             return lambda *args, **kwargs: self
 
     monkeypatch.setattr(settings, "local_demo_mode", False)
-    monkeypatch.setattr(xp, "configured", lambda: True)
-    monkeypatch.setattr(xp, "control", lambda: {"enabled": True})
-    monkeypatch.setattr(xp, "process", lambda: {"processed": 0})
+    monkeypatch.setattr(xp_runtime, "configured", lambda: True)
+    monkeypatch.setattr(xp_runtime, "control", lambda: {"enabled": True})
+    monkeypatch.setattr(xp_rewards, "process", lambda: {"processed": 0})
     monkeypatch.setattr(registered, "enabled", lambda: False)
-    monkeypatch.setattr(xp.store_client, "get_client", lambda: EmptyQuery())
+    monkeypatch.setattr(xp_runtime.store_client, "get_client", lambda: EmptyQuery())
     assert xp.reward_report(report(status="rejected"))["status"] == "not_eligible"
     assert xp.reward_report(report(status="pending"))["status"] == "pending"
 
@@ -377,7 +378,9 @@ def test_midmonth_launch_ranks_actual_awards_without_rewriting_legacy_events(
         policy_v3, "release", lambda: {"starts_at": "2026-10-15T00:00:00+07:00"}
     )
     monkeypatch.setattr(
-        xp, "_ACCOUNTS", {"helper": {"member_id": "MEM-test", "alias": "tester"}}
+        xp_runtime,
+        "_ACCOUNTS",
+        {"helper": {"member_id": "MEM-test", "alias": "tester"}},
     )
     events = [
         dict(
@@ -396,7 +399,7 @@ def test_midmonth_launch_ranks_actual_awards_without_rewriting_legacy_events(
         ),
     ]
     original = [dict(row) for row in events]
-    monkeypatch.setattr(xp, "_EVENTS", events)
+    monkeypatch.setattr(xp_runtime, "_EVENTS", events)
     monkeypatch.setattr(xp, "totals", lambda _: {"lifetime_xp": 25, "days": 2})
     assert seasons._local_rows("2026-10")[0]["xp"] == 25
     assert seasons._local_rows("2026-09") == []

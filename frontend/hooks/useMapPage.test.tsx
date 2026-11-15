@@ -288,3 +288,50 @@ it("loads old report links separately from the fresh feed and reports failures",
   });
   expect(result.current.reportLinkError).toBeTruthy();
 });
+
+it("updates the selected report from its own time mode without using a live image for history", () => {
+  const { result, rerender } = renderHook(() => useMapPage({}));
+  act(() => result.current.selectReport(report));
+  data.community.reports = [{ ...report, pm25: 55, image_url: "/new-image" }];
+  rerender();
+  expect(result.current.selectedReport?.image_url).toBe("/new-image");
+  act(() => result.current.setHistoryEnabled(true));
+  data.history.reports = [
+    { ...report, pm25: 10, image_url: "/historical-image" },
+  ];
+  rerender();
+  expect(result.current.selectedReport?.pm25).toBe(10);
+  expect(result.current.selectedReport?.image_url).toBe("/historical-image");
+});
+
+it("opens delayed station links once and prioritizes request links over report/station", () => {
+  data.pm25.stations = [];
+  const { result, rerender } = renderHook(
+    (options: MapPageOptions) => useMapPage(options),
+    {
+      initialProps: { initialStationId: station.id } as MapPageOptions,
+    },
+  );
+  flush();
+  expect(result.current.selectedStation).toBeNull();
+  data.pm25.stations = [station];
+  rerender({ initialStationId: station.id });
+  flush();
+  expect(result.current.selectedStation?.id).toBe(station.id);
+  act(() => result.current.setSelectedStation(null));
+  rerender({ initialStationId: station.id });
+  flush();
+  expect(result.current.selectedStation).toBeNull();
+  rerender({ initialStationId: "absent" });
+  flush();
+  expect(result.current.reportLinkError).toBeTruthy();
+  rerender({
+    initialStationId: station.id,
+    initialReportId: report.id,
+    initialRequestId: request.id,
+  });
+  flush();
+  expect(result.current.selectedRequest?.id).toBe(request.id);
+  expect(result.current.selectedReport).toBeNull();
+  expect(result.current.selectedStation).toBeNull();
+});

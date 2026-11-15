@@ -13,7 +13,7 @@ from backend.algorithms.community_xp import (
     rank_progress,
     thai_day,
 )
-from backend.services.community import xp
+from backend.services.community import xp, xp_accounts, xp_runtime
 from backend.services.measurement import store
 
 NOW = datetime(2026, 10, 31, 3, tzinfo=UTC)
@@ -152,22 +152,22 @@ def test_claim_evidence_and_grace_rules():
 
 @pytest.fixture
 def demo(monkeypatch):
-    monkeypatch.setattr(xp.settings, "local_demo_mode", True)
-    xp._ACCOUNTS.clear()
-    xp._EVENTS.clear()
-    xp._CLAIMS.clear()
-    monkeypatch.setattr(xp.db, "get_report_evidence", lambda _id: {})
+    monkeypatch.setattr(xp_runtime.settings, "local_demo_mode", True)
+    xp_runtime._ACCOUNTS.clear()
+    xp_runtime._EVENTS.clear()
+    xp_runtime._CLAIMS.clear()
+    monkeypatch.setattr(xp_accounts.db, "get_report_evidence", lambda _id: {})
     yield
-    xp._ACCOUNTS.clear()
-    xp._EVENTS.clear()
-    xp._CLAIMS.clear()
+    xp_runtime._ACCOUNTS.clear()
+    xp_runtime._EVENTS.clear()
+    xp_runtime._CLAIMS.clear()
 
 
 def test_concurrent_award_idempotency_and_daily_cap(demo):
     with ThreadPoolExecutor(max_workers=8) as pool:
         results = list(pool.map(lambda _: xp.reward_report(report()), range(20)))
     assert all(r["report_xp"] == 10 for r in results)
-    assert len(xp._EVENTS) == 1
+    assert len(xp_runtime._EVENTS) == 1
     assert (
         xp.reward_report(
             report(id="cooldown", moderated_at=(NOW + timedelta(minutes=5)).isoformat())
@@ -248,10 +248,10 @@ def test_xp_outage_keeps_explicit_google_publication_choice(monkeypatch, demo):
 def test_rollout_control_does_not_change_report_identity_choice(monkeypatch):
     from backend.services.community.presenter import present_report
 
-    monkeypatch.setattr(xp.settings, "local_demo_mode", False)
-    monkeypatch.setattr(xp.settings, "community_xp_enabled", True)
+    monkeypatch.setattr(xp_runtime.settings, "local_demo_mode", False)
+    monkeypatch.setattr(xp_runtime.settings, "community_xp_enabled", True)
     monkeypatch.setattr(
-        xp,
+        xp_runtime,
         "control",
         lambda: dict(enabled=False, maintenance=False, reset_version="new"),
     )
@@ -270,7 +270,9 @@ def test_leaderboard_identity_is_chosen_independently_from_report_identity(
 ):
     a = xp.account("helper")
     monkeypatch.setattr(
-        xp.db, "get_existing_profile", lambda uid: {"display_name": "Google Member"}
+        xp_accounts.db,
+        "get_existing_profile",
+        lambda uid: {"display_name": "Google Member"},
     )
     assert xp.leaderboard_names([a["member_id"]])[a["member_id"]] == "Google Member"
     assert xp.public_identity("helper")["member_id"] == a["member_id"]

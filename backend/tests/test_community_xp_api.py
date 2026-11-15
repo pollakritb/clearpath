@@ -6,24 +6,24 @@ from fastapi.testclient import TestClient
 from backend.core.auth import AuthenticatedUser, require_user
 from backend.core.config import settings
 from backend.main import create_app
-from backend.services.community import xp
+from backend.services.community import xp, xp_runtime
 
 
 @pytest.fixture
 def client(monkeypatch):
     monkeypatch.setattr(settings, "local_demo_mode", True)
-    xp._ACCOUNTS.clear()
-    xp._EVENTS.clear()
-    xp._CLAIMS.clear()
+    xp_runtime._ACCOUNTS.clear()
+    xp_runtime._EVENTS.clear()
+    xp_runtime._CLAIMS.clear()
     app = create_app()
     app.dependency_overrides[require_user] = lambda: AuthenticatedUser(
         id="owner", email=None, role="user"
     )
     with TestClient(app) as c:
         yield c, app
-    xp._ACCOUNTS.clear()
-    xp._EVENTS.clear()
-    xp._CLAIMS.clear()
+    xp_runtime._ACCOUNTS.clear()
+    xp_runtime._EVENTS.clear()
+    xp_runtime._CLAIMS.clear()
 
 
 def test_private_settings_and_public_member_contract(client):
@@ -59,7 +59,7 @@ def test_dashboard_cannot_reverse_xp(client):
     c, app = client
     event_id = str(uuid4())
     xp.account("owner")
-    xp._EVENTS.append(
+    xp_runtime._EVENTS.append(
         dict(
             id=event_id,
             user_id="owner",
@@ -145,3 +145,10 @@ def test_owned_reports_load_independently_of_scores(client, monkeypatch):
     assert response.status_code == 200
     assert response.json()["reports"] == []
     assert response.json()["count"] == 0
+
+
+def test_owned_report_ids_do_not_depend_on_xp_implementation_attributes(client):
+    client, _ = client
+    response = client.get("/api/community/me/report-ids")
+    assert response.status_code == 200, response.text
+    assert isinstance(response.json()["ids"], list)

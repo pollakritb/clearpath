@@ -197,11 +197,3 @@ def calculate_trust_score(
         reasons.append("ภาพคล้ายกับรายงานเดิม ต้องตรวจซ้ำ")
 
     return {"score": round(max(0.0, min(100.0, score)), 1), "reasons": reasons}
-
-
-def peer_adjustment(confirm_weight: float, dispute_weight: float) -> float:
-    """Nearby gratitude/star feedback adjusts Trust by at most ±8."""
-    total = confirm_weight + dispute_weight
-    if total <= 0:
-        return 0.0
-    return round(8.0 * (confirm_weight - dispute_weight) / total, 1)

@@ -66,7 +66,7 @@ def test_community_and_admin_authorization_are_enforced_by_http_boundary(monkeyp
     client = TestClient(create_app())
 
     assert (
-        client.get("/api/community/review-queue?lat=13.8&lon=100.1").status_code == 401
+        client.get("/api/community/review-queue?lat=13.8&lon=100.1").status_code == 404
     )
     response = client.get(
         "/api/admin/reports", headers={"Authorization": "Bearer valid-user-token"}

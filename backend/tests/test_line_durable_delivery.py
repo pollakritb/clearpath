@@ -9,6 +9,7 @@ import pytest
 
 from backend.core.config import settings
 from backend.services import line_delivery, line_messaging
+from backend.services.community import xp
 
 
 @pytest.mark.parametrize(
@@ -70,7 +71,6 @@ def worker(monkeypatch):
     from datetime import UTC, datetime
 
     from backend.services import notifications
-    from backend.services.community import xp
 
     row = {
         "id": "1",

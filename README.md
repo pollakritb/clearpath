@@ -51,15 +51,15 @@ frontend/
   hooks/                   data hooks + useMapPage orchestration
   lib/                     API client, cache และ pure presentation functions
   types/                   API contracts; ui.ts สำหรับ UI-only types
-  styles/                  foundation, user-app, admin-app, legal, mobile-frame
+  styles/                  user-app entry + ordered pages/map/refinements/flows
 api/index.py               Vercel entry ของ FastAPI
 backend/
   main.py                  middleware, routers และ error handling
   routers/                 HTTP validation/authorization boundary
   services/                workflow และ external adapters
-    community/             submission, public/privacy presentation, review และ XP
+    community/             submission, public/privacy, Trust และ XP facade/accounts/rewards/runtime
     measurement/           lifecycle และ batch persistence ของคำขอวัด
-    store_*.py              stations/CAMS, community, notifications, operations
+    store_*.py              stations/CAMS, reports, media, profiles, notifications, operations
     store_client.py        shared connection/retry/identifier boundary
     supabase_client.py     stable workflow re-exports
   algorithms/              pure calculations ไม่มี network/DB
@@ -191,7 +191,17 @@ Coverage thresholds เดิมยังคงไว้; map orchestration ม�
 โค้ด local/ML forecast ที่เลิกใช้เก็บประวัติใน Git; การออกแบบ self-forecast ใหม่เป็นงานแยก
 และต้องมี schema, validation และ release evidence ใหม่ ไม่ใช่การเปิด flag เดิม
 
-### Contribution and evidence v2
+### Contribution และ Trust ปัจจุบัน
 
-Implementation, rules, tests and server-only rollout/rollback: [delivery notes](docs/superpowers/specs/2026-11-05-contribution-v2-implementation.md).
-The additive migration defaults to v1. `COMMUNITY_V2_ENABLED` prepares the code; the DB release pointer activates contribution/evidence/gap-fill together. The temporary voting radius is 500 m, including both reported GPS error radii.
+XP ใหม่ใช้ [contribution-v3](docs/runbooks/contribution-v3.md) โดยคง ledger และ settlement
+รุ่นเก่าที่จำเป็นต่อคะแนนเดิม ส่วน [Trust ชุมชน](docs/runbooks/community-trust-v1.md)
+มี release และ ledger แยก ไม่มีผลต่อ XP, IDW หรือ gap-fill
+เอกสาร [contribution/evidence v2](docs/superpowers/specs/2026-11-05-contribution-v2-implementation.md)
+อธิบาย compatibility และ rollout รุ่นก่อน ไม่ใช่คำแนะนำให้เปลี่ยน policy ปัจจุบัน
+
+`GET /api/community/review-queue` รุ่น peer/star เก่าถูกถอดเพื่อปิดช่องค้นพิกัดจริง
+คิวขอทบทวน Trust ชุมชนใน Admin ยังคง read-only ตามเดิม
+
+อ่าน lifecycle ของหน้าส่งรายงานที่ `useReportDraft` และ timeline ที่ `useStationTimeline`;
+`useMapLinks` กำหนด selection จาก deep links และ `useReportImage` ต่ออายุภาพตามสิทธิ์เดิม
+โดยไม่เปลี่ยนอายุ signed URL หรือเปิด public bucket

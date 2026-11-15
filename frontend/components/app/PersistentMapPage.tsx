@@ -34,7 +34,8 @@ export default function PersistentMapPage() {
           isMapPage ? searchParams.get("measurement_request") : null
         }
         requestInitially={isMapPage && searchParams.get("request") === "1"}
-        initialReportId={searchParams.get("report")}
+        initialStationId={isMapPage ? searchParams.get("station") : null}
+        initialReportId={isMapPage ? searchParams.get("report") : null}
         initialReportRequestId={searchParams.get("report_request")}
         showFiresInitially={searchParams.get("layer") === "fires"}
       />

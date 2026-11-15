@@ -88,12 +88,12 @@ test("nearby user reports share a marker and preserve each photo/detail", async 
     age_minutes: 10 + index * 5,
     location_precision_m: 180,
     verification_method: "automatic",
-    image_url: `https://example.com/${entry.id}.svg`,
+    image_url: `/api/community/report-images/${entry.id}?fixture=svg`,
     province: "นครปฐม",
     district: "เมืองนครปฐม",
     subdistrict: "พระปฐมเจดีย์",
   }));
-  await page.route("https://example.com/*.svg", (route) =>
+  await page.route("**/api/community/report-images/*?fixture=svg", (route) =>
     route.fulfill({
       contentType: "image/svg+xml",
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#477c72"/></svg>',
@@ -172,7 +172,7 @@ test("nearby user reports share a marker and preserve each photo/detail", async 
     photoDialog.getByRole("img", {
       name: "ภาพเครื่องวัด PM2.5 ฉบับเต็มจากผู้รายงาน",
     }),
-  ).toHaveAttribute("src", "https://example.com/near-b.svg");
+  ).toHaveAttribute("src", "/api/community/report-images/near-b?fixture=svg");
   await photoDialog.getByRole("button", { name: "ปิดภาพเครื่องวัด" }).click();
   await expect(photoDialog).not.toBeVisible();
   await expect(
@@ -257,7 +257,9 @@ test("touch swipes snap only to summary or full view and full content scrolls as
   await sheet.evaluate((el) => {
     el.firstElementChild!.scrollTop = 120;
   });
-  expect((await title.boundingBox())!.y).toBeLessThan(topBefore - 60);
+  await expect
+    .poll(async () => (await title.boundingBox())!.y)
+    .toBeLessThanOrEqual(topBefore - 60);
   await sheet.evaluate((el) => {
     el.firstElementChild!.scrollTop = 0;
   });

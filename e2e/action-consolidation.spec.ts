@@ -12,7 +12,9 @@ test("my reports uses primary navigation for new reports without a duplicate hea
     reports.getByRole("heading", { name: "รายงานล่าสุด", exact: true }),
   ).toBeVisible();
   await expect(
-    reports.getByRole("link", { name: "ส่งรายงาน", exact: true }),
+    reports
+      .locator("header")
+      .getByRole("link", { name: "ส่งรายงาน", exact: true }),
   ).toHaveCount(0);
   const nav = page.getByRole("navigation", { name: "เมนูหลักบนมือถือ" });
   await nav.getByRole("link", { name: "ส่งรายงาน", exact: true }).click();

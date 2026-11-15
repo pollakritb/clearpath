@@ -1,5 +1,6 @@
 "use client";
-import { api, apiErrorMessage } from "@/frontend/lib/api-client";
+import { useMapLinks } from "./useMapLinks";
+import { useReportImage } from "./useReportImage";
 import { ageStation } from "@/frontend/lib/station-age";
 import { useMissionMapLink } from "./useMissionMapLink";
 import type { MapFocusPoint } from "@/frontend/types/ui";
@@ -39,6 +40,7 @@ import type { ViewMode } from "@/frontend/types/ui";
 export type MapPageOptions = {
   showFiresInitially?: boolean;
   initialReportId?: string | null;
+  initialStationId?: string | null;
   initialReportRequestId?: string | null;
   initialMissionLink?: string | null;
   requestInitially?: boolean;
@@ -50,6 +52,7 @@ export type MapPageOptions = {
 export function useMapPage({
   showFiresInitially = false,
   initialReportId,
+  initialStationId,
   initialReportRequestId,
   initialMissionLink,
   requestInitially = false,
@@ -64,7 +67,7 @@ export function useMapPage({
     | null
   >(null);
   const selectedStation = target?.kind === "station" ? target.value : null;
-  const selectedReport = target?.kind === "report" ? target.value : null;
+  const reportSelection = target?.kind === "report" ? target.value : null;
   const selectedRequestId = target?.kind === "request" ? target.value : null;
   const setSelectedStation = useCallback((value: Station | null) => {
     setTarget((current) =>
@@ -96,9 +99,6 @@ export function useMapPage({
   const currentUserId = useCurrentUserId();
   const requestData = useMeasurementRequests(currentUserId, active);
   const openedRequestMode = useRef(false);
-  const openedRequestLink = useRef<string | null>(null);
-  const openedReportLink = useRef<string | null>(null);
-  const [reportLinkError, setReportLinkError] = useState<string | null>(null);
   const requestRows = useMemo(
     () => visibleMapRequests(requestData.rows, requestData.now),
     [requestData.rows, requestData.now],
@@ -396,41 +396,6 @@ export function useMapPage({
     [focusPin, setSelectedStation, setSelectedReport, setSelectedRequestId],
   );
 
-  useEffect(() => {
-    if (!initialReportId) {
-      openedReportLink.current = null;
-      return;
-    }
-    if (openedReportLink.current === initialReportId) return;
-    let cancelled = false;
-    const report = community.reports.find((row) => row.id === initialReportId);
-    void Promise.resolve(
-      report ?? api.reportDetail(initialReportId, initialReportRequestId),
-    )
-      .then((resolved) => {
-        if (cancelled) return;
-        openedReportLink.current = initialReportId;
-        setReportLinkError(null);
-        selectReport(resolved);
-        setSelectedPlace(null);
-      })
-      .catch((error: unknown) => {
-        if (!cancelled)
-          setReportLinkError(
-            apiErrorMessage(error, "เปิดรายงานไม่สำเร็จ กรุณาลองใหม่"),
-          );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    initialReportId,
-    initialReportRequestId,
-    currentUserId,
-    community.reports,
-    selectReport,
-  ]);
-
   const selectStack = useCallback(
     (stack: CommunityReportStack) => {
       focusPin(stack);
@@ -467,23 +432,59 @@ export function useMapPage({
       setSelectedRequestId,
     ],
   );
-  useEffect(() => {
-    if (!initialRequestId || !active) {
-      openedRequestLink.current = null;
-      return;
-    }
-    if (openedRequestLink.current === initialRequestId) return;
-    const request = requestRows.find((row) => row.id === initialRequestId);
-    if (!request || request.status === "cancelled") return;
-    const frame = window.requestAnimationFrame(() => {
-      openedRequestLink.current = initialRequestId;
-      selectRequest(request);
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [initialRequestId, active, requestRows, selectRequest]);
+  const openLinkedReport = useCallback(
+    (report: CommunityReport) => {
+      setMode("current");
+      setSelectedPlace(null);
+      selectReport(report);
+    },
+    [setMode, selectReport],
+  );
+  const openLinkedStation = useCallback(
+    (station: Station) => {
+      setMode("current");
+      setSelectedPlace(null);
+      setRequestStep("idle");
+      selectStation(station);
+      setViewMode("map");
+    },
+    [setMode, setRequestStep, selectStation],
+  );
+  const reportLinkError = useMapLinks({
+    active,
+    userId: currentUserId,
+    links: {
+      initialRequestId,
+      initialReportId,
+      initialReportRequestId,
+      initialStationId,
+    },
+    reports: community.reports,
+    requests: requestRows,
+    stations: pm25.stations,
+    stationsLoading: pm25.loading,
+    onReport: openLinkedReport,
+    onRequest: selectRequest,
+    onStation: openLinkedStation,
+  });
+  const sourceReports = historyEnabled ? mapHistory.reports : community.reports;
+  const currentReport = reportSelection
+    ? (sourceReports.find((row) => row.id === reportSelection.id) ??
+      reportSelection)
+    : null;
+  const { report: selectedReport, refreshImage } = useReportImage({
+    report: currentReport,
+    active,
+    userId: currentUserId,
+    historicalAt: historyEnabled ? mapHistory.targetAt : null,
+    requestId: initialReportRequestId,
+    refreshPublic: community.refresh,
+    refreshHistory: mapHistory.load,
+  });
 
   return {
     reportLinkError,
+    refreshImage,
     active,
     selectedStation:
       selectedStation && !historyEnabled

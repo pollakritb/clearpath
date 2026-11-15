@@ -19,6 +19,7 @@ def finalize_automatic_review(
     draft: dict,
     claimed_pm25: float,
     official_stations: list[dict],
+    policy_snapshot: dict | None = None,
 ) -> tuple[dict, dict]:
     """Approve or reject immediately; never route evidence to an admin queue."""
     decision = evaluate_automatic_review(ocr_pm25=draft.get("ocr_pm25"))
@@ -94,13 +95,12 @@ def finalize_automatic_review(
 
     from . import policy_v2
 
-    try:
-        v2_active = policy_v2.active()
-    except Exception:
-        v2_active = False
-        logger.exception(
-            "evidence_policy_read_retry", extra={"report_id": report["id"]}
-        )
+    policy = (
+        policy_snapshot
+        if policy_snapshot is not None
+        else policy_v2.publication_snapshot()
+    )
+    v2_active = policy["active_version"] == "v2"
     if v2_active:
         try:
             value = policy_v2.save_evidence(updated, draft)
@@ -145,6 +145,7 @@ def finalize_automatic_review(
             official_stations=official_stations,
             approved_reports=approved_reports,
             include_exact_location=True,
+            policy_snapshot=policy,
         ),
         decision,
     )
