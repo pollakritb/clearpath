@@ -111,7 +111,9 @@ def test_outbox_marks_success_and_schedules_bounded_retry(monkeypatch):
     assert updates[1][1]["payload"] == {"channel": None, "tag": None}
 
 
-def test_channel_preferences_quiet_hours_and_consent(monkeypatch):
+def test_channel_preferences_ignore_retired_quiet_hours_and_require_consent(
+    monkeypatch,
+):
     monkeypatch.setattr(notifications.line_messaging, "send_to_user", lambda *_args: 1)
 
     monkeypatch.setattr(
@@ -132,14 +134,16 @@ def test_channel_preferences_quiet_hours_and_consent(monkeypatch):
     )
     assert notifications.deliver_to_user("user-1", {}) == 0
 
-    monkeypatch.setattr(notifications, "is_quiet_hour", lambda *_args: True)
     monkeypatch.setattr(
         notifications.supabase_client,
         "get_notification_preferences",
-        lambda _user_id: {"consent_granted": True},
+        lambda _user_id: {
+            "consent_granted": True,
+            "quiet_hours_start": "00:00",
+            "quiet_hours_end": "23:59",
+        },
     )
-    with pytest.raises(notifications.NotificationDeferred):
-        notifications.deliver_to_user("user-1", {})
+    assert notifications.deliver_to_user("user-1", {}) == 1
 
 
 def test_retired_push_jobs_never_send(monkeypatch):

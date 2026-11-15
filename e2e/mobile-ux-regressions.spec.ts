@@ -385,7 +385,7 @@ test("closing unsaved preference editing restores the persisted summary", async 
   await page
     .getByRole("button", { name: "แก้ไขเงื่อนไข", exact: true })
     .click();
-  await page.locator('input[type="range"]').first().fill("60");
+  await page.getByRole("checkbox", { name: /37.6–75.0/ }).uncheck();
   await page.getByRole("button", { name: "ปิดการแก้ไข", exact: true }).click();
   await expect(
     page.locator(".cp-notification-condition-summary").first(),
@@ -750,7 +750,7 @@ test("LINE settings expose only the three supported notification categories", as
     page.getByText(/คำขอได้รับข้อมูลแล้ว: เมื่อคำขอของคุณ/),
   ).toBeVisible();
   await expect(
-    page.getByRole("checkbox", { name: /PM2.5 ถึงหรือเกินค่าที่ตั้งไว้/ }),
+    page.getByRole("checkbox", { name: /เปิดแจ้งเตือนค่าฝุ่น/ }),
   ).toBeVisible();
   for (const text of [
     /จุดความร้อน/,

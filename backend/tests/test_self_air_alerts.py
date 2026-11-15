@@ -105,7 +105,7 @@ def test_line_notice_has_clear_value_threshold_source_distance_and_time():
         "key",
     )
     assert "55 µg/m³" in notice["title"]
-    assert "37.6 µg/m³ ขึ้นไป" in notice["body"]
+    assert "37.6–75.0 µg/m³" in notice["body"]
     assert "230 เมตร" in notice["body"]
     assert "แหล่งข้อมูล: รายงานชุมชน" in notice["body"]
     assert "\n\nคำแนะนำ:" in notice["body"]

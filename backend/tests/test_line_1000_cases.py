@@ -145,14 +145,16 @@ assert len(set(PATHS)) == 1000
 def test_1000_episode_state_paths(index, events):
     state = {}
     peak = 0
-    last_notice = None
-    low_start = None
+    day = None
     now = NOW
     for step, event in enumerate(events):
         now += timedelta(seconds=(60, 600, 1800, 3600)[(index + step) % 4])
+        current_day = (now + timedelta(hours=7)).date()
+        if day != current_day:
+            peak = 0
+            day = current_day
         expected = False
         if event == "missing":
-            low_start = None
             source = None
         else:
             pm25 = {"low": 20, "warning": 40, "danger": 80, "switch_pin": 45}[event]
@@ -160,23 +162,10 @@ def test_1000_episode_state_paths(index, events):
                 "pm25": pm25,
                 "source_id": f"pin-{step}" if event == "switch_pin" else "original",
             }
-            if event == "low":
-                if low_start is None:
-                    low_start = now
-                elif (now - low_start).total_seconds() >= 1800:
-                    peak = 0
-            else:
-                low_start = None
-                target = 2 if event == "danger" else 1
-                may_reenter = (
-                    peak > 0
-                    or last_notice is None
-                    or (now - last_notice).total_seconds() >= 3600
-                )
-                if target > peak and may_reenter:
-                    expected = True
-                    peak = target
-                    last_notice = now
+            target = 2 if event == "danger" else 1 if event != "low" else 0
+            if target > peak:
+                expected = True
+                peak = target
         state = transition(state, source, 37.6, now)
         assert state["notify"] is expected, {
             "path": index,

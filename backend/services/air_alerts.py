@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from datetime import UTC, datetime
 from functools import wraps
 from threading import RLock
 from uuid import uuid4
 
 from ..algorithms.nearest_air_alert import (
+    ALERT_RADIUS_KM,
+    POLICY_VERSION,
+    alert_day,
+    alert_severity,
+    level_enabled,
     nearest_source,
     timestamp,
     transition,
@@ -17,7 +23,7 @@ from ..algorithms.nearest_air_alert import (
 from ..algorithms.notification_policy import BANGKOK_TZ, air_quality_level
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
-from ..core.identifiers import number
+from ..core.identifiers import code, number
 from . import local_store, supabase_client
 from . import store_client as db
 
@@ -174,7 +180,7 @@ def selected(
     point = location(user_id)
     if not valid_location(point, now):
         return preferences, point, None
-    radius = float(preferences.get("radius_km") or 10)
+    radius = ALERT_RADIUS_KM
     return (
         preferences,
         point,
@@ -193,28 +199,46 @@ def notice_for(source: dict, point: dict, preferences: dict, key: str) -> dict:
         timestamp(source["source_at"]).astimezone(BANGKOK_TZ).strftime("%d/%m/%Y %H:%M")
     )
     name = str(source.get("name") or "") if kind == "station" else ""
+    pin_id = str(source["source_id"])
+    if kind == "community":
+        with suppress(ValueError):
+            pin_id = code("community_reports", pin_id)
     distance = float(source["distance_km"])
     distance_label = (
         f"{round(distance * 1000):,} เมตร" if distance < 1 else f"{distance:.1f} กม."
     )
-    threshold = max(37.6, float(preferences.get("pm25_threshold", 37.6)))
-    title = f"ค่าฝุ่นถึงเกณฑ์แจ้งเตือน · PM2.5 {value} µg/m³"
+    severity = alert_severity(source["pm25"])
+    band = "75.1 µg/m³ ขึ้นไป" if severity == 2 else "37.6–75.0 µg/m³"
+    title = f"PM2.5 {value} µg/m³ · {level['label']}"
     body = (
-        f"เกณฑ์ที่คุณตั้งไว้: {threshold:g} µg/m³ ขึ้นไป\n"
+        f"ระดับแจ้งเตือน: {band} ({level['label']})\n"
         f"แหล่งข้อมูล: {origin}{' · ' + name if name else ''}\n"
+        f"หมุดอ้างอิง: {pin_id}\n"
         f"ระยะห่าง: ประมาณ {distance_label} จาก GPS ล่าสุดของคุณ\n"
-        f"วัดเมื่อ: {source_time} น. (เวลาไทย)\n\n"
+        f"วัดเมื่อ: {source_time} น. (เวลาไทย)\n"
+        "เลือกหมุดที่ใกล้ GPS ล่าสุดที่สุดภายใน 2 กม. ไม่ใช่ค่าฝุ่นทุกจุดในพื้นที่\n\n"
         f"คำแนะนำ: {level['advice']}"
     )
     if kind == "community":
-        body += "\nข้อมูลชุมชนเป็นข้อมูลเสริม ไม่ใช่ค่าจากสถานีทางการ"
+        body += "\nข้อมูลชุมชนเป็นข้อมูลเสริม ใช้พิกัดสาธารณะ ระยะห่างจึงเป็นค่าประมาณ"
+    observed = timestamp(point.get("observed_at"))
+    if observed:
+        body += (
+            "\nGPS อ้างอิงที่บันทึก: "
+            + observed.astimezone(BANGKOK_TZ).strftime("%d/%m/%Y %H:%M")
+            + " น. (เวลาไทย)"
+        )
+    body += "\nแต่ละระดับแจ้งได้วันละ 1 ครั้งตามเวลาไทย; หากสูงขึ้นเป็นอีกระดับจะแจ้งเพิ่มได้"
     return {
         "title": title,
         "body": body,
-        "url": f"/?{'station' if kind == 'station' else 'report'}={source['source_id']}",
+        "url": f"/?{'station' if kind == 'station' else 'report'}={pin_id}",
         "deduplication_key": key,
         "payload": {
             **source,
+            "policy_version": POLICY_VERSION,
+            "alert_day": alert_day(datetime.now(UTC)),
+            "alert_severity": severity,
             "location_version": point["version"],
             "preferences_at": preferences.get("updated_at"),
         },
@@ -250,6 +274,44 @@ def episode_for_other_reports(user_id: str, state: dict) -> dict:
     return updated
 
 
+def daily_severity(user_id: str, now: datetime) -> int:
+    day = alert_day(now)
+    if settings.local_demo_mode:
+        notices = local_store.list_user_notifications(user_id, 100000)
+        return max(
+            (
+                int(n.get("payload", {}).get("alert_severity", 0))
+                for n in notices
+                if n.get("event_type") == "air_alert"
+                and n.get("payload", {}).get("alert_day") == day
+            ),
+            default=0,
+        )
+    rows = (
+        db.get_client()
+        .table("air_alert_daily_limits")
+        .select("severity")
+        .eq("user_id", user_id)
+        .eq("alert_date", day)
+        .execute()
+        .data
+        or []
+    )
+    return max((int(r["severity"]) for r in rows), default=0)
+
+
+def daily_state(user_id: str, state: dict, now: datetime) -> dict:
+    daily = daily_severity(user_id, now)
+    if not daily:
+        return state
+    previous = (
+        int(state.get("severity") or 0)
+        if state.get("alert_day") == alert_day(now)
+        else 0
+    )
+    return {**state, "alert_day": alert_day(now), "severity": max(previous, daily)}
+
+
 @storage_errors
 def evaluate(user_id: str) -> bool:
     now = datetime.now(UTC)
@@ -265,11 +327,7 @@ def evaluate(user_id: str) -> bool:
             "air_alert_shadow source_available=%s source_type=%s threshold_met=%s",
             bool(source),
             source.get("source_type") if source else None,
-            bool(
-                source
-                and source["pm25"]
-                >= max(37.6, float(preferences.get("pm25_threshold", 37.6)))
-            ),
+            bool(source and level_enabled(preferences, alert_severity(source["pm25"]))),
         )
         if not settings.local_demo_mode:
             db.get_client().table("air_alert_states").update(
@@ -280,10 +338,14 @@ def evaluate(user_id: str) -> bool:
         with _LOCK:
             row = STATES.get(user_id, {"revision": 0, "state": {}})
             updated = transition(
-                episode_for_other_reports(user_id, row["state"]),
+                daily_state(
+                    user_id, episode_for_other_reports(user_id, row["state"]), now
+                ),
                 source,
                 float(preferences.get("pm25_threshold", 37.6)),
                 now,
+                warning_enabled=preferences.get("air_alert_warning", True),
+                danger_enabled=preferences.get("air_alert_danger", True),
             )
             if location(user_id)["version"] != point["version"]:
                 return False
@@ -322,10 +384,12 @@ def evaluate(user_id: str) -> bool:
         ).eq("user_id", user_id).eq("revision", row["revision"]).execute()
         return False
     updated = transition(
-        episode_for_other_reports(user_id, row["state"]),
+        daily_state(user_id, episode_for_other_reports(user_id, row["state"]), now),
         source,
         float(preferences.get("pm25_threshold", 37.6)),
         now,
+        warning_enabled=preferences.get("air_alert_warning", True),
+        danger_enabled=preferences.get("air_alert_danger", True),
     )
     should_notify = updated.pop("notify")
     notice = (
@@ -360,7 +424,7 @@ def evaluate(user_id: str) -> bool:
 def delivery_allowed(user_id: str, payload: dict) -> bool:
     if settings.line_alert_shadow_mode or not in_canary(user_id):
         return False
-    if payload.get("policy_version") != "nearest-pin-v1":
+    if payload.get("policy_version") != POLICY_VERSION:
         return False  # Legacy station-wide alerts must not bypass the new selection.
     preferences, point, source = selected(user_id)
     return bool(
@@ -374,7 +438,9 @@ def delivery_allowed(user_id: str, payload: dict) -> bool:
         and source["source_id"] == payload.get("source_id")
         and timestamp(source["source_at"]) == timestamp(payload.get("source_at"))
         and source["pm25"] == payload.get("pm25")
-        and source["pm25"] >= max(37.6, float(preferences.get("pm25_threshold", 37.6)))
+        and level_enabled(preferences, alert_severity(source["pm25"]))
+        and payload.get("alert_day") == alert_day(datetime.now(UTC))
+        and payload.get("alert_severity") == alert_severity(source["pm25"])
     )
 
 

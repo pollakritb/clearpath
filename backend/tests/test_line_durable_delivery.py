@@ -136,7 +136,6 @@ def worker(monkeypatch):
         "_delivery_preferences",
         lambda _: {"consent_granted": True, "line_enabled": True},
     )
-    monkeypatch.setattr(notifications, "is_quiet_hour", lambda *_: False)
     monkeypatch.setattr(
         line_messaging,
         "prepare_push",
@@ -185,17 +184,24 @@ def test_worker_cannot_send_if_freeze_loses_lease(worker, monkeypatch):
     assert writes == []
 
 
-def test_worker_quiet_hours_do_not_consume_attempt_or_freeze(worker, monkeypatch):
+def test_worker_sends_without_retired_quiet_hour_deferral(worker, monkeypatch):
     from backend.services import notifications
 
     row, writes, _, _ = worker
-    monkeypatch.setattr(notifications, "is_quiet_hour", lambda *_: True)
     monkeypatch.setattr(
-        line_messaging, "post_push", lambda *_: pytest.fail("quiet hours sent")
+        notifications,
+        "_delivery_preferences",
+        lambda _: {
+            "consent_granted": True,
+            "line_enabled": True,
+            "quiet_hours_start": "00:00",
+            "quiet_hours_end": "23:59",
+        },
     )
+    monkeypatch.setattr(line_messaging, "post_push", lambda *_: "accepted")
     line_delivery.process_outbox()
-    assert row["attempts"] == 0 and row["first_attempt_at"] is None
-    assert writes[-1]["last_error"] == "quiet_hours"
+    assert row["attempts"] == 1 and row["first_attempt_at"] is not None
+    assert writes[-1]["status"] == "sent"
 
 
 def test_worker_does_not_blind_replay_after_retry_window(worker, monkeypatch):

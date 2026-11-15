@@ -16,11 +16,13 @@ const DEFAULTS: NotificationPreferences = {
   line_enabled: true,
   district: null,
   subdistrict: null,
-  radius_km: 10,
+  radius_km: 2,
   center_lat: null,
   center_lon: null,
   pm25_threshold: 37.6,
   air_alerts: true,
+  air_alert_warning: true,
+  air_alert_danger: true,
   hotspot_alerts: true,
   community_alerts: false,
   report_status_alerts: true,
@@ -28,8 +30,8 @@ const DEFAULTS: NotificationPreferences = {
   reward_alerts: true,
   leaderboard_alerts: false,
   announcement_alerts: true,
-  quiet_hours_start: "22:00",
-  quiet_hours_end: "07:00",
+  quiet_hours_start: null,
+  quiet_hours_end: null,
   timezone: "Asia/Bangkok",
   consent_granted: false,
   consent_granted_at: null,
@@ -38,8 +40,8 @@ const DEFAULTS: NotificationPreferences = {
 const ALERT_OPTIONS = [
   [
     "air_alerts",
-    "PM2.5 ถึงหรือเกินค่าที่ตั้งไว้",
-    "หมุดสถานีหรือรายงานชุมชนที่ใกล้ GPS จากการใช้งานล่าสุด",
+    "เปิดแจ้งเตือนค่าฝุ่น",
+    "ใช้หมุดใกล้ GPS ล่าสุดที่สุดภายใน 2 กม.",
   ],
 ] as const;
 
@@ -76,8 +78,12 @@ function NotificationSettingsContent() {
       .then((value) => {
         if (!active) return;
         const effective = {
+          ...DEFAULTS,
           ...value,
-          pm25_threshold: Math.max(37.6, value.pm25_threshold),
+          radius_km: 2,
+          pm25_threshold: 37.6,
+          quiet_hours_start: null,
+          quiet_hours_end: null,
         };
         setPreferences(effective);
         setPersisted(effective);
@@ -189,7 +195,7 @@ function NotificationSettingsContent() {
           </span>
           <span>
             <small>ระดับฝุ่น{preferences.air_alerts ? "" : " (ปิดอยู่)"}</small>
-            <strong>PM2.5 ตั้งแต่ {preferences.pm25_threshold} µg/m³</strong>
+            <strong>37.6–75.0 และตั้งแต่ 75.1 µg/m³</strong>
           </span>
         </div>
         <div className="cp-notification-condition-summary">
@@ -197,12 +203,8 @@ function NotificationSettingsContent() {
             <AppIcon name="clock" size={19} />
           </span>
           <span>
-            <small>ช่วงไม่รบกวน</small>
-            <strong>
-              {preferences.quiet_hours_start && preferences.quiet_hours_end
-                ? `${preferences.quiet_hours_start}–${preferences.quiet_hours_end} น.`
-                : "ไม่ได้กำหนด"}
-            </strong>
+            <small>ความถี่แจ้งเตือน</small>
+            <strong>แต่ละระดับวันละ 1 ครั้ง · นับวันตามเวลาไทย</strong>
           </span>
         </div>
         <div className="cp-notification-condition-summary">
@@ -211,9 +213,7 @@ function NotificationSettingsContent() {
           </span>
           <span>
             <small>ระยะค้นหาหมุด</small>
-            <strong>
-              {`ค้นหาหมุดใกล้ที่สุดภายใน ${preferences.radius_km ?? 10} กม.`}
-            </strong>
+            <strong>{"ค้นหาหมุดใกล้ที่สุดภายใน 2 กม."}</strong>
           </span>
         </div>
         <div className="cp-notification-condition-summary">
@@ -256,45 +256,46 @@ function NotificationSettingsContent() {
             className="cp-notification-condition-editor"
           >
             <p role="status">การแก้ไขจะมีผลเมื่อกดบันทึกเงื่อนไข</p>
-            <fieldset className="cp-notification-range-group">
+            <fieldset className="cp-notification-option-group">
               <legend>ระดับและพื้นที่</legend>
-              <label>
-                <span>
-                  แจ้งเมื่อ PM2.5 ถึง
-                  <output>{preferences.pm25_threshold} µg/m³</output>
-                </span>
-                <input
-                  type="range"
-                  min={37.6}
-                  max={500}
-                  step={0.1}
-                  value={preferences.pm25_threshold}
-                  onChange={(event) =>
-                    setPreferences((current) => ({
-                      ...current,
-                      pm25_threshold: Number(event.target.value),
-                    }))
-                  }
-                />
-              </label>
-              <label>
-                <span>
-                  ระยะค้นหาหมุดสูงสุด
-                  <output>{preferences.radius_km ?? 10} กม.</output>
-                </span>
-                <input
-                  type="range"
-                  min={1}
-                  max={50}
-                  value={preferences.radius_km ?? 10}
-                  onChange={(event) =>
-                    setPreferences((current) => ({
-                      ...current,
-                      radius_km: Number(event.target.value),
-                    }))
-                  }
-                />
-              </label>
+              <p>
+                ค้นหาหมุดใกล้ที่สุดภายใน 2 กม. ระยะและเกณฑ์ค่าฝุ่นกำหนดไว้คงที่
+              </p>
+              <p>
+                วันละ 1 ครั้งต่อระดับ
+                หากแจ้งระดับสูงแล้วจะไม่แจ้งระดับต่ำซ้ำในวันนั้น
+              </p>
+              {(
+                [
+                  [
+                    "air_alert_warning",
+                    "37.6–75.0 µg/m³",
+                    "เริ่มมีผลกระทบต่อสุขภาพ",
+                  ],
+                  [
+                    "air_alert_danger",
+                    "75.1 µg/m³ ขึ้นไป",
+                    "มีผลกระทบต่อสุขภาพ",
+                  ],
+                ] as const
+              ).map(([key, label, description]) => (
+                <label key={key}>
+                  <input
+                    type="checkbox"
+                    checked={preferences[key]}
+                    onChange={(event) =>
+                      setPreferences((current) => ({
+                        ...current,
+                        [key]: event.target.checked,
+                      }))
+                    }
+                  />
+                  <span>
+                    <strong>{label}</strong>
+                    <small>{description}</small>
+                  </span>
+                </label>
+              ))}
             </fieldset>
 
             <fieldset className="cp-notification-option-group">
@@ -304,7 +305,7 @@ function NotificationSettingsContent() {
               <p>
                 แจ้งค่าฝุ่นเฉพาะระดับเริ่มมีผลกระทบต่อสุขภาพ 37.6–75.0
                 และมีผลกระทบต่อสุขภาพตั้งแต่ 75.1 µg/m³
-                โดยใช้เกณฑ์ที่คุณตั้งหากสูงกว่า
+                เมื่อค่าฝุ่นสูงขึ้นเป็นอีกระดับจะแจ้งเพิ่มได้ 1 ครั้งในวันนั้น
               </p>
               {ALERT_OPTIONS.map(([key, label, description]) => (
                 <label key={key}>
@@ -327,7 +328,7 @@ function NotificationSettingsContent() {
             </fieldset>
 
             <fieldset className="cp-notification-option-group">
-              <legend>ช่องทางและช่วงไม่รบกวน</legend>
+              <legend>ช่องทางแจ้งเตือน</legend>
               <label>
                 <input
                   type="checkbox"
@@ -344,34 +345,6 @@ function NotificationSettingsContent() {
                   <small>ใช้เมื่อเชื่อมบัญชี LINE แล้ว</small>
                 </span>
               </label>
-              <div className="cp-notification-time-grid">
-                <label>
-                  <span>เริ่มไม่รบกวน</span>
-                  <input
-                    type="time"
-                    value={preferences.quiet_hours_start ?? ""}
-                    onChange={(event) =>
-                      setPreferences((current) => ({
-                        ...current,
-                        quiet_hours_start: event.target.value || null,
-                      }))
-                    }
-                  />
-                </label>
-                <label>
-                  <span>กลับมาแจ้งเตือน</span>
-                  <input
-                    type="time"
-                    value={preferences.quiet_hours_end ?? ""}
-                    onChange={(event) =>
-                      setPreferences((current) => ({
-                        ...current,
-                        quiet_hours_end: event.target.value || null,
-                      }))
-                    }
-                  />
-                </label>
-              </div>
               <label>
                 <input
                   type="checkbox"

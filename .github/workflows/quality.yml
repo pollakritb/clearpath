@@ -42,6 +42,7 @@ jobs:
       - run: node scripts/test-account-erasure.mjs
       - run: node scripts/test-line-delivery.mjs
       - run: node scripts/test-self-air-alerts.mjs
+      - run: node scripts/test-daily-air-alerts.mjs
       - run: node scripts/test-line-candidate-matrix.mjs
       - run: npm run build
 

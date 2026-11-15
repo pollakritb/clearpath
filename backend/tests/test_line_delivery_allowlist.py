@@ -24,7 +24,9 @@ def event(kind="air_alert"):
         "attempts": 0,
         "payload": {
             "channel": "line",
-            "policy_version": "nearest-pin-v1",
+            "policy_version": "nearest-pin-daily-v2",
+            "alert_day": air_alerts.alert_day(datetime.now(UTC)),
+            "alert_severity": 1,
             "location_version": "v1",
             "preferences_at": "p1",
             "source_type": "station",
@@ -154,7 +156,7 @@ def test_missing_line_link_is_not_reported_as_sent(env, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "patch", [{"air_alerts": False}, {"center_lat": None}, {"pm25_threshold": 100}]
+    "patch", [{"air_alerts": False}, {"center_lat": None}, {"air_alert_warning": False}]
 )
 def test_changes_to_air_preferences_cancel_old_pending_messages(env, patch):
     rows, updates, sends, prefs = env
@@ -164,14 +166,12 @@ def test_changes_to_air_preferences_cancel_old_pending_messages(env, patch):
     assert sends == [] and updates[0][1]["last_error"] == "air_alert_no_longer_eligible"
 
 
-def test_quiet_hours_defer_without_consuming_an_attempt_then_expire_old_air(
-    env, monkeypatch
-):
-    rows, updates, sends, _ = env
+def test_retired_quiet_hours_do_not_defer_but_stale_air_still_expires(env, monkeypatch):
+    rows, updates, sends, prefs = env
     rows.append(event())
-    monkeypatch.setattr(notifications, "is_quiet_hour", lambda *_: True)
-    assert notifications.process_outbox()["deferred"] == 1
-    assert "attempts" not in updates[-1][1] and sends == []
+    prefs.update(quiet_hours_start="00:00", quiet_hours_end="23:59")
+    assert notifications.process_outbox()["delivered"] == 1
+    assert len(sends) == 1
     rows[0]["payload"]["source_at"] = (
         datetime.now(UTC) - timedelta(hours=10)
     ).isoformat()
@@ -286,7 +286,7 @@ def test_line_opt_out_cancels_even_during_quiet_hours(env, monkeypatch):
     rows, updates, sends, prefs = env
     rows.append(event())
     prefs["line_enabled"] = False
-    monkeypatch.setattr(notifications, "is_quiet_hour", lambda *_: True)
+    prefs.update(quiet_hours_start="00:00", quiet_hours_end="23:59")
     result = notifications.process_outbox()
     assert result["dead"] == 1 and result["deferred"] == 0
     assert sends == [] and updates[-1][1]["status"] == "dead"

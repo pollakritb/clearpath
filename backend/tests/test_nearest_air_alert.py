@@ -106,7 +106,7 @@ def test_stale_nearest_falls_back_to_fresh_pin_and_ties_are_deterministic():
     assert nearest_source(POINT, [source(lat=15)], 1, NOW) is None
 
 
-def test_episode_no_spam_switching_source_missing_data_escalation_and_recovery():
+def test_daily_no_spam_switching_source_missing_data_escalation_and_recovery():
     state = transition({}, source(pm25=40), 37.6, NOW)
     assert state["notify"]
     assert not transition(
@@ -120,8 +120,8 @@ def test_episode_no_spam_switching_source_missing_data_escalation_and_recovery()
     recovered = transition(
         low, source(pm25=20), 37.6, NOW + timedelta(hours=1, minutes=30)
     )
-    assert recovered["severity"] == 0
-    assert transition(recovered, source(pm25=40), 37.6, NOW + timedelta(hours=2))[
+    assert recovered["severity"] == 2
+    assert not transition(recovered, source(pm25=40), 37.6, NOW + timedelta(hours=2))[
         "notify"
     ]
 
@@ -133,8 +133,14 @@ def test_delivery_rechecks_latest_location_and_source(monkeypatch):
         "updated_at": "p1",
         "pm25_threshold": 37.6,
     }
-    chosen = {**source(), "policy_version": "nearest-pin-v1"}
-    payload = {**chosen, "location_version": "v1", "preferences_at": "p1"}
+    chosen = {**source(), "policy_version": "nearest-pin-daily-v2"}
+    payload = {
+        **chosen,
+        "location_version": "v1",
+        "preferences_at": "p1",
+        "alert_day": air_alerts.alert_day(datetime.now(UTC)),
+        "alert_severity": 2,
+    }
     monkeypatch.setattr(air_alerts, "selected", lambda _: (prefs, POINT, chosen))
     assert air_alerts.delivery_allowed("user", payload)
     assert not air_alerts.delivery_allowed(
@@ -219,6 +225,39 @@ def test_message_keeps_precision_and_labels_thai_time():
     assert "เวลาไทย" in notice["body"] and "13:00" in notice["body"]
 
 
+@pytest.mark.parametrize("kind", ["station", "community"])
+def test_line_request_contains_complete_pin_context_without_provider_io(
+    monkeypatch, kind
+):
+    from backend.services import line_messaging
+
+    monkeypatch.setattr(settings, "app_public_url", "https://clearpath.example")
+    monkeypatch.setattr(
+        line_messaging.supabase_client,
+        "get_line_notification_link",
+        lambda _: {"active": True, "line_user_id": "U" + "1" * 32},
+    )
+    notice = air_alerts.notice_for(
+        {**source(kind, pm25=40, name="สถานีทดสอบ"), "distance_km": 0.2},
+        POINT,
+        {},
+        "key",
+    )
+    request = line_messaging.prepare_push("1", notice)
+    text = request["messages"][0]["text"]
+    assert "PM2.5 40 µg/m³" in text
+    assert "37.6–75.0" in text and "เริ่มมีผลกระทบต่อสุขภาพ" in text
+    assert "200 เมตร" in text and "ภายใน 2 กม." in text
+    assert "วัดเมื่อ: 13/11/2026 13:00" in text
+    assert "GPS อ้างอิงที่บันทึก:" in text and "คำแนะนำ:" in text
+    pin = "1" if kind == "station" else "RPT-000001"
+    query = "station" if kind == "station" else "report"
+    assert f"หมุดอ้างอิง: {pin}" in text
+    assert text.endswith(f"https://clearpath.example/?{query}={pin}")
+    assert ("สถานีทดสอบ" in text) == (kind == "station")
+    assert ("ข้อมูลชุมชนเป็นข้อมูลเสริม" in text) == (kind == "community")
+
+
 def test_canary_uses_same_profile_identity_in_evaluation_and_delivery(monkeypatch):
     monkeypatch.setattr(settings, "line_alert_canary_user_ids", "1, 2")
     assert air_alerts.in_canary("1")
@@ -237,3 +276,69 @@ def test_nearest_lookup_does_not_mutate_input_candidates():
     before = deepcopy(sources)
     nearest_source(POINT, sources, 10, NOW)
     assert sources == before
+
+
+def test_daily_quota_resets_at_thai_midnight_without_waiting_for_a_cooldown():
+    before = datetime(2026, 11, 15, 16, 59, 59, tzinfo=UTC)
+    state = transition({}, source(pm25=50), 500, before)
+    assert state["notify"] and state["alert_day"] == "2026-11-15"
+    state = transition(state, source(pm25=80), 500, before)
+    assert state["notify"] and state["severity"] == 2
+    assert not transition(state, source(pm25=50), 0, before)["notify"]
+    following = transition(state, source(pm25=50), 500, before + timedelta(seconds=1))
+    assert following["notify"] and following["alert_day"] == "2026-11-16"
+    assert following["severity"] == 1
+
+
+def test_independent_band_opt_outs_do_not_consume_the_other_band():
+    state = transition({}, source(pm25=50), 37.6, NOW, warning_enabled=False)
+    assert not state["notify"] and state["severity"] == 0
+    high = transition(state, source(pm25=80), 37.6, NOW, warning_enabled=False)
+    assert high["notify"]
+    disabled = transition({}, source(pm25=80), 37.6, NOW, danger_enabled=False)
+    assert not disabled["notify"]
+    assert transition(disabled, source(pm25=50), 37.6, NOW, danger_enabled=False)[
+        "notify"
+    ]
+
+
+def test_selected_uses_fixed_two_kilometres_even_for_legacy_custom_preferences(
+    monkeypatch,
+):
+    now = datetime.now(UTC)
+    point = {**POINT, "observed_at": now.isoformat()}
+    monkeypatch.setattr(air_alerts, "location", lambda _: point)
+    monkeypatch.setattr(
+        air_alerts.supabase_client,
+        "get_notification_preferences",
+        lambda _: {"radius_km": 50, "pm25_threshold": 500},
+    )
+    seen = []
+
+    def candidates(_point, radius):
+        seen.append(radius)
+        return [source(lat=14.03, source_at=now.isoformat())]
+
+    monkeypatch.setattr(air_alerts, "candidates", candidates)
+    assert air_alerts.selected("user", now)[2] is None
+    assert seen == [2.0]
+
+
+def test_retired_custom_settings_are_normalized_without_overriding_opt_outs():
+    from backend.models.notifications import NotificationPreferences
+
+    preferences = NotificationPreferences(
+        radius_km=50,
+        pm25_threshold=500,
+        quiet_hours_start="22:00",
+        quiet_hours_end="07:00",
+        air_alert_warning=False,
+        line_enabled=False,
+        consent_granted=False,
+    )
+    assert preferences.radius_km == 2
+    assert preferences.pm25_threshold == 37.6
+    assert preferences.quiet_hours_start is None and preferences.quiet_hours_end is None
+    assert not preferences.air_alert_warning
+    assert preferences.air_alert_danger
+    assert not preferences.line_enabled and not preferences.consent_granted

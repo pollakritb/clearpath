@@ -10,7 +10,6 @@ from ..algorithms.line_notification_policy import (
     line_event_type,
     line_retry_key,
 )
-from ..algorithms.notification_policy import is_quiet_hour
 from ..core.config import settings
 from ..core.errors import ConfigurationError, UpstreamError
 from . import line_messaging, supabase_client
@@ -30,16 +29,7 @@ def _delivery_preferences(user_id: str) -> dict:
 def _enforce_delivery_policy(preferences: dict, *, force: bool = False) -> bool:
     if force:
         return True
-    if preferences.get("consent_granted") is not True:
-        return False
-    if is_quiet_hour(
-        datetime.now(UTC),
-        preferences.get("quiet_hours_start"),
-        preferences.get("quiet_hours_end"),
-        str(preferences.get("timezone") or "Asia/Bangkok"),
-    ):
-        raise NotificationDeferred("quiet_hours")
-    return True
+    return preferences.get("consent_granted") is True
 
 
 def deliver_to_channel(

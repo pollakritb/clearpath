@@ -6,13 +6,13 @@ import math
 from datetime import UTC, datetime
 
 from .distance import haversine_km
+from .notification_policy import BANGKOK_TZ
 
-POLICY_VERSION = "nearest-pin-v1"
+POLICY_VERSION = "nearest-pin-daily-v2"
+ALERT_RADIUS_KM = 2.0
 LOCATION_TTL_SECONDS = 86400
 MAX_ACCURACY_M = 200
 SOURCE_TTL_SECONDS = {"station": 3600, "community": 10800}
-RECOVERY_SECONDS = 1800
-COOLDOWN_SECONDS = 3600
 
 
 def timestamp(value: object) -> datetime | None:
@@ -87,28 +87,52 @@ def nearest_source(
     return {**source, "distance_km": distance, "policy_version": POLICY_VERSION}
 
 
+def alert_severity(pm25: object) -> int:
+    value = finite(pm25)
+    if value is None or value < 37.6:
+        return 0
+    # Concentrations retain their original precision; >75 is the upper band.
+    return 2 if value > 75.0 else 1
+
+
+def alert_day(now: datetime) -> str:
+    return now.astimezone(BANGKOK_TZ).date().isoformat()
+
+
+def level_enabled(preferences: dict, severity: int) -> bool:
+    return bool(
+        preferences.get("air_alerts", True)
+        and severity in (1, 2)
+        and preferences.get(
+            "air_alert_warning" if severity == 1 else "air_alert_danger", True
+        )
+    )
+
+
 def transition(
-    state: dict, source: dict | None, threshold: float, now: datetime
+    state: dict,
+    source: dict | None,
+    threshold: float,
+    now: datetime,
+    *,
+    warning_enabled: bool = True,
+    danger_enabled: bool = True,
 ) -> dict:
-    """Missing data never clears an episode. Switching pins never resets it."""
+    """At most one rising alert per band per Bangkok calendar day.
+
+    Legacy threshold is accepted for callers but cannot override fixed bands.
+    Missing/low data, pin changes and recovery do not replenish a day's quota.
+    """
     result = dict(state)
-    result["notify"] = False
-    if source is None:
-        result["low_since"] = None
-        return result
-    at = now.isoformat()
-    if source["pm25"] < max(37.6, threshold):
-        low = timestamp(state.get("low_since"))
-        result["low_since"] = state.get("low_since") or at
-        if low and (now - low).total_seconds() >= RECOVERY_SECONDS:
-            result["severity"] = 0
-        return result
-    result["low_since"] = None
-    severity = 2 if source["pm25"] > 75 else 1
-    previous = int(state.get("severity") or 0)
-    last = timestamp(state.get("last_notified_at"))
-    if severity > previous and (
-        previous > 0 or last is None or (now - last).total_seconds() >= COOLDOWN_SECONDS
-    ):
-        result.update(notify=True, severity=severity, last_notified_at=at)
+    day = alert_day(now)
+    previous_day = state.get("alert_day")
+    if previous_day is None:
+        last = timestamp(state.get("last_notified_at"))
+        previous_day = alert_day(last) if last else None
+    previous = int(state.get("severity") or 0) if previous_day == day else 0
+    result.update(notify=False, alert_day=day, severity=previous, low_since=None)
+    severity = alert_severity(source.get("pm25")) if source else 0
+    enabled = warning_enabled if severity == 1 else danger_enabled
+    if severity and enabled and severity > previous:
+        result.update(notify=True, severity=severity, last_notified_at=now.isoformat())
     return result

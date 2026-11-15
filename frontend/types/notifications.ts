@@ -21,6 +21,8 @@ export interface NotificationPreferences {
   center_lon: number | null;
   pm25_threshold: number;
   air_alerts: boolean;
+  air_alert_warning: boolean;
+  air_alert_danger: boolean;
   hotspot_alerts: boolean;
   community_alerts: boolean;
   report_status_alerts: boolean;

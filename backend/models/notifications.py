@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class AlertLocationInput(BaseModel):
@@ -23,11 +23,13 @@ class NotificationPreferences(BaseModel):
     line_enabled: bool = True
     district: str | None = Field(default=None, max_length=100)
     subdistrict: str | None = Field(default=None, max_length=100)
-    radius_km: float | None = Field(default=None, ge=1, le=50)
+    radius_km: float | None = Field(default=2, ge=1, le=50)
     center_lat: float | None = Field(default=None, ge=-90, le=90)
     center_lon: float | None = Field(default=None, ge=-180, le=180)
     pm25_threshold: float = Field(default=37.6, ge=0, le=500)
     air_alerts: bool = True
+    air_alert_warning: bool = True
+    air_alert_danger: bool = True
     hotspot_alerts: bool = True
     community_alerts: bool = False
     report_status_alerts: bool = True
@@ -36,14 +38,22 @@ class NotificationPreferences(BaseModel):
     leaderboard_alerts: bool = False
     announcement_alerts: bool = True
     quiet_hours_start: str | None = Field(
-        default="22:00", pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$"
+        default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$"
     )
     quiet_hours_end: str | None = Field(
-        default="07:00", pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$"
+        default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$"
     )
     timezone: str = Field(default="Asia/Bangkok", pattern=r"^Asia/Bangkok$")
     consent_granted: bool = False
     consent_granted_at: str | None = Field(default=None, max_length=40)
+
+    @model_validator(mode="after")
+    def fixed_air_alert_policy(self):
+        # Accept old clients while ignoring their retired custom controls.
+        self.radius_km = 2.0
+        self.pm25_threshold = 37.6
+        self.quiet_hours_start = self.quiet_hours_end = None
+        return self
 
 
 class UserNotification(BaseModel):

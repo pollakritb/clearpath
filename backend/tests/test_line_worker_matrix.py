@@ -99,7 +99,6 @@ def test_worker_failure_matrix(scenario, monkeypatch):
         "_delivery_preferences",
         lambda _: {"consent_granted": True, "line_enabled": True},
     )
-    monkeypatch.setattr(notifications, "is_quiet_hour", lambda *_: False)
     monkeypatch.setattr(
         line_delivery.supabase_client,
         "get_line_notification_link",
