@@ -23,8 +23,9 @@ function project(station: Pick<Station, "lat" | "lon">, zoom: number) {
 export function clusterMapPoints<T extends Pick<Station, "id" | "lat" | "lon">>(
   stations: T[],
   zoom: number,
+  { maxZoom = 9, radius = 62 }: { maxZoom?: number; radius?: number } = {},
 ): StationCluster<T>[] {
-  if (zoom >= 9)
+  if (zoom >= maxZoom)
     return stations.map((station) => ({
       id: `station:${station.id}`,
       lat: station.lat,
@@ -46,7 +47,7 @@ export function clusterMapPoints<T extends Pick<Station, "id" | "lat" | "lon">>(
       for (let j = i + 1; j < groups.length; j++) {
         const a = groups[i],
           b = groups[j];
-        if (Math.hypot(a.x - b.x, a.y - b.y) >= 62) continue;
+        if (Math.hypot(a.x - b.x, a.y - b.y) >= radius) continue;
         if (
           a.stations.some((left) =>
             b.stations.some(

@@ -1,22 +1,29 @@
 "use client";
+import { useMemo, useState } from "react";
+import { useMapEvents } from "react-leaflet";
+import L from "leaflet";
 import HotspotObservationTime from "./HotspotObservationTime";
 import PriorityMarker, { useMarkerPriority } from "./PriorityMarker";
 import MapSheetPortal from "./MapSheetPortal";
 import MapBottomSheet from "@/frontend/components/app/MapBottomSheet";
-
-import L from "leaflet";
-
+import { SATELLITE_GLYPH } from "@/frontend/components/ui/satellite-glyph";
+import { clusterMapPoints } from "@/frontend/lib/station-clusters";
+import { flyMapToBounds } from "@/frontend/lib/map-motion";
+import {
+  hotspotConfidence,
+  hotspotSatellite,
+} from "@/frontend/lib/hotspot-display";
 import type { FirePoint } from "@/frontend/types";
+import styles from "./HotspotLayer.module.css";
 
-// A satellite glyph avoids presenting a thermal anomaly as a confirmed fire.
-function hotspotIcon(size: number) {
-  const touchSize = 44;
+// A satellite, not a flame: detections are not confirmed fire incidents.
+function hotspotIcon(count: number, selected: boolean) {
+  const group = count > 1;
   return L.divIcon({
-    className: "cp-marker",
-    html: `<div style="width:${touchSize}px;height:${touchSize}px;display:flex;align-items:center;justify-content:center"><span style="width:${size + 10}px;height:${size + 10}px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff7ed;border:2px solid #ea580c;color:#c2410c;filter:drop-shadow(0 2px 4px rgba(124,45,18,.35))"><svg aria-hidden="true" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 9 6 6M15 9l-6 6"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="m7.5 7.5-3-3M16.5 16.5l3 3M4 8l4-4M16 20l4-4"/><path d="M16.5 7.5a4 4 0 0 1 0-5.5M19 10a7.5 7.5 0 0 1 0-10"/></svg></span></div>`,
-    iconSize: [touchSize, touchSize],
-    iconAnchor: [touchSize / 2, touchSize / 2],
-    popupAnchor: [0, -touchSize / 2],
+    className: `cp-marker ${styles.marker}`,
+    html: `<span class="${styles.symbol}" data-group="${group}" data-selected="${selected}"><svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${SATELLITE_GLYPH}" transform="rotate(-30 12 12)" /></svg>${group ? `<b>${count}</b>` : ""}</span>`,
+    iconSize: [group ? 64 : 44, 44],
+    iconAnchor: [group ? 32 : 22, 22],
   });
 }
 
@@ -28,77 +35,171 @@ export default function FireLayer({
   onSelect?: () => void;
 }) {
   const priority = useMarkerPriority();
+  const [viewVersion, setViewVersion] = useState(0);
+  const map = useMapEvents({
+    moveend: () => setViewVersion((v) => v + 1),
+    zoomend: () => setViewVersion((v) => v + 1),
+  });
+  const selected = fires.find((f) => priority?.active === `hotspot:${f.id}`);
+  const groups = useMemo(() => {
+    const bounds = map.getBounds().pad(0.25);
+    return clusterMapPoints(
+      fires.filter(
+        (f) => f.id !== selected?.id && bounds.contains([f.lat, f.lon]),
+      ),
+      map.getZoom(),
+      { maxZoom: Infinity, radius: 64 },
+    );
+    // viewVersion represents mutations of the Leaflet viewport.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fires, map, selected?.id, viewVersion]);
+  const selectedGroup = groups.find(
+    (g) => priority?.active === `hotspot-group:${g.id}`,
+  );
+  const markers = selected
+    ? [
+        ...groups,
+        {
+          id: selected.id,
+          lat: selected.lat,
+          lon: selected.lon,
+          stations: [selected],
+        },
+      ]
+    : groups;
   return (
     <>
-      {fires.map((f) => {
-        const frp = f.frp ?? 0;
-        const size = frp > 50 ? 24 : frp > 15 ? 20 : 16;
+      {markers.map((group) => {
+        const single = group.stations.length === 1 ? group.stations[0] : null;
+        const id = single
+          ? `hotspot:${single.id}`
+          : `hotspot-group:${group.id}`;
+        const label = single
+          ? `จุดความร้อนจากดาวเทียม · ${hotspotSatellite(single.satellite)} · แตะดูเวลาตรวจพบและรายละเอียด`
+          : `กลุ่มจุดความร้อนจากดาวเทียม ${group.stations.length} จุด · จำนวนจุดตรวจพบ ไม่ใช่จำนวนเหตุไฟไหม้ · แตะเพื่อขยายหรือดูรายการ`;
         return (
           <PriorityMarker
-            priorityId={`hotspot:${f.id}`}
-            key={f.id}
-            eventHandlers={{ click: () => onSelect?.() }}
-            position={[f.lat, f.lon]}
-            icon={hotspotIcon(size)}
-            title={`จุดความร้อนจากดาวเทียม ${f.frp ?? "ไม่ระบุ"} MW`}
-            alt={`จุดความร้อนจากดาวเทียม ${f.frp ?? "ไม่ระบุ"} MW`}
+            key={group.id}
+            priorityId={id}
+            position={[group.lat, group.lon]}
+            icon={hotspotIcon(group.stations.length, priority?.active === id)}
+            title={label}
+            alt={label}
+            eventHandlers={{
+              click: () => {
+                onSelect?.();
+                if (!single && map.getZoom() < map.getMaxZoom()) {
+                  priority?.clear();
+                  flyMapToBounds(
+                    map,
+                    group.stations.map((f) => [f.lat, f.lon]),
+                    {
+                      padding: [48, 48],
+                      maxZoom: Math.min(map.getZoom() + 3, map.getMaxZoom()),
+                    },
+                  );
+                }
+              },
+            }}
           />
         );
       })}
-      {fires
-        .filter((f) => priority?.active === `hotspot:${f.id}`)
-        .map((f) => (
-          <MapSheetPortal key={f.id}>
-            <MapBottomSheet
-              className="cp-hotspot-sheet"
-              previewHeight={64}
-              label="จุดความร้อนจากดาวเทียม"
-              onClose={() => priority?.clear()}
-              header={
-                <>
-                  <h2>จุดความร้อนจากดาวเทียม</h2>
-                  <p>NASA FIRMS · {f.satellite ?? "ไม่ระบุดาวเทียม"}</p>
-                  <p>ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว</p>
-                </>
-              }
-            >
-              <div style={{ fontFamily: "inherit" }}>
-                {f.frp != null && <div>FRP: {f.frp} MW</div>}
-                {(f.acquired_at || f.acq_date) && (
-                  <HotspotObservationTime
-                    value={f.acquired_at ?? f.acq_date!}
-                  />
+      {selected && (
+        <MapSheetPortal key={selected.id}>
+          <MapBottomSheet
+            adaptive
+            className={`cp-hotspot-sheet ${styles.sheet}`}
+            label="จุดความร้อนจากดาวเทียม"
+            onClose={() => priority?.clear()}
+            header={
+              <>
+                <h2>จุดความร้อนจากดาวเทียม</h2>
+                {selected.acquired_at ? (
+                  <HotspotObservationTime value={selected.acquired_at} />
+                ) : (
+                  <p>ไม่ระบุเวลาตรวจพบที่แน่นอน</p>
                 )}
-                {f.confidence && (
-                  <div style={{ color: "#5a6664", fontSize: ".8em" }}>
-                    ความเชื่อมั่น:{" "}
-                    {f.confidence === "h"
-                      ? "สูง"
-                      : f.confidence === "n"
-                        ? "ปานกลาง"
-                        : f.confidence === "l"
-                          ? "ต่ำ"
-                          : f.confidence}
-                  </div>
+              </>
+            }
+          >
+            <div className={styles.details}>
+              <p>NASA FIRMS · {hotspotSatellite(selected.satellite)}</p>
+              <dl>
+                <dt>ความเชื่อมั่นการตรวจจับ</dt>
+                <dd>{hotspotConfidence(selected.confidence)}</dd>
+                <dt>กำลังการแผ่รังสีความร้อน</dt>
+                <dd>
+                  {selected.frp == null ? "ไม่ระบุ" : `${selected.frp} MW`}
+                </dd>
+                {selected.daynight && (
+                  <>
+                    <dt>ช่วงที่ตรวจพบ</dt>
+                    <dd>
+                      {selected.daynight.toUpperCase() === "D"
+                        ? "กลางวัน"
+                        : selected.daynight.toUpperCase() === "N"
+                          ? "กลางคืน"
+                          : "ไม่ระบุ"}
+                    </dd>
+                  </>
                 )}
-                {f.source_products.length > 1 && (
-                  <div style={{ color: "#5a6664", fontSize: ".8em" }}>
-                    รวมจุดซ้ำจาก {f.source_products.length} ชุดข้อมูลดาวเทียม
-                  </div>
-                )}
-                <div
-                  style={{
-                    color: "#8a4b16",
-                    fontSize: ".78em",
-                    marginTop: ".25em",
-                  }}
-                >
-                  จุดความร้อนจากดาวเทียมอาจมีได้หลายสาเหตุ
-                </div>
-              </div>
-            </MapBottomSheet>
-          </MapSheetPortal>
-        ))}
+              </dl>
+              <small>
+                FRP คือกำลังการแผ่รังสีความร้อน ไม่ใช่ค่า PM2.5
+                หรือขนาดพื้นที่ไหม้
+              </small>
+              {selected.source_products.length > 1 && (
+                <p>
+                  รวมจุดซ้ำจาก {selected.source_products.length}{" "}
+                  ชุดข้อมูลดาวเทียม
+                </p>
+              )}
+              <p className="cp-hotspot-note">
+                ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว · จุดความร้อนอาจมีได้หลายสาเหตุ
+              </p>
+            </div>
+          </MapBottomSheet>
+        </MapSheetPortal>
+      )}
+      {selectedGroup && (
+        <MapSheetPortal key={selectedGroup.id}>
+          <MapBottomSheet
+            adaptive
+            previewHeight={48}
+            className={`cp-hotspot-sheet ${styles.sheet}`}
+            label="กลุ่มจุดความร้อนจากดาวเทียม"
+            onClose={() => priority?.clear()}
+            header={
+              <>
+                <h2>
+                  จุดความร้อน {selectedGroup.stations.length} จุดในบริเวณนี้
+                </h2>
+                <p>
+                  จำนวนจุดตรวจพบ ไม่ใช่จำนวนเหตุไฟไหม้ ·
+                  เลือกจุดเพื่อดูรายละเอียด
+                </p>
+              </>
+            }
+          >
+            <ul className={styles.list}>
+              {selectedGroup.stations.map((f, i) => (
+                <li key={f.id}>
+                  <button
+                    className="cp-focus"
+                    onClick={() => priority?.select(`hotspot:${f.id}`)}
+                  >
+                    จุดที่ {i + 1} · {hotspotSatellite(f.satellite)}
+                    <span>
+                      {f.lat.toFixed(5)}, {f.lon.toFixed(5)} · FRP{" "}
+                      {f.frp == null ? "ไม่ระบุ" : `${f.frp} MW`}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </MapBottomSheet>
+        </MapSheetPortal>
+      )}
     </>
   );
 }

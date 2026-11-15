@@ -1,0 +1,100 @@
+.marker {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+}
+.symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 36px;
+  height: 36px;
+  border: 2px solid #c2410c;
+  border-radius: 10px;
+  background: #fff7ed;
+  color: #9a3412;
+}
+.symbol[data-group="true"] {
+  width: auto;
+  min-width: 48px;
+  height: 36px;
+  padding: 0 6px;
+  font: 700 14px/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.symbol[data-selected="true"] {
+  outline: 3px solid var(--cp-teal);
+  outline-offset: 3px;
+}
+.marker:global(:focus-visible) .symbol {
+  outline: 3px solid var(--cp-teal);
+  outline-offset: 3px;
+}
+.details {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.details dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  margin: 4px 0 12px;
+}
+.details dt {
+  color: #5a6664;
+}
+.details dd {
+  margin: 0;
+  text-align: right;
+}
+.details p {
+  margin: 8px 0;
+}
+.details small {
+  display: block;
+  color: #5a6664;
+  line-height: 1.5;
+}
+.details :global(.cp-hotspot-note) {
+  color: #8a4b16;
+}
+.sheet :global(.cp-hotspot-time) {
+  margin-top: 8px;
+}
+.sheet :global(.cp-hotspot-time) strong,
+.sheet :global(.cp-hotspot-time) time {
+  display: block;
+}
+.sheet :global(.cp-hotspot-time) strong {
+  font-size: 14px;
+}
+.sheet :global(.cp-hotspot-time) time {
+  color: #5a6664;
+}
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.list li + li {
+  border-top: 1px solid #dce8e4;
+}
+.list button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  color: var(--cp-teal);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.list span {
+  display: block;
+  font-size: 12px;
+  color: #5a6664;
+}

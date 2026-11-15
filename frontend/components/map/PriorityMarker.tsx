@@ -14,7 +14,7 @@ import { Marker, useMap } from "react-leaflet";
 const Priority = createContext<{
   active: string | null;
   clear: () => void;
-  select: (id: string, marker: L.Marker) => void;
+  select: (id: string, marker?: L.Marker) => void;
 } | null>(null);
 
 /** One shared selection order, independent of marker type or screen latitude. */
@@ -43,7 +43,7 @@ export function MarkerPriorityProvider({
     () => ({
       active,
       clear: () => setActive(null),
-      select(id: string, marker: L.Marker) {
+      select(id: string, marker?: L.Marker) {
         map.eachLayer((layer) => {
           if (layer instanceof L.Marker && layer !== marker) layer.closePopup();
         });
@@ -72,6 +72,18 @@ export default function PriorityMarker({
       zIndexOffset={priority?.active === priorityId ? 100000 : zIndexOffset}
       eventHandlers={{
         ...eventHandlers,
+        keydown(event) {
+          eventHandlers?.keydown?.(event);
+          const key = event.originalEvent;
+          if (
+            !key.defaultPrevented &&
+            (key.key === "Enter" || key.key === " ")
+          ) {
+            key.preventDefault();
+            key.stopPropagation();
+            event.target.fire("click", { originalEvent: key });
+          }
+        },
         click(event) {
           priority?.select(priorityId, event.target);
           eventHandlers?.click?.(event);

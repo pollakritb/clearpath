@@ -131,12 +131,19 @@ export default function MapLayersPanel({
             active={showFires}
             icon="satellite"
             symbolClass="cp-layer-symbol--fire"
-            title="จุดความร้อนดาวเทียม"
+            title="จุดความร้อนจากดาวเทียม"
             description={`NASA FIRMS · ${fireStatusLabel(fireStatus, fireCount)}`}
             onClick={onToggleFires}
           />
         </div>
       </fieldset>
+      {showFires && (
+        <p className="cp-map-layer-note">
+          <AppIcon name="satellite" size={18} />{" "}
+          หมุดสีส้มคือจุดความร้อนจากดาวเทียม ตัวเลขบนหมุดกลุ่มคือจำนวนจุดตรวจพบ
+          ไม่ใช่ค่า PM2.5 หรือจำนวนเหตุไฟไหม้ แตะกลุ่มเพื่อขยายแผนที่
+        </p>
+      )}
       <details
         className="cp-layer-legend"
         aria-labelledby="cp-layer-legend-title"

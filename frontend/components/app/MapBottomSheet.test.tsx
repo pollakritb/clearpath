@@ -194,3 +194,84 @@ it("previews report content while keeping its controls inert until expanded", ()
   expect(content.hasAttribute("inert")).toBe(false);
   expect(screen.getByRole("button", { name: "Evidence" })).not.toBeNull();
 });
+
+it("uses one adaptive panel for short content and two snaps only when it outgrows the map budget", () => {
+  let contentHeight = 120;
+  let resize = () => {};
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(callback: () => void) {
+        resize = callback;
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+    function (this: HTMLElement) {
+      const isHeader =
+        this.querySelector("h2") &&
+        !this.hasAttribute("data-map-sheet") &&
+        !this.classList.contains("cp-map") &&
+        !this.querySelector("[aria-hidden][id]");
+      const height = this.classList.contains("cp-map")
+        ? 800
+        : isHeader
+          ? this.firstElementChild?.hasAttribute("data-sheet-grip")
+            ? 140
+            : 96
+          : 0;
+      return {
+        x: 0,
+        y: 0,
+        width: 390,
+        height,
+        top: 0,
+        left: 0,
+        right: 390,
+        bottom: height,
+        toJSON() {},
+      };
+    },
+  );
+  vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockImplementation(
+    function (this: HTMLElement) {
+      return this.hasAttribute("aria-hidden") && this.hasAttribute("id")
+        ? contentHeight
+        : 0;
+    },
+  );
+  render(
+    <div className="cp-map">
+      <MapBottomSheet
+        adaptive
+        label="Adaptive"
+        header={<h2>Hotspot</h2>}
+        onClose={vi.fn()}
+      >
+        <button>Details action</button>
+      </MapBottomSheet>
+    </div>,
+  );
+  const sheet = screen.getByRole("region", { name: "Adaptive" });
+  expect(sheet.getAttribute("data-snap")).toBe("fixed");
+  expect(
+    screen.queryByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+  ).toBeNull();
+  expect(screen.getByRole("button", { name: "Details action" })).toBeTruthy();
+  contentHeight = 900;
+  act(() => resize());
+  expect(sheet.getAttribute("data-snap")).toBe("peek");
+  fireEvent.keyDown(
+    screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+    { key: "End" },
+  );
+  expect(sheet.getAttribute("data-snap")).toBe("full");
+  expect(sheet.style.getPropertyValue("--sheet-height")).toBe("708px");
+  contentHeight = 120;
+  act(() => resize());
+  expect(sheet.getAttribute("data-snap")).toBe("fixed");
+  expect(sheet.style.getPropertyValue("--sheet-height")).toBe("216px");
+  expect(screen.getByRole("button", { name: "Details action" })).toBeTruthy();
+});

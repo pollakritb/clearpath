@@ -29,6 +29,7 @@ export default function MapBottomSheet({
   ownsFocus = false,
   mapClearance = 8,
   expandable = true,
+  adaptive = false,
   expandSignal = 0,
   previewHeight = 0,
 }: {
@@ -46,6 +47,8 @@ export default function MapBottomSheet({
   ownsFocus?: boolean;
   mapClearance?: number;
   expandable?: boolean;
+  /** Use one content-sized panel until details exceed the compact map budget. */
+  adaptive?: boolean;
   expandSignal?: number;
   previewHeight?: number;
 }) {
@@ -98,13 +101,15 @@ export default function MapBottomSheet({
     touch?: boolean;
   } | null>(null);
   const dragged = useRef(false);
+  const [needsExpansion, setNeedsExpansion] = useState(false);
+  const canExpand = expandable && (!adaptive || needsExpansion);
   const [snapState, setSnapState] = useState({
     snap: initialSnap,
     expandSignal,
   });
   const [dragHeight, setDragHeight] = useState<number | null>(null);
   if (snapState.expandSignal !== expandSignal) {
-    setSnapState({ snap: expandable ? "full" : snapState.snap, expandSignal });
+    setSnapState({ snap: canExpand ? "full" : snapState.snap, expandSignal });
     setDragHeight(null);
   }
   const snap = snapState.snap;
@@ -114,7 +119,7 @@ export default function MapBottomSheet({
     current.current = { snap, sizes };
   }, [snap, sizes]);
   function select(next: Snap) {
-    if (!expandable) return;
+    if (!canExpand) return;
     setSnapState({ snap: next, expandSignal });
     setDragHeight(null);
     if (next === "peek" && scroll.current) scroll.current.scrollTop = 0;
@@ -124,9 +129,9 @@ export default function MapBottomSheet({
   useEffect(() => {
     if (lastExpandSignal.current === expandSignal) return;
     lastExpandSignal.current = expandSignal;
-    if (!expandable) return;
+    if (!canExpand) return;
     onSnapChange?.("full");
-  }, [expandSignal, expandable, onSnapChange]);
+  }, [expandSignal, canExpand, onSnapChange]);
   const finishRef = useRef(() => {});
   function finish() {
     const drag = gesture.current;
@@ -159,10 +164,16 @@ export default function MapBottomSheet({
       const headerHeight =
         heading.current?.getBoundingClientRect().height || 180;
       const contentHeight = content.current?.scrollHeight ?? 0;
+      // Discount the optional grip so it cannot make the decision oscillate.
+      const naturalHeight = headerHeight - (canExpand ? 44 : 0) + contentHeight;
+      if (adaptive)
+        setNeedsExpansion(
+          naturalHeight > Math.min(available, Math.max(360, available * 0.65)),
+        );
       const peek = Math.min(
         available,
         headerHeight +
-          (expandable ? Math.min(previewHeight, contentHeight) : contentHeight),
+          (canExpand ? Math.min(previewHeight, contentHeight) : contentHeight),
       );
       const max = Math.min(
         available,
@@ -195,10 +206,10 @@ export default function MapBottomSheet({
       window.removeEventListener("resize", measure);
       window.visualViewport?.removeEventListener("resize", measure);
     };
-  }, [mapClearance, expandable, previewHeight]);
+  }, [mapClearance, canExpand, previewHeight, adaptive]);
   useLayoutEffect(() => {
     const element = scroll.current;
-    if (!element || !expandable) return;
+    if (!element || !canExpand) return;
     let startY = 0,
       startX = 0,
       allowed = false;
@@ -260,10 +271,10 @@ export default function MapBottomSheet({
       element.removeEventListener("touchend", end);
       element.removeEventListener("touchcancel", cancel);
     };
-  }, [expandable]);
+  }, [canExpand]);
   function start(event: PointerEvent<HTMLDivElement>) {
     if (
-      !expandable ||
+      !canExpand ||
       event.pointerType === "touch" ||
       event.button !== 0 ||
       (event.target as Element).closest(
@@ -300,18 +311,19 @@ export default function MapBottomSheet({
       id={id}
       ref={root}
       data-map-sheet
+      data-adaptive={adaptive}
       role="region"
       aria-label={label}
       className={`${styles.sheet} ${className}`}
-      data-snap={expandable ? snap : "fixed"}
-      data-expanded={!expandable || snap === "full"}
+      data-snap={canExpand ? snap : "fixed"}
+      data-expanded={!canExpand || snap === "full"}
       data-owns-focus={ownsFocus}
       data-dragging={dragHeight !== null}
       data-preview={previewHeight > 0}
       style={
         {
           ...style,
-          "--sheet-height": `${dragHeight ?? (snap === "full" ? sizes.max : sizes.peek)}px`,
+          "--sheet-height": `${dragHeight ?? (canExpand && snap === "full" ? sizes.max : sizes.peek)}px`,
           "--sheet-keyboard": `${sizes.keyboard}px`,
         } as CSSProperties
       }
@@ -371,7 +383,7 @@ export default function MapBottomSheet({
         }}
       >
         <div ref={heading} className={styles.header}>
-          {expandable && (
+          {canExpand && (
             <button
               data-sheet-grip
               type="button"
@@ -392,12 +404,12 @@ export default function MapBottomSheet({
           id={contentId}
           ref={content}
           className={styles.content}
-          inert={expandable && snap === "peek"}
-          aria-hidden={expandable && snap === "peek"}
+          inert={canExpand && snap === "peek"}
+          aria-hidden={canExpand && snap === "peek"}
         >
           {children}
         </div>
-        {expandable && snap === "peek" && previewHeight > 0 && (
+        {canExpand && snap === "peek" && previewHeight > 0 && (
           <button
             type="button"
             className={`${styles.previewHint} cp-focus`}

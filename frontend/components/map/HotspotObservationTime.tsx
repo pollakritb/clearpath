@@ -16,9 +16,20 @@ export default function HotspotObservationTime({ value }: { value: string }) {
       ? `${Math.floor(minutes / 60)} ชม. ${minutes % 60} นาที`
       : `${minutes} นาที`;
   return (
-    <p>
-      ตรวจพบ <time dateTime={value}>{observed.toLocaleString("th-TH")}</time>
-      {` · ${age}ที่แล้ว`}
+    <p className="cp-hotspot-time">
+      <strong>{`ตรวจพบ ${age}ที่แล้ว`}</strong>
+      <time dateTime={value}>
+        {observed.toLocaleString("th-TH", {
+          timeZone: "Asia/Bangkok",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })}{" "}
+        · เวลาไทย
+      </time>
     </p>
   );
 }

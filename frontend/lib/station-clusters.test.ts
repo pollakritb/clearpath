@@ -74,3 +74,14 @@ it("does not chain nearby centres into a group spanning distant provinces", () =
     expect(Math.max(...latitudes) - Math.min(...latitudes)).toBeLessThan(2);
   }
 });
+
+it("can keep hotspot groups selectable at maximum zoom without changing station defaults", () => {
+  const points = [station("a", 13.8, 100.5), station("b", 13.8, 100.5)];
+  expect(clusterStations(points, 19)).toHaveLength(2);
+  const hotspots = clusterStations(points, 19, {
+    maxZoom: Infinity,
+    radius: 64,
+  });
+  expect(hotspots).toHaveLength(1);
+  expect(hotspots[0].stations).toHaveLength(2);
+});
