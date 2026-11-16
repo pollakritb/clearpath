@@ -1,0 +1,43 @@
+.popup {
+  box-sizing: border-box;
+  width: min(406px, calc(100vw - 24px));
+  max-height: calc(100dvh - 96px);
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #c8ded9;
+  border-radius: 24px;
+  background: #f8fbfa;
+  color: #192e29;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-shadow: 0 12px 40px #193b3326;
+}
+.popup::backdrop {
+  background: #173e3438;
+}
+.heading {
+  position: sticky;
+  top: -20px;
+  z-index: 1;
+  background: #f8fbfa;
+  padding-block: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.heading h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.heading button {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: white;
+  color: #087c75;
+}

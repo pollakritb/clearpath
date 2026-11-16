@@ -1,6 +1,6 @@
 "use client";
 import type { ReactNode } from "react";
-import { AQI_LEGEND, classifyPm25 } from "@/frontend/lib/aqi";
+import { FORECAST_LEGEND, classifyForecastPm25 } from "@/frontend/lib/aqi";
 import {
   bangkokDay,
   formatForecastTime,
@@ -40,7 +40,7 @@ export default function CamsForecastControls({
     point && surface && !outside
       ? gridValue(surface, point.lat, point.lon)
       : null;
-  const cls = classifyPm25(value);
+  const cls = classifyForecastPm25(value);
   const days = [...new Set(times.map(bangkokDay))];
   const currentDay = at ? bangkokDay(at) : (days[0] ?? "");
   const message =
@@ -121,7 +121,7 @@ export default function CamsForecastControls({
               aria-hidden="true"
               style={{ display: "flex" }}
             >
-              {AQI_LEGEND.map((band) => (
+              {FORECAST_LEGEND.map((band) => (
                 <span
                   key={band.range}
                   style={{ flex: 1, background: band.color }}
@@ -132,7 +132,7 @@ export default function CamsForecastControls({
               className="cp-cams-legend"
               aria-label="ระดับ PM2.5 หน่วยไมโครกรัมต่อลูกบาศก์เมตร"
             >
-              {AQI_LEGEND.map((band) => (
+              {FORECAST_LEGEND.map((band) => (
                 <span key={band.range}>
                   <i style={{ background: band.color }} />
                   {band.range}

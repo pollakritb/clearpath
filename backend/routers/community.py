@@ -412,6 +412,21 @@ def my_reports(user: AuthenticatedUser = Depends(require_user)):
     return CommunityReportsResponse(reports=rows, count=len(rows))
 
 
+@router.get("/community/me/reports/{report_id}", response_model=CommunityReport)
+async def my_report_detail(
+    report_id: ReportID,
+    response: Response,
+    user: AuthenticatedUser = Depends(require_user),
+):
+    from ..services.community.details import owned_report
+
+    response.headers["Cache-Control"] = "no-store"
+    try:
+        return await run_in_threadpool(owned_report, str(report_id), user.id)
+    except KeyError:
+        raise HTTPException(404, detail="ไม่พบรายงานของคุณ") from None
+
+
 @router.get("/community/me", response_model=CommunityProfileResponse)
 async def my_profile(user: AuthenticatedUser = Depends(require_user)):
     profile = await run_in_threadpool(supabase_client.get_profile, user.id)

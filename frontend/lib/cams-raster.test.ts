@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
-  FORECAST_COLOR_STOPS,
+  FORECAST_LEGEND,
   forecastColor,
   forecastColorPacked,
-  classifyPm25,
+  classifyForecastPm25,
 } from "./aqi";
 import {
   camsRasterBounds,
@@ -19,21 +19,16 @@ const grid: GridSurface = {
   validAt: "2030-01-01T00:00Z",
 };
 describe("native CAMS grid presentation", () => {
-  it("uses the central palette at band midpoints, with continuous transitions and unchanged categories", () => {
-    for (const stop of FORECAST_COLOR_STOPS) {
-      expect(forecastColor(stop.value)).toBe(stop.color);
-      expect(classifyPm25(stop.value).color).toBe(stop.color);
+  it("uses six forecast bands with hard category boundaries", () => {
+    for (const band of FORECAST_LEGEND) {
+      expect(forecastColor(band.upper === Infinity ? 1000 : band.upper)).toBe(
+        band.color,
+      );
     }
-    expect(forecastColor(15)).not.toBe(forecastColor(15.2));
-    const a = forecastColorPacked(24.999),
-      b = forecastColorPacked(25.001);
-    for (const shift of [0, 8, 16])
-      expect(
-        Math.abs(((a >> shift) & 255) - ((b >> shift) & 255)),
-      ).toBeLessThanOrEqual(1);
-    expect(forecastColor(null)).toBe(classifyPm25(null).color);
-    expect(forecastColor(NaN)).toBe(classifyPm25(null).color);
-    expect(forecastColor(2000)).toBe(FORECAST_COLOR_STOPS.at(-1)!.color);
+    expect(forecastColor(5)).not.toBe(forecastColor(5.001));
+    expect(forecastColorPacked(24.999)).toBe(forecastColorPacked(25.001));
+    expect(forecastColor(null)).toBe(classifyForecastPm25(null).color);
+    expect(forecastColor(NaN)).toBe(classifyForecastPm25(null).color);
   });
   it("renders source cell colours and grid lines without blending neighbouring values", () => {
     const pixels = renderCamsPixels(grid, 64, 128);
@@ -46,14 +41,16 @@ describe("native CAMS grid presentation", () => {
     expect(colours).toEqual(
       new Set([
         [
-          Number.parseInt(classifyPm25(10).color.slice(1), 16) >> 16,
-          (Number.parseInt(classifyPm25(10).color.slice(1), 16) >> 8) & 255,
-          Number.parseInt(classifyPm25(10).color.slice(1), 16) & 255,
+          Number.parseInt(classifyForecastPm25(10).color.slice(1), 16) >> 16,
+          (Number.parseInt(classifyForecastPm25(10).color.slice(1), 16) >> 8) &
+            255,
+          Number.parseInt(classifyForecastPm25(10).color.slice(1), 16) & 255,
         ].join(","),
         [
-          Number.parseInt(classifyPm25(40).color.slice(1), 16) >> 16,
-          (Number.parseInt(classifyPm25(40).color.slice(1), 16) >> 8) & 255,
-          Number.parseInt(classifyPm25(40).color.slice(1), 16) & 255,
+          Number.parseInt(classifyForecastPm25(40).color.slice(1), 16) >> 16,
+          (Number.parseInt(classifyForecastPm25(40).color.slice(1), 16) >> 8) &
+            255,
+          Number.parseInt(classifyForecastPm25(40).color.slice(1), 16) & 255,
         ].join(","),
         "100,116,139",
       ]),
@@ -97,14 +94,15 @@ it("covers the full received rectangle including cells outside Thailand", () => 
 
 it("uses exactly one category colour for every value within the same PM2.5 band", () => {
   for (const values of [
-    [0, 7, 14, 15],
-    [15.1, 18, 24, 25],
-    [25.1, 30, 37, 37.5],
-    [37.6, 45, 70, 75],
-    [75.1, 90, 120, 300],
+    [0, 1, 4, 5],
+    [5.1, 7, 14, 15],
+    [15.1, 25, 37.5, 50],
+    [50.1, 60, 75, 90],
+    [90.1, 100, 120, 140],
+    [140.1, 160, 200, 300],
   ]) {
     const pixels = renderCamsPixels({ ...grid, values }, 64, 128);
-    const expected = classifyPm25(values[0])
+    const expected = classifyForecastPm25(values[0])
       .color.match(/[a-f0-9]{2}/gi)!
       .map((v) => Number.parseInt(v, 16));
     for (let i = 0; i < pixels.length; i += 4) {

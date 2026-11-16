@@ -307,6 +307,15 @@ export const api = {
     );
   },
 
+  myReportDetail: (id: string) =>
+    http<CommunityReport>(
+      `/api/community/me/reports/${encodeURIComponent(id)}`,
+      {
+        cache: "no-store",
+        auth: true,
+      },
+    ),
+
   reportDetail: (id: string, requestId?: string | null) =>
     http<CommunityReport>(
       `/api/community/reports/${encodeURIComponent(id)}${requestId ? `?request_id=${encodeURIComponent(requestId)}` : ""}`,

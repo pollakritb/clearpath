@@ -1,7 +1,8 @@
-import MapBottomSheet from "./MapBottomSheet";
+import { useEffect, useRef } from "react";
+import styles from "./MapLayersPanel.module.css";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
-import { AQI_LEGEND } from "@/frontend/lib/aqi";
+import { AQI_LEGEND, FORECAST_LEGEND } from "@/frontend/lib/aqi";
 import type { FirmsLoadStatus } from "@/frontend/hooks/useFirms";
 
 import type { ViewMode } from "@/frontend/types/ui";
@@ -14,20 +15,11 @@ interface MapLayersPanelProps {
   individualReportCount: number;
   fireCount: number;
   fireStatus: FirmsLoadStatus;
-  showHeatmap: boolean;
-  heatmapDistanceKm: number | null;
-  heatmapStatus:
-    | "ready"
-    | "no_data"
-    | "no_location"
-    | "location_denied"
-    | "location_unavailable";
   showStations: boolean;
   showIndividualReports: boolean;
   showFires: boolean;
   onClose: () => void;
   onViewModeChange: (mode: ViewMode) => void;
-  onToggleHeatmap: () => void;
   onToggleStations: () => void;
   onToggleIndividualReports: () => void;
   onToggleFires: () => void;
@@ -41,37 +33,74 @@ export default function MapLayersPanel({
   individualReportCount,
   fireCount,
   fireStatus,
-  showHeatmap,
-  heatmapDistanceKm,
-  heatmapStatus,
   showStations,
   showIndividualReports,
   showFires,
   onClose,
   onViewModeChange,
-  onToggleHeatmap,
   onToggleStations,
   onToggleIndividualReports,
   onToggleFires,
 }: MapLayersPanelProps) {
-  const distanceLabel =
-    heatmapDistanceKm == null
-      ? null
-      : heatmapDistanceKm < 0.1
-        ? "น้อยกว่า 0.1 กม."
-        : `${heatmapDistanceKm.toFixed(1)} กม.`;
-
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const trigger =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    dialog.current?.showModal();
+    return () => {
+      if (trigger?.isConnected) trigger.focus();
+    };
+  }, []);
   return (
-    <MapBottomSheet
-      ownsFocus
+    <dialog
+      ref={dialog}
       id="cp-map-layers-panel"
-      className="cp-layers-sheet"
-      label="เลือกข้อมูลที่แสดงบนแผนที่"
-      onClose={onClose}
-      closeLabel="ปิดตัวเลือกข้อมูล"
-      initialSnap="full"
-      header={<h2>ข้อมูลบนแผนที่</h2>}
+      className={styles.popup}
+      aria-labelledby="cp-layer-popup-title"
+      onKeyDown={(e) => {
+        if (e.key !== "Tab") return;
+        const controls = [
+          ...e.currentTarget.querySelectorAll<HTMLElement>(
+            "button:not(:disabled), a[href], summary, input:not(:disabled), [tabindex='0']",
+          ),
+        ].filter((element) => element.getClientRects().length > 0);
+        const first = controls[0],
+          last = controls.at(-1);
+        if (
+          first &&
+          last &&
+          ((e.shiftKey && document.activeElement === first) ||
+            (!e.shiftKey && document.activeElement === last))
+        ) {
+          e.preventDefault();
+          (e.shiftKey ? last : first).focus();
+        }
+      }}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClick={(e) => {
+        if (e.target === dialog.current) {
+          const r = dialog.current.getBoundingClientRect();
+          if (
+            e.clientX < r.left ||
+            e.clientX > r.right ||
+            e.clientY < r.top ||
+            e.clientY > r.bottom
+          )
+            onClose();
+        }
+      }}
     >
+      <header className={styles.heading}>
+        <h2 id="cp-layer-popup-title">ข้อมูลบนแผนที่</h2>
+        <button type="button" onClick={onClose} aria-label="ปิดตัวเลือกข้อมูล">
+          <AppIcon name="close" size={22} />
+        </button>
+      </header>
       {camsEnabled && (
         <p className="cp-cams-mode-note">
           กำลังแสดงพยากรณ์ CAMS · พักชั้นค่าตรวจวัดชั่วคราว
@@ -110,24 +139,6 @@ export default function MapLayersPanel({
             onClick={onToggleIndividualReports}
           />
           <LayerButton
-            active={showHeatmap}
-            icon="activity"
-            symbolClass="cp-layer-symbol--surface"
-            title="ค่าฝุ่นจุดใกล้สุด"
-            description={
-              heatmapStatus === "location_denied"
-                ? "เปิด GPS เพื่อแสดงจุดใกล้คุณที่สุด"
-                : heatmapStatus === "location_unavailable"
-                  ? "เปิด GPS เพื่อแสดงจุดใกล้คุณที่สุด"
-                  : heatmapStatus === "no_location"
-                    ? "เปิด GPS เพื่อแสดงจุดใกล้คุณที่สุด"
-                    : heatmapStatus === "no_data"
-                      ? "ยังไม่มีจุดข้อมูลบนแผนที่"
-                      : `ห่างจากคุณ ${distanceLabel}`
-            }
-            onClick={onToggleHeatmap}
-          />
-          <LayerButton
             active={showFires}
             icon="satellite"
             symbolClass="cp-layer-symbol--fire"
@@ -155,13 +166,12 @@ export default function MapLayersPanel({
           </span>
         </summary>
         <p className="cp-map-layer-note">
-          รูปสถานีคือข้อมูล Air4Thai รูปคนคือรายงานชุมชน
-          หมุดซ้อนแสดงค่าเฉลี่ยของจุดในกลุ่ม ป้ายมุมบนบอกจำนวนจุด
-          และนาฬิกาบอกข้อมูลเก่า แตะเพื่อขยายดูค่าของแต่ละหมุด
-          ตัวเลขกลุ่มไม่ใช่ค่าประมาณของพื้นที่ทั้งหมด
+          {camsEnabled
+            ? "สีพยากรณ์ CAMS ใช้ 6 ระดับตามช่วงความเข้มข้น PM2.5 แยกจากสีค่าตรวจวัด"
+            : "รูปสถานีคือข้อมูล Air4Thai รูปคนคือรายงานชุมชน หมุดซ้อนแสดงค่าเฉลี่ยของจุดในกลุ่ม ป้ายมุมบนบอกจำนวนจุด และนาฬิกาบอกข้อมูลเก่า แตะเพื่อขยายดูค่าของแต่ละหมุด ตัวเลขกลุ่มไม่ใช่ค่าประมาณของพื้นที่ทั้งหมด"}
         </p>
         <div className="cp-layer-legend__items">
-          {AQI_LEGEND.map((item) => (
+          {(camsEnabled ? FORECAST_LEGEND : AQI_LEGEND).map((item) => (
             <div key={item.range} className="cp-layer-legend__item">
               <i aria-hidden="true" style={{ background: item.color }} />
               <span>{item.level}</span>
@@ -172,7 +182,7 @@ export default function MapLayersPanel({
         <p className="cp-map-layer-note">
           {camsEnabled
             ? "พยากรณ์ CAMS เป็นภาพรวมจากกริดประมาณ 45 กม. ไม่ใช่ค่าตรวจวัด ณ จุดนั้น"
-            : "วงสีใช้ค่าล่าสุดที่มีของจุดตรวจใกล้ GPS คุณที่สุด 1 จุด อาจเป็นข้อมูลเก่า โปรดตรวจเวลาที่วัด รัศมี 12 กม. เป็นขอบเขตการแสดงผล ไม่ใช่ค่าเฉลี่ยของพื้นที่"}
+            : "วงสีใช้ค่าล่าสุดที่มีของจุดตรวจใกล้ GPS คุณที่สุด 1 จุด จากชั้นข้อมูลที่เปิดอยู่ โดยไม่ใช้รายงานของคุณ อาจเป็นข้อมูลเก่า โปรดตรวจเวลาที่วัด รัศมี 12 กม. เป็นขอบเขตการแสดงผล ไม่ใช่ค่าเฉลี่ยของพื้นที่"}
         </p>
       </details>
 
@@ -190,7 +200,7 @@ export default function MapLayersPanel({
           {viewMode === "map" ? "ดูรายการสถานี" : "กลับไปแผนที่"}
         </button>
       </div>
-    </MapBottomSheet>
+    </dialog>
   );
 }
 

@@ -57,8 +57,6 @@ export default function MapPageClient(options: MapPageOptions) {
     selectedPlace,
     setSelectedPlace,
     setPlaceClock,
-    showHeatmap,
-    setShowHeatmap,
     showStations,
     setShowStations,
     showIndividualReports,
@@ -92,7 +90,6 @@ export default function MapPageClient(options: MapPageOptions) {
     effectiveFocusPoint,
     visibleStations,
     heatmapPoint,
-    heatmapDistanceKm,
     placeAir,
     mapStations,
     mapReports,
@@ -240,21 +237,10 @@ export default function MapPageClient(options: MapPageOptions) {
             : undefined
         }
         resetViewSignal={resetViewSignal}
-        showHeatmap={
-          requestStep === "idle" &&
-          !camsEnabled &&
-          !historyEnabled &&
-          showHeatmap
-        }
-        showStations={
-          requestStep === "idle" &&
-          !camsEnabled &&
-          (Boolean(selectedPlace) || showStations)
-        }
+        showHeatmap={requestStep === "idle" && !camsEnabled && !historyEnabled}
+        showStations={requestStep === "idle" && !camsEnabled && showStations}
         showIndividualReports={
-          requestStep === "idle" &&
-          !camsEnabled &&
-          (Boolean(selectedPlace) || showIndividualReports)
+          requestStep === "idle" && !camsEnabled && showIndividualReports
         }
         onMapClick={(lat, lon) => {
           if (requestStep !== "idle") return;
@@ -338,24 +324,10 @@ export default function MapPageClient(options: MapPageOptions) {
           fireStatus={firms.status}
           demoMode={community.demoMode}
           stations={historyEnabled ? visibleStations : serviceAreaStations}
-          showHeatmap={showHeatmap}
-          heatmapDistanceKm={heatmapDistanceKm}
-          heatmapStatus={
-            userLocation
-              ? heatmapPoint
-                ? "ready"
-                : "no_data"
-              : currentLocation.status === "denied"
-                ? "location_denied"
-                : currentLocation.status === "unavailable"
-                  ? "location_unavailable"
-                  : "no_location"
-          }
           showStations={showStations}
           showIndividualReports={showIndividualReports}
           showFires={historyEnabled ? false : showFires}
           onViewModeChange={setViewMode}
-          onToggleHeatmap={() => setShowHeatmap((value) => !value)}
           onToggleStations={() => setShowStations((value) => !value)}
           onToggleIndividualReports={() =>
             setShowIndividualReports((value) => !value)

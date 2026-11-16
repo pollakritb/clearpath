@@ -22,19 +22,10 @@ interface MapChromeProps {
   fireStatus: FirmsLoadStatus;
   demoMode: boolean;
   stations: Station[];
-  showHeatmap: boolean;
-  heatmapDistanceKm: number | null;
-  heatmapStatus:
-    | "ready"
-    | "no_data"
-    | "no_location"
-    | "location_denied"
-    | "location_unavailable";
   showStations: boolean;
   showIndividualReports: boolean;
   showFires: boolean;
   onViewModeChange: (mode: ViewMode) => void;
-  onToggleHeatmap: () => void;
   onToggleStations: () => void;
   onToggleIndividualReports: () => void;
   onToggleFires: () => void;
@@ -55,14 +46,10 @@ export default function MapChrome({
   fireStatus,
   demoMode,
   stations,
-  showHeatmap,
-  heatmapDistanceKm,
-  heatmapStatus,
   showStations,
   showIndividualReports,
   showFires,
   onViewModeChange,
-  onToggleHeatmap,
   onToggleStations,
   onToggleIndividualReports,
   onToggleFires,
@@ -128,15 +115,11 @@ export default function MapChrome({
           individualReportCount={individualReportCount}
           fireCount={fireCount}
           fireStatus={fireStatus}
-          showHeatmap={showHeatmap}
-          heatmapDistanceKm={heatmapDistanceKm}
-          heatmapStatus={heatmapStatus}
           showStations={showStations}
           showIndividualReports={showIndividualReports}
           showFires={showFires}
           onClose={closePanel}
           onViewModeChange={onViewModeChange}
-          onToggleHeatmap={onToggleHeatmap}
           onToggleStations={onToggleStations}
           onToggleIndividualReports={onToggleIndividualReports}
           onToggleFires={onToggleFires}

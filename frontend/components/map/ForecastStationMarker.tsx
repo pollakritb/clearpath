@@ -3,7 +3,7 @@
 import L from "leaflet";
 import { Marker, useMap } from "react-leaflet";
 import { useEffect } from "react";
-import { classifyPm25 } from "@/frontend/lib/aqi";
+import { classifyForecastPm25 } from "@/frontend/lib/aqi";
 import { formatForecastTime } from "@/frontend/lib/forecast-grid";
 import type { ForecastStationPoint } from "@/frontend/types/ui";
 
@@ -68,7 +68,7 @@ export default function ForecastStationMarker({
     Number.isFinite(point.pm25) &&
     point.pm25 >= 0;
   const value = valid ? point.pm25!.toFixed(1) : "—";
-  const color = classifyPm25(valid ? point.pm25 : null).color;
+  const color = classifyForecastPm25(valid ? point.pm25 : null).color;
   const status = point.loading
     ? "กำลังโหลดพยากรณ์"
     : point.error || !valid

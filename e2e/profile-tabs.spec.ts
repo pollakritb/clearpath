@@ -100,3 +100,48 @@ test("profile tabs and cached revisits work without a server navigation", async 
   }
   expect(serverNavigations).toBe(0);
 });
+
+test("an archived own report opens its detail and returns to the reports tab without a map link", async ({
+  page,
+}) => {
+  const report = {
+    id: "RPT-000004",
+    user_id: "local",
+    status: "approved",
+    verified_pm25: 17,
+    ocr_pm25: 17,
+    captured_at: "2020-01-01T04:08:00Z",
+    created_at: "2020-01-01T04:08:00Z",
+    is_fresh: false,
+    image_url: null,
+  };
+  await page.route("**/api/community/me/reports", (route) =>
+    route.fulfill({ json: { reports: [report], count: 1 } }),
+  );
+  await page.route("**/api/community/me/reports/RPT-000004", (route) =>
+    route.fulfill({ json: report }),
+  );
+  await page.goto("/profile?tab=reports");
+  await expect(page.getByRole("link", { name: "ดูบนแผนที่" })).toHaveCount(0);
+  await page
+    .getByRole("link", { name: "ดูรายละเอียดรายงาน", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/profile\/reports\/RPT-000004$/);
+  await expect(
+    page.getByRole("heading", { name: "รายงาน RPT-000004", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("รายงานย้อนหลัง ไม่อยู่ในชั้นข้อมูลล่าสุดบนแผนที่", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "รายงาน RPT-000004", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("link", { name: "← กลับรายงานของฉัน", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/profile\?tab=reports$/);
+  await expect(page.locator(".cp-contribution")).toBeVisible();
+});

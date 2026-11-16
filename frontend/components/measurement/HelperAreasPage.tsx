@@ -29,8 +29,11 @@ export default function HelperAreasPage({ requestId }: { requestId?: string }) {
           <AppIcon name="back" size={18} />
           {requestId ? "กลับไปคำขอของฉัน" : "กลับไปการแจ้งเตือน"}
         </SettingsLink>
-        <h1>ช่วยวัดให้คนใกล้คุณ</h1>
-        <p>รับคำขอจากคนใกล้บ้านหรือที่ทำงาน เมื่อคุณพร้อมช่วยวัด</p>
+        <h1>ช่วยวัดค่าฝุ่นในพื้นที่ที่คุณสะดวก</h1>
+        <p>
+          รับแจ้งคำขอที่มีหมุดอยู่ภายในระยะ 2 กม. จากพื้นที่ช่วยวัดของคุณ
+          ผู้ขอสามารถส่งคำขอจากที่ใดก็ได้
+        </p>
         <HelperSettings />
       </section>
     </UserPageShell>

@@ -5,6 +5,16 @@ from ..measurement import service, store
 from .presenter import present_report
 
 
+def owned_report(report_id: str, viewer_id: str) -> dict:
+    """An owner's archive is independent of public freshness/publication gates."""
+    row = supabase_client.get_community_report(report_id)
+    if not row or str(row["user_id"]) != viewer_id:
+        raise KeyError(report_id)
+    return present_report(
+        row, include_exact_location=False, include_private_metadata=True
+    )
+
+
 def published_report(
     report_id: str, viewer_id: str, role: str, request_id: str | None = None
 ) -> dict:

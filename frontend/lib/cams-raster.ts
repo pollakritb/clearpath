@@ -1,4 +1,4 @@
-import { classifyPm25 } from "@/frontend/lib/aqi";
+import { classifyForecastPm25 } from "@/frontend/lib/aqi";
 import { gridAxisIndex } from "@/frontend/lib/forecast-grid";
 import type { GridSurface } from "@/frontend/types/ui";
 
@@ -58,7 +58,7 @@ function* rasterRows(
       if (!colours.has(value))
         colours.set(
           value,
-          Number.parseInt(classifyPm25(value).color.slice(1), 16),
+          Number.parseInt(classifyForecastPm25(value).color.slice(1), 16),
         );
       const boundary =
         (x > 0 && xs[x - 1] !== col) || (y > 0 && ys[y - 1] !== row);

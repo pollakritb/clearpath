@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { useForecast } from "@/frontend/hooks/useForecast";
-import { classifyPm25 } from "@/frontend/lib/aqi";
+import { classifyForecastPm25 } from "@/frontend/lib/aqi";
 import {
   FORECAST_SOURCE_LABELS,
   formatForecastTime,
@@ -83,7 +83,7 @@ export default function MapStationForecast({
     points.find(
       (point) => (point.valid_at ?? point.forecast_at) === selectedAt,
     ) ?? points[0];
-  const selectedClassification = classifyPm25(selected?.pm25);
+  const selectedClassification = classifyForecastPm25(selected?.pm25);
   const unavailable =
     current?.forecast_status === "unavailable" || points.length === 0;
 

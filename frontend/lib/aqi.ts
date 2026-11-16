@@ -96,37 +96,65 @@ export const AQI_LEGEND = [
   { range: "≥75.1", level: "มีผลกระทบต่อสุขภาพ", color: "#ef4444", glyph: "✦" },
 ];
 
-/** CAMS-only continuous display ramp; observation categories and their colours stay unchanged. */
-export const FORECAST_COLOR_STOPS = BANDS.map(([upper, , , color], index) => {
-  const lower = index ? BANDS[index - 1][0] : 0;
-  const end = Number.isFinite(upper)
-    ? upper
-    : lower + (lower - BANDS[index - 2][0]);
-  return { value: (lower + end) / 2, color };
-});
-const rgb = (hex: string) => parseInt(hex.slice(1), 16);
-export function forecastColorPacked(raw: number): number {
-  const value = Math.round(raw * 100) / 100;
-  if (value <= FORECAST_COLOR_STOPS[0].value)
-    return rgb(FORECAST_COLOR_STOPS[0].color);
-  for (let i = 1; i < FORECAST_COLOR_STOPS.length; i++) {
-    const a = FORECAST_COLOR_STOPS[i - 1],
-      b = FORECAST_COLOR_STOPS[i];
-    if (value <= b.value) {
-      const t = (value - a.value) / (b.value - a.value),
-        start = rgb(a.color),
-        end = rgb(b.color);
-      const channel = (shift: number) =>
-        Math.round(
-          ((start >> shift) & 255) * (1 - t) + ((end >> shift) & 255) * t,
-        );
-      return (channel(16) << 16) | (channel(8) << 8) | channel(0);
-    }
-  }
-  return rgb(FORECAST_COLOR_STOPS.at(-1)!.color);
+/** Forecast-only display scale supplied for CAMS. Decimal values use inclusive upper bounds. */
+export const FORECAST_LEGEND = [
+  {
+    upper: 5,
+    range: "0–5",
+    level: "ดี",
+    color: "#50f0e6",
+    glyph: "●",
+    advice: "คุณภาพอากาศดีมาก",
+  },
+  {
+    upper: 15,
+    range: ">5–15",
+    level: "ปานกลาง",
+    color: "#50ccaa",
+    glyph: "◆",
+    advice: "คุณภาพอากาศยอมรับได้",
+  },
+  {
+    upper: 50,
+    range: ">15–50",
+    level: "ปานกลาง (เริ่มเฝ้าระวัง)",
+    color: "#f0e641",
+    glyph: "▲",
+    advice: "กลุ่มเปราะบางควรระวัง",
+  },
+  {
+    upper: 90,
+    range: ">50–90",
+    level: "เริ่มมีผลกระทบ",
+    color: "#ff5050",
+    glyph: "■",
+    advice: "กลุ่มเสี่ยงควรลดกิจกรรมกลางแจ้ง",
+  },
+  {
+    upper: 140,
+    range: ">90–140",
+    level: "มีผลกระทบ",
+    color: "#960032",
+    glyph: "✦",
+    advice: "มีผลกระทบต่อสุขภาพของประชาชนทั่วไป",
+  },
+  {
+    upper: Infinity,
+    range: ">140",
+    level: "อันตรายมาก",
+    color: "#7d2181",
+    glyph: "⬟",
+    advice: "ควรงดกิจกรรมกลางแจ้ง",
+  },
+];
+export function classifyForecastPm25(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value) || value < 0) return UNKNOWN;
+  const band = FORECAST_LEGEND.find((b) => value <= b.upper)!;
+  return { ...band, tint: `${band.color}20` };
 }
 export function forecastColor(value: number | null | undefined): string {
-  return value == null || !Number.isFinite(value)
-    ? UNKNOWN.color
-    : `#${forecastColorPacked(value).toString(16).padStart(6, "0")}`;
+  return classifyForecastPm25(value).color;
+}
+export function forecastColorPacked(value: number): number {
+  return Number.parseInt(forecastColor(value).slice(1), 16);
 }

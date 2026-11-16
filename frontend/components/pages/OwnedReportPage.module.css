@@ -1,0 +1,48 @@
+.detail {
+  padding: 20px;
+  overflow-wrap: anywhere;
+}
+.detail a {
+  color: #087c75;
+}
+.detail header {
+  margin-top: 24px;
+}
+.detail h2 {
+  font-size: 1.1rem;
+}
+.detail dt {
+  color: #58716d;
+  margin-top: 12px;
+}
+.detail dd {
+  margin: 4px 0 0;
+}
+.detail button,
+.detail a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.detail button {
+  padding: 10px 16px;
+  color: #087c75;
+  background: white;
+  border: 1px solid #b5d1ca;
+  border-radius: 12px;
+}
+.value {
+  display: block;
+  font-size: 2rem;
+  margin-top: 16px;
+}
+.value small {
+  font-size: 1rem;
+  font-weight: normal;
+}
+.image {
+  width: 100%;
+  height: auto;
+  margin-top: 20px;
+  border-radius: 16px;
+}

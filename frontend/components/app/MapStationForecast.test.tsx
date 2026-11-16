@@ -106,3 +106,12 @@ it("does not show the previous station's forecast while another pin loads", () =
   ).toBeNull();
   expect(screen.getByText("กำลังโหลดพยากรณ์…")).toBeTruthy();
 });
+
+it("uses the forecast palette for the featured station forecast", () => {
+  const { container } = render(<MapStationForecast stationId="25t" />);
+  expect(
+    container
+      .querySelector<HTMLElement>(".cp-map-station-forecast__featured")
+      ?.style.getPropertyValue("--cp-forecast-color"),
+  ).toBe("#50ccaa");
+});

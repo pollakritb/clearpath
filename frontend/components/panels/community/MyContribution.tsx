@@ -99,14 +99,12 @@ export default function MyContribution({
               <strong className="cp-contribution-value">
                 {report.verified_pm25 ?? "—"} <small>µg/m³</small>
               </strong>
-              {report.status === "approved" && (
-                <Link
-                  href={`/?report=${encodeURIComponent(report.id)}`}
-                  className="cp-focus"
-                >
-                  ดูบนแผนที่
-                </Link>
-              )}
+              <Link
+                href={`/profile/reports/${encodeURIComponent(report.id)}`}
+                className="cp-focus"
+              >
+                ดูรายละเอียดรายงาน
+              </Link>
               {report.status === "rejected" && (
                 <div>
                   <p>

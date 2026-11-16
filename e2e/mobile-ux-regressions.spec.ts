@@ -245,8 +245,8 @@ test("tool sheet owns focus, retains close while scrolling, and restores its tri
       ),
     ).toBe(true);
   }
-  await sheet.locator("[data-sheet-grip]").evaluate((element) => {
-    element.parentElement!.parentElement!.scrollTop = 9999;
+  await sheet.evaluate((element) => {
+    element.scrollTop = 9999;
   });
   await expect(
     sheet.getByRole("button", { name: "ปิดตัวเลือกข้อมูล" }),
@@ -837,6 +837,27 @@ test("previous hourly station readings retain colour and a clock without becomin
 test("request map keeps editable location above and a compact locate control clear of the sheet", async ({
   page,
 }) => {
+  // Supply a fresh fix independently of the host browser's position provider.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.geolocation, "getCurrentPosition", {
+      configurable: true,
+      value: (success: PositionCallback) =>
+        queueMicrotask(() =>
+          success({
+            coords: {
+              latitude: 13.82,
+              longitude: 100.0622,
+              accuracy: 10,
+              altitude: null,
+              altitudeAccuracy: null,
+              heading: null,
+              speed: null,
+            },
+            timestamp: Date.now(),
+          } as GeolocationPosition),
+        ),
+    });
+  });
   await gps(page);
   await page.route("**/api/locations/reverse?*", (route) =>
     route.fulfill({

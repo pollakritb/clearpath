@@ -96,3 +96,58 @@ def test_http_archived_detail_requires_login(monkeypatch):
     monkeypatch.setattr(settings, "local_demo_mode", False)
     with TestClient(app) as client:
         assert client.get("/api/community/reports/RPT-000004").status_code == 401
+
+
+@pytest.mark.parametrize("status", ["approved", "rejected", "pending"])
+def test_owner_archive_includes_all_statuses_and_requests_private_image(
+    monkeypatch, status
+):
+    row = {"id": "RPT-000004", "user_id": "owner", "status": status}
+    monkeypatch.setattr(details.supabase_client, "get_community_report", lambda _: row)
+
+    def present(value, **options):
+        assert options == {
+            "include_exact_location": False,
+            "include_private_metadata": True,
+        }
+        return value
+
+    monkeypatch.setattr(details, "present_report", present)
+    assert details.owned_report(row["id"], "owner") == row
+    with pytest.raises(KeyError):
+        details.owned_report(row["id"], "stranger")
+
+
+def test_owned_archive_endpoint_requires_login_and_hides_missing_or_other_owner(
+    monkeypatch,
+):
+    from fastapi.testclient import TestClient
+
+    from backend.core.auth import AuthenticatedUser, require_user
+    from backend.core.config import settings
+    from backend.main import app
+
+    monkeypatch.setattr(settings, "local_demo_mode", False)
+    with TestClient(app) as client:
+        assert client.get("/api/community/me/reports/RPT-000004").status_code == 401
+    app.dependency_overrides[require_user] = lambda: AuthenticatedUser(
+        "owner", None, "user"
+    )
+    try:
+        with TestClient(app) as client:
+            for row in [
+                None,
+                {"id": "RPT-000004", "user_id": "stranger", "status": "approved"},
+            ]:
+                monkeypatch.setattr(
+                    details.supabase_client,
+                    "get_community_report",
+                    lambda _, row=row: row,
+                )
+                assert (
+                    client.get("/api/community/me/reports/RPT-000004").status_code
+                    == 404
+                )
+            assert client.get("/api/community/me/reports/REQ-000004").status_code == 422
+    finally:
+        app.dependency_overrides.pop(require_user, None)

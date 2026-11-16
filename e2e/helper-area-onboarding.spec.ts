@@ -112,7 +112,9 @@ test("first request offers private helper areas, setup returns to the submitted 
 }) => {
   const state = await helpers(page);
   await submitFirst(page);
-  const intro = page.getByRole("dialog", { name: "รับคำขอจากคนใกล้คุณ" });
+  const intro = page.getByRole("dialog", {
+    name: "ช่วยวัดค่าฝุ่นในพื้นที่ที่คุณสะดวก",
+  });
   await expect(intro).toBeVisible();
   await scan(page);
   await page.screenshot({
@@ -155,7 +157,9 @@ test("intro offers later, close, Escape and never without enabling helper consen
 }) => {
   const state = await helpers(page);
   await submitFirst(page);
-  const intro = page.getByRole("dialog", { name: "รับคำขอจากคนใกล้คุณ" });
+  const intro = page.getByRole("dialog", {
+    name: "ช่วยวัดค่าฝุ่นในพื้นที่ที่คุณสะดวก",
+  });
   await intro
     .getByRole("button", { name: "เตือนภายหลัง", exact: true })
     .click();
@@ -299,7 +303,9 @@ test("existing helper areas still receive the first intro and settings load fail
     },
   ]);
   await submitFirst(page);
-  const intro = page.getByRole("dialog", { name: "รับคำขอจากคนใกล้คุณ" });
+  const intro = page.getByRole("dialog", {
+    name: "ช่วยวัดค่าฝุ่นในพื้นที่ที่คุณสะดวก",
+  });
   await expect(intro).toBeVisible();
   await expect(intro).toContainText("คุณมีพื้นที่รับคำขอ 2 จุด");
   await intro
@@ -369,7 +375,9 @@ test("a three-day reminder returns on the next map visit and can be dismissed pe
     ),
   );
   await page.goto("/");
-  const intro = page.getByRole("dialog", { name: "รับคำขอจากคนใกล้คุณ" });
+  const intro = page.getByRole("dialog", {
+    name: "ช่วยวัดค่าฝุ่นในพื้นที่ที่คุณสะดวก",
+  });
   await expect(intro).toBeVisible();
   await intro
     .getByRole("button", { name: "ไม่แสดงคำแนะนำนี้อีก", exact: true })
@@ -402,7 +410,9 @@ for (const exit of ["กลับไปคำขอของฉัน", "ปิ�
       },
     ]);
     await submitFirst(page);
-    const intro = page.getByRole("dialog", { name: "รับคำขอจากคนใกล้คุณ" });
+    const intro = page.getByRole("dialog", {
+      name: "ช่วยวัดค่าฝุ่นในพื้นที่ที่คุณสะดวก",
+    });
     await intro
       .getByRole("link", { name: "จัดการพื้นที่รับคำขอ", exact: true })
       .click();

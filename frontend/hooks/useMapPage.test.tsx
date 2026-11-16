@@ -335,3 +335,17 @@ it("opens delayed station links once and prioritizes request links over report/s
   expect(result.current.selectedReport).toBeNull();
   expect(result.current.selectedStation).toBeNull();
 });
+
+it("chooses just one nearest point from enabled layers, never an owned report", () => {
+  const { result } = renderHook(() => useMapPage({ active: true }));
+  act(() => result.current.setShowStations(false));
+  expect(result.current.heatmapPoint?.source).toBe("community");
+  act(() => result.current.setShowIndividualReports(false));
+  expect(result.current.heatmapPoint).toBeNull();
+  act(() => result.current.setShowStations(true));
+  expect(result.current.heatmapPoint?.source).toBe("station");
+  act(() => result.current.setShowIndividualReports(true));
+  expect(["station", "community"]).toContain(
+    result.current.heatmapPoint?.source,
+  );
+});

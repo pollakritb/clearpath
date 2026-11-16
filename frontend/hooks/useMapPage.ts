@@ -126,7 +126,6 @@ export function useMapPage({
     null,
   );
   const [placeClock, setPlaceClock] = useState(() => Date.now());
-  const [showHeatmap, setShowHeatmap] = useState(true);
   const [showStations, setShowStations] = useState(true);
   const [showIndividualReports, setShowIndividualReports] = useState(true);
   const [showFires, setShowFires] = useState(showFiresInitially);
@@ -274,8 +273,7 @@ export function useMapPage({
   const visibleStations = historyEnabled
     ? mapHistory.stations.filter((station) => station.in_service_area)
     : serviceAreaStations;
-  // The nearest reading always uses GPS and both current public sources.
-  // Map filters, place searches and history must not change the candidates.
+  // Highlight one nearest enabled observation source; always exclude owned reports.
   useEffect(() => {
     const reset = () => {
       setSelectedReport(null);
@@ -286,36 +284,6 @@ export function useMapPage({
     return () => window.removeEventListener("cp-community-reset", reset);
   }, [setSelectedReport, setSelectedRequestId]);
   const ownedReports = useOwnedReportIds(currentUserId, community.reports);
-  const heatmapPoint = useMemo(
-    () =>
-      nearestHeatmapPoint(
-        userLocation,
-        pm25.stations,
-        ownedReports.ready
-          ? community.reports.filter(
-              (report) => !ownedReports.ids.has(report.id),
-            )
-          : [],
-        currentUserId,
-      ),
-    [
-      userLocation,
-      pm25.stations,
-      community.reports,
-      currentUserId,
-      ownedReports.ids,
-      ownedReports.ready,
-    ],
-  );
-  const heatmapDistanceKm =
-    userLocation && heatmapPoint
-      ? haversineKm(
-          userLocation.lat,
-          userLocation.lon,
-          heatmapPoint.lat,
-          heatmapPoint.lon,
-        )
-      : null;
   const placeAir = usePlaceAir(
     !camsEnabled && !historyEnabled ? selectedPlace : null,
     serviceAreaStations,
@@ -335,6 +303,36 @@ export function useMapPage({
     : historyEnabled
       ? mapHistory.stacks
       : community.stacks;
+  const heatmapPoint = useMemo(
+    () =>
+      nearestHeatmapPoint(
+        userLocation,
+        showStations ? mapStations : [],
+        showIndividualReports && ownedReports.ready
+          ? mapReports.filter((report) => !ownedReports.ids.has(report.id))
+          : [],
+        currentUserId,
+      ),
+    [
+      userLocation,
+      showStations,
+      showIndividualReports,
+      mapStations,
+      mapReports,
+      currentUserId,
+      ownedReports.ids,
+      ownedReports.ready,
+    ],
+  );
+  const heatmapDistanceKm =
+    userLocation && heatmapPoint
+      ? haversineKm(
+          userLocation.lat,
+          userLocation.lon,
+          heatmapPoint.lat,
+          heatmapPoint.lon,
+        )
+      : null;
   const selectedStackReports = selectedStack
     ? selectedStack.report_ids
         .map((id) => mapReports.find((report) => report.id === id))
@@ -510,8 +508,6 @@ export function useMapPage({
     selectedPlace,
     setSelectedPlace,
     setPlaceClock,
-    showHeatmap,
-    setShowHeatmap,
     showStations,
     setShowStations,
     showIndividualReports,

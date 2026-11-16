@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api } from "@/frontend/lib/api-client";
 import { loadPublicData } from "@/frontend/lib/public-data-cache";
-import { classifyPm25 } from "@/frontend/lib/aqi";
+import { classifyPm25, classifyForecastPm25 } from "@/frontend/lib/aqi";
 import { formatForecastTime } from "@/frontend/lib/forecast-grid";
 import {
   stationTimeAt,
@@ -152,9 +152,9 @@ export default function StationTimelineControls({
   const delayed =
     time.kind !== "forecast" && station?.data_status === "delayed";
   const measuredAt = time.kind !== "forecast" ? station?.recorded_at : null;
-  const classification = classifyPm25(
-    loading || error || expired ? null : station?.pm25,
-  );
+  const classification = (
+    time.kind === "forecast" ? classifyForecastPm25 : classifyPm25
+  )(loading || error || expired ? null : station?.pm25);
   return (
     <div
       className="cp-history-timeline-host cp-station-time-panel"

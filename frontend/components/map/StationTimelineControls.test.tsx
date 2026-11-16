@@ -87,3 +87,30 @@ it("shows the actual measurement time and warns instead of presenting expired da
   );
   expect(screen.queryByText("ดี")).toBeNull();
 });
+
+it("changes the selected station colour scale only for forecast time", () => {
+  const { rerender } = render(
+    <StationTimelineControls
+      {...shared}
+      station={{ ...shared.station, pm25: 10 }}
+      mode="forecast"
+      time={{ kind: "forecast", at: times[0] }}
+      onSelect={vi.fn()}
+    />,
+  );
+  const colour = () =>
+    screen
+      .getByRole("region", { name: "สถานีที่ติดตามตามเวลา" })
+      .style.getPropertyValue("--cp-history-color");
+  expect(colour()).toBe("#50ccaa");
+  rerender(
+    <StationTimelineControls
+      {...shared}
+      station={{ ...shared.station, pm25: 10 }}
+      mode="history"
+      time={{ kind: "current" }}
+      onSelect={vi.fn()}
+    />,
+  );
+  expect(colour()).toBe("#3b82f6");
+});

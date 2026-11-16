@@ -52,3 +52,14 @@ it("keeps zero distinct from missing or invalid forecast data", () => {
   rerender(<ForecastStationMarker point={{ ...point, pm25: NaN }} />);
   expect(screen.getByText("—")).toBeTruthy();
 });
+
+it("uses the six-band forecast palette instead of the measured-station palette", () => {
+  const { container } = render(
+    <ForecastStationMarker point={{ ...point, pm25: 10 }} />,
+  );
+  expect(
+    container
+      .querySelector<HTMLElement>(".cp-forecast-station-marker")
+      ?.style.getPropertyValue("--marker-aqi"),
+  ).toBe("#50ccaa");
+});

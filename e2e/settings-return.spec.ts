@@ -52,8 +52,8 @@ test("layers offer the station list while settings remain accessible from profil
   await page
     .getByRole("button", { name: "เลือกข้อมูลที่แสดงบนแผนที่", exact: true })
     .click();
-  const layers = page.getByRole("region", {
-    name: "เลือกข้อมูลที่แสดงบนแผนที่",
+  const layers = page.getByRole("dialog", {
+    name: "ข้อมูลบนแผนที่",
     exact: true,
   });
   await expect(

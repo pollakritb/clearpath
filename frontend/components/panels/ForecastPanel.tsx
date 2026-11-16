@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import AppIcon, { type AppIconName } from "@/frontend/components/ui/AppIcon";
-import { classifyPm25 } from "@/frontend/lib/aqi";
+import { classifyForecastPm25 } from "@/frontend/lib/aqi";
 import {
   agreementLabel,
   FORECAST_LIMITATION_LABELS,
@@ -90,7 +90,7 @@ export default function ForecastPanel({
   );
   const activeSource = activeSourcePoint?.source ?? selected?.source;
   const displayPm25 = activeSourcePoint?.pm25 ?? selected?.pm25;
-  const classification = classifyPm25(displayPm25);
+  const classification = classifyForecastPm25(displayPm25);
   const showingRecommendation = !activeSourcePoint;
   const lowConfidence =
     data?.forecast_status === "limited" || data?.agreement === "low";
@@ -195,8 +195,8 @@ export default function ForecastPanel({
                   data-active={active}
                   style={
                     {
-                      "--cp-slot-color": classifyPm25(point.pm25).color,
-                      "--cp-slot-tint": classifyPm25(point.pm25).tint,
+                      "--cp-slot-color": classifyForecastPm25(point.pm25).color,
+                      "--cp-slot-tint": classifyForecastPm25(point.pm25).tint,
                     } as React.CSSProperties
                   }
                   onClick={() => {
