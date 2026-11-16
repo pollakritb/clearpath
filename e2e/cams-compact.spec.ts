@@ -81,6 +81,21 @@ test("CAMS keeps playback compact and moves supporting information into the expa
   await expect
     .poll(async () => (await panel.boundingBox())!.height)
     .toBeLessThan(125);
+  const request = page.getByRole("button", { name: "ขอค่าฝุ่น", exact: true });
+  await expect(request).toHaveCount(1);
+  const controls = page.getByRole("group", { name: /ควบคุมแผนที่ ระดับซูม/ });
+  await expect
+    .poll(async () => {
+      const controlBox = (await controls.boundingBox())!;
+      const requestBox = (await request.boundingBox())!;
+      const panelBox = (await panel.boundingBox())!;
+      return (
+        controlBox.y + controlBox.height <= panelBox.y &&
+        (controlBox.x >= requestBox.x + requestBox.width ||
+          controlBox.y >= requestBox.y + requestBox.height)
+      );
+    })
+    .toBe(true);
   const selected = panel.locator("header strong");
   expect(await selected.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(
     true,

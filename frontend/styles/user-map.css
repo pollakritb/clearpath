@@ -2849,11 +2849,15 @@
   font-size: 24px;
   color: #486660;
 }
-.cp-map[data-mode="cams"] .cp-mapctrls {
-  top: 76px !important;
-  bottom: auto;
-  left: 12px;
-  right: auto;
+@container cp-mobile (max-width: 767px) {
+  .cp-app .cp-map[data-mode="cams"] .cp-mapctrls {
+    top: auto !important;
+    bottom: calc(
+      var(--cp-mobile-nav-h, 76px) + var(--cp-map-peek-height, 116px) + 24px
+    );
+    left: auto;
+    right: 12px;
+  }
 }
 .cp-map[data-mode="cams"] .cp-mapctrls__zoom {
   display: none !important;
