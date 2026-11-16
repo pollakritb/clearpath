@@ -135,3 +135,67 @@ test("CAMS failure stays compact with one retry and no unusable timeline", async
   await panel.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }).click();
   await expect(panel.getByRole("button", { name: /ลอง/ })).toHaveCount(1);
 });
+
+test("CAMS selected-point marker follows the displayed forecast frame", async ({
+  page,
+}) => {
+  const anchor = Math.floor(Date.now() / 3600000) * 3600000;
+  const times = [0, 1].map((i) => new Date(anchor + i * 3600000).toISOString());
+  await page.route("**/api/forecast-grid/metadata", (route) =>
+    route.fulfill({
+      json: {
+        status: "ready",
+        generation_id: "CGN-000001",
+        grid_version: "cams-global-0.4-th-v1",
+        latitudes: Array.from({ length: 44 }, (_, i) => 4.4 + i * 0.4),
+        longitudes: Array.from({ length: 26 }, (_, i) => 96.4 + i * 0.4),
+        valid_times: times,
+        retrieved_at: times[0],
+        stale: false,
+      },
+    }),
+  );
+  await page.route("**/api/forecast-grid/frames?*", (route) =>
+    route.fulfill({
+      json: {
+        generation_id: "CGN-000001",
+        grid_version: "cams-global-0.4-th-v1",
+        row_start: 0,
+        column_start: 0,
+        rows: 44,
+        columns: 26,
+        frames: times.map((valid_at, i) => ({
+          valid_at,
+          values: Array(1144).fill(i === 0 ? 20 : 100),
+        })),
+      },
+    }),
+  );
+  await page.goto("/?layer=cams");
+  const panel = page.getByRole("region", {
+    name: "พยากรณ์ PM2.5 · CAMS",
+    exact: true,
+  });
+  const slider = panel.getByRole("slider");
+  await expect(slider).toHaveAttribute("max", "1");
+  await expect(panel.getByRole("alert")).toHaveCount(0);
+  const map = page.locator(".leaflet-container");
+  const box = (await map.boundingBox())!;
+  await map.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await panel.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }).click();
+  const moderate = panel.getByRole("img", {
+    name: "จุดที่เลือก 20.0 µg/m³ · ปานกลาง (เริ่มเฝ้าระวัง)",
+  });
+  await expect(moderate).toBeVisible();
+  const original = await moderate.evaluate((e) => getComputedStyle(e).left);
+  await slider.press("ArrowRight");
+  const high = panel.getByRole("img", {
+    name: "จุดที่เลือก 100.0 µg/m³ · มีผลกระทบ",
+  });
+  await expect(high).toBeVisible();
+  expect(
+    parseFloat(await high.evaluate((e) => getComputedStyle(e).left)),
+  ).toBeGreaterThan(parseFloat(original));
+  await panel.getByRole("button", { name: "ปิดรายละเอียดพยากรณ์" }).click();
+  await expect(panel.getByRole("img", { name: /จุดที่เลือก/ })).toHaveCount(0);
+});
