@@ -42,11 +42,10 @@ export default function CamsForecastControls({
       ? gridValue(surface, point.lat, point.lon)
       : null;
   const cls = classifyForecastPm25(value);
-  // The six equal-width segments are categories, not a linear concentration axis.
-  const selectedBand =
-    value != null && Number.isFinite(value) && value >= 0 && !loading
-      ? FORECAST_LEGEND.findIndex((band) => value <= band.upper)
-      : -1;
+  const hasValue =
+    value != null && Number.isFinite(value) && value >= 0 && !loading;
+  // Color boundaries and marker share one numeric axis, including values above 140.
+  const scaleMax = hasValue ? Math.max(200, Math.ceil(value / 50) * 50) : 200;
   const days = [...new Set(times.map(bangkokDay))];
   const currentDay = at ? bangkokDay(at) : (days[0] ?? "");
   const message =
@@ -143,23 +142,33 @@ export default function CamsForecastControls({
                 aria-hidden="true"
                 style={{ display: "flex" }}
               >
-                {FORECAST_LEGEND.map((band) => (
+                {FORECAST_LEGEND.map((band, index) => (
                   <span
                     key={band.range}
-                    style={{ flex: 1, background: band.color }}
+                    style={{
+                      flex:
+                        Math.min(band.upper, scaleMax) -
+                        (index === 0 ? 0 : FORECAST_LEGEND[index - 1].upper),
+                      background: band.color,
+                    }}
                   />
                 ))}
               </div>
-              {selectedBand >= 0 && (
+              {hasValue && (
                 <span
                   className={styles.marker}
                   role="img"
                   aria-label={`จุดที่เลือก ${value!.toFixed(1)} µg/m³ · ${cls.level}`}
                   style={{
-                    left: `${((selectedBand + 0.5) / FORECAST_LEGEND.length) * 100}%`,
+                    left: `${(value! / scaleMax) * 100}%`,
                   }}
                 />
               )}
+            </div>
+            <div className={styles.axis} aria-hidden="true">
+              <span>0</span>
+              <span>{scaleMax / 2}</span>
+              <span>{scaleMax} µg/m³</span>
             </div>
             <div
               className="cp-cams-legend"

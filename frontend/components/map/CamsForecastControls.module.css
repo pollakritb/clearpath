@@ -12,3 +12,24 @@
   outline: 2px solid white;
   transform: translateX(-50%);
 }
+
+.axis {
+  position: relative;
+  height: 18px;
+  color: #526b66;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.axis span {
+  position: absolute;
+}
+.axis span:first-child {
+  left: 0;
+}
+.axis span:nth-child(2) {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.axis span:last-child {
+  right: 0;
+}

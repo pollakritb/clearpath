@@ -166,7 +166,7 @@ test("CAMS selected-point marker follows the displayed forecast frame", async ({
         columns: 26,
         frames: times.map((valid_at, i) => ({
           valid_at,
-          values: Array(1144).fill(i === 0 ? 20 : 100),
+          values: Array(1144).fill(i === 0 ? 20 : 40),
         })),
       },
     }),
@@ -190,7 +190,7 @@ test("CAMS selected-point marker follows the displayed forecast frame", async ({
   const original = await moderate.evaluate((e) => getComputedStyle(e).left);
   await slider.press("ArrowRight");
   const high = panel.getByRole("img", {
-    name: "จุดที่เลือก 100.0 µg/m³ · มีผลกระทบ",
+    name: "จุดที่เลือก 40.0 µg/m³ · ปานกลาง (เริ่มเฝ้าระวัง)",
   });
   await expect(high).toBeVisible();
   expect(
