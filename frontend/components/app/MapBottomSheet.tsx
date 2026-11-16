@@ -212,10 +212,12 @@ export default function MapBottomSheet({
     if (!element || !canExpand) return;
     let startY = 0,
       startX = 0,
-      allowed = false;
+      allowed = false,
+      fromHeader = false;
     const start = (event: TouchEvent) => {
       if (event.touches.length !== 1) return;
       const target = event.target as Element;
+      fromHeader = !!heading.current?.contains(target);
       allowed = !target.closest(
         "dialog,input,select,textarea,[data-sheet-no-drag]",
       );
@@ -225,13 +227,23 @@ export default function MapBottomSheet({
     };
     const move = (event: TouchEvent) => {
       if (!allowed || event.touches.length !== 1) return;
+      // Once native scrolling owns this gesture, never try to steal it back.
+      if (!event.cancelable) {
+        allowed = false;
+        gesture.current = null;
+        setDragHeight(null);
+        return;
+      }
       const delta = startY - event.touches[0].clientY;
       if (Math.abs(event.touches[0].clientX - startX) > Math.abs(delta)) return;
       const state = current.current;
       if (!gesture.current) {
         if (Math.abs(delta) < 8) return;
         // In full view, native scrolling owns upward gestures and downward gestures away from the top.
-        if (state.snap === "full" && (delta > 0 || element.scrollTop > 1))
+        if (
+          state.snap === "full" &&
+          (delta > 0 || (!fromHeader && element.scrollTop > 1))
+        )
           return;
         gesture.current = {
           y: startY,

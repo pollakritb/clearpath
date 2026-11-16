@@ -10,7 +10,7 @@ import {
 import type { useForecastGrid } from "@/frontend/hooks/useForecastGrid";
 import { camsRasterBounds } from "@/frontend/lib/cams-raster";
 import { isInThailand } from "@/frontend/lib/thailand-boundary";
-import MapTimelineControls from "./MapTimelineControls";
+import CamsTimelineControls from "./CamsTimelineControls";
 
 export default function CamsForecastControls({
   grid,
@@ -64,13 +64,17 @@ export default function CamsForecastControls({
   if (requestCard) return <>{requestCard}</>;
   return (
     <>
-      <MapTimelineControls
-        compact
-        initiallyExpanded={Boolean(point)}
-        expandSignal={point ? point.lat * 1000000 + point.lon : 0}
-        error={error || (loading ? "กำลังโหลดพยากรณ์…" : undefined)}
+      <CamsTimelineControls
+        error={
+          error ||
+          (loading
+            ? "กำลังโหลดพยากรณ์…"
+            : grid.noFrame
+              ? "ไม่มีข้อมูลช่วงนี้"
+              : undefined)
+        }
         compactAction={
-          error ? (
+          error || grid.noFrame ? (
             <button type="button" className="cp-focus" onClick={grid.retry}>
               ลองโหลดพยากรณ์ใหม่
             </button>
@@ -80,7 +84,7 @@ export default function CamsForecastControls({
         title="พยากรณ์ PM2.5 · CAMS"
         detail={
           <>
-            {point && (
+            {point && (surface || !error) && (
               <section
                 className="cp-cams-point"
                 aria-label="ค่าพยากรณ์บริเวณที่เลือก"
@@ -150,15 +154,6 @@ export default function CamsForecastControls({
                 </span>
               ))}
             </div>
-            {(error || grid.noFrame) && (
-              <div className="cp-cams-footer">
-                {(error || grid.noFrame) && (
-                  <button type="button" onClick={grid.retry}>
-                    ลองใหม่
-                  </button>
-                )}
-              </div>
-            )}
           </>
         }
         endAction={
@@ -200,15 +195,7 @@ export default function CamsForecastControls({
         }
         summary={message}
         extra={
-          error ? (
-            <button
-              type="button"
-              className="cp-map-current-dock__history cp-focus"
-              onClick={grid.retry}
-            >
-              ลองโหลดพยากรณ์ใหม่
-            </button>
-          ) : days.length > 0 ? (
+          days.length > 0 ? (
             <label className="cp-cams-day">
               <span className="sr-only">เลือกวันพยากรณ์</span>
               <select
@@ -246,7 +233,7 @@ export default function CamsForecastControls({
               aria-label="ข้อมูลพยากรณ์ CAMS"
               onClick={() => grid.pause()}
             >
-              ⓘ
+              เกี่ยวกับข้อมูล CAMS
             </summary>
             <div>
               <strong>CAMS Global · Open-Meteo</strong>

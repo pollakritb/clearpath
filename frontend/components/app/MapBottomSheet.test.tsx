@@ -275,3 +275,32 @@ it("uses one adaptive panel for short content and two snaps only when it outgrow
   expect(sheet.style.getPropertyValue("--sheet-height")).toBe("216px");
   expect(screen.getByRole("button", { name: "Details action" })).toBeTruthy();
 });
+
+it("leaves a non-cancelable touch gesture to native scrolling", () => {
+  render(
+    <MapBottomSheet
+      label="Native scroll"
+      header={<h2>Summary</h2>}
+      onClose={vi.fn()}
+    >
+      Content
+    </MapBottomSheet>,
+  );
+  const heading = screen.getByText("Summary");
+  fireEvent.touchStart(heading, {
+    touches: [{ clientX: 100, clientY: 500, identifier: 0 }],
+  });
+  const event = new Event("touchmove", { bubbles: true, cancelable: false });
+  Object.defineProperty(event, "touches", {
+    value: [{ clientX: 100, clientY: 400, identifier: 0 }],
+  });
+  const prevent = vi.spyOn(event, "preventDefault");
+  fireEvent(heading, event);
+  fireEvent.touchEnd(heading, { touches: [] });
+  expect(prevent).not.toHaveBeenCalled();
+  expect(
+    screen
+      .getByRole("region", { name: "Native scroll" })
+      .getAttribute("data-snap"),
+  ).toBe("peek");
+});

@@ -1,0 +1,200 @@
+.dock {
+  font-size: 13px;
+}
+.dock [data-sheet-grip] {
+  position: absolute;
+  top: -8px;
+  left: calc(50% - 40px);
+  width: 80px;
+  height: 44px;
+  z-index: 1;
+  cursor: ns-resize;
+}
+.dock [data-sheet-grip]:hover {
+  background: transparent;
+}
+.dock button {
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  color: #096f69;
+  font: inherit;
+  border-radius: 10px;
+}
+.dock button:hover {
+  background: #edf7f4;
+}
+.dock button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.heading {
+  padding-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.time {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.45;
+}
+.time span {
+  font-size: 11px;
+  color: #526b66;
+}
+.time strong {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.heading > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 4px;
+  font-size: 12px;
+}
+.heading > button:last-child {
+  font-size: 24px;
+  padding: 0;
+}
+.playback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.playback .play {
+  background: #e7f5f1;
+  display: grid;
+  place-items: center;
+}
+.playback input {
+  min-width: 0;
+  flex: 1;
+  height: 44px;
+  accent-color: #087c75;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.playback .now {
+  font-size: 12px;
+  font-weight: 700;
+}
+.details {
+  padding: 12px 0 0;
+  margin-top: 8px;
+  border-top: 1px solid #dde9e5;
+}
+.day {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  color: #526b66;
+}
+.day > span {
+  flex: 1;
+}
+.day select {
+  min-height: 44px;
+  font-size: 14px;
+}
+.details h3 {
+  font-size: 13px;
+  margin: 16px 0 8px;
+}
+.details h3 span {
+  font-weight: 400;
+  color: #526b66;
+}
+.details :global(.cp-cams-ramp) {
+  height: 6px;
+  margin: 0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.details :global(.cp-cams-legend) {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 10px 0 16px;
+  font-size: 12px;
+}
+.details :global(.cp-cams-info) {
+  position: static;
+}
+.details :global(.cp-cams-info summary) {
+  width: auto;
+  min-height: 44px;
+  justify-content: start;
+  font-size: 13px;
+}
+.details :global(.cp-cams-info > div) {
+  position: static;
+  width: auto;
+  padding: 8px 0 0;
+  box-shadow: none;
+  background: transparent;
+  font-size: 13px;
+}
+.point:empty {
+  display: none;
+}
+.point :global(.cp-cams-point) {
+  margin: 4px 0;
+  padding: 0;
+  border-bottom: 0;
+  border-top: 1px solid #dde9e5;
+}
+.point :global(.cp-cams-point strong) {
+  font-size: 12px;
+}
+.point :global(.cp-cams-point > div button) {
+  min-height: 44px;
+  height: 44px;
+}
+.point :global(.cp-cams-point p) {
+  margin: 0;
+  font-size: 12px;
+}
+.point :global(.cp-cams-point p b) {
+  font-size: 24px;
+}
+.point :global(.cp-cams-point small) {
+  display: none;
+}
+.point :global(.cp-cams-point__request) {
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  min-height: 44px;
+}
+.error {
+  padding: 4px 0;
+}
+.error p {
+  margin: 4px 0;
+  color: #a33126;
+}
+.notice {
+  margin: 4px 0;
+  color: #526b66;
+  font-size: 12px;
+}
+.dock div:has(> [data-sheet-grip]) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: white;
+}
+.point :global(.cp-cams-point p b[data-message="true"]) {
+  font-size: 14px;
+}

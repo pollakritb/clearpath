@@ -99,8 +99,11 @@ it("starts compact with time and playback while keeping the legend and day picke
       onExit={vi.fn()}
     />,
   );
-  const sheet = screen.getByRole("region", { name: "พยากรณ์ PM2.5 · CAMS" });
-  expect(sheet.getAttribute("data-snap")).toBe("peek");
+  expect(
+    screen
+      .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+      .getAttribute("aria-expanded"),
+  ).toBe("false");
   expect(
     screen.getByRole("slider", { name: "เลือกเวลาพยากรณ์ CAMS" }),
   ).toBeTruthy();
@@ -115,16 +118,24 @@ it("starts compact with time and playback while keeping the legend and day picke
   fireEvent.click(
     screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
   );
-  expect(sheet.getAttribute("data-snap")).toBe("full");
+  expect(
+    screen
+      .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+      .getAttribute("aria-expanded"),
+  ).toBe("true");
   expect(
     screen.getByRole("combobox", { name: "เลือกวันพยากรณ์" }),
   ).toBeTruthy();
   fireEvent.click(
     screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
   );
-  expect(sheet.getAttribute("data-snap")).toBe("peek");
+  expect(
+    screen
+      .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+      .getAttribute("aria-expanded"),
+  ).toBe("false");
 });
-it("opens full details when a forecast cell is selected after the compact timeline", () => {
+it("keeps the toolbar compact and shows the selected cell without opening supporting details", () => {
   const props = {
     grid,
     point: null,
@@ -138,10 +149,29 @@ it("opens full details when a forecast cell is selected after the compact timeli
   );
   expect(
     screen
-      .getByRole("region", { name: "พยากรณ์ PM2.5 · CAMS" })
-      .getAttribute("data-snap"),
-  ).toBe("full");
+      .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
+      .getAttribute("aria-expanded"),
+  ).toBe("false");
   expect(
     screen.getByRole("button", { name: "ขอให้ชุมชนช่วยวัดบริเวณนี้ →" }),
   ).toBeTruthy();
+});
+
+it("keeps one recovery action when a frame is unavailable", () => {
+  render(
+    <CamsForecastControls
+      grid={{ ...grid, noFrame: true }}
+      point={null}
+      onClosePoint={vi.fn()}
+      onRequest={vi.fn()}
+      onExit={vi.fn()}
+    />,
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+  );
+  expect(
+    screen.getAllByRole("button", { name: "ลองโหลดพยากรณ์ใหม่" }),
+  ).toHaveLength(1);
+  expect(screen.getByRole("alert").textContent).toBe("ไม่มีข้อมูลช่วงนี้");
 });
