@@ -21,9 +21,9 @@ function hotspotIcon(count: number, selected: boolean) {
   const group = count > 1;
   return L.divIcon({
     className: `cp-marker ${styles.marker}`,
-    html: `<span class="${styles.symbol}" data-group="${group}" data-selected="${selected}"><svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${SATELLITE_GLYPH}" transform="rotate(-30 12 12)" /></svg>${group ? `<b>${count}</b>` : ""}</span>`,
-    iconSize: [group ? 64 : 44, 44],
-    iconAnchor: [group ? 32 : 22, 22],
+    html: `<span class="${styles.symbol}" data-group="${group}" data-selected="${selected}"><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${SATELLITE_GLYPH}" transform="rotate(-30 12 12)" /></svg>${group ? `<b>${count}</b>` : ""}</span>`,
+    iconSize: [group ? 48 : 44, 44],
+    iconAnchor: [group ? 24 : 22, 22],
   });
 }
 
