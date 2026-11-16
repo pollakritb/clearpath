@@ -2853,10 +2853,14 @@
   .cp-app .cp-map[data-mode="cams"] .cp-mapctrls {
     top: auto !important;
     bottom: calc(
-      var(--cp-mobile-nav-h, 76px) + var(--cp-map-peek-height, 116px) + 24px
+      var(--cp-mobile-nav-h, 76px) + var(--cp-map-sheet-height, 116px) + 24px
     );
     left: auto;
     right: 12px;
+    transition: bottom 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .cp-app .cp-map[data-mode="cams"]:has([data-dragging="true"]) .cp-mapctrls {
+    transition: none;
   }
 }
 .cp-map[data-mode="cams"] .cp-mapctrls__zoom {
@@ -2871,8 +2875,8 @@
     display: none;
   }
   .cp-map[data-mode="cams"] .cp-mapctrls__error[role="alert"] {
-    top: 52px;
-    bottom: auto;
+    top: auto;
+    bottom: calc(100% + 8px);
   }
 }
 @media (max-height: 600px) {

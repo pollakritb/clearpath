@@ -118,6 +118,17 @@ export default function MapBottomSheet({
   useLayoutEffect(() => {
     current.current = { snap, sizes };
   }, [snap, sizes]);
+  useLayoutEffect(() => {
+    const parent = root.current?.closest<HTMLElement>(".cp-map");
+    if (!parent) return;
+    parent.style.setProperty(
+      "--cp-map-sheet-height",
+      `${dragHeight ?? (canExpand && snap === "full" ? sizes.max : sizes.peek)}px`,
+    );
+    return () => {
+      parent.style.removeProperty("--cp-map-sheet-height");
+    };
+  }, [dragHeight, canExpand, snap, sizes.max, sizes.peek]);
   function select(next: Snap) {
     if (!canExpand) return;
     setSnapState({ snap: next, expandSignal });

@@ -265,6 +265,7 @@ export default function MapPageClient(options: MapPageOptions) {
         selectedReportId={selectedReport?.id}
         selectedReportStackId={selectedStack?.id}
         onLocate={(lat, lon) => {
+          setCamsPoint(null);
           setSelectedRequestId(null);
           setSelectedPlace(null);
           setSelectedStackId(null);
@@ -280,9 +281,15 @@ export default function MapPageClient(options: MapPageOptions) {
               lon,
             });
           }
-          setFocusPoint({ lat, lon });
+          setFocusPoint((previous) => ({
+            lat,
+            lon,
+            pin: true,
+            token: (previous?.token ?? 0) + 1,
+          }));
         }}
         onResetView={() => {
+          setCamsPoint(null);
           setSelectedRequestId(null);
           setRequestStep("idle");
           setSelectedStation(null);

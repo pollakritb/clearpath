@@ -61,12 +61,41 @@ test("CAMS keeps playback compact and moves supporting information into the expa
         type: "touchMove",
         touchPoints: [{ x, y: y + (direction === "up" ? -1 : 1) * i * 12 }],
       });
+    await expect
+      .poll(async () => {
+        const sheet = page.getByRole("region", {
+          name: "พยากรณ์ PM2.5 · CAMS",
+          exact: true,
+        });
+        const buttons = page.getByRole("group", {
+          name: /ควบคุมแผนที่ ระดับซูม/,
+        });
+        const a = (await buttons.boundingBox())!,
+          b = (await sheet.boundingBox())!;
+        return a.y + a.height <= b.y;
+      })
+      .toBe(true);
     await session.send("Input.dispatchTouchEvent", {
       type: "touchEnd",
       touchPoints: [],
     });
     await session.detach();
   }
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "geolocation", {
+      value: {
+        getCurrentPosition: (success: PositionCallback) => {
+          document.documentElement.dataset.locateCalls = String(
+            Number(document.documentElement.dataset.locateCalls ?? 0) + 1,
+          );
+          success({
+            coords: { latitude: 13.75, longitude: 100.2, accuracy: 10 },
+            timestamp: Date.now(),
+          } as GeolocationPosition);
+        },
+      },
+    });
+  });
   await page.goto("/?layer=cams");
   const panel = page.getByRole("region", {
     name: "พยากรณ์ PM2.5 · CAMS",
@@ -96,6 +125,23 @@ test("CAMS keeps playback compact and moves supporting information into the expa
       );
     })
     .toBe(true);
+  const mapArea = page.locator(".leaflet-container");
+  const mapBox = (await mapArea.boundingBox())!;
+  await mapArea.click({
+    position: { x: mapBox.width / 2, y: mapBox.height / 3 },
+  });
+  await expect(
+    panel.getByRole("region", { name: "ค่าพยากรณ์บริเวณที่เลือก" }),
+  ).toHaveCount(1);
+  await controls.getByRole("button", { name: "กลับมุมมองแผนที่กว้าง" }).tap();
+  await expect(
+    panel.getByRole("region", { name: "ค่าพยากรณ์บริเวณที่เลือก" }),
+  ).toHaveCount(0);
+  await controls.getByRole("button", { name: "ตำแหน่งของฉัน" }).tap();
+  await expect(controls).toHaveAttribute("data-zoom", "15");
+  await expect(
+    panel.getByRole("region", { name: "ค่าพยากรณ์บริเวณที่เลือก" }),
+  ).toHaveCount(0);
   const selected = panel.locator("header strong");
   expect(await selected.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(
     true,
@@ -106,6 +152,23 @@ test("CAMS keeps playback compact and moves supporting information into the expa
   await slider.press("ArrowRight");
   await expect(slider).toHaveValue("1");
   await swipeGrip("up");
+  await expect
+    .poll(async () => {
+      const buttonBox = (await controls.boundingBox())!;
+      const sheetBox = (await panel.boundingBox())!;
+      const layersBox = (await page
+        .getByRole("button", { name: "เลือกข้อมูลที่แสดงบนแผนที่" })
+        .boundingBox())!;
+      return (
+        buttonBox.y + buttonBox.height <= sheetBox.y &&
+        buttonBox.y >= layersBox.y + layersBox.height + 4
+      );
+    })
+    .toBe(true);
+  await controls.getByRole("button", { name: "ตำแหน่งของฉัน" }).tap();
+  await expect(
+    panel.getByRole("region", { name: "ค่าพยากรณ์บริเวณที่เลือก" }),
+  ).toHaveCount(0);
   await expect(
     panel.getByRole("combobox", { name: "เลือกวันพยากรณ์" }),
   ).toBeVisible();
@@ -213,4 +276,37 @@ test("CAMS selected-point marker follows the displayed forecast frame", async ({
   ).toBeGreaterThan(parseFloat(original));
   await panel.getByRole("button", { name: "ปิดรายละเอียดพยากรณ์" }).click();
   await expect(panel.getByRole("img", { name: /จุดที่เลือก/ })).toHaveCount(0);
+});
+
+test("GPS permission error remains above the CAMS panel", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "geolocation", {
+      value: {
+        getCurrentPosition: (
+          _success: PositionCallback,
+          error: PositionErrorCallback,
+        ) =>
+          error({ code: 1, PERMISSION_DENIED: 1 } as GeolocationPositionError),
+      },
+    });
+  });
+  await page.route("**/api/forecast-grid/metadata", (route) =>
+    route.fulfill({ status: 503, json: { detail: "โหลดพยากรณ์ไม่สำเร็จ" } }),
+  );
+  await page.goto("/?layer=cams");
+  const panel = page.getByRole("region", {
+    name: "พยากรณ์ PM2.5 · CAMS",
+    exact: true,
+  });
+  await expect(panel.getByRole("alert")).toBeVisible();
+  await page.getByRole("button", { name: "ตำแหน่งของฉัน" }).tap();
+  const error = page.locator(".cp-mapctrls__error[role=alert]");
+  await expect(error).toContainText("อนุญาตการเข้าถึงตำแหน่ง");
+  await expect
+    .poll(async () => {
+      const a = (await error.boundingBox())!,
+        b = (await panel.boundingBox())!;
+      return a.y >= 0 && a.y + a.height <= b.y;
+    })
+    .toBe(true);
 });

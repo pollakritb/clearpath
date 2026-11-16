@@ -35,7 +35,7 @@ export default function CamsTimelineControls({
       className={styles.dock}
       onClose={onClose ?? onNow}
       showClose={false}
-      mapClearance={140}
+      mapClearance={208}
       header={
         <>
           <header className={styles.heading}>

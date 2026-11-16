@@ -247,6 +247,8 @@ export default function MapView({
           onLocate={onLocate}
           onResetView={onResetView}
           hasLocation={Boolean(userLocation)}
+          currentLocation={userLocation}
+          manageLocateViewport={!onLocate}
           locationUnavailable={locationUnavailable}
         />
         <ClickHandler onClick={onMapClick} />

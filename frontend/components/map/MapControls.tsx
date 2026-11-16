@@ -8,6 +8,7 @@ import {
   type SyntheticEvent,
 } from "react";
 import { useMap, useMapEvents } from "react-leaflet";
+import { DomEvent } from "leaflet";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { T } from "@/frontend/lib/ui";
@@ -31,6 +32,7 @@ interface MapControlsProps {
   onLocate?: (lat: number, lon: number, accuracy?: number) => void;
   onResetView?: () => void;
   hasLocation?: boolean;
+  currentLocation?: { lat: number; lon: number; accuracy: number } | null;
   locationUnavailable?: boolean;
   showZoom?: boolean;
   manageLocateViewport?: boolean;
@@ -40,10 +42,23 @@ export default function MapControls({
   onLocate,
   onResetView,
   hasLocation = false,
+  currentLocation = null,
   locationUnavailable = false,
   showZoom = true,
   manageLocateViewport = true,
 }: MapControlsProps) {
+  const controls = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = controls.current;
+    if (!element) return;
+    // Leaflet listens before React's delegated handlers. Isolate controls at
+    // the native boundary so a button click never becomes a map selection.
+    DomEvent.disableClickPropagation(element);
+    DomEvent.disableScrollPropagation(element);
+    return () => {
+      DomEvent.off(element);
+    };
+  }, []);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -60,6 +75,21 @@ export default function MapControls({
   const stopPropagation = (event: SyntheticEvent) => event.stopPropagation();
   const locate = () => {
     if (locating) return;
+    if (currentLocation) {
+      setLocationError(null);
+      if (manageLocateViewport)
+        flyMapTo(
+          map,
+          [currentLocation.lat, currentLocation.lon],
+          Math.max(map.getZoom(), 15),
+        );
+      onLocate?.(
+        currentLocation.lat,
+        currentLocation.lon,
+        currentLocation.accuracy,
+      );
+      return;
+    }
     if (!navigator.geolocation) {
       setLocationError("อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง");
       return;
@@ -93,10 +123,12 @@ export default function MapControls({
 
   return (
     <div
+      ref={controls}
       className="cp-mapctrls"
       role="group"
       aria-label={`ควบคุมแผนที่ ระดับซูม ${zoom}`}
       data-zoom={zoom}
+      onClick={stopPropagation}
       onMouseDown={stopPropagation}
       onDoubleClick={stopPropagation}
     >
