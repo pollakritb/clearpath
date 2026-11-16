@@ -805,18 +805,18 @@
 }
 
 .cp-map-station-forecast__featured small {
-  color: var(--cp-subink);
+  color: var(--cp-forecast-ink, var(--cp-subink));
   font-size: 0.68rem;
   font-weight: 700;
 }
 
 .cp-map-station-forecast__featured strong {
-  color: var(--cp-forecast-color);
+  color: var(--cp-forecast-ink, var(--cp-forecast-color));
   font: 900 2rem/1 var(--font-mono);
 }
 
 .cp-map-station-forecast__featured strong span {
-  color: var(--cp-subink);
+  color: var(--cp-forecast-ink, var(--cp-subink));
   font: 650 0.7rem/1 var(--font-sans);
 }
 

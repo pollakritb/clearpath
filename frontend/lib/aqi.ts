@@ -147,10 +147,48 @@ export const FORECAST_LEGEND = [
     advice: "ควรงดกิจกรรมกลางแจ้ง",
   },
 ];
+const luminance = (hex: string) => {
+  const channels = [1, 3, 5].map((offset) => {
+    const s = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+};
+function forecastTypography(color: string) {
+  let textColor = color;
+  // Preserve the category hue, darkening only text displayed on a light surface.
+  while (1.05 / (luminance(textColor) + 0.05) < 7) {
+    textColor =
+      "#" +
+      [1, 3, 5]
+        .map((offset) =>
+          Math.floor(
+            Number.parseInt(textColor.slice(offset, offset + 2), 16) * 0.9,
+          )
+            .toString(16)
+            .padStart(2, "0"),
+        )
+        .join("");
+  }
+  const level = luminance(color);
+  const foreground =
+    (level + 0.05) / (luminance("#07130f") + 0.05) >= 1.05 / (level + 0.05)
+      ? "#07130f"
+      : "#ffffff";
+  return { textColor, foreground };
+}
+const FORECAST_TYPOGRAPHY = Object.fromEntries(
+  FORECAST_LEGEND.map((band) => [band.color, forecastTypography(band.color)]),
+);
 export function classifyForecastPm25(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value) || value < 0) return UNKNOWN;
+  if (value == null || !Number.isFinite(value) || value < 0)
+    return { ...UNKNOWN, ...forecastTypography(UNKNOWN.color) };
   const band = FORECAST_LEGEND.find((b) => value <= b.upper)!;
-  return { ...band, tint: `${band.color}20` };
+  return {
+    ...band,
+    tint: `${band.color}20`,
+    ...FORECAST_TYPOGRAPHY[band.color],
+  };
 }
 export function forecastColor(value: number | null | undefined): string {
   return classifyForecastPm25(value).color;

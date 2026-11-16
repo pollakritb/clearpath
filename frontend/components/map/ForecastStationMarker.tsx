@@ -68,7 +68,7 @@ export default function ForecastStationMarker({
     Number.isFinite(point.pm25) &&
     point.pm25 >= 0;
   const value = valid ? point.pm25!.toFixed(1) : "—";
-  const color = classifyForecastPm25(valid ? point.pm25 : null).color;
+  const { color, foreground } = classifyForecastPm25(valid ? point.pm25 : null);
   const status = point.loading
     ? "กำลังโหลดพยากรณ์"
     : point.error || !valid
@@ -87,7 +87,7 @@ export default function ForecastStationMarker({
         className: "cp-marker cp-marker--forecast-station",
         iconSize: [72, 66],
         iconAnchor: [36, 33],
-        html: `<div class="cp-forecast-station-marker" style="--marker-aqi:${color}" role="img" aria-label="${status}"><div><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h6a3 3 0 1 1-3 3"/></svg><b>${value}</b></div><span>พยากรณ์</span></div>`,
+        html: `<div class="cp-forecast-station-marker" style="--marker-aqi:${color};--marker-ink:${foreground}" role="img" aria-label="${status}"><div><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h6a3 3 0 1 1-3 3"/></svg><b>${value}</b></div><span>พยากรณ์</span></div>`,
       })}
     />
   );

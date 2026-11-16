@@ -48,3 +48,28 @@ describe("forecast-only scale", () => {
     expect(classifyForecastPm25(10).color).toBe("#50ccaa");
   });
 });
+
+describe("forecast category readability", () => {
+  const luminance = (hex: string) => {
+    const channels = hex
+      .slice(1)
+      .match(/../g)!
+      .map((n) => Number.parseInt(n, 16) / 255)
+      .map((n) => (n <= 0.04045 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4));
+    return channels.reduce(
+      (sum, n, i) => sum + n * [0.2126, 0.7152, 0.0722][i],
+      0,
+    );
+  };
+  const contrast = (a: string, b: string) =>
+    (Math.max(luminance(a), luminance(b)) + 0.05) /
+    (Math.min(luminance(a), luminance(b)) + 0.05);
+  it.each([0, 10, 30, 70, 110, 200])(
+    "keeps the category and makes marker/value text readable at %s",
+    (value) => {
+      const c = classifyForecastPm25(value);
+      expect(contrast(c.textColor, "#ffffff")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.foreground, c.color)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+});

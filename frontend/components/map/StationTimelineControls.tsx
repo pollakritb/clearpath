@@ -238,6 +238,10 @@ export default function StationTimelineControls({
                 style={
                   {
                     "--cp-history-color": classification.color,
+                    "--cp-history-ink":
+                      "textColor" in classification
+                        ? classification.textColor
+                        : classification.color,
                     "--cp-history-tint": classification.tint,
                   } as React.CSSProperties
                 }

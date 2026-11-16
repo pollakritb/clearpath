@@ -88,7 +88,7 @@ export default function CamsForecastControls({
                 <p>
                   <b
                     data-message={outside || value == null ? "true" : undefined}
-                    style={{ color: cls.color }}
+                    style={{ color: cls.textColor }}
                   >
                     {outside
                       ? "นอกขอบเขตข้อมูลกริด"

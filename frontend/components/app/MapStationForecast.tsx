@@ -132,6 +132,7 @@ export default function MapStationForecast({
             style={
               {
                 "--cp-forecast-color": selectedClassification.color,
+                "--cp-forecast-ink": selectedClassification.textColor,
                 "--cp-forecast-tint": selectedClassification.tint,
               } as React.CSSProperties
             }

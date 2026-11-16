@@ -2282,7 +2282,10 @@
 }
 
 .cp-forecast-reading__value > span {
-  color: color-mix(in srgb, var(--cp-forecast-color), #111 35%);
+  color: var(
+    --cp-forecast-ink,
+    color-mix(in srgb, var(--cp-forecast-color), #111 35%)
+  );
   font-size: 0.72rem;
   font-weight: 800;
 }
@@ -2295,14 +2298,14 @@
 
 .cp-forecast-reading__value strong {
   margin-top: 5px;
-  color: var(--cp-forecast-color);
+  color: var(--cp-forecast-ink, var(--cp-forecast-color));
   font: 800 2.7rem/0.95 var(--font-mono);
   letter-spacing: -0.06em;
 }
 
 .cp-forecast-reading__value small {
   margin-top: 5px;
-  color: var(--cp-subink);
+  color: var(--cp-forecast-ink, var(--cp-subink));
   font-size: 0.68rem;
   font-weight: 650;
 }

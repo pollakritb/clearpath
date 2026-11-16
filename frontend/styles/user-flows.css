@@ -447,7 +447,7 @@
   min-width: 0;
 }
 .cp-history-station small {
-  color: var(--cp-subink);
+  color: var(--cp-history-ink, var(--cp-subink));
   font-size: 0.65rem;
 }
 .cp-history-station strong {
@@ -465,7 +465,7 @@
   margin: 0;
 }
 .cp-history-station b {
-  color: var(--cp-history-color);
+  color: var(--cp-history-ink, var(--cp-history-color));
   font: 800 1.5rem/1.2 var(--font-mono);
 }
 .cp-station-time-close {
@@ -1663,7 +1663,7 @@ dialog.cp-login-modal::backdrop {
 }
 .cp-forecast-station-marker {
   width: 72px;
-  color: #07130f;
+  color: var(--marker-ink, #07130f);
   text-align: center;
   font-variant-numeric: tabular-nums;
 }

@@ -261,6 +261,7 @@ export default function ForecastPanel({
               style={
                 {
                   "--cp-forecast-color": classification.color,
+                  "--cp-forecast-ink": classification.textColor,
                   "--cp-forecast-tint": classification.tint,
                 } as React.CSSProperties
               }

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
 function externalForecastFixture() {
   const generatedAt = "2026-09-04T03:00:00+00:00";
@@ -398,4 +399,50 @@ test("Today follows the displayed station's grid coordinates when GPS moves", as
     card.getByRole("group", { name: "พยากรณ์ตามเวลา" }),
   ).toBeVisible();
   await expect(card.getByText(/ใช้ข้อมูลที่เก็บของสถานี/)).toHaveCount(0);
+});
+
+test("all six CAMS forecast categories keep the featured value readable", async ({
+  page,
+}) => {
+  for (const value of [0, 10, 30, 70, 110, 200]) {
+    await page.route("**/api/forecast?**", (route) => {
+      const fixture = externalForecastFixture();
+      const params = new URL(route.request().url()).searchParams;
+      return route.fulfill({
+        json: {
+          ...fixture,
+          station_id: null,
+          target_kind: "area",
+          requested_lat: Number(params.get("lat")),
+          requested_lon: Number(params.get("lon")),
+          points: fixture.points.map((point) => ({
+            ...point,
+            pm25: value,
+            lower: Math.max(0, value - 3),
+            upper: value + 3,
+          })),
+          sources: fixture.sources.map((source) => ({
+            ...source,
+            pm25: value,
+          })),
+        },
+      });
+    });
+    await page.goto("/air?station=81t");
+    await page
+      .getByText("รายละเอียดพยากรณ์และแหล่งข้อมูล", { exact: true })
+      .click();
+    await expect(
+      page.locator(".cp-forecast-reading__value strong"),
+    ).toBeVisible();
+    await page.locator(".cp-forecast-card__body").evaluate((element) => {
+      for (const animation of element.getAnimations()) animation.finish();
+    });
+    const axe = await new AxeBuilder({ page })
+      .include(".cp-forecast-reading")
+      .withRules(["color-contrast"])
+      .analyze();
+    expect(axe.violations).toEqual([]);
+    await page.unroute("**/api/forecast?**");
+  }
 });
