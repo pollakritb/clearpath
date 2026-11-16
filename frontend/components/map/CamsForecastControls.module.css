@@ -1,0 +1,14 @@
+.scale {
+  position: relative;
+  padding-block: 8px;
+}
+.marker {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 3px;
+  border-radius: 2px;
+  background: #183d35;
+  outline: 2px solid white;
+  transform: translateX(-50%);
+}

@@ -11,6 +11,7 @@ import type { useForecastGrid } from "@/frontend/hooks/useForecastGrid";
 import { camsRasterBounds } from "@/frontend/lib/cams-raster";
 import { isInThailand } from "@/frontend/lib/thailand-boundary";
 import CamsTimelineControls from "./CamsTimelineControls";
+import styles from "./CamsForecastControls.module.css";
 
 export default function CamsForecastControls({
   grid,
@@ -41,6 +42,11 @@ export default function CamsForecastControls({
       ? gridValue(surface, point.lat, point.lon)
       : null;
   const cls = classifyForecastPm25(value);
+  // The six equal-width segments are categories, not a linear concentration axis.
+  const selectedBand =
+    value != null && Number.isFinite(value) && value >= 0 && !loading
+      ? FORECAST_LEGEND.findIndex((band) => value <= band.upper)
+      : -1;
   const days = [...new Set(times.map(bangkokDay))];
   const currentDay = at ? bangkokDay(at) : (days[0] ?? "");
   const message =
@@ -131,17 +137,29 @@ export default function CamsForecastControls({
         }
         footer={
           <>
-            <div
-              className="cp-cams-ramp"
-              aria-hidden="true"
-              style={{ display: "flex" }}
-            >
-              {FORECAST_LEGEND.map((band) => (
+            <div className={styles.scale}>
+              <div
+                className="cp-cams-ramp"
+                aria-hidden="true"
+                style={{ display: "flex" }}
+              >
+                {FORECAST_LEGEND.map((band) => (
+                  <span
+                    key={band.range}
+                    style={{ flex: 1, background: band.color }}
+                  />
+                ))}
+              </div>
+              {selectedBand >= 0 && (
                 <span
-                  key={band.range}
-                  style={{ flex: 1, background: band.color }}
+                  className={styles.marker}
+                  role="img"
+                  aria-label={`จุดที่เลือก ${value!.toFixed(1)} µg/m³ · ${cls.level}`}
+                  style={{
+                    left: `${((selectedBand + 0.5) / FORECAST_LEGEND.length) * 100}%`,
+                  }}
                 />
-              ))}
+              )}
             </div>
             <div
               className="cp-cams-legend"

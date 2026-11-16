@@ -175,3 +175,39 @@ it("keeps one recovery action when a frame is unavailable", () => {
   ).toHaveLength(1);
   expect(screen.getByRole("alert").textContent).toBe("ไม่มีข้อมูลช่วงนี้");
 });
+
+it("marks the selected forecast category and follows the displayed frame", () => {
+  const props = {
+    grid,
+    point: { lat: 13.75, lon: 100.5 },
+    onClosePoint: vi.fn(),
+    onRequest: vi.fn(),
+    onExit: vi.fn(),
+  };
+  const { rerender } = render(<CamsForecastControls {...props} />);
+  fireEvent.click(
+    screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+  );
+  expect(
+    screen.getByRole("img", {
+      name: "จุดที่เลือก 20.0 µg/m³ · ปานกลาง (เริ่มเฝ้าระวัง)",
+    }).style.left,
+  ).toBe(`${(2.5 / 6) * 100}%`);
+  rerender(
+    <CamsForecastControls
+      {...props}
+      grid={{
+        ...grid,
+        surface: { ...grid.surface!, values: [100, 100, 100, 100] },
+      }}
+    />,
+  );
+  expect(
+    screen.getByRole("img", { name: "จุดที่เลือก 100.0 µg/m³ · มีผลกระทบ" })
+      .style.left,
+  ).toBe("75%");
+  rerender(<CamsForecastControls {...props} point={null} />);
+  expect(screen.queryByRole("img", { name: /จุดที่เลือก/ })).toBeNull();
+  rerender(<CamsForecastControls {...props} point={{ lat: 30, lon: 110 }} />);
+  expect(screen.queryByRole("img", { name: /จุดที่เลือก/ })).toBeNull();
+});
