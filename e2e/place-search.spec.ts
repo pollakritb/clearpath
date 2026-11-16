@@ -307,14 +307,27 @@ test("search keeps recent selections after reload and supports deleting or clear
       .click();
     const sheet = page.locator(".cp-place-sheet");
     await expect(sheet).toHaveAttribute("data-snap", "peek");
-    // Exercise the actual pointer gesture, rather than an expand button.
-    const grip = await sheet
-      .getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" })
-      .boundingBox();
-    await page.mouse.move(grip!.x + grip!.width / 2, grip!.y + 22);
-    await page.mouse.down();
-    await page.mouse.move(grip!.x + grip!.width / 2, 12, { steps: 12 });
-    await page.mouse.up();
+    // Wait for the opening transition, then exercise the mobile touch path.
+    const handle = sheet.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" });
+    await handle.hover();
+    const grip = (await handle.boundingBox())!;
+    const x = grip.x + grip.width / 2,
+      y = grip.y + grip.height / 2;
+    const touch = await page.context().newCDPSession(page);
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x, y }],
+    });
+    for (let step = 1; step <= 8; step++)
+      await touch.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x, y: y - step * 24 }],
+      });
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await touch.detach();
     await expect(sheet).toHaveAttribute("data-snap", "full");
     await sheet.getByRole("button", { name: "ปิดสถานที่ที่เลือก" }).click();
   }
