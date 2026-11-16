@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/test";
 // Opt-in: run against an isolated local-demo backend with registered areas on.
 test.skip(
   process.env.RUN_HELPER_BACKEND_INTEGRATION !== "true",

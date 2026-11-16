@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/test";
 
 test("community assessment requires evidence, reuses a retry key and explains non-Trust reasons", async ({
   page,

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/test";
 import AxeBuilder from "@axe-core/playwright";
 import { buildDemoCommunityReports } from "../frontend/lib/demo-community";
 
@@ -85,13 +85,16 @@ test("forecast service failures explain recovery without exposing server configu
   });
   await page.goto("/?layer=cams");
   await expect(
-    page.getByRole("status").filter({ hasText: "โหลดพยากรณ์ไม่สำเร็จ" }),
+    page.getByRole("alert").filter({ hasText: "โหลดพยากรณ์ไม่สำเร็จ" }),
   ).toBeVisible();
   await expect(page.locator("body")).not.toContainText("SERVICE_ROLE_KEY");
   await page.getByRole("button", { name: "ลองโหลดพยากรณ์ใหม่" }).click();
   await expect.poll(() => attempts).toBe(2);
   await expect(
-    page.getByRole("status").filter({ hasText: "ยังไม่มีพยากรณ์ที่ใช้งานได้" }),
+    page
+      .getByRole("status")
+      .filter({ hasText: "ยังไม่มีพยากรณ์ที่ใช้งานได้" })
+      .first(),
   ).toBeVisible();
 });
 

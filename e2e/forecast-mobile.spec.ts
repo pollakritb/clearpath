@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/test";
 import AxeBuilder from "@axe-core/playwright";
 
 function externalForecastFixture() {

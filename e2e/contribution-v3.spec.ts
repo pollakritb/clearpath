@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/test";
 
 test("profile keeps scores visible without policy and quota essays", async ({
   page,

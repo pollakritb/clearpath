@@ -1,4 +1,43 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures/test";
+
+// UI tests own their state. Real consent/rate-limit behavior is covered by
+// backend API tests; hundreds of pages must not share the demo account's 6/min quota.
+async function isolateAlertLocation(page: Page, consentGranted: boolean) {
+  const initial = await page.request.get("/api/notifications/preferences");
+  expect(initial.ok()).toBe(true);
+  const preferences = {
+    ...(await initial.json()),
+    air_alerts: true,
+    consent_granted: consentGranted,
+  };
+  let location = {
+    status: "missing",
+    observed_at: null as string | null,
+    accuracy_m: null as number | null,
+    version: null as string | null,
+  };
+  await page.route("**/api/notifications/preferences", (route) =>
+    route.fulfill({ json: preferences }),
+  );
+  await page.route("**/api/notifications/location", async (route) => {
+    if (route.request().method() === "PUT") {
+      const body = route.request().postDataJSON();
+      expect(body.accuracy_m).toBeLessThanOrEqual(200);
+      expect(Math.abs(Date.now() - Date.parse(body.observed_at))).toBeLessThan(
+        5000,
+      );
+      location = {
+        status: "ready",
+        observed_at: body.observed_at,
+        accuracy_m: body.accuracy_m,
+        version: body.observed_at,
+      };
+      preferences.consent_granted = true;
+    }
+    await route.fulfill({ json: location });
+  });
+  return { preferences };
+}
 
 test("@stateful-360 moving from A to B automatically flushes the latest GPS when hiding the page", async ({
   page,
@@ -22,18 +61,7 @@ test("@stateful-360 moving from A to B automatically flushes the latest GPS when
         options,
       );
   });
-  const initial = await page.request.get("/api/notifications/preferences");
-  expect(
-    (
-      await page.request.put("/api/notifications/preferences", {
-        data: {
-          ...(await initial.json()),
-          air_alerts: true,
-          consent_granted: true,
-        },
-      })
-    ).ok(),
-  ).toBe(true);
+  await isolateAlertLocation(page, true);
   const savedA = page.waitForResponse(
     (r) =>
       new URL(r.url()).pathname === "/api/notifications/location" &&
@@ -72,33 +100,9 @@ test("existing browser location permission enables alerts without a second conse
 }) => {
   await context.grantPermissions(["geolocation"]);
   await context.setGeolocation({ latitude: 14, longitude: 100, accuracy: 10 });
-  const initial = await page.request.get("/api/notifications/preferences");
-  const seeded = await page.request.put("/api/notifications/preferences", {
-    data: {
-      ...(await initial.json()),
-      consent_granted: false,
-      air_alerts: true,
-    },
-  });
-  expect(seeded.ok()).toBe(true);
+  const { preferences } = await isolateAlertLocation(page, false);
   await page.goto("/settings/notifications");
-  await expect
-    .poll(
-      async () =>
-        (
-          await (
-            await page.request.get("/api/notifications/preferences")
-          ).json()
-        ).consent_granted,
-    )
-    .toBe(true);
-  await expect
-    .poll(
-      async () =>
-        (await (await page.request.get("/api/notifications/location")).json())
-          .status,
-    )
-    .toBe("ready");
+  await expect.poll(() => preferences.consent_granted).toBe(true);
   await expect(
     page.getByText("พร้อมใช้ตำแหน่งล่าสุดเพื่อแจ้งเตือน"),
   ).toBeVisible();

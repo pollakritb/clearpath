@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures/test";
 import AxeBuilder from "@axe-core/playwright";
 const editor = (page: Page) =>
   page.getByRole("dialog", { name: "เพิ่มพื้นที่รับคำขอ" });

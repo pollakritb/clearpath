@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/test";
 
 const outputDirectory = resolve("docs/assets/presentation-2026-09-17");
 
