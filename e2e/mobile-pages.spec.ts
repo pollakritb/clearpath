@@ -526,12 +526,13 @@ test("notification settings separate channels from conditions on mobile", async 
   await expect(
     page.getByRole("group", { name: "แจ้งเตือนผ่าน LINE", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("ช่องทางและช่วงไม่รบกวน")).toBeVisible();
-  await expect(page.getByLabel("เริ่มไม่รบกวน")).toHaveValue("22:00");
-  await expect(page.getByLabel("กลับมาแจ้งเตือน")).toHaveValue("07:00");
   await expect(
-    page.getByText("ยินยอมรับแจ้งเตือนและใช้ GPS ล่าสุดเพื่อเลือกหมุดค่าฝุ่น"),
+    page.getByText("ช่องทางแจ้งเตือน", { exact: true }),
   ).toBeVisible();
+  await expect(page.locator('input[type="time"]')).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { name: /ยินยอม/ })).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { name: /37.6–75.0/ })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /75.1 µg/ })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "บันทึกเงื่อนไข" }),
   ).toBeVisible();

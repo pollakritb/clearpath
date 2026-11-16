@@ -15,6 +15,7 @@ export default function AlertLocationPresence() {
     if (!account || loading) return;
     let stopped = false;
     let lastAttempt = 0;
+    let watchedPermission: PermissionStatus | null = null;
     async function sample() {
       if (
         document.visibilityState === "hidden" ||
@@ -26,7 +27,6 @@ export default function AlertLocationPresence() {
         const prefs = await api.notificationPreferences();
         if (
           stopped ||
-          !prefs.consent_granted ||
           !prefs.air_alerts ||
           !navigator.geolocation ||
           !navigator.permissions
@@ -35,7 +35,13 @@ export default function AlertLocationPresence() {
         const permission = await navigator.permissions.query({
           name: "geolocation",
         });
-        if (stopped || permission.state !== "granted") return;
+        if (stopped) return;
+        if (watchedPermission !== permission) {
+          watchedPermission?.removeEventListener?.("change", changed);
+          watchedPermission = permission;
+          permission.addEventListener?.("change", changed);
+        }
+        if (permission.state !== "granted") return;
         navigator.geolocation.getCurrentPosition(
           (position) => {
             if (stopped || position.coords.accuracy > 200) return;
@@ -73,6 +79,7 @@ export default function AlertLocationPresence() {
       stopped = true;
       document.removeEventListener("visibilitychange", visible);
       window.removeEventListener(ALERT_PREFERENCES_CHANGED, changed);
+      watchedPermission?.removeEventListener?.("change", changed);
     };
   }, [account, loading]);
   return null;

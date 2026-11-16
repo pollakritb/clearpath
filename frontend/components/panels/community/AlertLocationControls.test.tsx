@@ -40,7 +40,7 @@ afterEach(() => {
   cleanup();
   vi.resetAllMocks();
 });
-it("requires saved consent before requesting GPS", async () => {
+it("respects the air-alert off switch before requesting GPS", async () => {
   render(<AlertLocationControls enabled={false} />);
   const button = await screen.findByRole("button", {
     name: "อัปเดตตำแหน่งแจ้งเตือน",

@@ -78,11 +78,11 @@ it("shows the three LINE event categories and omits retired event controls", asy
     expect(screen.queryByText(label)).toBeNull();
 });
 
-it("saves only level toggles while overwriting retired custom controls with fixed values", async () => {
+it("saves level toggles without requiring the retired consent checkbox", async () => {
   mocks.load.mockResolvedValue({
     air_alerts: true,
     line_enabled: true,
-    consent_granted: true,
+    consent_granted: false,
     pm25_threshold: 100,
     radius_km: 50,
     quiet_hours_start: "22:00",
@@ -91,6 +91,8 @@ it("saves only level toggles while overwriting retired custom controls with fixe
   mocks.save.mockImplementation(async (value) => value);
   render(<NotificationSettings />);
   fireEvent.click(await screen.findByRole("button", { name: "แก้ไขเงื่อนไข" }));
+  expect(screen.queryByRole("checkbox", { name: /ยินยอม/ })).toBeNull();
+  expect(screen.queryByText(/ลบ token/)).toBeNull();
   fireEvent.click(screen.getByRole("checkbox", { name: /37.6–75.0/ }));
   fireEvent.click(screen.getByRole("button", { name: "บันทึกเงื่อนไข" }));
   await waitFor(() =>

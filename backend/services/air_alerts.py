@@ -84,10 +84,15 @@ def save_location(user_id: str, values: dict) -> dict:
     if not valid_location(values, now):
         raise ValueError("GPS ต้องมีความแม่นยำไม่เกิน 200 เมตร และมีเวลาไม่เกิน 24 ชั่วโมง")
     preferences = supabase_client.get_notification_preferences(user_id) or {}
-    if not preferences.get("consent_granted") or not preferences.get(
-        "air_alerts", True
-    ):
-        raise ValueError("เปิดการแจ้งเตือนและยินยอมใช้ตำแหน่งก่อน")
+    if not preferences.get("air_alerts", True):
+        raise ValueError("เปิดการแจ้งเตือนก่อนใช้ตำแหน่ง")
+    # Browser permission supplies the valid foreground GPS sample. Keep the
+    # legacy record without asking the user for a second consent checkbox.
+    if not preferences.get("consent_granted"):
+        supabase_client.upsert_notification_preferences(
+            user_id,
+            {"consent_granted": True, "consent_granted_at": now.isoformat()},
+        )
     if settings.local_demo_mode:
         with _LOCK:
             current = LOCATIONS.get(user_id)

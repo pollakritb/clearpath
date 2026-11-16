@@ -116,7 +116,10 @@ function NotificationSettingsContent() {
     setSaving(true);
     setError(null);
     try {
-      const saved = await api.updateNotificationPreferences(preferences);
+      const saved = await api.updateNotificationPreferences({
+        ...preferences,
+        consent_granted: true,
+      });
       setPreferences(saved);
       setPersisted(saved);
       window.dispatchEvent(new Event(ALERT_PREFERENCES_CHANGED));
@@ -226,9 +229,7 @@ function NotificationSettingsContent() {
           </span>
         </div>
 
-        <AlertLocationControls
-          enabled={Boolean(persisted?.consent_granted && persisted?.air_alerts)}
-        />
+        <AlertLocationControls enabled={Boolean(persisted?.air_alerts)} />
 
         <button
           type="button"
@@ -345,29 +346,6 @@ function NotificationSettingsContent() {
                   <small>ใช้เมื่อเชื่อมบัญชี LINE แล้ว</small>
                 </span>
               </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={preferences.consent_granted}
-                  onChange={(event) =>
-                    setPreferences((current) => ({
-                      ...current,
-                      consent_granted: event.target.checked,
-                      consent_granted_at: event.target.checked
-                        ? current.consent_granted_at
-                        : null,
-                    }))
-                  }
-                />
-                <span>
-                  <strong>
-                    ยินยอมรับแจ้งเตือนและใช้ GPS ล่าสุดเพื่อเลือกหมุดค่าฝุ่น
-                  </strong>
-                  <small>
-                    ยกเลิกเมื่อใดก็ได้ ระบบจะปิดช่องทางและลบ token ที่ใช้งาน
-                  </small>
-                </span>
-              </label>
             </fieldset>
 
             <button
@@ -379,11 +357,6 @@ function NotificationSettingsContent() {
               <AppIcon name="check" size={18} />
               บันทึกเงื่อนไข
             </button>
-            {!preferences.consent_granted && (
-              <small className="cp-notification-save-hint">
-                เมื่อบันทึกโดยไม่ยินยอม ระบบจะปิด LINE ของบัญชีนี้
-              </small>
-            )}
           </div>
         )}
       </section>

@@ -1,5 +1,43 @@
 import { expect, test } from "@playwright/test";
 
+test("existing browser location permission enables alerts without a second consent checkbox", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: 14, longitude: 100, accuracy: 10 });
+  const initial = await page.request.get("/api/notifications/preferences");
+  const seeded = await page.request.put("/api/notifications/preferences", {
+    data: {
+      ...(await initial.json()),
+      consent_granted: false,
+      air_alerts: true,
+    },
+  });
+  expect(seeded.ok()).toBe(true);
+  await page.goto("/settings/notifications");
+  await expect
+    .poll(
+      async () =>
+        (
+          await (
+            await page.request.get("/api/notifications/preferences")
+          ).json()
+        ).consent_granted,
+    )
+    .toBe(true);
+  await expect
+    .poll(
+      async () =>
+        (await (await page.request.get("/api/notifications/location")).json())
+          .status,
+    )
+    .toBe("ready");
+  await page.getByRole("button", { name: "แก้ไขเงื่อนไข" }).click();
+  await expect(page.getByRole("checkbox", { name: /ยินยอม/ })).toHaveCount(0);
+  await expect(page.getByText(/ลบ token/)).toHaveCount(0);
+});
+
 test("notification settings fix bands and radius, remove quiet hours and persist independent switches", async ({
   page,
 }) => {

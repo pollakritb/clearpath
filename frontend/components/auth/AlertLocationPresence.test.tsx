@@ -40,15 +40,14 @@ afterEach(() => {
   cleanup();
   vi.resetAllMocks();
 });
-it("does not read GPS without notification consent", async () => {
+it("uses existing browser permission without a second notification consent", async () => {
   mocks.preferences.mockResolvedValue({
     consent_granted: false,
     air_alerts: true,
   });
   render(<AlertLocationPresence />);
   await waitFor(() => expect(mocks.preferences).toHaveBeenCalledOnce());
-  expect(mocks.permission).not.toHaveBeenCalled();
-  expect(mocks.gps).not.toHaveBeenCalled();
+  await waitFor(() => expect(mocks.gps).toHaveBeenCalledOnce());
 });
 it("does not automatically prompt for GPS permission", async () => {
   mocks.permission.mockResolvedValue({ state: "prompt" });
@@ -84,5 +83,42 @@ it("does not send a GPS callback after the account scope unmounts", async () => 
     timestamp: Date.now(),
     coords: { latitude: 14, longitude: 100, accuracy: 10 },
   });
+  expect(mocks.save).not.toHaveBeenCalled();
+});
+
+it("respects the air-alert off switch even with browser permission", async () => {
+  mocks.preferences.mockResolvedValue({
+    consent_granted: true,
+    air_alerts: false,
+  });
+  render(<AlertLocationPresence />);
+  await waitFor(() => expect(mocks.preferences).toHaveBeenCalledOnce());
+  expect(mocks.permission).not.toHaveBeenCalled();
+  expect(mocks.gps).not.toHaveBeenCalled();
+});
+it("starts sampling when entry-page permission is granted and removes its listener on unmount", async () => {
+  const permission = Object.assign(new EventTarget(), { state: "prompt" });
+  mocks.permission.mockResolvedValue(permission);
+  mocks.gps.mockImplementation((success) =>
+    success({
+      timestamp: Date.now(),
+      coords: { latitude: 14, longitude: 100, accuracy: 10 },
+    }),
+  );
+  const view = render(<AlertLocationPresence />);
+  await waitFor(() => expect(mocks.permission).toHaveBeenCalledOnce());
+  expect(mocks.gps).not.toHaveBeenCalled();
+  permission.state = "granted";
+  permission.dispatchEvent(new Event("change"));
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledOnce());
+  view.unmount();
+  permission.dispatchEvent(new Event("change"));
+  expect(mocks.save).toHaveBeenCalledOnce();
+});
+it("does not read GPS when browser permission is denied", async () => {
+  mocks.permission.mockResolvedValue({ state: "denied" });
+  render(<AlertLocationPresence />);
+  await waitFor(() => expect(mocks.permission).toHaveBeenCalledOnce());
+  expect(mocks.gps).not.toHaveBeenCalled();
   expect(mocks.save).not.toHaveBeenCalled();
 });

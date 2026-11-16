@@ -175,6 +175,63 @@ def test_location_old_callback_cannot_overwrite_new(monkeypatch):
     assert air_alerts.location("u") is None
 
 
+def test_valid_browser_gps_activates_legacy_consent_without_changing_switches(
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, "local_demo_mode", True)
+    monkeypatch.setattr(air_alerts, "LOCATIONS", {})
+    prefs = {
+        "consent_granted": False,
+        "air_alerts": True,
+        "line_enabled": False,
+        "air_alert_warning": False,
+        "air_alert_danger": True,
+    }
+    monkeypatch.setattr(
+        air_alerts.supabase_client, "get_notification_preferences", lambda _: prefs
+    )
+    writes = []
+    monkeypatch.setattr(
+        air_alerts.supabase_client,
+        "upsert_notification_preferences",
+        lambda user, values: writes.append((user, values)),
+    )
+    air_alerts.save_location(
+        "owner", {**POINT, "observed_at": datetime.now(UTC).isoformat()}
+    )
+    assert writes[0][0] == "owner"
+    assert set(writes[0][1]) == {"consent_granted", "consent_granted_at"}
+    assert writes[0][1]["consent_granted"] is True
+    assert prefs["line_enabled"] is False and prefs["air_alert_warning"] is False
+
+
+@pytest.mark.parametrize("disabled,accuracy", [(True, 20), (False, 201)])
+def test_disabled_alerts_or_invalid_gps_cannot_activate_consent(
+    monkeypatch, disabled, accuracy
+):
+    monkeypatch.setattr(
+        air_alerts.supabase_client,
+        "get_notification_preferences",
+        lambda _: {"consent_granted": False, "air_alerts": not disabled},
+    )
+
+    def unexpected_write(*args):
+        pytest.fail("must not activate notification preferences")
+
+    monkeypatch.setattr(
+        air_alerts.supabase_client, "upsert_notification_preferences", unexpected_write
+    )
+    with pytest.raises(ValueError):
+        air_alerts.save_location(
+            "owner",
+            {
+                **POINT,
+                "accuracy_m": accuracy,
+                "observed_at": datetime.now(UTC).isoformat(),
+            },
+        )
+
+
 def test_location_api_owner_validation_and_privacy(monkeypatch):
     from fastapi.testclient import TestClient
 

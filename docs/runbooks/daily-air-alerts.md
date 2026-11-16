@@ -6,8 +6,10 @@ their original precision. The closest fresh eligible pin is selected before
 checking its concentration; this is not a maximum over all nearby pins or IDW.
 Own community reports remain excluded.
 
-Both band switches default on. Existing channel opt-outs and explicit GPS
-consent are preserved. Users can toggle the channels/bands but cannot change
+Both band switches default on. Existing channel opt-outs are preserved.
+Browser location permission supplies foreground GPS samples and activates the
+legacy notification consent record automatically; there is no second consent
+checkbox. Permission changes on entry are observed without prompting again. Users can toggle the channels/bands but cannot change
 the radius, thresholds or global quiet hours. Legacy radius/threshold/time
 fields are normalized by both the API and a database trigger.
 
