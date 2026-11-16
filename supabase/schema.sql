@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS stations (
   lon          DOUBLE PRECISION NOT NULL,
   province     TEXT,
   pm25         DOUBLE PRECISION,          -- ค่าล่าสุด
-  aqi          INTEGER,
   color        TEXT,                      -- สีตามมาตรฐาน (เขียว/เหลือง/...)
   level        TEXT,                      -- ระดับ (ดี/ปานกลาง/...)
   recorded_at  TIMESTAMPTZ,               -- เวลาที่ air4thai บันทึกค่านี้
@@ -27,7 +26,6 @@ CREATE TABLE IF NOT EXISTS pm25_readings (
   id           BIGSERIAL PRIMARY KEY,
   station_id   TEXT REFERENCES stations(id) ON DELETE CASCADE,
   pm25         DOUBLE PRECISION,
-  aqi          INTEGER,
   recorded_at  TIMESTAMPTZ NOT NULL,
   created_at   TIMESTAMPTZ DEFAULT NOW(),
   -- กัน insert ซ้ำเมื่อ cron รันทับช่วงเวลาเดิม

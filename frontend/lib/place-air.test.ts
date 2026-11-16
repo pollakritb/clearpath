@@ -11,7 +11,6 @@ const baseStation: Station = {
   lon: 100.1,
   province: "นครปฐม",
   pm25: 20,
-  aqi: null,
   color: null,
   level: null,
   recorded_at: "2026-10-05T10:00:00Z",

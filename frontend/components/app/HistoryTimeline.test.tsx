@@ -9,9 +9,9 @@ it("preserves gaps and distinguishes 100 from 300 without an invented danger lin
       status="ready"
       reference={ref}
       points={[
-        { recorded_at: "2026-11-12T09:00:00Z", pm25: 100, aqi: null },
-        { recorded_at: "2026-11-12T10:00:00Z", pm25: null, aqi: null },
-        { recorded_at: "2026-11-12T11:00:00Z", pm25: 300, aqi: null },
+        { recorded_at: "2026-11-12T09:00:00Z", pm25: 100 },
+        { recorded_at: "2026-11-12T10:00:00Z", pm25: null },
+        { recorded_at: "2026-11-12T11:00:00Z", pm25: 300 },
       ]}
     />,
   );

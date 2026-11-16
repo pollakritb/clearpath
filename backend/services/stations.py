@@ -24,17 +24,10 @@ def _sanitize_station(row: dict) -> dict:
         pm25 = None
     if pm25 is not None and pm25 < 0:
         pm25 = None
-    raw_aqi = normalized.get("aqi")
-    try:
-        aqi = int(float(raw_aqi)) if raw_aqi is not None else None
-    except (TypeError, ValueError):
-        aqi = None
-    if aqi is not None and aqi < 0:
-        aqi = None
+    normalized.pop("aqi", None)
     classification = classify_pm25(pm25)
     normalized.update(
         pm25=pm25,
-        aqi=aqi,
         color=classification["color"],
         level=classification["level"],
     )

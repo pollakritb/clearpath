@@ -18,7 +18,6 @@ STATION_COLS = [
     "province",
     "district",
     "pm25",
-    "aqi",
     "color",
     "level",
     "recorded_at",
@@ -50,7 +49,6 @@ def insert_readings(stations: list[dict]) -> int:
         {
             "station_id": s["id"],
             "pm25": s.get("pm25"),
-            "aqi": s.get("aqi"),
             "recorded_at": s["recorded_at"],
             "source_at": s["recorded_at"],
             "source_status": "observed",
@@ -147,7 +145,7 @@ def get_history(
         lambda: (
             db.get_client()
             .table("pm25_readings")
-            .select("recorded_at,pm25,aqi")
+            .select("recorded_at,pm25")
             .eq("station_id", station_id)
             .gte("recorded_at", cutoff)
             .lte("recorded_at", end.isoformat())
@@ -169,7 +167,7 @@ def get_map_history_readings(
         lambda: (
             db.get_client()
             .table("pm25_readings")
-            .select("station_id,recorded_at,pm25,aqi")
+            .select("station_id,recorded_at,pm25")
             .gte("recorded_at", cutoff.isoformat())
             .lte("recorded_at", target.isoformat())
             .order("recorded_at", desc=True)

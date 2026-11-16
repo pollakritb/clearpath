@@ -12,7 +12,6 @@ const station = (id: string, lat: number, pm25: number | null): Station => ({
   lon: 100.1,
   province: null,
   pm25,
-  aqi: null,
   color: null,
   level: null,
   recorded_at: null,

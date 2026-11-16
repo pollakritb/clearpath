@@ -17,7 +17,6 @@ const points = (values: (number | null)[]) =>
   values.map((pm25, index) => ({
     recorded_at: new Date(Date.UTC(2030, 0, 1, index + 1)).toISOString(),
     pm25,
-    aqi: null,
   }));
 beforeEach(() => {
   clearPublicDataCache();

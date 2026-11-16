@@ -215,7 +215,6 @@ def _seed_stations() -> None:
                 "province": None,
                 "district": resolve_station_district(station_id, None),
                 "pm25": pm25,
-                "aqi": None,
                 "color": None,
                 "level": None,
                 "recorded_at": now,
@@ -233,7 +232,9 @@ def upsert_stations(rows: list[dict]) -> int:
     with _LOCK:
         for row in rows:
             if row.get("id"):
-                _STATIONS[str(row["id"])] = dict(row)
+                _STATIONS[str(row["id"])] = {
+                    key: value for key, value in row.items() if key != "aqi"
+                }
         return len(rows)
 
 
@@ -252,7 +253,6 @@ def insert_readings(rows: list[dict]) -> int:
                     {
                         "station_id": str(row["id"]),
                         "pm25": row.get("pm25"),
-                        "aqi": row.get("aqi"),
                         "recorded_at": row["recorded_at"],
                     }
                 )
@@ -288,7 +288,6 @@ def get_history(
             {
                 "recorded_at": (now - timedelta(hours=offset)).isoformat(),
                 "pm25": round(max(0, base + math.sin(offset / 3) * 2.5), 1),
-                "aqi": None,
             }
             for offset in reversed(range(min(hours, 72)))
         ]
@@ -317,7 +316,6 @@ def get_map_history_readings(target_at: datetime, max_age_minutes: int) -> list[
                     max(0, float(station["pm25"]) + math.sin(target.hour / 3) * 2.5),
                     1,
                 ),
-                "aqi": station.get("aqi"),
             }
             for station_id, station in _STATIONS.items()
             if station.get("pm25") is not None

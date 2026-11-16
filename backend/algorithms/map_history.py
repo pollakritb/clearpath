@@ -58,9 +58,8 @@ def select_map_history_stations(
         lon = float(station["lon"])
         snapshot.append(
             {
-                **station,
+                **{key: value for key, value in station.items() if key != "aqi"},
                 "pm25": float(reading["pm25"]),
-                "aqi": reading.get("aqi"),
                 "color": None,
                 "level": None,
                 "recorded_at": recorded_at.isoformat(),

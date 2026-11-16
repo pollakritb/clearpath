@@ -7,7 +7,7 @@ def test_stored_negative_sentinel_fails_closed():
     )
 
     assert station["pm25"] is None
-    assert station["aqi"] is None
+    assert "aqi" not in station
     assert station["level"] is None
     assert station["color"] == "#95a5a6"
 
@@ -18,6 +18,6 @@ def test_valid_stored_reading_is_reclassified_consistently():
     )
 
     assert station["pm25"] == 42.5
-    assert station["aqi"] == 89
+    assert "aqi" not in station
     assert station["level"] == "เริ่มมีผลกระทบต่อสุขภาพ"
     assert station["color"] == "#f97316"

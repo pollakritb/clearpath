@@ -19,7 +19,7 @@ it("anchors the request when expanded rather than when the collapsed sheet mount
   vi.setSystemTime(new Date("2026-11-12T01:00:00Z"));
   vi.mocked(api.history).mockResolvedValue({
     station_id: "A",
-    points: [{ recorded_at: "2026-11-12T02:00:00Z", pm25: 20, aqi: null }],
+    points: [{ recorded_at: "2026-11-12T02:00:00Z", pm25: 20 }],
   });
   const { rerender, container } = render(
     <StationInsights station={station} enabled={false} />,

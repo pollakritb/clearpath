@@ -8,7 +8,6 @@ export interface Station {
   lon: number;
   province: string | null;
   pm25: number | null;
-  aqi: number | null;
   color: string | null;
   level: string | null;
   recorded_at: string | null;
@@ -32,7 +31,6 @@ export interface StationsResponse {
 export interface HistoryPoint {
   recorded_at: string;
   pm25: number | null;
-  aqi: number | null;
 }
 
 export interface HistoryResponse {

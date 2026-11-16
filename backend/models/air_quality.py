@@ -15,7 +15,6 @@ class Station(BaseModel):
     lon: float
     province: str | None = None
     pm25: float | None = None
-    aqi: int | None = None
     color: str | None = None
     level: str | None = None
     recorded_at: str | None = None
@@ -39,7 +38,6 @@ class StationsResponse(BaseModel):
 class HistoryPoint(BaseModel):
     recorded_at: str
     pm25: float | None = None
-    aqi: int | None = None
 
 
 class HistoryResponse(BaseModel):

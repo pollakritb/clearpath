@@ -39,18 +39,8 @@ def _to_float(v) -> float | None:
         return None
 
 
-def _to_int(v) -> int | None:
-    f = _to_float(v)
-    return int(f) if f is not None else None
-
-
 def _nonnegative_float(v) -> float | None:
     value = _to_float(v)
-    return value if value is not None and value >= 0 else None
-
-
-def _nonnegative_int(v) -> int | None:
-    value = _to_int(v)
     return value if value is not None and value >= 0 else None
 
 
@@ -127,7 +117,6 @@ def parse_stations(data: dict) -> tuple[list[dict], dict]:
         # Air4Thai occasionally uses -1 as a missing-value sentinel. It must
         # never be presented as exceptionally clean air or enter calculations.
         pm25 = _nonnegative_float(pm_block.get("value"))
-        aqi = _nonnegative_int(pm_block.get("aqi"))
         cls = classify_pm25(pm25)
 
         out.append(
@@ -140,7 +129,6 @@ def parse_stations(data: dict) -> tuple[list[dict], dict]:
                 "province": s.get("areaTH"),
                 "district": resolve_station_district(station_id, s.get("areaTH")),
                 "pm25": pm25,
-                "aqi": aqi,
                 "color": cls["color"],
                 "level": cls["level"],
                 "recorded_at": _recorded_at(aqi_last),

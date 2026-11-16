@@ -68,7 +68,7 @@ def test_parse_stations_treats_negative_air4thai_sentinel_as_missing():
 
     assert diagnostics["accepted_count"] == 1
     assert rows[0]["pm25"] is None
-    assert rows[0]["aqi"] is None
+    assert "aqi" not in rows[0]
     assert rows[0]["level"] is None
 
 
@@ -82,3 +82,29 @@ def test_source_time_is_not_fabricated_from_missing_or_invalid_clock():
         _recorded_at({"date": "2026-11-11", "time": "10:00"})
         == "2026-11-11T10:00:00+07:00"
     )
+
+
+def test_upstream_aqi_is_ignored_even_when_present():
+    rows, _ = parse_stations(
+        {
+            "stations": [
+                {
+                    "stationID": "02t",
+                    "lat": "13.7",
+                    "long": "100.5",
+                    "AQILast": {
+                        "date": "2026-11-17",
+                        "time": "10:00",
+                        "PM25": {"value": "22", "aqi": "999"},
+                    },
+                }
+            ]
+        }
+    )
+    assert rows[0]["pm25"] == 22
+    assert "aqi" not in rows[0]
+    # Bangkok source time and the corresponding UTC instant are identical.
+    from datetime import UTC, datetime
+
+    source_time = datetime.fromisoformat(rows[0]["recorded_at"])
+    assert source_time.astimezone(UTC).isoformat() == "2026-11-17T03:00:00+00:00"

@@ -8,7 +8,6 @@ const station = {
   lon: 99.953663,
   province: "ประจวบคีรีขันธ์",
   pm25: 18.5,
-  aqi: null,
   color: null,
   level: null,
   recorded_at: new Date().toISOString(),
@@ -149,7 +148,6 @@ test("full station insights load on expansion and show genuine gaps and hourly c
         points: Array.from({ length: 24 }, (_, i) => ({
           recorded_at: new Date(hour - (23 - i) * 3600000).toISOString(),
           pm25: i === 15 ? null : i === 23 ? 18.5 : 10 + i,
-          aqi: null,
         })),
       },
     });

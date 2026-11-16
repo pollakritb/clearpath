@@ -4,7 +4,6 @@ const end = Date.parse("2026-11-11T10:30:00Z");
 const p = (at: string, value: number | null) => ({
   recorded_at: at,
   pm25: value,
-  aqi: null,
 });
 it("keeps hourly gaps and rejects future, old, missing and invalid observations", () => {
   const slots = stationHistorySlots(

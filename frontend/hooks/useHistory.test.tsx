@@ -12,7 +12,7 @@ afterEach(() => {
 });
 const response = (pm25: number) => ({
   station_id: "test",
-  points: [{ pm25, recorded_at: "2026-11-12T01:00:00Z", aqi: null }],
+  points: [{ pm25, recorded_at: "2026-11-12T01:00:00Z" }],
 });
 it("keeps the latest station's points when an older request finishes late", async () => {
   let finish!: (value: ReturnType<typeof response>) => void;
