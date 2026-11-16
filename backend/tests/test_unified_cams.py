@@ -89,6 +89,41 @@ def test_missing_cell_stops_contiguous_horizon(monkeypatch):
     assert len(result["points"]) == 2
 
 
+def test_station_and_coordinate_reads_share_one_grid_and_never_read_snapshots(
+    monkeypatch,
+):
+    fixture(monkeypatch)
+    monkeypatch.setattr(
+        service.supabase_client,
+        "get_station_by_id",
+        lambda station_id: {
+            "id": station_id,
+            "lat": 14,
+            "lon": 100.4,
+            "name_th": "Local fixture",
+        },
+    )
+    station = asyncio.run(service.station_forecast("local-station", 120))
+    area = asyncio.run(service.area_forecast(14, 100.4, 120))
+    assert station["grid_lat"] == area["grid_lat"] == 14
+    assert station["grid_lon"] == area["grid_lon"] == 100.4
+    assert station["generation_id"] == area["generation_id"]
+    assert station["points"] == area["points"]
+
+
+def test_station_grid_read_does_not_fallback_to_snapshots_when_grid_missing(
+    monkeypatch,
+):
+    fixture(monkeypatch)
+    monkeypatch.setattr(service.grid_store, "active", lambda: None)
+    monkeypatch.setattr(
+        service.supabase_client,
+        "get_station_by_id",
+        lambda station_id: {"id": station_id, "lat": 14, "lon": 100.4},
+    )
+    assert asyncio.run(service.station_forecast("local-station", 120))["points"] == []
+
+
 def test_stale_and_expired_have_same_policy_as_map(monkeypatch):
     fixture(monkeypatch, age=19)
     result = asyncio.run(service.area_forecast(14, 100.4, 120))

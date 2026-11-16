@@ -13,6 +13,26 @@ from backend.main import app
 from backend.services import provider_sync, store_client, supabase_client
 
 
+@pytest.mark.parametrize("batch_index", [None, 0, 5])
+def test_direct_snapshot_writer_is_retired_when_grid_reads_enabled(
+    monkeypatch, batch_index
+):
+    monkeypatch.setattr(settings, "cams_grid_forecast_enabled", True)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("retired writer must perform no provider or DB work")
+
+    monkeypatch.setattr(supabase_client, "get_latest_provider_sync_run", forbidden)
+    monkeypatch.setattr(supabase_client, "create_provider_sync_run", forbidden)
+    monkeypatch.setattr(supabase_client, "upsert_provider_snapshots", forbidden)
+    monkeypatch.setattr(provider_sync.openmeteo_air, "get_forecasts", forbidden)
+    monkeypatch.setattr(provider_sync, "_safe_cleanup_cams_history", forbidden)
+    assert asyncio.run(provider_sync.collect_openmeteo_snapshots(batch_index)) == {
+        "status": "retired",
+        "reason": "cams_grid_is_single_source",
+    }
+
+
 def test_collect_cams_snapshots_stores_future_hours_without_predictions(monkeypatch):
     now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
     station = {"id": "103t", "lat": 13.7, "lon": 100.5}

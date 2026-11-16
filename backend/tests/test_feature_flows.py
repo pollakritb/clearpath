@@ -151,6 +151,43 @@ def _create_report(client: TestClient, seed: int = 1) -> dict:
     return report
 
 
+@pytest.mark.parametrize("ocr_unavailable", [False, True])
+def test_primary_only_ocr_preserves_burst_audit_and_finalizes_report(
+    feature_client, monkeypatch, ocr_unavailable
+):
+    from backend.core.errors import UpstreamError
+
+    client, become = feature_client
+    become("user")
+    calls = []
+
+    # No **kwargs: the draft workflow must not pass burst frames to OCR.
+    async def primary_only(image: bytes, content_type: str) -> dict:
+        calls.append((image, content_type))
+        if ocr_unavailable:
+            raise UpstreamError("OCR unavailable")
+        return dict(
+            available=True,
+            pm25=17.0,
+            confidence=1.0,
+            device_detected=True,
+            display_clear=True,
+            raw_text="017",
+        )
+
+    monkeypatch.setattr(ocr_service, "read_pm25", primary_only)
+    seed = 99813 + int(ocr_unavailable)
+    report = _create_report(client, seed=seed)
+    assert len(calls) == 1 and calls[0][1] == "image/jpeg"
+    stored = local_store.get_report(report["id"])
+    assert stored["burst_hashes"] == [
+        hashlib.sha256(_meter_image(seed + offset)).hexdigest() for offset in (100, 200)
+    ]
+    assert report["status"] == ("rejected" if ocr_unavailable else "approved")
+    if not ocr_unavailable:
+        assert report["pm25"] == 17.0
+
+
 def test_numeric_ocr_report_is_published_without_other_ocr_gates(
     feature_client, monkeypatch
 ):

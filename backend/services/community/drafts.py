@@ -136,11 +136,8 @@ async def create_draft(
     ]
     await run_in_threadpool(supabase_client.ensure_profile, user_id)
     try:
-        ocr_result = await ocr.read_pm25(
-            image,
-            content_type,
-            additional_images=burst_images,
-        )
+        # OCR reads the primary image only; burst fingerprints remain audit metadata.
+        ocr_result = await ocr.read_pm25(image, content_type)
     except UpstreamError:
         ocr_result = {
             "available": False,

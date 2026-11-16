@@ -138,6 +138,10 @@ def _snapshots(
 async def collect_openmeteo_snapshots(batch_index: int | None = None) -> dict:
     """Store raw CAMS station forecasts only; never create local predictions."""
 
+    # Protect direct worker/script callers too, not only the cron HTTP route.
+    # Grid-only reads must never keep creating duplicate station snapshots.
+    if settings.cams_grid_forecast_enabled:
+        return {"status": "retired", "reason": "cams_grid_is_single_source"}
     if batch_index is not None and not 0 <= batch_index < CAMS_SNAPSHOT_BATCH_COUNT:
         raise ValueError("invalid_cams_batch_index")
     latest = (
