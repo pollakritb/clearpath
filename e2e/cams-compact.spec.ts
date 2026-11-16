@@ -236,8 +236,9 @@ test("CAMS selected-point marker follows the displayed forecast frame", async ({
       },
     }),
   );
-  await page.route("**/api/forecast-grid/frames?*", (route) =>
-    route.fulfill({
+  await page.route("**/api/forecast-grid/frames?*", (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    return route.fulfill({
       json: {
         generation_id: "CGN-000001",
         grid_version: "cams-global-0.4-th-v1",
@@ -245,13 +246,19 @@ test("CAMS selected-point marker follows the displayed forecast frame", async ({
         column_start: 0,
         rows: 44,
         columns: 26,
-        frames: times.map((valid_at, i) => ({
-          valid_at,
-          values: Array(1144).fill(i === 0 ? 20 : 40),
-        })),
+        frames: times
+          .map((valid_at, i) => ({
+            valid_at,
+            values: Array(1144).fill(i === 0 ? 20 : 40),
+          }))
+          .filter(
+            (frame) =>
+              Date.parse(frame.valid_at) >= Date.parse(query.get("start")!) &&
+              Date.parse(frame.valid_at) <= Date.parse(query.get("end")!),
+          ),
       },
-    }),
-  );
+    });
+  });
   await page.goto("/?layer=cams");
   const panel = page.getByRole("region", {
     name: "พยากรณ์ PM2.5 · CAMS",
