@@ -88,8 +88,8 @@
   font-weight: 700;
 }
 .details {
-  padding: 12px 0 0;
-  margin-top: 8px;
+  padding: 6px 0 0;
+  margin-top: 4px;
   border-top: 1px solid #dde9e5;
 }
 .day {
@@ -109,7 +109,7 @@
 }
 .details h3 {
   font-size: 13px;
-  margin: 16px 0 8px;
+  margin: 0;
 }
 .details h3 span {
   font-weight: 400;
@@ -124,26 +124,10 @@
 .details :global(.cp-cams-legend) {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 10px 0 16px;
-  font-size: 12px;
-}
-.details :global(.cp-cams-info) {
-  position: static;
-}
-.details :global(.cp-cams-info summary) {
-  width: auto;
-  min-height: 44px;
-  justify-content: start;
-  font-size: 13px;
-}
-.details :global(.cp-cams-info > div) {
-  position: static;
-  width: auto;
-  padding: 8px 0 0;
-  box-shadow: none;
-  background: transparent;
-  font-size: 13px;
+  gap: 6px;
+  margin: 6px 0 2px;
+  padding: 0;
+  font-size: 11px;
 }
 .point:empty {
   display: none;
@@ -197,4 +181,12 @@
 }
 .point :global(.cp-cams-point p b[data-message="true"]) {
   font-size: 14px;
+}
+
+.point :global(.cp-cams-point > div > div) {
+  min-width: 0;
+  flex: 1;
+}
+.point :global(.cp-cams-point strong) {
+  display: block;
 }

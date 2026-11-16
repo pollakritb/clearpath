@@ -95,7 +95,26 @@ export default function CamsForecastControls({
                 aria-label="ค่าพยากรณ์บริเวณที่เลือก"
               >
                 <div>
-                  <strong>{point.name ?? "บริเวณที่เลือก"} · พยากรณ์</strong>
+                  <div>
+                    <strong>{point.name ?? "บริเวณที่เลือก"} · พยากรณ์</strong>
+                    <p>
+                      <b
+                        data-message={
+                          outside || value == null ? "true" : undefined
+                        }
+                        style={{ color: cls.textColor }}
+                      >
+                        {outside
+                          ? "นอกขอบเขตข้อมูลกริด"
+                          : loading
+                            ? "…"
+                            : value == null
+                              ? "ไม่มีข้อมูล"
+                              : value.toFixed(1)}
+                      </b>
+                      {value != null && <> µg/m³ · {cls.level}</>}
+                    </p>
+                  </div>
                   <button
                     type="button"
                     className="cp-focus"
@@ -105,21 +124,6 @@ export default function CamsForecastControls({
                     ×
                   </button>
                 </div>
-                <p>
-                  <b
-                    data-message={outside || value == null ? "true" : undefined}
-                    style={{ color: cls.textColor }}
-                  >
-                    {outside
-                      ? "นอกขอบเขตข้อมูลกริด"
-                      : loading
-                        ? "…"
-                        : value == null
-                          ? "ไม่มีข้อมูล"
-                          : value.toFixed(1)}
-                  </b>
-                  {value != null && <> µg/m³ · {cls.level}</>}
-                </p>
                 <small>{at ? formatForecastTime(at) : ""} · CAMS</small>
                 {!outside && point && isInThailand(point.lat, point.lon) && (
                   <button
@@ -253,54 +257,6 @@ export default function CamsForecastControls({
               </select>
             </label>
           ) : null
-        }
-        info={
-          <details className="cp-cams-info">
-            <summary
-              aria-label="ข้อมูลพยากรณ์ CAMS"
-              onClick={() => grid.pause()}
-            >
-              เกี่ยวกับข้อมูล CAMS
-            </summary>
-            <div>
-              <strong>CAMS Global · Open-Meteo</strong>
-              <p>
-                เตรียมล่วงหน้า {grid.preparedFrames}/{times.length} ช่วงเวลา ·
-                สีตามเกณฑ์ PM2.5 ของแต่ละช่อง
-              </p>
-              <p>
-                กริดประมาณ 45 กม. แสดงค่าของแต่ละช่องโดยไม่เกลี่ยระหว่างช่อง
-                ไม่ใช่ค่าตรวจวัด ณ จุดนั้น
-              </p>
-              <p>
-                เก็บข้อมูลล่าสุด{" "}
-                {meta?.retrieved_at
-                  ? formatForecastTime(meta.retrieved_at)
-                  : "—"}
-              </p>
-              <p>
-                ช่วงเวลาที่เลือกได้ {times.length} ช่วง · ถึง{" "}
-                {times.length
-                  ? formatForecastTime(times[times.length - 1])
-                  : "—"}
-              </p>
-              <p>
-                แสดงเฉพาะช่วงเวลาที่มีจริงในชุดที่เก็บไว้
-                ไม่ได้มีพยากรณ์ล่วงหน้าอีก 5 วันเสมอไป
-              </p>
-              <p>เวลาออกแบบจำลอง: ต้นทางไม่ได้ระบุ</p>
-              <a
-                href={
-                  meta?.attribution_url ??
-                  "https://open-meteo.com/en/docs/air-quality-api"
-                }
-                target="_blank"
-                rel="noreferrer"
-              >
-                CAMS / Copernicus · Open-Meteo
-              </a>
-            </div>
-          </details>
         }
       />
     </>

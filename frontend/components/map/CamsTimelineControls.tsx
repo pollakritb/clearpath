@@ -22,7 +22,6 @@ export default function CamsTimelineControls({
   summary,
   error,
   extra,
-  info,
   endAction,
   footer,
   detail,
@@ -93,15 +92,16 @@ export default function CamsTimelineControls({
       <div className={styles.details}>
         {!error && (
           <div className={styles.day}>
-            <span role="status">{summary}</span>
+            <h3>
+              เกณฑ์สี PM2.5 <span>µg/m³</span>
+            </h3>
+            <span role="status" className="sr-only">
+              {summary}
+            </span>
             {extra}
           </div>
         )}
-        <h3>
-          เกณฑ์สี PM2.5 <span>µg/m³</span>
-        </h3>
         {footer}
-        {info}
       </div>
     </MapBottomSheet>
   );

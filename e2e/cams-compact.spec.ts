@@ -176,9 +176,12 @@ test("CAMS keeps playback compact and moves supporting information into the expa
     panel.getByLabel("ระดับ PM2.5 หน่วยไมโครกรัมต่อลูกบาศก์เมตร"),
   ).toBeVisible();
   await expect(
-    panel.getByText("CAMS · 100 ช่วงเวลาที่เลือกได้", { exact: true }),
+    panel.getByRole("heading", { name: "เกณฑ์สี PM2.5 µg/m³" }),
   ).toBeVisible();
-  await panel.getByLabel("ข้อมูลพยากรณ์ CAMS").click();
+  await expect(panel.getByText("เกี่ยวกับข้อมูล CAMS")).toHaveCount(0);
+  await expect
+    .poll(async () => (await panel.boundingBox())!.height)
+    .toBeLessThan(300);
   await panel
     .locator(":scope > div")
     .first()
@@ -265,6 +268,9 @@ test("CAMS selected-point marker follows the displayed forecast frame", async ({
     name: "จุดที่เลือก 20.0 µg/m³ · ปานกลาง (เริ่มเฝ้าระวัง)",
   });
   await expect(moderate).toBeVisible();
+  await expect
+    .poll(async () => (await panel.boundingBox())!.height)
+    .toBeLessThan(380);
   const original = await moderate.evaluate((e) => getComputedStyle(e).left);
   await slider.press("ArrowRight");
   const high = panel.getByRole("img", {
