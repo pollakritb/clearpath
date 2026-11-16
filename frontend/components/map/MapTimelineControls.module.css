@@ -1,0 +1,31 @@
+.compact.compact:global(.cp-timeline-sheet)
+  :global(.cp-map-history-dock__heading) {
+  grid-template-columns: minmax(0, 1fr) auto 44px;
+  gap: 6px;
+}
+.compact.compact:global(.cp-timeline-sheet)
+  :global(.cp-map-history-dock__heading > span) {
+  display: none;
+}
+.compact.compact:global(.cp-timeline-sheet)
+  :global(.cp-map-history-dock__heading small) {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.compact.compact:global(.cp-timeline-sheet)
+  :global(.cp-map-history-dock__heading strong) {
+  font-size: 14px;
+}
+.compact.compact:global(.cp-timeline-sheet) :global(.cp-map-timeline__slider) {
+  margin: 0;
+  gap: 8px;
+}
+.compact.compact:global(.cp-timeline-sheet)
+  :global(.cp-map-timeline__slider button) {
+  min-width: 44px;
+  min-height: 44px;
+}
+.compact.compact:global(.cp-timeline-sheet)
+  :global(.cp-map-timeline__slider input) {
+  height: 44px;
+}

@@ -289,12 +289,14 @@ export default function MapBottomSheet({
       root.current?.getBoundingClientRect().height ||
       sizes[snap === "peek" ? "peek" : "max"];
     gesture.current = { y: event.clientY, height, raw: height, origin: snap };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
   }
   function move(event: PointerEvent<HTMLDivElement>) {
     if (!gesture.current || gesture.current.touch) return;
     const delta = gesture.current.y - event.clientY;
-    if (Math.abs(delta) > 6) dragged.current = true;
+    if (Math.abs(delta) > 6) {
+      dragged.current = true;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    }
     gesture.current.raw = gesture.current.height + delta;
     setDragHeight(
       Math.max(sizes.peek, Math.min(sizes.max, gesture.current.raw)),

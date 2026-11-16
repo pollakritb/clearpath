@@ -88,3 +88,60 @@ it("offers a working retry when the forecast service is unavailable", () => {
   fireEvent.click(screen.getByRole("button", { name: "ลองโหลดพยากรณ์ใหม่" }));
   expect(grid.retry).toHaveBeenCalledOnce();
 });
+
+it("starts compact with time and playback while keeping the legend and day picker in the full panel", () => {
+  render(
+    <CamsForecastControls
+      grid={{ ...grid, times: [at, "2030-01-01T01:00:00Z"] }}
+      point={null}
+      onClosePoint={vi.fn()}
+      onRequest={vi.fn()}
+      onExit={vi.fn()}
+    />,
+  );
+  const sheet = screen.getByRole("region", { name: "พยากรณ์ PM2.5 · CAMS" });
+  expect(sheet.getAttribute("data-snap")).toBe("peek");
+  expect(
+    screen.getByRole("slider", { name: "เลือกเวลาพยากรณ์ CAMS" }),
+  ).toBeTruthy();
+  expect(
+    screen.queryByRole("combobox", { name: "เลือกวันพยากรณ์" }),
+  ).toBeNull();
+  expect(
+    screen
+      .queryByLabelText("ระดับ PM2.5 หน่วยไมโครกรัมต่อลูกบาศก์เมตร")
+      ?.closest('[aria-hidden="true"]'),
+  ).toBeTruthy();
+  fireEvent.click(
+    screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+  );
+  expect(sheet.getAttribute("data-snap")).toBe("full");
+  expect(
+    screen.getByRole("combobox", { name: "เลือกวันพยากรณ์" }),
+  ).toBeTruthy();
+  fireEvent.click(
+    screen.getByRole("button", { name: "เลื่อนแผงข้อมูลขึ้นลง" }),
+  );
+  expect(sheet.getAttribute("data-snap")).toBe("peek");
+});
+it("opens full details when a forecast cell is selected after the compact timeline", () => {
+  const props = {
+    grid,
+    point: null,
+    onClosePoint: vi.fn(),
+    onRequest: vi.fn(),
+    onExit: vi.fn(),
+  };
+  const { rerender } = render(<CamsForecastControls {...props} />);
+  rerender(
+    <CamsForecastControls {...props} point={{ lat: 13.75, lon: 100.5 }} />,
+  );
+  expect(
+    screen
+      .getByRole("region", { name: "พยากรณ์ PM2.5 · CAMS" })
+      .getAttribute("data-snap"),
+  ).toBe("full");
+  expect(
+    screen.getByRole("button", { name: "ขอให้ชุมชนช่วยวัดบริเวณนี้ →" }),
+  ).toBeTruthy();
+});

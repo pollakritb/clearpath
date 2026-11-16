@@ -65,6 +65,17 @@ export default function CamsForecastControls({
   return (
     <>
       <MapTimelineControls
+        compact
+        initiallyExpanded={Boolean(point)}
+        expandSignal={point ? point.lat * 1000000 + point.lon : 0}
+        error={error || (loading ? "กำลังโหลดพยากรณ์…" : undefined)}
+        compactAction={
+          error ? (
+            <button type="button" className="cp-focus" onClick={grid.retry}>
+              ลองโหลดพยากรณ์ใหม่
+            </button>
+          ) : undefined
+        }
         onClose={onExit}
         title="พยากรณ์ PM2.5 · CAMS"
         detail={
