@@ -12,6 +12,7 @@ import { useMap, useMapEvents } from "react-leaflet";
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { T } from "@/frontend/lib/ui";
 import { flyMapTo } from "@/frontend/lib/map-motion";
+import { publishForegroundPosition } from "@/frontend/lib/foreground-location";
 
 const CONTROL_BUTTON_STYLE: CSSProperties = {
   width: "2.7em",
@@ -69,6 +70,7 @@ export default function MapControls({
       (position) => {
         if (!alive.current) return;
         const { latitude, longitude, accuracy } = position.coords;
+        publishForegroundPosition(position);
         setLocating(false);
         if (manageLocateViewport)
           flyMapTo(map, [latitude, longitude], Math.max(map.getZoom(), 15));
@@ -85,7 +87,7 @@ export default function MapControls({
               : "หาตำแหน่งไม่ทัน ลองอีกครั้ง",
         );
       },
-      { enableHighAccuracy: false, timeout: 20_000, maximumAge: 5 * 60_000 },
+      { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
     );
   };
 

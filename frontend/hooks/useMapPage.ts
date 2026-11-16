@@ -15,10 +15,7 @@ import { useRequestFlow } from "./useRequestFlow";
 import { useRequestPlaceLabel } from "@/frontend/hooks/useRequestPlaceLabel";
 import { visibleMapRequests } from "@/frontend/lib/request-map";
 import { useCommunityMapData } from "@/frontend/hooks/useCommunity";
-import {
-  useCurrentLocation,
-  type CurrentLocation,
-} from "@/frontend/hooks/useCurrentLocation";
+import { useCurrentLocation } from "@/frontend/hooks/useCurrentLocation";
 import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
 import { useMapHistory } from "@/frontend/hooks/useMapHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
@@ -108,7 +105,7 @@ export function useMapPage({
   const pm25 = usePm25();
   const firms = useFirms();
   const community = useCommunityMapData();
-  const currentLocation = useCurrentLocation(true);
+  const currentLocation = useCurrentLocation(true, true);
   const mapHistory = useMapHistory();
   const requestFlow = useRequestFlow();
   const {
@@ -191,10 +188,8 @@ export function useMapPage({
   }, [active, pauseCams, setRequestStep]);
   const [historyOffsetHours, setHistoryOffsetHours] = useState(1);
   const [focusPoint, setFocusPoint] = useState<MapFocusPoint | null>(null);
-  const [locatedManually, setLocatedManually] =
-    useState<CurrentLocation | null>(null);
   const [resetViewSignal, setResetViewSignal] = useState(0);
-  const userLocation = locatedManually ?? currentLocation.location;
+  const userLocation = currentLocation.location;
 
   const startRequest = useCallback(() => {
     setSelectedRequestId(null);
@@ -543,7 +538,6 @@ export function useMapPage({
     setHistoryOffsetHours,
     focusPoint,
     setFocusPoint,
-    setLocatedManually,
     resetViewSignal,
     setResetViewSignal,
     userLocation,

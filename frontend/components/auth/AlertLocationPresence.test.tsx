@@ -122,3 +122,109 @@ it("does not read GPS when browser permission is denied", async () => {
   expect(mocks.gps).not.toHaveBeenCalled();
   expect(mocks.save).not.toHaveBeenCalled();
 });
+
+it("keeps B as the latest pending location and flushes it on page hide", async () => {
+  let position: PositionCallback = () => undefined;
+  const clearWatch = vi.fn();
+  Object.defineProperty(navigator, "geolocation", {
+    configurable: true,
+    value: {
+      watchPosition: vi.fn((callback: PositionCallback) => {
+        position = callback;
+        return 7;
+      }),
+      clearWatch,
+    },
+  });
+  const view = render(<AlertLocationPresence />);
+  await waitFor(() => expect(mocks.permission).toHaveBeenCalledOnce());
+  const at = Date.now() - 1000;
+  position({
+    timestamp: at,
+    coords: { latitude: 14, longitude: 100, accuracy: 10 },
+  } as GeolocationPosition);
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledOnce());
+  position({
+    timestamp: at + 500,
+    coords: { latitude: 14.1, longitude: 100.1, accuracy: 10 },
+  } as GeolocationPosition);
+  expect(mocks.save).toHaveBeenCalledOnce();
+  window.dispatchEvent(new Event("pagehide"));
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2));
+  expect(mocks.save.mock.calls[1]).toEqual([
+    {
+      lat: 14.1,
+      lon: 100.1,
+      accuracy_m: 10,
+      observed_at: new Date(at + 500).toISOString(),
+    },
+    { keepalive: true },
+  ]);
+  expect(clearWatch).toHaveBeenCalledWith(7);
+  view.unmount();
+});
+
+it("persists movement automatically after 30 seconds while the page stays open", async () => {
+  let position: PositionCallback = () => undefined;
+  Object.defineProperty(navigator, "geolocation", {
+    configurable: true,
+    value: {
+      watchPosition: vi.fn((callback: PositionCallback) => {
+        position = callback;
+        return 8;
+      }),
+      clearWatch: vi.fn(),
+    },
+  });
+  render(<AlertLocationPresence />);
+  await waitFor(() => expect(mocks.permission).toHaveBeenCalledOnce());
+  const at = Date.now() - 1000;
+  position({
+    timestamp: at,
+    coords: { latitude: 14, longitude: 100, accuracy: 10 },
+  } as GeolocationPosition);
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledOnce());
+  vi.useFakeTimers();
+  try {
+    position({
+      timestamp: at + 500,
+      coords: { latitude: 14.1, longitude: 100.1, accuracy: 10 },
+    } as GeolocationPosition);
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(mocks.save).toHaveBeenCalledTimes(2);
+    expect(mocks.save.mock.calls[1][0].lat).toBe(14.1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("persists the newest moving sample after 30 seconds without manual action", async () => {
+  let position: PositionCallback = () => undefined;
+  Object.defineProperty(navigator, "geolocation", {
+    configurable: true,
+    value: {
+      watchPosition: vi.fn((callback: PositionCallback) => {
+        position = callback;
+        return 8;
+      }),
+      clearWatch: vi.fn(),
+    },
+  });
+  render(<AlertLocationPresence />);
+  await waitFor(() => expect(mocks.permission).toHaveBeenCalledOnce());
+  position({
+    timestamp: Date.now() - 1000,
+    coords: { latitude: 14, longitude: 100, accuracy: 10 },
+  } as GeolocationPosition);
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledOnce());
+  vi.useFakeTimers();
+  position({
+    timestamp: Date.now(),
+    coords: { latitude: 14.1, longitude: 100.1, accuracy: 10 },
+  } as GeolocationPosition);
+  expect(mocks.save).toHaveBeenCalledOnce();
+  await vi.advanceTimersByTimeAsync(30000);
+  expect(mocks.save).toHaveBeenCalledTimes(2);
+  expect(mocks.save.mock.calls[1][0].lat).toBe(14.1);
+  vi.useRealTimers();
+});

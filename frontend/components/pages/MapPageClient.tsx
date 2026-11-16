@@ -82,7 +82,6 @@ export default function MapPageClient(options: MapPageOptions) {
     historyOffsetHours,
     setHistoryOffsetHours,
     setFocusPoint,
-    setLocatedManually,
     resetViewSignal,
     setResetViewSignal,
     userLocation,
@@ -279,12 +278,11 @@ export default function MapPageClient(options: MapPageOptions) {
         }
         selectedReportId={selectedReport?.id}
         selectedReportStackId={selectedStack?.id}
-        onLocate={(lat, lon, accuracy = 0) => {
+        onLocate={(lat, lon) => {
           setSelectedRequestId(null);
           setSelectedPlace(null);
           setSelectedStackId(null);
           setSelectedReport(null);
-          setLocatedManually({ lat, lon, accuracy });
           if (requestStep === "pick") {
             setRequestPoint({
               id: `point:${lat}:${lon}`,

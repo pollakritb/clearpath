@@ -40,3 +40,22 @@ legacy alert backfill and service-only access. Browser tests never send LINE
 messages. Apply only the fixed-daily-alert migration to the main project during
 rollout; leave unrelated pending migrations untouched. Verify schema defaults,
 ledger RLS/privileges, production health and deployed commit after rollout.
+
+## Foreground location and retention
+
+The map, Today and alert presence share one browser location watch. Coordinates
+update in memory as the browser reports them. Alert presence saves only the
+latest accurate (≤200 m) sample, at most once per 30 seconds during visible use.
+It attempts a keepalive flush of the last received sample on page hide. Neither
+GPS availability nor completion of an exit request is guaranteed by the browser.
+Hidden pages stop the watch; returning restarts it. Manual map recentering uses a
+fresh position and publishes it to the same subscribers. The UI offers status
+only; no manual refresh/delete GPS tasks are required.
+
+Alert locations stop being eligible after 24 hours. The independent database
+job `clearpath-air-alert-location-retention` deletes expired rows hourly at
+minute 23, normally removing them within about 25 hours of their observation.
+It does not depend on LINE worker instances or browser activity. Turning off air
+alerts and confirmed account closure retain their existing immediate deletion.
+The migration also removes already expired alert locations once at rollout.
+Other GPS-bearing report/helper records have their own retention policies.

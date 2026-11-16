@@ -235,7 +235,71 @@ await assert.rejects(
 await pg.exec("set role authenticated");
 await assert.rejects(pg.query("select * from air_alert_daily_limits"));
 await pg.exec("reset role");
+// pg_cron runs in the hosted database; capture its registered SQL locally.
+await pg.exec(`
+ create schema cron;
+ create table cron.job(jobname text primary key,schedule text,command text);
+ create function cron.schedule(n text,s text,c text) returns bigint language plpgsql as $$
+ begin
+  insert into cron.job values(n,s,c) on conflict(jobname) do update set schedule=excluded.schedule,command=excluded.command;
+  return 1;
+ end $$;
+ insert into air_alert_locations(user_id,lat,lon,accuracy_m,observed_at)
+ values(2,14,100,20,now()-interval '25 hours');
+ update air_alert_locations set observed_at=now()-interval '23 hours' where user_id=1;
+`);
+await pg.exec(migration("foreground_alert_gps_retention"));
+assert.equal(
+  (
+    await pg.query(
+      "select count(*)::int n from air_alert_locations where user_id=2",
+    )
+  ).rows[0].n,
+  0,
+);
+assert.equal(
+  (
+    await pg.query(
+      "select count(*)::int n from air_alert_locations where user_id=1",
+    )
+  ).rows[0].n,
+  1,
+);
+const job = (
+  await pg.query(
+    "select * from cron.job where jobname='clearpath-air-alert-location-retention'",
+  )
+).rows[0];
+assert.equal(job.schedule, "23 * * * *");
+await pg.exec(
+  "update notification_preferences set air_alerts=false where user_id=1",
+);
+assert.equal(
+  (
+    await pg.query(
+      "select count(*)::int n from air_alert_locations where user_id=1",
+    )
+  ).rows[0].n,
+  0,
+  "opt-out deletes GPS at the locked database boundary",
+);
+await pg.exec(
+  "insert into air_alert_locations(user_id,lat,lon,accuracy_m,observed_at) values(1,14,100,20,now()-interval '25 hours')",
+);
+await pg.exec(
+  "update air_alert_locations set observed_at=now()-interval '25 hours' where user_id=1",
+);
+await pg.exec(job.command);
+assert.equal(
+  (await pg.query("select count(*)::int n from air_alert_locations")).rows[0].n,
+  0,
+);
+assert.ok(
+  (await pg.query("select count(*)::int n from air_alert_daily_limits")).rows[0]
+    .n > 0,
+  "GPS cleanup must preserve daily notification quotas",
+);
 console.log(
-  "Fixed settings, daily quotas, escalation, relink, day rollover, delivery acknowledgment, opt-out and access control passed",
+  "Daily alert policy, access control and independent hourly GPS retention passed",
 );
 await pg.close();

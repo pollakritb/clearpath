@@ -517,16 +517,15 @@ export const api = {
       auth: true,
       cache: "no-store",
     }),
-  updateAlertLocation: (body: AlertLocationInput) =>
+  updateAlertLocation: (
+    body: AlertLocationInput,
+    options?: { keepalive?: boolean },
+  ) =>
     http<AlertLocationStatus>("/api/notifications/location", {
       auth: true,
+      keepalive: options?.keepalive,
       method: "PUT",
       body: JSON.stringify(body),
-    }),
-  clearAlertLocation: () =>
-    http<OperationResponse>("/api/notifications/location", {
-      auth: true,
-      method: "DELETE",
     }),
 
   notificationPreferences: () =>

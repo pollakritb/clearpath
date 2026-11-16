@@ -1,5 +1,71 @@
 import { expect, test } from "@playwright/test";
 
+test("@stateful-360 moving from A to B automatically flushes the latest GPS when hiding the page", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: 14, longitude: 100, accuracy: 10 });
+  await page.addInitScript(() => {
+    const original = navigator.geolocation.watchPosition.bind(
+      navigator.geolocation,
+    );
+    navigator.geolocation.watchPosition = (success, error, options) =>
+      original(
+        (position) => {
+          (
+            window as unknown as { gpsLatitudeForTest: number }
+          ).gpsLatitudeForTest = position.coords.latitude;
+          success(position);
+        },
+        error,
+        options,
+      );
+  });
+  const initial = await page.request.get("/api/notifications/preferences");
+  expect(
+    (
+      await page.request.put("/api/notifications/preferences", {
+        data: {
+          ...(await initial.json()),
+          air_alerts: true,
+          consent_granted: true,
+        },
+      })
+    ).ok(),
+  ).toBe(true);
+  const savedA = page.waitForResponse(
+    (r) =>
+      new URL(r.url()).pathname === "/api/notifications/location" &&
+      r.request().method() === "PUT" &&
+      r.request().postDataJSON()?.lat === 14,
+  );
+  await page.goto("/");
+  expect((await savedA).ok()).toBe(true);
+  const marker = page.locator('[title="ตำแหน่งปัจจุบันของคุณ"]');
+  await expect(marker).toHaveCount(1);
+  const positionA = await marker.getAttribute("style");
+  await context.setGeolocation({
+    latitude: 14.1,
+    longitude: 100.1,
+    accuracy: 10,
+  });
+  await page.waitForFunction(
+    () =>
+      (window as unknown as { gpsLatitudeForTest?: number })
+        .gpsLatitudeForTest === 14.1,
+  );
+  await expect.poll(() => marker.getAttribute("style")).not.toBe(positionA);
+  const savedB = page.waitForResponse(
+    (r) =>
+      new URL(r.url()).pathname === "/api/notifications/location" &&
+      r.request().method() === "PUT" &&
+      r.request().postDataJSON()?.lat === 14.1,
+  );
+  await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
+  expect((await savedB).ok()).toBe(true);
+});
+
 test("existing browser location permission enables alerts without a second consent checkbox", async ({
   page,
   context,
@@ -33,9 +99,25 @@ test("existing browser location permission enables alerts without a second conse
           .status,
     )
     .toBe("ready");
+  await expect(
+    page.getByText("พร้อมใช้ตำแหน่งล่าสุดเพื่อแจ้งเตือน"),
+  ).toBeVisible();
+  await page
+    .getByRole("region", { name: "ตำแหน่งสำหรับแจ้งค่าฝุ่น" })
+    .screenshot({
+      path: `output/playwright/automatic-gps-status-${page.viewportSize()?.width}.png`,
+    });
   await page.getByRole("button", { name: "แก้ไขเงื่อนไข" }).click();
   await expect(page.getByRole("checkbox", { name: /ยินยอม/ })).toHaveCount(0);
   await expect(page.getByText(/ลบ token/)).toHaveCount(0);
+  await expect(
+    page.getByRole("button", {
+      name: /อัปเดตตำแหน่งแจ้งเตือน|ลบตำแหน่งแจ้งเตือน/,
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(/อัปเดตอัตโนมัติเมื่ออนุญาตตำแหน่ง/),
+  ).toBeVisible();
 });
 
 test("notification settings fix bands and radius, remove quiet hours and persist independent switches", async ({
