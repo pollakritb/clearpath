@@ -253,16 +253,17 @@ def test_location_api_has_owner_isolation_and_valid_slot_parsing(feature):
         )
 
 
-def test_saved_location_emoji_round_trip_and_validation(feature):
-    from pydantic import ValidationError
-
+def test_saved_location_ignores_retired_symbol_and_keeps_current_fields(feature):
     from backend.models.measurement import MeasurementHelperLocationWrite
 
     saved = place("owner", emoji="🏠")
-    assert registered.locations("owner")[0]["emoji"] == "🏠"
+    assert "emoji" not in saved
+    assert registered.locations("owner") == [saved]
     assert registered.locations("other") == []
-    updated = registered.save_location("owner", {**saved, "emoji": "🌳"}, saved["slot"])
-    assert updated["emoji"] == "🌳"
-    with pytest.raises(ValidationError):
-        MeasurementHelperLocationWrite(name="Bad", lat=13.8, lon=100.1, emoji="<img>")
-    assert MeasurementHelperLocationWrite(name="Old", lat=13.8, lon=100.1).emoji == "📍"
+    updated = registered.save_location(
+        "owner", {**saved, "name": "Office"}, saved["slot"]
+    )
+    assert updated["name"] == "Office"
+    assert (
+        "emoji" not in MeasurementHelperLocationWrite.model_json_schema()["properties"]
+    )

@@ -15,7 +15,6 @@ const data = vi.hoisted(() => ({
   community: {
     reports: [] as CommunityReport[],
     stacks: [] as CommunityReportStack[],
-    demoMode: false,
     refresh: vi.fn(async () => undefined),
   },
   firms: { fires: [], loaded: false, load: vi.fn(async () => undefined) },
@@ -120,7 +119,6 @@ beforeEach(() => {
   ];
   data.community.reports = [{ ...report, captured_at: now }];
   data.community.stacks = [stack];
-  data.community.demoMode = false;
   data.requests.now = Date.now();
   data.requests.rows = [
     { ...request, expires_at: new Date(Date.now() + 3600000).toISOString() },
@@ -234,9 +232,8 @@ it("opens each report/request deep link once, ignores completed requests and res
   expect(result.current.selectedRequest).toBeNull();
 });
 
-it("opens the request flow once, keeps current mode for direct CAMS requests and supports missing GPS/demo focus", () => {
+it("opens the request flow once, keeps current mode for direct CAMS requests and does not invent a focus point when GPS is missing", () => {
   data.location.location = null;
-  data.community.demoMode = true;
   const { result, rerender } = renderHook(
     (options: MapPageOptions) => useMapPage(options),
     {
@@ -251,7 +248,7 @@ it("opens the request flow once, keeps current mode for direct CAMS requests and
   expect(result.current.camsEnabled).toBe(true);
   expect(result.current.heatmapPoint).toBeNull();
   expect(result.current.heatmapDistanceKm).toBeNull();
-  expect(result.current.effectiveFocusPoint).not.toBeNull();
+  expect(result.current.effectiveFocusPoint).toBeNull();
   rerender({ requestInitially: true, initialCams: true });
   flush();
   act(() => result.current.selectRequest(data.requests.rows[0]));

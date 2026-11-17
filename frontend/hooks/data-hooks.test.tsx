@@ -10,7 +10,6 @@ const apiMocks = vi.hoisted(() => ({
   history: vi.fn(),
   leaderboard: vi.fn(),
   pm25Current: vi.fn(),
-  weather: vi.fn(),
 }));
 
 const realtimeMocks = vi.hoisted(() => ({ client: null as unknown }));
@@ -30,7 +29,6 @@ import { useFirms } from "./useFirms";
 import { useForecast } from "./useForecast";
 import { useHistory } from "./useHistory";
 import { usePm25 } from "./usePm25";
-import { useWeather } from "./useWeather";
 import { clearPublicDataCache } from "@/frontend/lib/public-data-cache";
 
 const stationsResponse = {
@@ -136,21 +134,17 @@ describe("data hooks", () => {
     expect(apiMocks.pm25Current).toHaveBeenCalledTimes(3);
   });
 
-  it("loads and clears forecast, weather, and history states", async () => {
+  it("loads and clears forecast and history states", async () => {
     apiMocks.forecast.mockResolvedValue({ station_id: "station-1" });
-    apiMocks.weather.mockResolvedValue({ temperature: 30 });
     apiMocks.history.mockResolvedValue({ points: [{ pm25: 10 }] });
 
     const forecast = renderHook(() => useForecast());
-    const weather = renderHook(() => useWeather());
     const history = renderHook(() => useHistory());
 
     await act(async () => forecast.result.current.load("station-1", 6));
-    await act(async () => weather.result.current.load(13.8, 100.1));
     await act(async () => history.result.current.load("station-1", 48));
 
     expect(forecast.result.current.data).toEqual({ station_id: "station-1" });
-    expect(weather.result.current.data).toEqual({ temperature: 30 });
     expect(history.result.current.points).toEqual([{ pm25: 10 }]);
     expect(history.result.current.stationId).toBe("station-1");
 
@@ -159,21 +153,17 @@ describe("data hooks", () => {
     expect(history.result.current.stationId).toBeNull();
   });
 
-  it("normalizes forecast, weather, and history request failures", async () => {
+  it("normalizes forecast and history request failures", async () => {
     apiMocks.forecast.mockRejectedValue(new Error("forecast failed"));
-    apiMocks.weather.mockRejectedValue(new Error("weather failed"));
     apiMocks.history.mockRejectedValue(new Error("history failed"));
 
     const forecast = renderHook(() => useForecast());
-    const weather = renderHook(() => useWeather());
     const history = renderHook(() => useHistory());
 
     await act(async () => forecast.result.current.load("station-1"));
-    await act(async () => weather.result.current.load(13.8, 100.1));
     await act(async () => history.result.current.load("station-1"));
 
     expect(forecast.result.current.error).toBe("forecast failed");
-    expect(weather.result.current.error).toBe("weather failed");
     expect(history.result.current.error).toBe("history failed");
   });
 
@@ -279,28 +269,19 @@ describe("data hooks", () => {
     expect(client.removeChannel).toHaveBeenCalledTimes(2);
   });
 
-  it("reuses weather and forecast for the same station but not on forced refresh", async () => {
-    apiMocks.weather.mockResolvedValue({ temperature: 30 });
+  it("reuses forecast for the same station but not on forced refresh", async () => {
     apiMocks.forecast.mockResolvedValue({ station_id: "station-1" });
-    const firstWeather = renderHook(() => useWeather());
     const firstForecast = renderHook(() => useForecast());
-    await act(async () => firstWeather.result.current.load(13.8, 100.1));
     await act(async () => firstForecast.result.current.load("station-1", 24));
-    firstWeather.unmount();
     firstForecast.unmount();
 
-    const nextWeather = renderHook(() => useWeather());
     const nextForecast = renderHook(() => useForecast());
-    await act(async () => nextWeather.result.current.load(13.8, 100.1));
     await act(async () => nextForecast.result.current.load("station-1", 24));
-    expect(apiMocks.weather).toHaveBeenCalledTimes(1);
     expect(apiMocks.forecast).toHaveBeenCalledTimes(1);
 
-    await act(async () => nextWeather.result.current.load(13.8, 100.1, true));
     await act(async () =>
       nextForecast.result.current.load("station-1", 24, true),
     );
-    expect(apiMocks.weather).toHaveBeenCalledTimes(2);
     expect(apiMocks.forecast).toHaveBeenCalledTimes(2);
   });
 

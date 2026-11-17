@@ -5,8 +5,6 @@ import pytest
 
 from backend.algorithms.community_xp import (
     DAILY_XP_LIMIT,
-    HELP_XP,
-    REPORT_XP,
     achievements,
     base_eligibility,
     help_eligibility,
@@ -57,7 +55,7 @@ def request(**values):
 
 
 def test_fixed_policy_and_rank_thresholds():
-    assert (REPORT_XP, HELP_XP, DAILY_XP_LIMIT) == (10, 5, 70)
+    assert DAILY_XP_LIMIT == 70
     assert rank_progress(10000, 2)["code"] == "champion"
     assert rank_progress(100, 3)["code"] == "reporter"
     assert rank_progress(1500, 19)["code"] == "guardian"

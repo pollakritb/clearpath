@@ -5,13 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from .area import is_nakhon_pathom, is_thailand
+from .area import is_thailand
 from .distance import haversine_km
-
-
-def is_nakhon_pathom_area(lat: float, lon: float) -> bool:
-    """Backward-compatible public name for province eligibility checks."""
-    return is_nakhon_pathom(lat, lon)
 
 
 def is_thailand_area(lat: float, lon: float) -> bool:

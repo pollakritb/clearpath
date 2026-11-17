@@ -2,15 +2,15 @@
 
 ## Current authorization
 
-The initial implementation was restricted to local changes and read-only production
-inspection. The owner subsequently authorized **commit, push and application deploy**.
-This release keeps `CAMS_GRID_FORECAST_ENABLED=false` (the default) and does not
-apply hosted migrations, activate grid-only reads, retire tables, change hosted
-cron/Vault, restore data or purchase services. Database cutover remains gated by
-the recovery and observation evidence below; application deployment alone does
-not establish database readiness.
+The latest owner instruction on 17 November 2026 authorizes test/commit/push/
+deploy and application of the two reviewed migrations. Recovery/capacity gates
+passed and CAMS retention delta plus operational display references were applied
+and verified. See the [execution record](database-completion-progress-2026-11-15.md)
+for versions, evidence and the limits of local managed-service recovery.
 
-The later [coordinate forecast feature](coordinate-forecast.md) separately scopes a scalar reader for coordinate cards. It does not authorize the global station cutover, publishing/retention changes or destructive retirement described here.
+The global station cutover, table retirement, backfill, feature flags and new paid
+services remain unchanged. Never replay the migration chain or run blanket db push.
+GPS retention and AQI migrations were already installed and were not reapplied.
 
 ## Evidence and current state
 
@@ -50,7 +50,7 @@ Re-run using bounded read-only commands:
 The auditor has a fixed project target, READ ONLY transactions, statement budgets,
 private output permissions and no row/query-text/cron-command export. Profiling
 uses EXPLAIN without ANALYZE. Keep raw catalog/policy evidence private. The sanitized
-[table inventory](database-inventory.md) lists every application table and column.
+table inventory ([ประวัติ](../cleanup.md#archive-และการคืนงาน)) lists every application table and column.
 
 ## Locally implemented changes
 

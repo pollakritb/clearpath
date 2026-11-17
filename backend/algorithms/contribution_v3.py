@@ -7,7 +7,6 @@ from .community_xp import base_eligibility, stamp, thai_day
 
 VERSION = "contribution-v3"
 DAILY_XP_LIMIT = 70
-WEEK_BONUS_DAY_LIMIT = 90
 
 
 def month_window(month: str, now: datetime) -> tuple[datetime, datetime]:

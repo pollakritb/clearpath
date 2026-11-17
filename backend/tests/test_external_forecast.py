@@ -5,27 +5,11 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
-from backend.algorithms.external_forecast import select_horizon_rows, select_hourly_rows
+from backend.algorithms.external_forecast import select_hourly_rows
 from backend.core.config import settings
 from backend.main import create_app
 from backend.routers import forecast
 from backend.services import external_forecast
-
-
-def test_select_horizon_rows_returns_raw_provider_values():
-    now = datetime(2026, 9, 17, 5, 15, tzinfo=UTC)
-    rows = [
-        {
-            "forecast_at": (now + timedelta(hours=hour)).isoformat(),
-            "pm25": value,
-        }
-        for hour, value in ((1, 11.2), (3, 12.3), (6, 14.6), (12, 18.1), (24, 20.4))
-    ]
-
-    result = select_horizon_rows(rows, [1, 3, 6, 12, 24], now=now)
-
-    assert [row["horizon_hours"] for row in result] == [1, 3, 6, 12, 24]
-    assert [row["pm25"] for row in result] == [11.2, 12.3, 14.6, 18.1, 20.4]
 
 
 def test_select_hourly_rows_keeps_timestamps_and_raw_values():

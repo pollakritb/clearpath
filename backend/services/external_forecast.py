@@ -19,7 +19,6 @@ ATTRIBUTION = "CAMS ENSEMBLE data provided by Copernicus via Open-Meteo"
 ATTRIBUTION_URL = "https://open-meteo.com/en/docs/air-quality-api"
 LICENSE_URL = "https://open-meteo.com/en/terms"
 MAX_SNAPSHOT_AGE_HOURS = 18
-MAX_AREA_SOURCE_DISTANCE_KM = 45
 
 
 def _quality(source_points: int, generated_at: str | None) -> dict:

@@ -64,6 +64,7 @@ yarn-error.log*
 next-env.d.ts
 
 # python
+*.egg-info/
 .venv/
 __pycache__/
 *.py[cod]
@@ -80,3 +81,8 @@ __pycache__/
 
 /output/playwright/
 /output/completion-*/
+
+# Local tool bundles and interface-audit caches
+/.tools/
+/.impeccable/hook.cache.json
+/.impeccable/live/

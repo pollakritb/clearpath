@@ -3,56 +3,8 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime, timedelta
 
-import httpx
-
 from backend.core.errors import ConfigurationError, UpstreamError
-from backend.services import fire_feed, openmeteo_weather
-
-
-class _Response:
-    def __init__(self, payload: dict):
-        self.payload = payload
-
-    def raise_for_status(self) -> None:
-        return None
-
-    def json(self) -> dict:
-        return self.payload
-
-
-def test_openmeteo_weather_normalizes_current_conditions(monkeypatch):
-    captured: dict = {}
-
-    async def fake_get(_client, url, *, params):
-        captured.update({"url": url, "params": params})
-        return _Response(
-            {
-                "current": {
-                    "temperature_2m": 30.4,
-                    "relative_humidity_2m": 71,
-                    "precipitation": 0.2,
-                    "weather_code": 61,
-                    "wind_speed_10m": 2.7,
-                    "wind_direction_10m": 190,
-                }
-            }
-        )
-
-    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
-    result = asyncio.run(openmeteo_weather.get_weather(13.8, 100.1))
-
-    assert result == {
-        "temp": 30.4,
-        "humidity": 71.0,
-        "wind_speed": 2.7,
-        "wind_deg": 190.0,
-        "description": "ฝนตก",
-        "icon": None,
-        "rain_mm": 0.2,
-        "source": "open_meteo",
-    }
-    assert captured["url"] == openmeteo_weather.URL
-    assert captured["params"]["wind_speed_unit"] == "ms"
+from backend.services import fire_feed
 
 
 def test_fire_feed_reports_unconfigured_without_raising(monkeypatch):

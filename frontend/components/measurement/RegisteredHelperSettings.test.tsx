@@ -146,7 +146,7 @@ it("edits a name without symbol controls, map selection or changing the receivin
       settings={{
         ...settings,
         enabled: false,
-        locations: [{ ...settings.locations![0], emoji: "🏠" }],
+        locations: [settings.locations![0]],
       }}
       onChange={change}
     />,
@@ -167,7 +167,6 @@ it("edits a name without symbol controls, map selection or changing the receivin
         address: settings.locations![0].address,
         enabled: settings.locations![0].enabled,
         name: "บ้านใหม่",
-        emoji: "🏠",
       }),
       1,
     ),

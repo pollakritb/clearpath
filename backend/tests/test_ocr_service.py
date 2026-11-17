@@ -96,7 +96,7 @@ def test_ocr_sends_private_image_and_parses_literal_display(monkeypatch):
     assert captured["json"]["store"] is False
 
 
-def test_ocr_sends_only_primary_image_even_when_legacy_caller_supplies_burst(
+def test_ocr_sends_only_primary_image(
     monkeypatch,
 ):
     monkeypatch.setattr(settings, "openai_api_key", "server-key")
@@ -113,11 +113,6 @@ def test_ocr_sends_only_primary_image_even_when_legacy_caller_supplies_burst(
         ocr.read_pm25(
             b"primary",
             "image/jpeg",
-            additional_images=[
-                (b"second", "image/png"),
-                (b"third", "image/webp"),
-                (b"ignored", "image/jpeg"),
-            ],
         )
     )
 

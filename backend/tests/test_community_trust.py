@@ -1,7 +1,6 @@
-import math
 from datetime import UTC, datetime, timedelta
 
-from backend.algorithms.community_trust import project, vote_eligibility
+from backend.algorithms.community_trust import project
 
 NOW = datetime(2026, 11, 7, 6, tzinfo=UTC)
 
@@ -133,87 +132,6 @@ def test_window_uses_ninety_thai_calendar_days_and_returns_insufficient_on_expir
     assert project(events, now=NOW)["status"] == "available"
     assert project(events, now=NOW + timedelta(days=1))["status"] == "insufficient"
     assert project(events, now=NOW)["window_start"] == str(start)
-
-
-def test_gps_two_minutes_boundary_and_audit_never_contains_coordinates():
-    report = {
-        "user_id": "owner",
-        "status": "approved",
-        "captured_at": NOW.isoformat(),
-        "lat": 13.8,
-        "lon": 100.1,
-    }
-    fix = {
-        "lat": 13.8,
-        "lon": 100.1,
-        "accuracy_m": 500,
-        "observed_at": (NOW - timedelta(seconds=120)).isoformat(),
-    }
-    reason, audit = vote_eligibility(
-        report, "voter", fix, "like", "useful", now=NOW, evidence_available=True
-    )
-    assert reason is None
-    assert "lat" not in audit and "lon" not in audit
-    assert (
-        vote_eligibility(
-            report,
-            "voter",
-            fix | {"accuracy_m": 500.1},
-            "like",
-            "useful",
-            now=NOW,
-            evidence_available=True,
-        )[0]
-        == "gps_uncertain"
-    )
-    assert (
-        vote_eligibility(
-            report,
-            "voter",
-            fix | {"accuracy_m": math.nan},
-            "like",
-            "useful",
-            now=NOW,
-            evidence_available=True,
-        )[0]
-        == "gps_invalid"
-    )
-    assert (
-        vote_eligibility(
-            report,
-            "voter",
-            fix | {"observed_at": (NOW - timedelta(seconds=121)).isoformat()},
-            "like",
-            "useful",
-            now=NOW,
-            evidence_available=True,
-        )[0]
-        == "gps_expired"
-    )
-    assert (
-        vote_eligibility(
-            report, "owner", fix, "like", "useful", now=NOW, evidence_available=True
-        )[0]
-        == "self_vote"
-    )
-    assert (
-        vote_eligibility(
-            report,
-            "voter",
-            fix,
-            "dislike",
-            "ocr_mismatch",
-            now=NOW,
-            evidence_available=True,
-        )[0]
-        == "reason_not_trust"
-    )
-    assert (
-        vote_eligibility(
-            report, "voter", fix, "like", "useful", now=NOW, evidence_available=False
-        )[0]
-        == "evidence_unavailable"
-    )
 
 
 def test_projection_failure_returns_dated_previous_value_without_zero(monkeypatch):
@@ -386,83 +304,6 @@ def test_map_score_metadata_does_not_repeat_full_daily_projection(monkeypatch):
         policy_snapshot={"active_version": "v1"},
     )
     assert result["community_trust"] == {"score": 78.6, "status": "available"}
-
-
-def test_location_reasons_and_nontrust_categories_are_explicit():
-    report = {
-        "user_id": "owner",
-        "status": "approved",
-        "captured_at": NOW.isoformat(),
-        "lat": 13.8,
-        "lon": 100.1,
-    }
-    fix = {"lat": 13.8, "lon": 100.1, "accuracy_m": 10, "observed_at": NOW.isoformat()}
-    cases = [
-        ({}, "gps_invalid"),
-        (fix | {"accuracy_m": -1}, "gps_invalid"),
-        (fix | {"observed_at": NOW.replace(tzinfo=None).isoformat()}, "gps_invalid"),
-        (
-            fix | {"observed_at": (NOW + timedelta(seconds=1)).isoformat()},
-            "gps_clock_invalid",
-        ),
-        (fix | {"lat": 14}, "outside_area"),
-    ]
-    for location, reason in cases:
-        assert (
-            vote_eligibility(
-                report,
-                "voter",
-                location,
-                "like",
-                "useful",
-                now=NOW,
-                evidence_available=True,
-            )[0]
-            == reason
-        )
-    assert (
-        vote_eligibility(
-            report | {"captured_at": (NOW - timedelta(minutes=181)).isoformat()},
-            "voter",
-            fix,
-            "like",
-            "useful",
-            now=NOW,
-            evidence_available=True,
-        )[0]
-        == "report_expired"
-    )
-    for reason in ("report_context_doubt", "image_context_doubt"):
-        assert (
-            vote_eligibility(
-                report,
-                "voter",
-                fix,
-                "dislike",
-                reason,
-                now=NOW,
-                evidence_available=True,
-            )[0]
-            is None
-        )
-    for reason in (
-        "ocr_mismatch",
-        "system_display_issue",
-        "station_disagreement_only",
-        "cannot_assess",
-    ):
-        assert (
-            vote_eligibility(
-                report,
-                "voter",
-                fix,
-                "dislike",
-                reason,
-                now=NOW,
-                evidence_available=True,
-            )[0]
-            == "reason_not_trust"
-        )
 
 
 def test_new_routes_require_auth_and_admin_has_no_finding_or_score_mutation(

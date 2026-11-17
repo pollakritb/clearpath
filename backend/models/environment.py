@@ -1,18 +1,8 @@
-"""Weather and NASA FIRMS contracts."""
+"""NASA FIRMS satellite hotspot contracts."""
 
 from typing import Literal
 
 from pydantic import BaseModel, Field
-
-
-class Weather(BaseModel):
-    temp: float
-    humidity: float
-    wind_speed: float
-    wind_deg: float
-    description: str
-    icon: str | None = None
-    source: Literal["open_meteo"] = "open_meteo"
 
 
 class FirePoint(BaseModel):

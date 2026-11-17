@@ -190,9 +190,3 @@ export function classifyForecastPm25(value: number | null | undefined) {
     ...FORECAST_TYPOGRAPHY[band.color],
   };
 }
-export function forecastColor(value: number | null | undefined): string {
-  return classifyForecastPm25(value).color;
-}
-export function forecastColorPacked(value: number): number {
-  return Number.parseInt(forecastColor(value).slice(1), 16);
-}

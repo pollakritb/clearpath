@@ -1,6 +1,6 @@
 # Contribution v3 release and operation
 
-The complete policy is in [the v3 specification](../superpowers/specs/2026-11-07-contribution-v3.md). This release preserves the existing ledger, accounts, XP and ranks. **Do not use community reset scripts for this release.** Community Trust release is independent.
+The complete policy is in the v3 specification ([ประวัติ](../cleanup.md#archive-และการคืนงาน)). This release preserves the existing ledger, accounts, XP and ranks. **Do not use community reset scripts for this release.** Community Trust release is independent.
 
 ## Deployment order
 
@@ -55,7 +55,7 @@ A normal day can earn 70 XP; weekly-bonus day 90. Historical v1's 65 XP cap excl
 
 ## Owner-authorized immediate release
 
-The owner chose immediate activation after mobile acceptance on November 7. See [live-release evidence](../verification/2026-11-07-xp-v3-live-release.md). Apply `20261107161748_contribution_v3_immediate_release.sql` before using:
+The owner chose immediate activation after mobile acceptance on November 7. See live-release evidence ([ประวัติ](../cleanup.md#archive-และการคืนงาน)). Apply `20261107161748_contribution_v3_immediate_release.sql` before using:
 
 ```sh
 .venv/bin/python -m scripts.contribution_v3_ops release \

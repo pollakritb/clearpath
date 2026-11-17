@@ -141,7 +141,12 @@ async def report_log(
     limit: int = Query(100, ge=1, le=200),
     _user: AuthenticatedUser = Depends(require_moderator),
 ):
-    rows = await run_in_threadpool(community_service.list_reports, "all", limit)
+    rows = await run_in_threadpool(
+        community_service.list_reports,
+        "all",
+        limit,
+        include_exact_location=_user.role == "admin",
+    )
     return CommunityReportsResponse(
         reports=[CommunityReport(**r) for r in rows], count=len(rows)
     )

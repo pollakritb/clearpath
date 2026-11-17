@@ -1,6 +1,6 @@
 import { expect, test } from "./fixtures/test";
 import AxeBuilder from "@axe-core/playwright";
-import { buildDemoCommunityReports } from "../frontend/lib/demo-community";
+import { buildReportFixtures } from "./fixtures/community-reports";
 
 test("older retrieved notifications stay reachable on mobile", async ({
   page,
@@ -144,7 +144,7 @@ test("a temporary OCR outage can be retried with the captured photo @camera-390"
 test("admin report-count badges retain AA contrast when populated", async ({
   page,
 }) => {
-  const reports = buildDemoCommunityReports().slice(0, 10);
+  const reports = buildReportFixtures().slice(0, 10);
   await page.route("**/api/admin/reports", (route) =>
     route.fulfill({ json: { reports, count: reports.length } }),
   );

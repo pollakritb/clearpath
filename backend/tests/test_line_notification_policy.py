@@ -1,35 +1,15 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
 
 from backend.algorithms.line_notification_policy import (
     LINE_EVENT_TYPES,
-    air_alert_eligible,
     line_event_type,
     line_retry_key,
 )
 
 NOW = datetime(2026, 11, 11, 5, tzinfo=UTC)
-
-
-def air():
-    return {
-        "source_at": (NOW - timedelta(minutes=10)).isoformat(),
-        "pm25": 40,
-        "lat": 13.7,
-        "lon": 100.5,
-    }
-
-
-def prefs():
-    return {
-        "air_alerts": True,
-        "pm25_threshold": 37.5,
-        "center_lat": 13.7,
-        "center_lon": 100.5,
-        "radius_km": 2,
-    }
 
 
 def test_only_three_automatic_events_are_allowed():
@@ -67,59 +47,3 @@ def test_retry_keys_are_valid_stable_and_preserve_existing_uuid():
     assert line_retry_key("123") != line_retry_key("124")
     existing = "4bca1641-9759-468b-a910-57ec6d3b31a9"
     assert line_retry_key("123", existing) == existing
-
-
-@pytest.mark.parametrize(
-    "patch",
-    [
-        {"source_at": None},
-        {"source_at": (NOW - timedelta(minutes=91)).isoformat()},
-        {"source_at": (NOW + timedelta(minutes=1)).isoformat()},
-        {"pm25": 10},
-        {"pm25": float("nan")},
-        {"pm25": float("inf")},
-        {"lat": 91},
-        {"lon": 180},
-    ],
-)
-def test_air_alert_rechecks_time_measurement_and_area(patch):
-    assert not air_alert_eligible(air() | patch, prefs(), NOW)
-
-
-@pytest.mark.parametrize(
-    "patch",
-    [
-        {"air_alerts": False},
-        {"center_lat": None},
-        {"radius_km": 51},
-        {"radius_km": 0},
-        {"radius_km": None},
-        {"pm25_threshold": 100},
-    ],
-)
-def test_preferences_are_checked_again_before_delivery(patch):
-    assert not air_alert_eligible(air(), prefs() | patch, NOW)
-
-
-def test_valid_air_alert_and_zero_legacy_threshold_still_require_unhealthy_band():
-    assert air_alert_eligible(air(), prefs(), NOW)
-    assert not air_alert_eligible(
-        air() | {"pm25": 0}, prefs() | {"pm25_threshold": 0}, NOW
-    )
-
-
-@pytest.mark.parametrize(
-    "value,expected",
-    [(0, False), (25, False), (37.5, False), (37.6, True), (75, True), (75.1, True)],
-)
-def test_only_the_two_health_impact_bands_can_notify(value, expected):
-    assert air_alert_eligible(air() | {"pm25": value}, prefs(), NOW) is expected
-
-
-def test_higher_personal_threshold_is_preserved():
-    assert not air_alert_eligible(
-        air() | {"pm25": 40}, prefs() | {"pm25_threshold": 75.1}, NOW
-    )
-    assert air_alert_eligible(
-        air() | {"pm25": 75.1}, prefs() | {"pm25_threshold": 75.1}, NOW
-    )

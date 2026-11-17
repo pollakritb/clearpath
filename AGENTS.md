@@ -11,7 +11,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # ClearPath — project conventions
 
 PM2.5 forecast + trusted community monitoring platform. See `README.md` and
-`docs/superpowers/specs/` for full design. ระบบนำทาง/เปรียบเทียบเส้นทางถูกถอดออกแล้ว.
+`docs/architecture.md` for the current design. ระบบนำทาง/เปรียบเทียบเส้นทางถูกถอดออกแล้ว.
 
 ## Layout (clean FE/BE split, single Vercel deploy)
 
@@ -29,7 +29,7 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 - Services raise `ConfigurationError` (→503) / `UpstreamError` (→502) from `backend/core/errors.py`; never leak tracebacks.
 - IDW uses **haversine** (not Euclidean). ใช้สำหรับพื้นผิวค่าฝุ่นและ validation.
 - Forecast/trust algorithms ต้องเป็น pure functions, อธิบายผลได้ และมี unit tests.
-- Kriging (scipy/pykrige) is `requirements-dev` only — NOT deployed (function size). Prod interpolation = IDW.
+- Offline interpolation experiments (including Kriging) live in the external archive, not in deployment dependencies. Prod interpolation = IDW.
 - Supabase is source of truth; Air4Thai is hit by the 30-minute primary cron `/api/cron/sync` (GitHub backup runs only after a missed primary sync).
 - Community reports ใช้ `pending` เป็นสถานะภายในชั่วคราวระหว่างบันทึกเท่านั้น; เมื่อส่งเสร็จระบบต้องอนุมัติหรือปฏิเสธอัตโนมัติทันที ห้ามรอ Admin ตัดสิน.
 - Publication policy รุ่นปัจจุบันใช้ผล OCR แบบ number-only: ถ้าอ่านตัวเลข PM2.5 ได้ให้นำค่า OCR ขึ้นทันที; ถ้าอ่านไม่ได้ให้ `rejected` พร้อมเหตุผลและให้ผู้ใช้ถ่ายใหม่. Confidence, device/display flags, burst, เวลา, ภาพคล้าย และค่าที่ผู้ใช้ยืนยันเป็น audit metadata ไม่ใช่ approval gate. Exact duplicate และ GPS >200 ม. ยังถูกกันก่อน OCR. Admin ดู log/รูป/รายละเอียดได้อย่างเดียว ไม่มีสิทธิ์อนุมัติหรือปฏิเสธรายงาน.
@@ -40,7 +40,7 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 - UI ใช้ Like/Dislike/Comment; community-trust-v1 เป็น Trust ชุมชนรุ่นปัจจุบัน เสียงใหม่ที่ผ่านเกณฑ์มีผลเฉพาะ Trust ชุมชน (ledger/เพดานรายวัน/รายคู่) ไม่มีผลต่อ XP/IDW/gap-fill; ดู docs/runbooks/community-trust-v1.md. ระบบผลตรวจอิสระผู้รายงานและ API ดาว/gratitude รุ่นเก่าถูกถอดจาก runtime แล้ว; เก็บข้อมูล audit และ migration เดิมไว้ตาม retention. XP ใหม่ใช้ contribution-v3; ส่วน settlement/การอ่าน ledger รุ่นเก่าที่จำเป็นต่อคะแนนเดิมยังต้องรักษาไว้.
 - Admin/Moderator dashboard เป็น read-only: ดูสถิติ รายงาน ภาพ OCR ประกาศ สถานะระบบ และ audit ได้เท่านั้น ห้ามเพิ่ม API/UI สำหรับแก้ไข ลบ เผยแพร่ เปลี่ยนบทบาท หรือยกเลิก XP. Cron และงานอัตโนมัติใช้สิทธิ์ server แยกจาก Admin.
 - พิกัดจริงเปิดเฉพาะ Admin; public coordinates ต้องผ่าน stable obfuscation 120–250 ม.
-- Fire alert ใช้ hotspot ในขอบเขตนครปฐมที่อายุไม่เกิน 12 ชั่วโมง และต้องเรียกว่า satellite hotspot ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว.
+- Fire alert ใช้ hotspot ภายในขอบเขตประเทศไทย (รวมเกาะตาม Thailand multipolygon) ที่อายุไม่เกิน 12 ชั่วโมง และต้องเรียกว่า satellite hotspot ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว.
 - ภาพรายงานเก็บ private bucket; รายงานที่อนุมัติแล้วเปิดดูจากหมุดได้ด้วย signed URL อายุสั้น และฝั่ง browser ห้ามถือ service-role/OpenAI/admin keys.
 
 ## Run / verify

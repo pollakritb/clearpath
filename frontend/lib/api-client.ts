@@ -1,71 +1,70 @@
-import { uploadSizeError } from "./upload-limits";
-import type {
-  CommunityTrust,
-  CommunityTrustReview,
-  CommunityTrustReviews,
-  CommunityTrustReviewResult,
-} from "@/frontend/types/community-trust";
+import { clearAccountData } from "@/frontend/lib/account-data-cache";
 import type {
   AccountPrivacyStatus,
-  AccountExportPage,
-  PrivacyRequest,
   DeletionRequest,
+  PrivacyRequest,
 } from "@/frontend/types/account-privacy";
-import { clearAccountData } from "@/frontend/lib/account-data-cache";
-import type { OwnedReportIDs } from "@/frontend/types/xp";
-import type { XPAdminOverview } from "@/frontend/types/xp";
-import type { PublicMember } from "@/frontend/types/xp";
 import type {
-  XPLeaderboard,
-  XPSummary,
-  XPSettings,
-  XPEventsResponse,
+  CommunityTrustReview,
+  CommunityTrustReviewResult,
+  CommunityTrustReviews,
+} from "@/frontend/types/community-trust";
+import type {
   HelpClaim,
+  OwnedReportIDs,
+  PublicMember,
+  XPAdminOverview,
+  XPLeaderboard,
   XPResult,
+  XPSettings,
+  XPSummary,
 } from "@/frontend/types/xp";
+import { uploadSizeError } from "./upload-limits";
 // typed fetch wrappers — frontend รู้จักแค่ /api/* (same-origin)
 
+import { authenticatedFetch } from "@/frontend/lib/auth-request";
+import {
+  invalidatePublicData,
+  PUBLIC_DATA_KEYS,
+} from "@/frontend/lib/public-data-cache";
+import { getAccessToken } from "@/frontend/lib/supabase";
 import type {
-  ForecastGridMetadata,
-  ForecastGridFrames,
-  LocationLabelResponse,
-  MeasurementRequestCreate,
-  MeasurementRequestView,
-  MeasurementRequestsResponse,
-  MeasurementHelperSettings,
-  MeasurementHelperLocation,
-  MeasurementHelperLocationWrite,
-  MeasurementPresenceUpdate,
-  ActivitiesResponse,
-  AnnouncementsResponse,
-  CaptureSessionResponse,
-  PhotoMetadata,
-  CommunityProfileResponse,
-  CommunityMapPointsResponse,
-  CommunityReportsResponse,
-  PlaceReportSelection,
-  CommunityReport,
-  FirmsResponse,
-  ForecastResponse,
-  HistoryResponse,
-  MapHistoryResponse,
-  LineLinkCodeResponse,
-  LineNotificationStatus,
-  NotificationPreferences,
   AlertLocationInput,
   AlertLocationStatus,
+  AnnouncementsResponse,
+  CaptureSessionResponse,
+  CommunityReport,
+  CommunityReportsResponse,
+  FirmsResponse,
+  ForecastGridFrames,
+  ForecastGridMetadata,
+  ForecastResponse,
+  HistoryResponse,
+  LineLinkCodeResponse,
+  LineNotificationStatus,
+  LocationLabelResponse,
+  LocationSearchResponse,
+  MapHistoryResponse,
+  MeasurementHelperLocation,
+  MeasurementHelperLocationWrite,
+  MeasurementHelperSettings,
+  MeasurementPresenceUpdate,
+  MeasurementRequestCreate,
+  MeasurementRequestsResponse,
+  MeasurementRequestView,
+  NotificationPreferences,
   NotificationsResponse,
   OperationResponse,
-  ReportCreateResponse,
+  PhotoMetadata,
+  PlaceReportSelection,
   ReportComment,
   ReportCommentCreate,
+  ReportCreateResponse,
   ReportDraftResponse,
   ReportDraftSubmit,
   ReportEngagementResponse,
   ReportReactionRequest,
-  LocationSearchResponse,
   StationsResponse,
-  Weather,
 } from "@/frontend/types";
 import type {
   AdminSyncRunsResponse,
@@ -74,12 +73,6 @@ import type {
   DataIssuesResponse,
   NotificationOutboxSummary,
 } from "@/frontend/types/ui";
-import { getAccessToken } from "@/frontend/lib/supabase";
-import { authenticatedFetch } from "@/frontend/lib/auth-request";
-import {
-  invalidatePublicData,
-  PUBLIC_DATA_KEYS,
-} from "@/frontend/lib/public-data-cache";
 
 export class ApiError extends Error {
   status: number;
@@ -245,9 +238,6 @@ export const api = {
     }),
   pm25Current: () => http<StationsResponse>("/api/pm25/current"),
 
-  weather: (lat: number, lon: number) =>
-    http<Weather>(`/api/weather?lat=${lat}&lon=${lon}`),
-
   firms: (days = 1) => http<FirmsResponse>(`/api/firms?days=${days}`),
 
   history: (
@@ -325,9 +315,6 @@ export const api = {
       },
     ),
 
-  communityMapPoints: () =>
-    http<CommunityMapPointsResponse>("/api/community/map-points"),
-
   captureSession: () =>
     http<CaptureSessionResponse>("/api/community/capture-session", {
       method: "POST",
@@ -362,7 +349,6 @@ export const api = {
         },
       ),
       PUBLIC_DATA_KEYS.reports,
-      PUBLIC_DATA_KEYS.mapPoints,
     ),
 
   deleteReportDraft: (draftId: string) =>
@@ -398,11 +384,6 @@ export const api = {
     }),
   adminCommunityTrustReviews: () =>
     http<CommunityTrustReviews>("/api/admin/community-trust/reviews", {
-      auth: true,
-      cache: "no-store",
-    }),
-  communityTrustMe: () =>
-    http<CommunityTrust | null>("/api/community/trust/me", {
       auth: true,
       cache: "no-store",
     }),
@@ -445,13 +426,6 @@ export const api = {
     http<AnnouncementsResponse>(
       `/api/community/announcements${offset ? `?offset=${offset}` : ""}`,
     ),
-
-  activities: () => http<ActivitiesResponse>("/api/community/activities"),
-
-  contributionMissions: () =>
-    http<import("@/frontend/types").ContributionMissions>(
-      "/api/community/missions",
-    ),
   leaderboard: (period: string = "month", offset = 0) =>
     http<XPLeaderboard>(
       `/api/community/leaderboard?period=${period}&offset=${offset}`,
@@ -473,11 +447,6 @@ export const api = {
       auth: true,
       cache: "no-store",
     }),
-  accountExport: (section: string, offset = 0) =>
-    http<AccountExportPage>(
-      `/api/community/me/data-export?section=${encodeURIComponent(section)}&offset=${offset}`,
-      { auth: true, cache: "no-store" },
-    ),
   requestDeletion: (body: DeletionRequest) =>
     http<PrivacyRequest>("/api/community/me/deletion-request", {
       auth: true,
@@ -491,11 +460,6 @@ export const api = {
     }),
   xpOverview: () =>
     http<XPSummary | null>("/api/community/me/xp?details=false", {
-      auth: true,
-      cache: "no-store",
-    }),
-  xpEvents: (offset = 0) =>
-    http<XPEventsResponse>(`/api/community/me/xp-events?offset=${offset}`, {
       auth: true,
       cache: "no-store",
     }),
@@ -549,12 +513,6 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  testNotification: () =>
-    http<OperationResponse>("/api/notifications/test", {
-      method: "POST",
-      auth: true,
-    }),
-
   lineNotificationStatus: () =>
     http<LineNotificationStatus>("/api/notifications/line", { auth: true }),
 
@@ -601,9 +559,6 @@ export const api = {
       auth: true,
       cache: "no-store",
     }),
-
-  myProfile: () =>
-    http<CommunityProfileResponse>("/api/community/me", { auth: true }),
 
   adminReports: () =>
     http<CommunityReportsResponse>("/api/admin/reports", {

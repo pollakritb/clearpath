@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 
 from backend.algorithms.forecast_validation import (
     collection_slot,
-    provisional_metrics,
     select_cohort,
     validation_pairs,
 )
@@ -61,7 +60,6 @@ def test_pairing_requires_official_hourly_and_prior_forecast():
     ]
     pairs = validation_pairs(snapshots, observations)
     assert len(pairs) == 1
-    assert provisional_metrics(pairs)["1-6h"] == {"count": 1, "mae": 5, "bias": -5}
     observations[0]["average_period_minutes"] = 1440
     assert validation_pairs(snapshots, observations) == []
     observations[0]["average_period_minutes"] = 60

@@ -46,7 +46,7 @@ hotspot. The other empty states must never be presented as “ไม่พบจ
   alert event is idempotent, recipients are deduplicated, and creation writes
   an `alert_event_created` audit record.
 - Quiet hours defer the per-channel outbox item without consuming a retry.
-  Web Push and LINE retry independently.
+  Current automatic LINE delivery excludes hotspots. Retained in-app notifications and audit are separate; Web Push delivery is retired.
 - A FIRMS failure does not suppress independent Air4Thai PM2.5 alerts.
 
 ## Repeatable verification

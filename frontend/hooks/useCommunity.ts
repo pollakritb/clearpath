@@ -4,12 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import {
-  buildDemoCommunityReports,
-  buildDemoStackScenario,
-  isCommunityDemoMode,
-  isCommunityStackDemoMode,
-} from "@/frontend/lib/demo-community";
-import {
   cachedPublicValue,
   loadPublicData,
   PUBLIC_DATA_KEYS,
@@ -52,7 +46,6 @@ export function useCommunityMapData() {
     () => cachedPublicValue(PUBLIC_DATA_KEYS.reports) === null,
   );
   const [error, setError] = useState<string | null>(null);
-  const [demoMode, setDemoMode] = useState(false);
 
   const applyResult = useCallback((result: CommunityReportsResponse) => {
     if (result.reset_version) {
@@ -68,25 +61,8 @@ export function useCommunityMapData() {
         /* Storage may be disabled. */
       }
     }
-    const demo = isCommunityDemoMode();
-    const stackDemo = isCommunityStackDemoMode();
-    setDemoMode(demo);
-    if (stackDemo) {
-      const people =
-        new URLSearchParams(window.location.search).get("people") === "5"
-          ? 5
-          : 2;
-      const scenario = buildDemoStackScenario(Date.now(), people);
-      setReports(scenario.reports);
-      setStacks(scenario.stacks);
-    } else {
-      setStacks(result.stacks ?? []);
-      setReports(
-        demo
-          ? [...buildDemoCommunityReports(), ...result.reports]
-          : result.reports,
-      );
-    }
+    setStacks(result.stacks ?? []);
+    setReports(result.reports);
     setError(null);
   }, []);
 
@@ -95,9 +71,6 @@ export function useCommunityMapData() {
     try {
       applyResult(await loadCommunityMapData(true));
     } catch (error) {
-      if (isCommunityDemoMode()) {
-        applyResult({ reports: [], stacks: [], count: 0 });
-      }
       setError(apiErrorMessage(error, "โหลดรายงานชุมชนไม่สำเร็จ"));
     } finally {
       setLoading(false);
@@ -117,9 +90,6 @@ export function useCommunityMapData() {
         })
         .catch((error) => {
           if (!cancelled) {
-            if (isCommunityDemoMode()) {
-              applyResult({ reports: [], stacks: [], count: 0 });
-            }
             setError(apiErrorMessage(error, "โหลดรายงานชุมชนไม่สำเร็จ"));
             setLoading(false);
           }
@@ -155,7 +125,7 @@ export function useCommunityMapData() {
     };
   }, [applyResult]);
 
-  return { reports, stacks, loading, error, demoMode, refresh };
+  return { reports, stacks, loading, error, refresh };
 }
 
 /** News feed data; it deliberately does not load map, rewards, or leaderboard. */

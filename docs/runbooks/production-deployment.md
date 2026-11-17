@@ -1,252 +1,29 @@
-# Production deployment
+# Application deployment
 
-Current forecast behavior: [stored CAMS and retired boundaries](forecast-reset.md).
-The refactor and completion foundation are deployable without database changes;
-new Reporter Trust and account privacy features remain disabled until their own
-staging migrations and acceptance evidence pass. See the
-[completion runbook](reporter-trust-and-completion.md).
+Deploy frontend และ FastAPI จาก Git commit เดียวบน Vercel โดย `api/index.py` เป็น backend entrypoint ตรวจ project/branch ที่ใช้งานจริงก่อน deploy ไม่ upload working tree ที่มีงานอื่นค้าง
 
-This sequence keeps community evidence private and prevents a green deployment
-from being mistaken for a healthy data pipeline.
+## ก่อนส่งขึ้น
 
-## 1. Accounts and plan
+- ใช้ Node.js 22 และ Python 3.12 ตาม config/CI
+- Format, lint, typecheck, unit/integration/browser tests, coverage gates, dependency audits และ production build ต้องผ่าน
+- ตรวจ staged files และ secrets; `.env.local`, deploy/target credentials และ private evidence ไม่เข้า Git
+- Production ต้องไม่เปิด `LOCAL_DEMO_MODE` หรือ `NEXT_PUBLIC_LOCAL_DEMO_MODE`
+- รักษาค่า environment, feature flags, daemon scaling, delivery cutoff และ scheduler เดิม เว้นแต่ได้รับคำสั่งเปลี่ยนแยก
 
-1. Use separate Supabase projects for staging and production.
-2. Vercel Hobby is supported. `vercel.json` intentionally contains no Vercel
-   cron entries because Hobby permits each cron only once per day. Supabase Cron
-   invokes Air4Thai sync every 30 minutes; the
-   `.github/workflows/production-scheduler.yml` workflow checks sync twice hourly
-   but fetches Air4Thai only when the primary sync is not recent. Monitor GitHub Actions
-   usage when the repository is private; public repositories use standard
-   runners for free.
-3. Give production access only to named owners. Enable MFA on GitHub, Vercel,
-   Supabase, OpenAI and the email provider.
+## หลัง deploy
 
-## 2. Generate independent secrets
+1. รอ deployment เป็น READY และเช็ก `/api/health`
+2. เช็ก `/api/ready` ให้ release ตรงกับ commit แยกสถานะข้อมูลสด/เก่าออกจากผล deploy
+3. ตรวจ public read APIs และ anonymous access ของ private/Admin endpoints
+4. ติดตาม Quality CI และ Production smoke; ไม่เรียก cron ที่มี side effects เพื่อใช้แทน health check
+5. หาก regression มาจาก release นี้ ให้ revert commit ที่เกี่ยวข้องแล้ว deploy ตรวจซ้ำ โดยไม่ rollback ฐานข้อมูลจากการเดา
 
-Generate each secret separately and store it in a password manager. Never paste
-secret values into an issue, chat, screenshot or Git commit.
+ดู [Production smoke](production-smoke.md) และ [incident response](incident-response.md)
 
-```powershell
-$bytes = New-Object byte[] 48
-[Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-[Convert]::ToBase64String($bytes)
-```
+## ฐานข้อมูลและงานส่งข้อความ
 
-Run the snippet twice: once for `CRON_SECRET` and once for
-`CAPTURE_SESSION_SECRET`. They must not match and must not reuse the Supabase
-service-role key.
+การ deploy แอปไม่ใช่การ apply SQL migrations งาน schema ต้องมี change review, backup/restore และ rollout แยกตาม [backup/restore](backup-restore.md) ห้าม rewrite migration ที่ apply ไปแล้ว
 
-Generate VAPID keys only on a trusted workstation:
+LINE ใช้ server queue/worker และ provider budgets; frontend ไม่ถือ channel/server keys ปัจจุบันไม่มี Web Push delivery runtime และไม่มีการตั้ง quiet hours ผ่าน UI ดู [LINE policy](line-notification-policy.md) และ [worker](vercel-line-daemon.md)
 
-```powershell
-npx web-push generate-vapid-keys
-```
-
-Store the private key server-side. `VAPID_PUBLIC_KEY` may be exposed to the
-browser.
-
-Notification delivery uses one independent outbox row per channel. A provider
-failure retries with bounded backoff and becomes `dead` after eight attempts;
-sent/dead rows have their message body removed. Quiet hours use
-`Asia/Bangkok`, including windows that cross midnight. Removing notification
-consent disables every Web Push subscription and the linked LINE channel.
-
-## 3. Prepare Supabase staging
-
-Synthetic community evidence can be generated for a staging-only field-flow
-check with:
-
-```powershell
-.venv\Scripts\python -m scripts.generate_community_staging_seed --output community-staging-seed.json
-```
-
-The generated rows are deterministic, contain no real account data, and carry
-`test_data=true`. Never import them into Production; delete the local JSON after
-the staging exercise.
-
-1. Create/select the staging project and copy its project reference from the
-   Dashboard URL.
-2. Install/login/link the CLI:
-
-   ```powershell
-   npx supabase login
-   npx supabase link --project-ref <STAGING_PROJECT_REF>
-   npx supabase migration list
-   ```
-
-3. Inspect destructive SQL before doing anything to the remote database:
-
-   ```powershell
-   .venv\Scripts\python -m scripts.migration_guard supabase/migrations/20260717_production_foundation.sql supabase/migrations/20260722_tor_alignment.sql supabase/migrations/20260803_forecast_production_hardening.sql supabase/migrations/20260804_nationwide_forecast_consensus.sql
-   ```
-
-4. `20260717_production_foundation.sql` is expected to be blocked because it
-   resets pre-production community tables and `report-images`. Apply it only to
-   an empty staging project, or after completing the backup/restore runbook.
-5. Preview, then apply pending migrations:
-
-   ```powershell
-   npx supabase db push --dry-run
-   npx supabase db push
-   ```
-
-6. In Storage, verify bucket `report-images` is **Private**, limited to JPEG,
-   PNG and WebP, and limited to 8 MB. The browser must have no policy that lists
-   or reads all report evidence. The backend uses service-role access and issues
-   short-lived signed URLs to authorized Admin audit flows and to the selected
-   public marker of an approved report. Rejected evidence must never receive a
-   public signed URL.
-7. In Authentication → URL Configuration set the exact staging Site URL and
-   allowed redirect URL. Repeat later using the exact production URL; avoid a
-   broad production wildcard.
-8. Create the first Admin account normally through Auth, then change only its
-   `profiles.role` to `admin` in the SQL editor. Do not put role claims supplied
-   by the browser in charge of authorization.
-
-## 4. Configure environment variables
-
-Required in both Vercel Preview and Production unless marked optional:
-
-| Variable                        | Source / rule                                                                    |
-| ------------------------------- | -------------------------------------------------------------------------------- |
-| `APP_ENVIRONMENT`               | `staging` for Preview; `production` for Production                               |
-| `RELEASE_SHA`                   | Git commit SHA; CI or Vercel system value                                        |
-| `SUPABASE_URL`                  | Supabase project URL, server runtime                                             |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server only; never `NEXT_PUBLIC_*`                                               |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Same project URL, browser build                                                  |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable/anon browser key                                                     |
-| `REPORT_IMAGE_BUCKET`           | `report-images`                                                                  |
-| `CRON_SECRET`                   | Independent random secret, at least 32 characters                                |
-| `SUPABASE_CRON_SECRET`          | Separate token matching the ClearPath Supabase Vault                             |
-| `CAPTURE_SESSION_SECRET`        | Different independent random secret                                              |
-| `CORS_ALLOWED_ORIGINS`          | Exact HTTPS origin, no `*`                                                       |
-| `OPENMETEO_AIR_ENABLED`         | `true`; no key, with CAMS/Open-Meteo attribution                                 |
-| `FIRMS_MAP_KEY`                 | Server only                                                                      |
-| `OPENAI_API_KEY`                | Required before enabling real automatic review                                   |
-| `PUSH_ENABLED`                  | Start `false`; enable after VAPID delivery test                                  |
-| `VAPID_*`                       | Required when push is enabled                                                    |
-| `REPORTER_TRUST_ENABLED`        | Default `false`; independent validation and private ledger required              |
-| `REPORTER_TRUST_VALIDATION_REF` | Reviewed independent evidence reference, not a placeholder                       |
-| `ACCOUNT_PRIVACY_ENABLED`       | Default `false`; account-closure migration and integration verification required |
-
-The retired ML/GISTDA/shadow pipeline is absent from this source. Old environment
-flags cannot re-enable it; do not treat those flags as current deployment prerequisites.
-
-For each variable, let `vercel env add` prompt for the value so it does not
-appear in terminal history:
-
-```powershell
-vercel link
-vercel env add SUPABASE_URL preview
-vercel env add SUPABASE_URL production
-vercel env ls
-```
-
-Changing an environment variable affects only new deployments, so redeploy
-after any change.
-
-## 5. Preflight and preview deployment
-
-Populate `.env.local` with staging values, then run:
-
-```powershell
-.venv\Scripts\python -m scripts.production_preflight --strict-features
-npm run audit:prod
-npm run format:check
-npm run lint
-npm run typecheck
-npm run test:unit:coverage
-.venv\Scripts\python -m ruff format --check backend api scripts
-.venv\Scripts\python -m ruff check backend api scripts
-.venv\Scripts\python -m pytest --cov=backend --cov-fail-under=80
-npm run build
-vercel deploy
-```
-
-The preflight output must show every required table as `true`. It never prints
-secret values. If it reports `ConnectError`, verify that the Supabase project is
-running, the URL belongs to that project, DNS/TLS is reachable from the build
-environment, and keys were copied without quotes or whitespace.
-
-After the preview URL is available:
-
-```powershell
-.venv\Scripts\python -m scripts.verify_deployment https://<PREVIEW_HOST>
-vercel logs --deployment https://<PREVIEW_HOST> --level error
-```
-
-Use the Vercel runtime dashboard and request logs for latency, errors and memory.
-Do not store response bodies or exact user coordinates in operational evidence.
-
-Export a representative JSONL operational-log window without request bodies,
-then run the local privacy scanner. Its report contains line numbers and finding
-codes only; it does not echo leaked values:
-
-```powershell
-.venv\Scripts\python scripts\audit_operational_logs.py operational-logs-preview.jsonl
-```
-
-Preview acceptance also requires a real OTP login, camera/GPS capture on one
-iPhone and one Android device, automatic approval/rejection with no manual
-decision queue, Admin role denial for normal users, approved-marker image
-access, signed-image expiry, and a consented LINE/in-app notification.
-
-## 6. Production and scheduler acceptance
-
-Deploy only after preview acceptance and a recorded backup:
-
-```powershell
-vercel deploy --prod
-.venv\Scripts\python -m scripts.verify_deployment https://<PRODUCTION_HOST>
-vercel logs --environment production --level error --since 5m
-```
-
-First configure the primary observation scheduler in the ClearPath Supabase
-project only:
-
-1. Install Vault, Cron (`pg_cron`) and `pg_net`.
-2. Store the production origin as Vault secret `clearpath_production_url`.
-3. Store a different random bearer token as
-   `clearpath_supabase_cron_secret`, and put the same value in Vercel Production
-   as `SUPABASE_CRON_SECRET`.
-4. Apply `20260910_supabase_air4thai_cron.sql`, then
-   `20261010_air4thai_sync_30m.sql` and
-   `20261010_air4thai_sync_source_aligned.sql`. Confirm the only active Air4Thai
-   job is `clearpath-air4thai-sync-30m` with schedule `17,47 * * * *` and inspect
-   its run history. This offset follows the usual Air4Thai publication lag.
-
-Then configure GitHub → repository Settings → Secrets and variables → Actions
-as the twice-hourly backup:
-
-1. Add repository variable `CLEARPATH_PRODUCTION_URL` with the exact HTTPS
-   production origin and no trailing slash.
-2. Add repository secret `CRON_SECRET` with exactly the same value as the
-   Vercel Production environment variable. Never store it as a plain variable.
-3. Open Actions → Production backup scheduler → Run workflow once. The run must
-   complete the conditional backup sync and alerts with 2xx responses. A recent
-   successful primary sync returns `skipped: true` instead of fetching Air4Thai
-   again; forecast provider jobs remain paused.
-4. Confirm the backup workflow is enabled on the default branch and runs at
-   minutes 7 and 37 each hour. GitHub schedules may be delayed under load, so monitor
-   the last successful run rather than expecting exact-to-the-minute execution.
-5. Confirm Vercel Settings → Cron Jobs is empty; this is intentional for Hobby.
-6. Confirm Admin shows a successful sync run, at least one fresh station in the
-   service area, `/api/ready` returns 200, and the data-health panel does not
-   show `primary_cron_missed` after the next Supabase schedule window.
-7. Confirm `APP_ENVIRONMENT=production`, Admin without a token returns 401, and
-   `LOCAL_DEMO_MODE` is absent or false.
-
-Do not call the production sync endpoint manually from browser history because
-the bearer secret could be exposed. Use the protected GitHub Actions workflow
-or a trusted terminal that obtains the secret from the password manager.
-
-The post-deploy smoke distinguishes release/API verification from data freshness.
-See [production smoke policy](production-smoke.md) for its 40-attempt, 15-second
-retry interval and 15-minute timeout. A stale-data warning does not change the
-public readiness response or the 30-minute ingestion schedule.
-
-For a forecast containment drill, disable the relevant CAMS collector or stored
-station read gate in staging. Verify health/readiness/auth with
-`scripts.verify_deployment`, then inspect unavailable responses without fabricated
-points. Retired model/provider endpoints must remain paused regardless of old ML flags.
+เครื่องมือ seed/preview และบันทึกทดลองย้อนหลังอยู่ใน [archive ภายนอก](../cleanup.md#archive-และการคืนงาน) ไม่เป็นส่วนของการ deploy ปกติ

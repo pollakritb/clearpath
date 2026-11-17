@@ -79,6 +79,5 @@ def identifier_type(entity: str):
 
 RequestID = identifier_type("measurement_requests")
 ReportID = identifier_type("community_reports")
-XPEventID = identifier_type("community_xp_events")
 MemberID = identifier_type("community_members")
 GenerationID = identifier_type("cams_grid_generations")

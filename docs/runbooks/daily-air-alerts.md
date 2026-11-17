@@ -52,10 +52,11 @@ Hidden pages stop the watch; returning restarts it. Manual map recentering uses 
 fresh position and publishes it to the same subscribers. The UI offers status
 only; no manual refresh/delete GPS tasks are required.
 
-Alert locations stop being eligible after 24 hours. The independent database
-job `clearpath-air-alert-location-retention` deletes expired rows hourly at
-minute 23, normally removing them within about 25 hours of their observation.
-It does not depend on LINE worker instances or browser activity. Turning off air
-alerts and confirmed account closure retain their existing immediate deletion.
-The migration also removes already expired alert locations once at rollout.
+Alert locations stop being eligible after 24 hours. Production migration
+`20261116083327_foreground_alert_gps_retention.sql` installs the independent
+hourly cleanup at minute 23 and deletes saved alert GPS immediately when consent
+or air alerts are disabled. A READ ONLY catalog recheck on 17 November 2026
+confirmed this job is active. The redundant local-only hourly migration was
+archived instead of applied again. Worker retention and account closure remain
+independent of this schedule.
 Other GPS-bearing report/helper records have their own retention policies.

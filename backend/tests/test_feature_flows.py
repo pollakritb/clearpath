@@ -17,7 +17,7 @@ from backend.core.auth import AuthenticatedUser, require_user
 from backend.core.config import settings
 from backend.main import create_app
 from backend.services import firms as firms_service
-from backend.services import line_messaging, local_store, openmeteo_weather
+from backend.services import line_messaging, local_store
 from backend.services import ocr as ocr_service
 
 
@@ -32,16 +32,6 @@ def feature_client(monkeypatch):
     )
     monkeypatch.setattr(settings, "openai_api_key", "")
     monkeypatch.setattr(settings, "push_enabled", False)
-
-    async def fake_weather(_lat: float, _lon: float) -> dict:
-        return {
-            "temp": 31.5,
-            "humidity": 62,
-            "wind_speed": 2.4,
-            "wind_deg": 180,
-            "description": "ท้องฟ้าโปร่ง",
-            "icon": "01d",
-        }
 
     async def fake_fires(_days: int = 1) -> list[dict]:
         acquired_at = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
@@ -60,7 +50,6 @@ def feature_client(monkeypatch):
             {"lat": 13.7563, "lon": 100.5018, "frp": 20.0},
         ]
 
-    monkeypatch.setattr(openmeteo_weather, "get_weather", fake_weather)
     monkeypatch.setattr(firms_service, "get_fires", fake_fires)
 
     current = {
@@ -503,6 +492,24 @@ def test_role_guards_and_report_rejection_flow(feature_client):
     logged = next(item for item in history.json()["reports"] if item["id"] == report_id)
     assert logged["status"] == "rejected"
     assert logged["image_url"]
+    assert (logged["lat"], logged["lon"]) != (report["lat"], report["lon"])
+    assert 120 <= logged["location_precision_m"] <= 250
+    assert logged["gps_accuracy_m"] is None
+    assert logged["image_metadata"] is None
+    assert logged["moderation_checks"] == {}
+    assert logged["rejection_reason_code"] == report["rejection_reason_code"]
+
+    become("admin")
+    admin_log = client.get("/api/admin/reports")
+    assert admin_log.status_code == 200
+    exact = next(
+        item for item in admin_log.json()["reports"] if item["id"] == report_id
+    )
+    assert (exact["lat"], exact["lon"]) == (report["lat"], report["lon"])
+    assert exact["location_precision_m"] == 0
+    assert exact["gps_accuracy_m"] == 15
+    assert exact["image_url"]
+    assert exact["moderation_checks"]
 
     public = client.get("/api/community/reports").json()["reports"]
     assert all(item["id"] != report_id for item in public)
@@ -684,9 +691,6 @@ def test_official_history_forecast_search_validation_and_admin_health(feature_cl
     validation = client.get("/api/validate", params={"method": "idw"})
     assert validation.status_code == 404
 
-    weather = client.get("/api/weather", params={"lat": 13.8199, "lon": 100.0622})
-    assert weather.status_code == 200
-    assert weather.json()["temp"] == 31.5
     firms = client.get("/api/firms")
     assert firms.status_code == 200
     assert firms.json()["count"] == 1

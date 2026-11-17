@@ -1,11 +1,10 @@
 "use client";
 
+import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
+
 import CommunityTrustCard from "@/frontend/components/community/CommunityTrustCard";
 import Image from "next/image";
-import {
-  stackReporterGroups,
-  stackReporterAvatar,
-} from "@/frontend/lib/report-stack-profiles";
+import { stackReporterGroups } from "@/frontend/lib/report-stack-profiles";
 
 import MapBottomSheet from "./MapBottomSheet";
 import MapPanelReading from "./MapPanelReading";
@@ -85,7 +84,7 @@ export default function ReportStackCard({
     >
       <div className="cp-report-stack-card__list">
         {reporters.map(({ profile, reports: readings }) => {
-          const avatar = stackReporterAvatar(profile);
+          const avatar = publicReporterAvatar(profile);
           const name = profile.display_name ?? "ไม่เปิดเผยตัวตน";
           return (
             <section

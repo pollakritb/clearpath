@@ -194,7 +194,6 @@ test("saved helper areas edit, pause, resume, keep/delete and retry with working
     {
       slot: 1,
       name: "บ้าน",
-      emoji: "🏠",
       address: "ตลิ่งชัน กรุงเทพมหานคร",
       lat: 13.8,
       lon: 100.1,
@@ -203,7 +202,6 @@ test("saved helper areas edit, pause, resume, keep/delete and retry with working
     {
       slot: 2,
       name: "ที่ทำงาน",
-      emoji: "🌳",
       address: "นครปฐม",
       lat: 13.7,
       lon: 100.1,

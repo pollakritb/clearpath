@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, time, timedelta, timezone
+from datetime import timedelta, timezone
 
 BANGKOK_TZ = timezone(timedelta(hours=7), name="Asia/Bangkok")
 
@@ -28,39 +28,6 @@ def air_quality_level(pm25: float) -> dict[str, str]:
         if value <= upper:
             return {"label": label, "advice": advice, "severity": severity}
     raise AssertionError("unreachable")
-
-
-def is_quiet_hour(
-    now: datetime,
-    start: str | None,
-    end: str | None,
-    timezone: str = "Asia/Bangkok",
-) -> bool:
-    """Return whether ``now`` falls inside a same-day or overnight quiet window."""
-    if not start or not end or start == end:
-        return False
-    if timezone != "Asia/Bangkok":
-        raise ValueError("unsupported notification timezone")
-    local_now = now.astimezone(BANGKOK_TZ).time().replace(tzinfo=None)
-    start_time = time.fromisoformat(start)
-    end_time = time.fromisoformat(end)
-    if start_time < end_time:
-        return start_time <= local_now < end_time
-    return local_now >= start_time or local_now < end_time
-
-
-def format_air_alert(
-    *, pm25: float, station_name: str, recorded_at: str, area: str
-) -> dict[str, str]:
-    level = air_quality_level(pm25)
-    return {
-        "title": f"PM2.5 {level['label']}ที่ {station_name}",
-        "body": (
-            f"{pm25:.1f} µg/m³ · {level['advice']} · "
-            f"พื้นที่ {area} · เวลา {recorded_at} · ที่มา Air4Thai"
-        ),
-        "severity": level["severity"],
-    }
 
 
 def format_hotspot_alert(

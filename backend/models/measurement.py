@@ -23,7 +23,6 @@ class MeasurementRequestCreate(BaseModel):
 
 class MeasurementHelperLocationWrite(BaseModel):
     name: str = Field(min_length=1, max_length=80)
-    emoji: Literal["🏠", "🏢", "🏫", "🏥", "🏡", "🏪", "🌳", "📍"] = "📍"
     address: str = Field(default="", max_length=240)
     lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
     lon: float = Field(ge=-180, le=180, allow_inf_nan=False)

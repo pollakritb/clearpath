@@ -125,16 +125,14 @@ def parse_feed(xml: bytes, *, now: datetime | None = None) -> list[dict]:
     )
 
 
-async def fetch_latest(*, force: bool = False) -> list[dict]:
+async def fetch_latest() -> list[dict]:
     global _cached_at, _cached_items
     if not settings.google_news_enabled or settings.local_demo_mode:
         return []
     now = datetime.now(UTC)
     with _cache_lock:
-        if (
-            not force
-            and _cached_at is not None
-            and now - _cached_at < timedelta(seconds=settings.google_news_cache_seconds)
+        if _cached_at is not None and now - _cached_at < timedelta(
+            seconds=settings.google_news_cache_seconds
         ):
             return [dict(item) for item in _cached_items]
     try:
@@ -156,13 +154,6 @@ async def fetch_latest(*, force: bool = False) -> list[dict]:
         _cached_at = now
         _cached_items = items
     return [dict(item) for item in items]
-
-
-def clear_cache() -> None:
-    global _cached_at, _cached_items
-    with _cache_lock:
-        _cached_at = None
-        _cached_items = []
 
 
 async def fetch_for_sync(validators: dict | None = None) -> dict:

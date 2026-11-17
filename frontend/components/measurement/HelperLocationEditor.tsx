@@ -297,7 +297,6 @@ export default function HelperLocationEditor({
                   lat: point.lat,
                   lon: point.lon,
                   name: name.trim(),
-                  emoji: initial?.emoji ?? "📍",
                   address: locationAddress.slice(0, 240),
                   enabled: initial?.enabled ?? true,
                 },

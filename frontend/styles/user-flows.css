@@ -362,19 +362,6 @@
   animation: none;
   transform: none;
 }
-
-.cp-map-station-history {
-  min-width: 0;
-  border: 1px solid var(--cp-line);
-  border-radius: 18px;
-  padding: 14px;
-  background: #fff;
-}
-.cp-map-station-history h2 {
-  margin: 0;
-  font-size: 0.84rem;
-}
-.cp-map-station-history [role="alert"] button,
 .cp-map-station-forecast__empty button {
   min-height: 44px;
   margin: 8px 0;
@@ -581,9 +568,6 @@
 }
 
 /* Bottom sheets share compact spacing and thumb-sized controls. */
-.cp-station-time-panel .cp-map-timeline {
-  padding: 12px;
-}
 .cp-station-time-panel .cp-map-history-dock__heading {
   grid-template-columns: 44px minmax(0, 1fr) auto 44px;
   gap: 8px;
@@ -1228,8 +1212,7 @@
 }
 
 /* Contribution/evidence v2 follows the same <=430px mobile frame. */
-.cp-evidence-panel,
-.cp-contribution-overview section {
+.cp-evidence-panel {
   padding: 14px;
   border: 1px solid var(--cp-border, #dce7e5);
   border-radius: 18px;
@@ -1237,49 +1220,36 @@
   margin-block: 12px;
   overflow-wrap: anywhere;
 }
-.cp-evidence-panel h3,
-.cp-contribution-overview h3 {
+.cp-evidence-panel h3 {
   margin: 0 0 8px;
   font-size: 1rem;
 }
-.cp-evidence-panel p,
-.cp-contribution-overview p {
+.cp-evidence-panel p {
   margin: 8px 0;
   line-height: 1.5;
 }
-.cp-evidence-panel ul,
-.cp-contribution-overview ul {
+.cp-evidence-panel ul {
   list-style: none;
   margin: 8px 0;
   padding: 0;
 }
-.cp-evidence-panel li,
-.cp-contribution-overview li {
+.cp-evidence-panel li {
   display: grid;
   gap: 4px;
   padding-block: 10px;
   border-bottom: 1px solid #dce7e5;
 }
 .cp-evidence-panel small,
-.cp-evidence-panel li span,
-.cp-contribution-overview small {
+.cp-evidence-panel li span {
   color: #526b66;
   font-size: 0.8rem;
 }
-.cp-evidence-panel summary,
-.cp-contribution-overview summary {
+.cp-evidence-panel summary {
   min-height: 44px;
   display: flex;
   align-items: center;
   color: #087c76;
   cursor: pointer;
-}
-.cp-contribution-overview a {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  color: #087c76;
-  font-weight: 700;
 }
 .cp-report-comments__hint select {
   width: 100%;

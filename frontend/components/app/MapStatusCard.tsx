@@ -128,7 +128,6 @@ export default function MapStatusCard({
     ? (station.name_th ?? station.name_en ?? station.id)
     : "";
   const communityArea = report ? formatCommunityArea(report) : "";
-  const isDemo = report?.policy_version === "demo-v1";
   const selectionLabel =
     source === "sensor"
       ? "รายละเอียดสถานีเซนเซอร์ชุมชน"
@@ -258,7 +257,6 @@ export default function MapStatusCard({
             <span>{SOURCE_LABELS[source].label}</span>
             {source === "individual" &&
               ` · ${showReporterProfile ? (report?.display_name ?? "สมาชิก ClearPath") : "ไม่เปิดเผยตัวตน"}`}
-            {isDemo && <span> · ข้อมูลตัวอย่าง</span>}
           </p>
           <MapPanelReading
             value={value}

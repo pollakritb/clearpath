@@ -2,20 +2,10 @@
 
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
-from math import isfinite
 from zoneinfo import ZoneInfo
-
-from .distance import haversine_km
 
 POLICY = "community-trust-v1"
 THAI = ZoneInfo("Asia/Bangkok")
-NEGATIVE_REASONS = {"report_context_doubt", "image_context_doubt"}
-NON_TRUST_REASONS = {
-    "ocr_mismatch",
-    "system_display_issue",
-    "station_disagreement_only",
-    "cannot_assess",
-}
 
 
 def stamp(value) -> datetime:
@@ -27,56 +17,6 @@ def stamp(value) -> datetime:
     if parsed.tzinfo is None:
         raise ValueError("timestamp_requires_timezone")
     return parsed.astimezone(UTC)
-
-
-def vote_eligibility(
-    report: dict,
-    voter: str,
-    fix: dict,
-    reaction: str,
-    reason: str | None,
-    *,
-    now: datetime,
-    evidence_available: bool,
-) -> tuple[str | None, dict]:
-    """Keep only decision evidence; never return the voter's coordinates."""
-    audit = {"policy_version": POLICY, "checked_at": now.isoformat()}
-    if str(report["user_id"]) == str(voter):
-        return "self_vote", audit
-    if report.get("status") != "approved":
-        return "report_not_approved", audit
-    if not evidence_available or report.get("evidence_purged_at"):
-        return "evidence_unavailable", audit
-    try:
-        age = (now - stamp(report["captured_at"])).total_seconds()
-        audit["report_age_seconds"] = age
-        if not 0 <= age <= 10800:
-            return "report_expired", audit
-        lat, lon, accuracy = [float(fix[k]) for k in ("lat", "lon", "accuracy_m")]
-        if not all(isfinite(x) for x in (lat, lon, accuracy)) or not (
-            -90 <= lat <= 90 and -180 <= lon <= 180 and accuracy >= 0
-        ):
-            return "gps_invalid", audit
-        fix_age = (now - stamp(fix["observed_at"])).total_seconds()
-        audit.update(accuracy_m=accuracy, fix_age_seconds=fix_age)
-        if fix_age < 0:
-            return "gps_clock_invalid", audit
-        if fix_age > 120:
-            return "gps_expired", audit
-        distance = 1000 * haversine_km(
-            lat, lon, float(report["lat"]), float(report["lon"])
-        )
-        audit["distance_m"] = distance
-        if distance + accuracy > 500:
-            return (
-                "gps_uncertain" if distance - accuracy <= 500 else "outside_area",
-                audit,
-            )
-    except (ValueError, KeyError, TypeError, OverflowError):
-        return "gps_invalid", audit
-    if reaction == "dislike" and reason not in NEGATIVE_REASONS:
-        return "reason_not_trust", audit
-    return None, audit
 
 
 def project(

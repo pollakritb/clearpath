@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from math import isfinite
-from statistics import median
 
 from .distance import haversine_km
 
@@ -66,48 +65,6 @@ def forecast_rows_status(
     if len(rows) < expected_count:
         return "partial_horizon"
     return None
-
-
-def survey_summary(rows: list[dict]) -> dict:
-    """Summarise one spatial survey, including shared provider grid cells."""
-
-    grids: dict[tuple[float, float], list[str]] = {}
-    status_counts: dict[str, int] = {}
-    distances = []
-    anomalies = []
-    for row in rows:
-        status = str(row.get("status") or "unknown")
-        status_counts[status] = status_counts.get(status, 0) + 1
-        station_id = str(row["station_id"])
-        grid_lat, grid_lon = row.get("grid_lat"), row.get("grid_lon")
-        if grid_lat is None or grid_lon is None:
-            anomalies.append(
-                {
-                    "station_id": station_id,
-                    "reason": row.get("reason") or "grid_missing",
-                }
-            )
-            continue
-        key = (float(grid_lat), float(grid_lon))
-        grids.setdefault(key, []).append(station_id)
-        distance = haversine_km(
-            float(row["requested_lat"]), float(row["requested_lon"]), *key
-        )
-        distances.append(distance)
-        if distance > 75:
-            anomalies.append({"station_id": station_id, "reason": "grid_over_75km"})
-    return {
-        "station_count": len(rows),
-        "status_counts": status_counts,
-        "unique_grid_count": len(grids),
-        "shared_grids": [ids for ids in grids.values() if len(ids) > 1],
-        "distance_km": {
-            "min": min(distances) if distances else None,
-            "median": median(distances) if distances else None,
-            "max": max(distances) if distances else None,
-        },
-        "anomalies": anomalies,
-    }
 
 
 def validation_pairs(snapshots: list[dict], observations: list[dict]) -> list[dict]:
@@ -192,18 +149,3 @@ def validation_pairs(snapshots: list[dict], observations: list[dict]) -> list[di
             }
         )
     return pairs
-
-
-def provisional_metrics(pairs: list[dict]) -> dict[str, dict]:
-    """Descriptive MAE and signed bias; never feed values into public forecasts."""
-
-    result = {}
-    for band in ("1-6h", "7-24h"):
-        errors = [row["error"] for row in pairs if row["horizon_band"] == band]
-        if errors:
-            result[band] = {
-                "count": len(errors),
-                "mae": sum(abs(value) for value in errors) / len(errors),
-                "bias": sum(errors) / len(errors),
-            }
-    return result

@@ -1,10 +1,17 @@
-import { expect, test } from "@playwright/test";
-import { buildDemoCommunityReports } from "../frontend/lib/demo-community";
+import { expect, test } from "./fixtures/test";
+import {
+  buildReportFixtures,
+  installCommunityFixture,
+} from "./fixtures/community-reports";
 
 test("demo user report shows evidence and opens its photo in-page", async ({
   page,
 }) => {
-  await page.goto("/?demo=community");
+  await installCommunityFixture(page, "community");
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "ตำแหน่งของฉัน", exact: true })
+    .click();
   await page.locator(".cp-marker--individual").first().click();
 
   const card = page.getByRole("region", {
@@ -60,7 +67,7 @@ test("an archived report link opens its own pin without returning it to the curr
   page,
 }) => {
   const report = {
-    ...buildDemoCommunityReports()[0],
+    ...buildReportFixtures()[0],
     id: "RPT-000004",
     is_fresh: false,
     age_minutes: 1440,

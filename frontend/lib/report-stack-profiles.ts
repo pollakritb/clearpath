@@ -1,6 +1,4 @@
 import type { CommunityReport, CommunityReportStack } from "@/frontend/types";
-import { publicReporterAvatar } from "./reporter-profile";
-import { isCommunityStackDemoMode } from "./demo-community";
 
 /** Deduplicate people by server membership, never by display name or photo. */
 export function stackReporterGroups(
@@ -37,22 +35,4 @@ export function stackReporterGroups(
     profile:
       reports.find((report) => report.show_reporter_profile) ?? reports[0],
   }));
-}
-
-export function stackReporterAvatar(report: CommunityReport): string | null {
-  const avatar = publicReporterAvatar(report);
-  if (avatar) return avatar;
-  const demos = [
-    "/demo/avatar-kan.svg",
-    "/demo/avatar-mint.svg",
-    "/demo/avatar-non.svg",
-    "/demo/avatar-pim.svg",
-    "/demo/avatar-ton.svg",
-  ];
-  return report.show_reporter_profile &&
-    isCommunityStackDemoMode() &&
-    report.policy_version === "demo-v1" &&
-    demos.includes(report.reporter_avatar_url ?? "")
-    ? report.reporter_avatar_url
-    : null;
 }

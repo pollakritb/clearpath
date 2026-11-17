@@ -41,7 +41,6 @@ from .routers import (
     measurement,
     notifications,
     pm25,
-    weather,
 )
 from .services import readiness
 
@@ -182,7 +181,6 @@ def create_app() -> FastAPI:
 
     api = APIRouter(prefix="/api")
     api.include_router(pm25.router, tags=["pm25"])
-    api.include_router(weather.router, tags=["weather"])
     api.include_router(firms.router, tags=["firms"])
     api.include_router(history.router, tags=["history"])
     api.include_router(locations.router, tags=["locations"])

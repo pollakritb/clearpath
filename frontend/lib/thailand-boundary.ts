@@ -21,11 +21,6 @@ export function thailandClipPath(bounds: [[number, number], [number, number]]) {
     .join("");
 }
 
-export const THAILAND_CLIP_PATH = thailandClipPath([
-  [5, 97],
-  [21, 106],
-]);
-
 function inRing(ring: number[][], lat: number, lon: number): boolean {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {

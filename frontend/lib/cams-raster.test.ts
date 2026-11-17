@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  FORECAST_LEGEND,
-  forecastColor,
-  forecastColorPacked,
-  classifyForecastPm25,
-} from "./aqi";
+import { FORECAST_LEGEND, classifyForecastPm25 } from "./aqi";
 import {
   camsRasterBounds,
   renderCamsPixels,
@@ -21,14 +16,17 @@ const grid: GridSurface = {
 describe("native CAMS grid presentation", () => {
   it("uses six forecast bands with hard category boundaries", () => {
     for (const band of FORECAST_LEGEND) {
-      expect(forecastColor(band.upper === Infinity ? 1000 : band.upper)).toBe(
-        band.color,
-      );
+      expect(
+        classifyForecastPm25(band.upper === Infinity ? 1000 : band.upper).color,
+      ).toBe(band.color);
     }
-    expect(forecastColor(5)).not.toBe(forecastColor(5.001));
-    expect(forecastColorPacked(24.999)).toBe(forecastColorPacked(25.001));
-    expect(forecastColor(null)).toBe(classifyForecastPm25(null).color);
-    expect(forecastColor(NaN)).toBe(classifyForecastPm25(null).color);
+    expect(classifyForecastPm25(5).color).not.toBe(
+      classifyForecastPm25(5.001).color,
+    );
+    expect(classifyForecastPm25(24.999).color).toBe(
+      classifyForecastPm25(25.001).color,
+    );
+    expect(classifyForecastPm25(NaN).color).toBe("#95a5a6");
   });
   it("renders source cell colours and grid lines without blending neighbouring values", () => {
     const pixels = renderCamsPixels(grid, 64, 128);

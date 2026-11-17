@@ -30,13 +30,11 @@ html[data-liquid-glass="on"]
     .cp-request-location-search,
     .cp-helper-editor__header button,
     .cp-helper-editor__presets button:not([aria-pressed="true"]),
-    .cp-helper-text-button,
     .cp-measure-back,
     .cp-map-layer-actions button,
     .cp-map-layer-actions a,
     .cp-line-link__secondary,
     .cp-line-link__code button,
-    .cp-channel-button,
     .cp-notification-conditions__toggle,
     .cp-notifications-mobile button,
     .cp-season-all,
@@ -59,20 +57,11 @@ html[data-liquid-glass="on"]
     [data-map-sheet],
     .cp-account-dialog__content,
     .cp-login-modal__card,
-    .cp-map-tools,
-    .cp-map-panel,
     .cp-map-selection-card,
     .cp-place-card,
     .cp-map-photo-dialog__content,
-    .cp-helper-onboarding__card,
-    .cp-request-map-card,
     .cp-request-tracking__main,
     .cp-forecast-card,
-    .cp-community-card,
-    .cp-reward-card,
-    .cp-account-privacy,
-    .cp-participation-card,
-    .cp-privacy-card,
     .cp-admin-card,
     .cp-admin-panel,
     .cp-admin-stat-card,
@@ -83,11 +72,8 @@ html[data-liquid-glass="on"]
     .cp-helper-areas,
     .cp-helper-intro,
     .cp-helper-editor__sheet,
-    .cp-community-disclosure,
     .cp-notifications-mobile li a,
-    .cp-xp-rank-dialog,
     .cp-report-stack-card,
-    .cp-report-source-help,
     .cp-report-retry,
     .cp-report-success,
     .cp-legal-document,
@@ -105,7 +91,7 @@ html[data-liquid-glass="on"]
 }
 
 /* Matching material for the read-only administration shell. */
-html[data-liquid-glass="on"] :is(.cp-admin-header, .cp-admin-nav) {
+html[data-liquid-glass="on"] :is(.cp-admin-nav) {
   background: var(--cp-glass-reading);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
@@ -179,8 +165,7 @@ html[data-liquid-glass="on"]
     .cp-map-history-dock,
     .cp-cams-dock,
     .cp-account-dialog__content,
-    .cp-login-modal__card,
-    .cp-helper-onboarding__card
+    .cp-login-modal__card
   )
   > .cp-liquid-layer::after {
   background: rgb(255 255 255 / 89%);

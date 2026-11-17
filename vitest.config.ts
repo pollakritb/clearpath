@@ -18,7 +18,7 @@ export default defineConfig({
       // their isolated tests are added; the report must not imply whole-app
       // coverage until those scopes are included.
       include: [
-        "frontend/lib/{api-client,aqi,camera,dashboard,demo-community,forecast-presentation,idw,local-air,reporter-profile,source-kind,station-clusters,supabase}.ts",
+        "frontend/lib/{api-client,aqi,camera,dashboard,forecast-presentation,reporter-profile,source-kind,station-clusters,supabase}.ts",
         "frontend/hooks/*.ts",
         "frontend/components/auth/AuthProvider.tsx",
       ],

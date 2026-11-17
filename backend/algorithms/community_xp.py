@@ -4,11 +4,6 @@ from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 POLICY_VERSION = "xp-v1"
-REPORT_XP = 10
-HELP_XP = 5
-REPORT_LIMIT = 5
-HELP_LIMIT = 3
-LEGACY_DAILY_XP_LIMIT = 65
 DAILY_XP_LIMIT = 70
 RANKS = (
     ("explorer", "นักสำรวจอากาศ", 0),

@@ -93,7 +93,6 @@ describe("api client", () => {
   });
 
   it("keeps private Trust reads authenticated and uncached without score mutation commands", async () => {
-    await api.communityTrustMe();
     await api.communityTrustOwnerReviews();
     await api.adminCommunityTrustReviews();
     for (const [url, options] of vi.mocked(fetch).mock.calls) {
@@ -131,16 +130,12 @@ describe("api client", () => {
     await loadPublicData(PUBLIC_DATA_KEYS.reports, 60_000, async () => ({
       count: 1,
     }));
-    await loadPublicData(PUBLIC_DATA_KEYS.mapPoints, 60_000, async () => ({
-      count: 1,
-    }));
     await loadPublicData(PUBLIC_DATA_KEYS.announcements, 60_000, async () => ({
       count: 1,
     }));
 
     await api.submitReportDraft("draft-1", {} as never);
     expect(cachedPublicValue(PUBLIC_DATA_KEYS.reports)).toBeNull();
-    expect(cachedPublicValue(PUBLIC_DATA_KEYS.mapPoints)).toBeNull();
     expect(cachedPublicValue(PUBLIC_DATA_KEYS.announcements)).not.toBeNull();
 
     await api.adminAnnouncements();
@@ -181,14 +176,12 @@ describe("api client", () => {
       () => api.measurementHelper(),
       () => api.setMeasurementHelper(true),
       () => api.measurementPresence({} as never),
-      () => api.weather(13.8, 100.1),
       () => api.firms(),
       () => api.history("station / one"),
       () => api.mapHistory("2026-09-19T03:00:00.000Z"),
       () => api.forecast("station / one"),
       () => api.forecast({ lat: 13.8, lon: 100.1 }),
       () => api.communityReports(),
-      () => api.communityMapPoints(),
       () => api.captureSession(),
       () => api.createReportDraft(form),
       () =>
@@ -203,11 +196,9 @@ describe("api client", () => {
       () => api.addReportComment("report-1", {} as never),
       () => api.removeReportComment("report-1", "comment-1"),
       () => api.announcements(),
-      () => api.activities(),
       () => api.leaderboard(),
       () => api.notificationPreferences(),
       () => api.updateNotificationPreferences({} as never),
-      () => api.testNotification(),
       () => api.lineNotificationStatus(),
       () => api.createLineLinkCode(),
       () => api.disconnectLine(),
@@ -216,7 +207,6 @@ describe("api client", () => {
       () => api.markNotificationRead("notification-1"),
       () => api.markAllNotificationsRead(),
       () => api.searchLocations("Nakhon Pathom / center"),
-      () => api.myProfile(),
       () => api.myReports(),
       () => api.xpOverview(),
       () => api.adminReports(),

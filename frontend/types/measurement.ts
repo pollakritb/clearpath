@@ -10,10 +10,7 @@ export interface MeasurementRequestCreate {
   needed_by?: string | null;
   idempotency_key: string;
 }
-export type HelperLocationEmoji =
-  "🏠" | "🏢" | "🏫" | "🏥" | "🏡" | "🏪" | "🌳" | "📍";
 export interface MeasurementHelperLocationWrite {
-  emoji?: HelperLocationEmoji;
   name: string;
   address: string;
   lat: number;

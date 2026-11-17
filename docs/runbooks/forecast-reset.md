@@ -9,7 +9,7 @@ complete ready generation atomically. Public requests never fetch a provider
 or run a local model. Missing/stale stored data returns unavailable, without
 invented values. See [CAMS grid](cams-forecast-grid.md).
 
-Air4Thai ingestion, current weather, satellite hotspots, community reports,
+Air4Thai ingestion, satellite hotspots, community reports,
 Trust, XP, measurement requests and notifications remain independent.
 
 `EXTERNAL_FORECAST_ENABLED` controls stored station/area forecast reads.
@@ -46,6 +46,6 @@ historical issue/audit logs remains available. CAMS/OCR/IDW field-evaluation
 tools are retained; they are separate from the removed model-release pipeline.
 
 The 2026-10-30 storage retirement record remains available in
-[legacy table retirement](legacy-table-retirement-2026-10-30.md).
+legacy table retirement ([ประวัติ](../cleanup.md#archive-และการคืนงาน)).
 Future ClearPath self-forecast work needs a new reviewed specification, schema,
 backtest protocol and release policy; toggling an old environment flag is insufficient.

@@ -360,7 +360,9 @@ def present_report(
     }
 
 
-def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
+def list_reports(
+    status: str = "approved", limit: int = 200, *, include_exact_location: bool = False
+) -> list[dict]:
     from . import policy_v2
 
     batch_policy = policy_v2.release()
@@ -390,12 +392,18 @@ def list_reports(status: str = "approved", limit: int = 200) -> list[dict]:
             # Approved report photos stay in the private bucket. Public clients
             # receive only a short-lived signed URL when opening a report pin.
             include_image=True,
-            include_exact_location=status != "approved",
+            include_exact_location=include_exact_location,
             include_private_metadata=status != "approved",
         )
         for row in rows
     ]
     if status != "approved":
+        if not include_exact_location:
+            for report in reports:
+                # Raw audit JSON can contain capture GPS/EXIF. Moderator access
+                # to report images and OCR does not grant exact-location access.
+                report["image_metadata"] = None
+                report["moderation_checks"] = {}
         return reports
     return [report for report in reports if report["is_fresh"]]
 

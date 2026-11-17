@@ -9,19 +9,6 @@
   background: var(--cp-appbg);
   color: var(--cp-ink);
 }
-.cp-brand {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  border: 0;
-  padding: 3px 4px 20px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
 .cp-aside {
   width: var(--cp-aside-w, 380px);
   flex: none;
@@ -1008,7 +995,6 @@
   border-top: 1px solid #e4ebe9;
 }
 
-.cp-notification-range-group,
 .cp-notification-option-group {
   min-width: 0;
   display: grid;
@@ -1018,7 +1004,6 @@
   border: 0;
 }
 
-.cp-notification-range-group legend,
 .cp-notification-option-group legend {
   padding: 0;
   color: var(--cp-ink);
@@ -1026,26 +1011,6 @@
   font-weight: 850;
 }
 
-.cp-notification-range-group label {
-  display: grid;
-  gap: 0.45rem;
-  color: var(--cp-ink);
-  font-size: 0.7rem;
-}
-
-.cp-notification-range-group label > span {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.cp-notification-range-group output {
-  color: var(--cp-teal);
-  font-weight: 850;
-}
-
-.cp-location-button,
 .cp-notification-save {
   min-height: 46px;
   display: inline-flex;
@@ -1057,12 +1022,6 @@
   font: inherit;
   font-size: 0.74rem;
   font-weight: 850;
-}
-
-.cp-location-button {
-  border: 1px solid #cddbd7;
-  background: #f7f9f8;
-  color: var(--cp-subink);
 }
 
 .cp-notification-option-group label {
@@ -1091,31 +1050,6 @@
   line-height: 1.4;
 }
 
-.cp-notification-time-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
-}
-
-.cp-notification-time-grid label {
-  min-height: 0;
-  display: grid !important;
-  grid-template-columns: 1fr;
-  gap: 0.35rem;
-  border: 0;
-}
-
-.cp-notification-time-grid input {
-  width: 100%;
-  min-height: 44px;
-  border: 1px solid #cddbd7;
-  border-radius: 0.7rem;
-  background: #fff;
-  padding: 0.55rem 0.65rem;
-  color: var(--cp-ink);
-  font: inherit;
-}
-
 .cp-notification-save {
   width: 100%;
   border: 1px solid var(--cp-teal);
@@ -1127,13 +1061,6 @@
   border-color: #cbd5d2;
   background: #dce3e1;
   color: #73807d;
-}
-
-.cp-notification-save-hint {
-  color: var(--cp-muted);
-  font-size: 0.62rem;
-  line-height: 1.45;
-  text-align: center;
 }
 
 .cp-notification-feedback {
@@ -1934,9 +1861,6 @@
 /* ============================================================
    Route-driven app shell — map welcome + dedicated pages
    ============================================================ */
-.cp-brand {
-  text-decoration: none;
-}
 
 .cp-app[data-tab="map"] .cp-aside {
   display: none;

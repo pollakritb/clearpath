@@ -1,9 +1,5 @@
 import { expect, it } from "vitest";
-import {
-  isInThailand,
-  THAILAND_CLIP_PATH,
-  thailandClipPath,
-} from "./thailand-boundary";
+import { isInThailand, thailandClipPath } from "./thailand-boundary";
 
 it("keeps mainland Thailand and island polygons", () => {
   for (const [lat, lon] of [
@@ -31,10 +27,30 @@ it("excludes neighboring countries and sea inside the old rectangular raster", (
 });
 
 it("projects every polygon into a closed Web Mercator clip without invalid values", () => {
-  expect(THAILAND_CLIP_PATH.match(/M/g)).toHaveLength(20);
-  expect(THAILAND_CLIP_PATH.match(/Z/g)).toHaveLength(20);
-  expect(THAILAND_CLIP_PATH).not.toMatch(/NaN|Infinity/);
-  expect(THAILAND_CLIP_PATH).toMatch(/^M[\d.,-]+L/);
+  expect(
+    thailandClipPath([
+      [5, 97],
+      [21, 106],
+    ]).match(/M/g),
+  ).toHaveLength(20);
+  expect(
+    thailandClipPath([
+      [5, 97],
+      [21, 106],
+    ]).match(/Z/g),
+  ).toHaveLength(20);
+  expect(
+    thailandClipPath([
+      [5, 97],
+      [21, 106],
+    ]),
+  ).not.toMatch(/NaN|Infinity/);
+  expect(
+    thailandClipPath([
+      [5, 97],
+      [21, 106],
+    ]),
+  ).toMatch(/^M[\d.,-]+L/);
 });
 
 it("aligns the country clip with the full returned grid rectangle", () => {
@@ -42,7 +58,12 @@ it("aligns the country clip with the full returned grid rectangle", () => {
     [4.2, 96.2],
     [21.8, 106.6],
   ]);
-  expect(clip).not.toBe(THAILAND_CLIP_PATH);
+  expect(clip).not.toBe(
+    thailandClipPath([
+      [5, 97],
+      [21, 106],
+    ]),
+  );
   expect(clip.match(/M/g)).toHaveLength(20);
   expect(clip.match(/Z/g)).toHaveLength(20);
   expect(clip).not.toMatch(/NaN|Infinity/);

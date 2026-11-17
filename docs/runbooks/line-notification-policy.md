@@ -2,18 +2,18 @@
 
 Automatic LINE messages are limited to three events:
 
-| Event                   | Recipient and eligibility                                                                                                                                             |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `measurement_request`   | Eligible participating helper; open request/group, not declined, linked LINE, consent and channel enabled                                                             |
-| `measurement_fulfilled` | Request owner only, really fulfilled, notification lifetime not expired, linked LINE, consent and channel enabled                                                     |
-| `air_alert`             | Air4Thai PM2.5 at least 37.6 µg/m³ and at or above the saved threshold, within the saved radius, valid finite measurement/source time, existing 90-minute alert limit |
+| Event                   | Recipient and eligibility                                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `measurement_request`   | Eligible participating helper; open request/group, not declined, linked LINE, consent and channel enabled                                         |
+| `measurement_fulfilled` | Request owner only, really fulfilled, notification lifetime not expired, linked LINE, consent and channel enabled                                 |
+| `air_alert`             | Nearest eligible pin within 2 km; fixed daily warning/danger policy, current GPS and channel eligibility; see [daily alerts](daily-air-alerts.md) |
 
 Report status, expired requests, hotspots, rank/reward/rating, leaderboard,
 announcement and unknown events never enter automatic LINE delivery. This is a
 LINE-channel policy. Existing in-app notifications and audit history remain.
 Legacy API preference fields remain compatible with in-app history; enabling
 them cannot bypass the LINE allowlist. UI shows the three supported categories,
-a PM2.5 switch, global LINE/consent and quiet hours. Request invitations depend
+fixed PM2.5 band switches and global LINE/consent. Retired quiet-hour fields are not configurable in the UI. Request invitations depend
 on helper participation/area; fulfilled messages apply to the owner's request.
 
 ## Creation and pending messages
@@ -58,7 +58,7 @@ not message real accounts.
 
 Test policy/service/LINE-security cases, frontend, lint, typecheck, format and
 build. Check mobile settings at 320/360/390/430px; linked/unlinked and load-error
-states; removed pending jobs; opt-out; quiet hours; stale air readings; changed
+states; removed pending jobs; opt-out; retired preference normalization; stale air readings; changed
 threshold/area; missing links; provider retry; duplicate workers; closed groups.
 
 After deployment, verify server configuration and the minute-based outbox

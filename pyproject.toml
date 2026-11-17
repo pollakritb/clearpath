@@ -9,10 +9,14 @@ dynamic = ["dependencies"]
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 
+[tool.setuptools.packages.find]
+include = ["backend*", "api*"]
+exclude = ["backend.tests*"]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 88
-extend-exclude = [".venv", ".next", "node_modules", "docs/eval"]
+extend-exclude = [".venv", ".next", "node_modules"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
@@ -20,7 +24,6 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "backend/routers/*.py" = ["B008"]
-"backend/core/admin.py" = ["B008"]
 
 [tool.coverage.run]
 source = ["backend"]

@@ -73,9 +73,6 @@ vi.mock("@/frontend/hooks/usePm25", () => ({
 vi.mock("@/frontend/hooks/useCommunity", () => ({
   useCommunityMapData: () => ({ reports: state.reports, refresh: state.noop }),
 }));
-vi.mock("@/frontend/hooks/useWeather", () => ({
-  useWeather: () => ({ data: null, load: state.noop }),
-}));
 vi.mock("@/frontend/hooks/useHistory", () => ({
   useHistory: () => ({ points: [], load: state.noop }),
 }));

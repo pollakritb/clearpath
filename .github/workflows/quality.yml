@@ -29,6 +29,8 @@ jobs:
       - run: npm run test:unit:coverage
       - run: npm run test:grid:db
       - run: node scripts/test-unified-cams.mjs
+      - run: node scripts/test-cams-retention-delta.mjs
+      - run: node scripts/test-operational-display-references.mjs
       - run: npm run test:feeds:db
       - uses: actions/setup-python@v5
         with:

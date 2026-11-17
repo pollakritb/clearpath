@@ -94,13 +94,8 @@ def _image_input(image: bytes, content_type: str) -> dict:
 async def read_pm25(
     image: bytes,
     content_type: str,
-    additional_images: list[tuple[bytes, str]] | None = None,
 ) -> dict:
-    """อ่านภาพหลักเดียว; available=False เมื่อยังไม่ได้ตั้ง API key.
-
-    additional_images remains accepted for legacy callers but is not sent to AI.
-    Burst evidence is retained separately by the report submission workflow.
-    """
+    """อ่านภาพหลักเดียว; burst audit อยู่ใน submission workflow แยกจาก OCR."""
     if not settings.openai_api_key:
         return {
             "available": False,

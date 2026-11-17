@@ -124,31 +124,15 @@ missing/unconfigured database is not silently replaced with generated forecasts.
    Rollback by disabling the grid job/collection flag and closing the layer;
    no observation data needs restoring.
 
-## Local QA without a Supabase/Docker stack
-
-PGlite is a development-only PostgreSQL dependency, excluded from the Python
-Vercel function. The preview launches only on loopback, has no remote database
-credentials, and seeds the same migration with an actual API artifact. Other
-features use the existing test/demo backend. It is not the production data path.
+## Local QA
 
 ```sh
 npm run test:grid:db
-.venv/bin/python -m scripts.collect_cams_grid --output /tmp/clearpath-cams-grid.json
-.venv/bin/python -m scripts.preview_cams_grid --data /tmp/clearpath-cams-grid.json --port 8001
+.venv/bin/python -m pytest backend/tests/test_cams_grid.py backend/tests/test_unified_cams.py
+npx playwright test e2e/cams-compact.spec.ts
 ```
 
-In another terminal:
-
-```sh
-BACKEND_ORIGIN=http://127.0.0.1:8001 ENABLE_LOCAL_API_PROXY=true NEXT_PUBLIC_LOCAL_DEMO_MODE=true npm run build
-npm run start -- --hostname 127.0.0.1 --port 3001
-```
-
-Open `http://127.0.0.1:3001/?layer=cams`. This build does not invalidate `.next-dev`
-used by the regular dev server. Rebuild normally before a later production
-release; do not deploy the preview environment flags. When a real local
-Supabase stack is available, apply the migration there and use the normal
-Supabase store to verify PostgREST integration and RLS on that stack too.
+Offline collectors, standalone preview servers and field-evaluation tools are in the external archive. They are not the production data path. Current regression tests use isolated PGlite and explicit HTTP fixtures; no hosted migration is applied by these commands.
 
 ## Acceptance
 

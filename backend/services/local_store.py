@@ -195,12 +195,7 @@ _ACTIVITIES = [
 def _seed_stations() -> None:
     if _STATIONS:
         return
-    path = (
-        Path(__file__).resolve().parents[2]
-        / "docs"
-        / "eval"
-        / "station_snapshot_20260626T022228Z.csv"
-    )
+    path = Path(__file__).resolve().parents[1] / "data" / "demo-stations.csv"
     now = datetime.now(UTC).isoformat()
     with path.open("r", encoding="utf-8", newline="") as handle:
         for raw in csv.DictReader(handle):

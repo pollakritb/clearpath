@@ -1,9 +1,14 @@
-import { expect, test } from "@playwright/test";
+import { installCommunityFixture } from "./fixtures/community-reports";
+import { expect, test } from "./fixtures/test";
 
-test("local stack demo shows grouped reports and their individual details", async ({
+test("stack fixture shows grouped reports and their individual details", async ({
   page,
 }) => {
-  await page.goto("/?demo=stack");
+  await installCommunityFixture(page, "stack");
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "ตำแหน่งของฉัน", exact: true })
+    .click();
   const marker = page.locator(".cp-marker--report-stack");
   await expect(marker).toHaveCount(1);
   await expect(marker.locator(".cp-report-stack-marker__face")).toHaveCount(2);
@@ -19,18 +24,20 @@ test("local stack demo shows grouped reports and their individual details", asyn
         ),
     )
     .toBe(true);
-  expect(
-    await marker.locator(".cp-report-stack-marker__face").evaluateAll((faces) =>
-      faces.every((face) => {
-        const image = face.querySelector("img")!;
-        return (
-          getComputedStyle(face).clipPath === "none" &&
-          image.getBoundingClientRect().width <=
-            face.getBoundingClientRect().width
-        );
-      }),
-    ),
-  ).toBe(true);
+  await expect
+    .poll(() =>
+      marker.locator(".cp-report-stack-marker__face").evaluateAll((faces) =>
+        faces.every((face) => {
+          const image = face.querySelector("img")!;
+          return (
+            getComputedStyle(face).clipPath === "none" &&
+            image.getBoundingClientRect().width <=
+              face.getBoundingClientRect().width
+          );
+        }),
+      ),
+    )
+    .toBe(true);
   await expect(page.locator(".cp-marker--individual")).toHaveCount(1);
   await page.screenshot({ path: "test-results/demo-stack-map-mobile.png" });
   await marker.click();
@@ -189,17 +196,21 @@ test("nearby user reports share a marker and preserve each photo/detail", async 
   await page.screenshot({ path: "test-results/report-stack-mobile.png" });
 });
 
-test("local demo report slides between summary and full details", async ({
+test("a community report slides between summary and full details", async ({
   page,
 }) => {
-  await page.goto("/?demo=community");
+  await installCommunityFixture(page, "community");
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "ตำแหน่งของฉัน", exact: true })
+    .click();
   const marker = page.locator(".cp-marker--individual").first();
   await expect(marker).toBeVisible();
   await marker.click();
 
   const card = page.getByRole("region", { name: "รายละเอียดรายงานจากบุคคล" });
   await expect(card).toHaveAttribute("data-snap", "peek");
-  await expect(card.getByText("ข้อมูลตัวอย่าง")).toBeVisible();
+  await expect(card.getByText(/รายงานจากบุคคล/).first()).toBeVisible();
   const compactHeight = await card.evaluate(
     (element) => element.getBoundingClientRect().height,
   );
@@ -226,7 +237,11 @@ test("local demo report slides between summary and full details", async ({
 test("touch swipes snap only to summary or full view and full content scrolls as one panel", async ({
   page,
 }) => {
-  await page.goto("/?demo=community");
+  await installCommunityFixture(page, "community");
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "ตำแหน่งของฉัน", exact: true })
+    .click();
   await page.locator(".cp-marker--individual").first().click();
   const sheet = page.getByRole("region", { name: "รายละเอียดรายงานจากบุคคล" });
   await expect(sheet).toHaveAttribute("data-snap", "peek");
@@ -252,14 +267,38 @@ test("touch swipes snap only to summary or full view and full content scrolls as
   await expect
     .poll(() => sheet.evaluate((el) => el.getBoundingClientRect().height))
     .toBeGreaterThan(page.viewportSize()!.height * 0.8);
-  const title = sheet.getByRole("heading").first();
-  const topBefore = (await title.boundingBox())!.y;
+  const details = sheet.locator("details");
+  if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open)))
+    await details.locator("summary").press("Enter");
+  await expect(details).toHaveAttribute("open", "");
+  // Compare within the scrolling panel so sheet-height animation cannot
+  // masquerade as content scrolling in global viewport coordinates.
+  const titleOffset = await sheet.evaluate((el) => {
+    const scroller = el.firstElementChild as HTMLElement;
+    return (
+      el.querySelector("h1")!.getBoundingClientRect().top -
+      scroller.getBoundingClientRect().top +
+      scroller.scrollTop
+    );
+  });
   await sheet.evaluate((el) => {
     el.firstElementChild!.scrollTop = 120;
   });
   await expect
-    .poll(async () => (await title.boundingBox())!.y)
-    .toBeLessThanOrEqual(topBefore - 60);
+    .poll(() => sheet.evaluate((el) => el.firstElementChild!.scrollTop))
+    .toBeGreaterThan(0);
+  await expect
+    .poll(() =>
+      sheet.evaluate((el) => {
+        const scroller = el.firstElementChild as HTMLElement;
+        return (
+          el.querySelector("h1")!.getBoundingClientRect().top -
+          scroller.getBoundingClientRect().top +
+          scroller.scrollTop
+        );
+      }),
+    )
+    .toBeCloseTo(titleOffset, 0);
   await sheet.evaluate((el) => {
     el.firstElementChild!.scrollTop = 0;
   });
@@ -268,4 +307,32 @@ test("touch swipes snap only to summary or full view and full content scrolls as
   await expect(sheet).toHaveAttribute("data-snap", "peek");
   await expect(sheet).toBeVisible();
   await client.detach();
+});
+
+test("legacy demo queries never inject synthetic public reports", async ({
+  page,
+}) => {
+  await page.route("**/api/community/reports", (route) =>
+    route.fulfill({ json: { reports: [], stacks: [], count: 0 } }),
+  );
+  for (const mode of ["stack", "community"]) {
+    const reportsLoaded = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/community/reports",
+    );
+    await page.goto(`/?demo=${mode}`);
+    await reportsLoaded;
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
+    await expect(
+      page.getByRole("group", { name: /ควบคุมแผนที่/ }),
+    ).toBeVisible();
+    await expect(
+      page.locator(".cp-marker--individual, .cp-marker--report-stack"),
+    ).toHaveCount(0);
+  }
 });

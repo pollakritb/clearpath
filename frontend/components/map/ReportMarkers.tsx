@@ -1,4 +1,5 @@
 "use client";
+
 import { flyMapToBounds } from "@/frontend/lib/map-motion";
 import PriorityMarker from "./PriorityMarker";
 
@@ -9,10 +10,7 @@ import { clusterMapPoints } from "@/frontend/lib/station-clusters";
 
 import { classifyPm25 } from "@/frontend/lib/aqi";
 import { formatCommunityArea } from "@/frontend/lib/community-location";
-import {
-  stackReporterGroups,
-  stackReporterAvatar,
-} from "@/frontend/lib/report-stack-profiles";
+import { stackReporterGroups } from "@/frontend/lib/report-stack-profiles";
 import { publicReporterAvatar } from "@/frontend/lib/reporter-profile";
 import { communitySourceKind, SOURCE_LABELS } from "@/frontend/lib/source-kind";
 import type { CommunityReport, CommunityReportStack } from "@/frontend/types";
@@ -65,7 +63,7 @@ function stackIcon(
   const faces = reporters
     .slice(0, 3)
     .map(({ profile: report }, index) => {
-      const avatar = stackReporterAvatar(report);
+      const avatar = publicReporterAvatar(report);
       const initial = report.show_reporter_profile
         ? (report.display_name?.trim().charAt(0) ?? "")
         : "";

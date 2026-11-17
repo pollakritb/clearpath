@@ -1,50 +1,31 @@
-# ClearPath operations runbooks
+# คู่มือปฏิบัติการปัจจุบัน
 
-Current forecast source of truth: [stored CAMS and retired boundaries](forecast-reset.md).
-Historical model/promotion/provider plans below are retained as design records; their retired commands are not current operational steps.
+ดู [สถาปัตยกรรม](../architecture.md), [คู่มือนำเสนอ](../presentation.md) และ [archive](../cleanup.md#archive-และการคืนงาน) สำหรับเอกสารย้อนหลัง
 
-- [Database readiness and release gates](database-readiness.md) — local grid reader,
-  pagination, Free-plan safety, read-only production evidence and pending recovery gates.
-- [Current database inventory](database-inventory.md) — catalog-based application tables,
-  columns, constraints and retention classifications.
+- [Account closure](account-closure.md)
+- [Backup and restore rehearsal](backup-restore.md)
+- [Stored CAMS forecast map grid](cams-forecast-grid.md)
+- [Community reports on the historical map](community-map-history.md)
+- [Community Trust v1: policy, operations and rollout](community-trust-v1.md)
+- [Contribution v3 release and operation](contribution-v3.md)
+- [Coordinate forecasts on Today](coordinate-forecast.md)
+- [Daily nearest-pin LINE alerts](daily-air-alerts.md)
+- [Database readiness — local implementation and release gates](database-readiness.md)
+- [Scheduled external feeds](external-feeds.md)
+- [Forecast provider operations](forecast-providers.md)
+- [Current forecast and retired pipeline](forecast-reset.md)
+- [Health communication source register](health-communication-source-register.md)
+- [Mobile helper areas and first-request introduction](helper-area-onboarding.md)
+- [Incident response](incident-response.md)
+- [LINE nearest-pin alerts](line-nearest-pin.md)
+- [LINE automatic-notification policy](line-notification-policy.md)
+- [Measurement requests](measurement-requests.md)
+- [Application deployment](production-deployment.md)
+- [Production smoke and data freshness](production-smoke.md)
+- [Readable database identifiers](readable-identifiers.md)
+- [Satellite hotspot operations](satellite-hotspot-operations.md)
+- [Security, privacy and legal public-launch gate](security-privacy-legal.md)
+- [Vendor and data-provider inventory](vendor-dpa-inventory.md)
+- [Vercel LINE daemon trial](vercel-line-daemon.md)
 
-- [Replacement database](fresh-project-2026-11-01.md) — ClearPath_Final, numeric keys, 72-hour seed, fresh accounts and bounded retention.
-
-- [Production deployment](production-deployment.md) — Supabase, secrets, Vercel,
-  cron and acceptance checks.
-- [Release evidence and production baseline](release-evidence.md) — stable
-  project identity, non-secret feature inventory and repeatable evidence record.
-- [Production backlog and dependency map](production-backlog.md) — canonical
-  task ordering, completion authority and human-owned blockers.
-- [Identifier cutover recovery](identifier-cutover-recovery-2026-11-01.md) — WAL disk exhaustion, verified backup evidence and required recovery checks.
-- [Readable identifiers](readable-identifiers.md) — expansion rehearsal, readable review views and remaining PK/API cutover work.
-- [Legacy table retirement](legacy-table-retirement-2026-10-30.md) — removal of
-  twelve empty legacy tables, backup evidence and production verification.
-- [Backup and restore](backup-restore.md) — mandatory rehearsal before the
-  destructive foundation migration.
-- [Incident response](incident-response.md) — alerts, triage, feature kill
-  switches and rollback.
-- [Pilot and model rollout](pilot-and-model-rollout.md) — field validation,
-  auto-review and ML gates.
-- [Forecast ownership and decision log](forecast-ownership-decisions.md) —
-  accountable owners, release evidence and approval record templates.
-- [Forecast field validation protocol](forecast-field-validation.md) —
-  co-location, seasonal sampling, privacy and community inclusion gates.
-- [Forecast provider operations](forecast-providers.md) — source selection,
-  freshness, attribution, free-tier scheduling and the GISTDA legal gate.
-- [External evidence template](forecast-external-evidence.example.json) —
-  non-secret machine-checkable inputs for every FCAST task that requires an
-  owner, live environment, elapsed observation window or human approval.
-- [Security, privacy and legal launch gate](security-privacy-legal.md) — work
-  that requires accountable human approval.
-- [Vendor/DPA inventory](vendor-dpa-inventory.md) — source-derived processor,
-  provider, data-flow and legal-review register.
-- [Health source register](health-communication-source-register.md) — candidate
-  official Thai sources and exact-copy approval procedure.
-
-- [Stored CAMS forecast map grid](cams-forecast-grid.md): independent grid ingestion, local preview, API and rollout.
-
-The executable checks are intentionally read-only unless their command includes
-an explicit `--apply` flag.
-
-- [Reporter Trust and completion verification](reporter-trust-and-completion.md): local reporter-owned Trust, independent reviews, account privacy limitations and staged acceptance gates.
+งาน database-completion ที่ยังไม่ commit อยู่นอกขอบเขต cleanup

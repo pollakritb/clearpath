@@ -71,7 +71,7 @@ def locations(user_id: str) -> list[dict]:
             lambda: (
                 db.get_client()
                 .table("measurement_helper_locations")
-                .select("slot,name,emoji,address,lat,lon,enabled")
+                .select("slot,name,address,lat,lon,enabled")
                 .eq("user_id", user_id)
                 .order("slot")
                 .execute()

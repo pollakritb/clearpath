@@ -66,9 +66,15 @@ export default function ReportEvidenceSummary({
         <EvidenceMetric label="เครื่องวัด">
           {report.device_model ?? "ไม่ระบุ"}
         </EvidenceMetric>
-        <EvidenceMetric label="ตำแหน่งที่วัดสำหรับ Admin">
+        <EvidenceMetric
+          label={
+            report.location_precision_m > 0
+              ? "ตำแหน่งโดยประมาณ"
+              : "ตำแหน่งที่วัดสำหรับ Admin"
+          }
+        >
           {report.lat.toFixed(5)}, {report.lon.toFixed(5)} · ±
-          {Math.round(report.gps_accuracy_m ?? 0)} ม.
+          {Math.round(report.gps_accuracy_m ?? report.location_precision_m)} ม.
         </EvidenceMetric>
       </div>
 

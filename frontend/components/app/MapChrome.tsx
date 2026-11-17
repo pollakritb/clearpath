@@ -20,7 +20,6 @@ interface MapChromeProps {
   individualReportCount: number;
   fireCount: number;
   fireStatus: FirmsLoadStatus;
-  demoMode: boolean;
   stations: Station[];
   showStations: boolean;
   showIndividualReports: boolean;
@@ -44,7 +43,6 @@ export default function MapChrome({
   individualReportCount,
   fireCount,
   fireStatus,
-  demoMode,
   stations,
   showStations,
   showIndividualReports,
@@ -81,7 +79,6 @@ export default function MapChrome({
           </span>
           <span className="cp-map-search-trigger__copy">
             <span>ค้นหาสถานที่หรือสถานี</span>
-            {demoMode && <small>ข้อมูลจำลอง</small>}
           </span>
         </button>
         <AccountMenu />

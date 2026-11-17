@@ -16,9 +16,7 @@ function crc32(buffer: Buffer): number {
 }
 
 function uniquePngEvidence(value: string): Buffer {
-  const image = readFileSync(
-    resolve("docs/assets/ui-archive/clearpath-mobile-final.png"),
-  );
+  const image = readFileSync(resolve("e2e/fixtures/report-evidence.png"));
   const type = Buffer.from("tEXt", "ascii");
   const data = Buffer.from(`clearpath-e2e\0${value}`, "utf8");
   const length = Buffer.alloc(4);

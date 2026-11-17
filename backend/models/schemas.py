@@ -29,8 +29,6 @@ from .community import (
     CommunityReportsResponse,
     CommunityReportStack,
     GapFillBasis,
-    LeaderboardEntry,
-    LeaderboardResponse,
     PhotoMetadata,
     PlaceReportSelection,
     ReactionKind,
@@ -54,7 +52,7 @@ from .community_trust import (
     CommunityTrustReviewResult,
     CommunityTrustReviews,
 )
-from .environment import FirePoint, FirmsResponse, Weather
+from .environment import FirePoint, FirmsResponse
 from .evidence import (
     ContributionMission,
     ContributionMissions,
@@ -163,8 +161,6 @@ __all__ = [
     "HistoryCheckSummary",
     "HistoryPoint",
     "HistoryResponse",
-    "LeaderboardEntry",
-    "LeaderboardResponse",
     "LineLinkCodeResponse",
     "LineNotificationStatus",
     "LocationLabelResponse",
@@ -206,7 +202,6 @@ __all__ = [
     "UserNotification",
     "UserReputation",
     "VerificationMethod",
-    "Weather",
     "XPAdminEvent",
     "XPAdminOverview",
     "XPEvent",

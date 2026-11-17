@@ -189,7 +189,6 @@ test("denied GPS keeps search and Back usable and the main map has no saved-area
           {
             slot: 1,
             name: "บ้านที่บันทึก",
-            emoji: "🏠",
             lat: 13.82,
             lon: 100.06,
             enabled: true,
@@ -197,7 +196,6 @@ test("denied GPS keeps search and Back usable and the main map has no saved-area
           {
             slot: 2,
             name: "ที่ทำงาน",
-            emoji: "🌳",
             lat: 13.9,
             lon: 100.2,
             enabled: true,

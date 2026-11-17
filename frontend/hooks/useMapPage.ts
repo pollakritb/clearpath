@@ -19,7 +19,6 @@ import { useCurrentLocation } from "@/frontend/hooks/useCurrentLocation";
 import { FIRMS_REFRESH_MS, useFirms } from "@/frontend/hooks/useFirms";
 import { useMapHistory } from "@/frontend/hooks/useMapHistory";
 import { usePm25 } from "@/frontend/hooks/usePm25";
-import { DEMO_COMMUNITY_CENTER } from "@/frontend/lib/demo-community";
 import { haversineKm } from "@/frontend/lib/distance";
 import { useOwnedReportIds } from "@/frontend/hooks/useOwnedReportIds";
 import { nearestHeatmapPoint } from "@/frontend/lib/nearest-surface";
@@ -268,8 +267,7 @@ export function useMapPage({
     (historyEnabled ? mapHistory.stacks : community.stacks).find(
       (stack) => stack.id === selectedStackId,
     ) ?? null;
-  const effectiveFocusPoint =
-    focusPoint ?? (community.demoMode ? DEMO_COMMUNITY_CENTER : null);
+  const effectiveFocusPoint = focusPoint;
   const visibleStations = historyEnabled
     ? mapHistory.stations.filter((station) => station.in_service_area)
     : serviceAreaStations;

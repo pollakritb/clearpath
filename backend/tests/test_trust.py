@@ -1,8 +1,8 @@
 from datetime import UTC, datetime, timedelta
 
+from backend.algorithms.area import is_nakhon_pathom
 from backend.algorithms.trust import (
     calculate_trust_score,
-    is_nakhon_pathom_area,
     is_report_fresh,
     is_thailand_area,
     nearest_official_station,
@@ -50,8 +50,8 @@ def test_unverified_upload_scores_lower():
 
 
 def test_nakhon_pathom_bounds_and_freshness():
-    assert is_nakhon_pathom_area(13.8199, 100.0622)
-    assert not is_nakhon_pathom_area(13.7563, 100.5018)
+    assert is_nakhon_pathom(13.8199, 100.0622)
+    assert not is_nakhon_pathom(13.7563, 100.5018)
     assert is_report_fresh(datetime.now(UTC).isoformat())
 
 

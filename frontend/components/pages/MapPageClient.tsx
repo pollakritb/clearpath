@@ -329,7 +329,6 @@ export default function MapPageClient(options: MapPageOptions) {
           }
           fireCount={historyEnabled ? 0 : firms.fires.length}
           fireStatus={firms.status}
-          demoMode={community.demoMode}
           stations={historyEnabled ? visibleStations : serviceAreaStations}
           showStations={showStations}
           showIndividualReports={showIndividualReports}

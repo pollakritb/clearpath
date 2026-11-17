@@ -34,3 +34,7 @@ They do not change service coverage, GPS, public-coordinate obfuscation,
 validation, IDW, notification areas or official administrative determinations.
 A point outside these polygons retains a coordinate label. The browser does not
 bundle this dataset; Vercel includes it through the existing `backend/**` rule.
+
+## Local station fixture
+
+`demo-stations.csv` is the unchanged public-station snapshot formerly stored as `docs/eval/station_snapshot_20260626T022228Z.csv`. The local backend demo uses it as a deterministic fixture. It is not current production observations or a field-validation result. Historical experiments and their original snapshots remain in the external archive.

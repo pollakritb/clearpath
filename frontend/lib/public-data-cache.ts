@@ -6,7 +6,6 @@ const versions = new Map<string, number>();
 export const PUBLIC_DATA_KEYS = {
   pm25: "pm25-current",
   reports: "community-reports",
-  mapPoints: "community-map-points",
   announcements: "announcements",
 } as const;
 

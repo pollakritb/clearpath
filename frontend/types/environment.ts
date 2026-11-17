@@ -1,13 +1,3 @@
-export interface Weather {
-  temp: number;
-  humidity: number;
-  wind_speed: number;
-  wind_deg: number;
-  description: string;
-  icon: string | null;
-  source: "open_meteo";
-}
-
 export interface FirePoint {
   id: string;
   lat: number;

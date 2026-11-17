@@ -31,7 +31,6 @@ def _typescript_fields(path: str, interface_name: str) -> set[str]:
         ("Station", "frontend/types/air-quality.ts"),
         ("StationsResponse", "frontend/types/air-quality.ts"),
         ("ReadinessResponse", "frontend/types/meta.ts"),
-        ("Weather", "frontend/types/environment.ts"),
         ("LocationLabelResponse", "frontend/types/locations.ts"),
         ("FirmsResponse", "frontend/types/environment.ts"),
         ("CommunityReport", "frontend/types/community.ts"),
@@ -59,13 +58,3 @@ def test_typescript_contract_fields_mirror_openapi(schema: str, path: str):
         "missing_in_typescript": sorted(openapi_fields - typescript_fields),
         "extra_in_typescript": sorted(typescript_fields - openapi_fields),
     }
-
-
-def test_rank_dialog_mirrors_server_xp_policy():
-    from backend.algorithms.community_xp import RANKS
-
-    source = (ROOT / "frontend/components/community/RankDetails.tsx").read_text()
-    levels = re.search(r"const LEVELS = \[(.*?)\] as const", source, re.DOTALL)
-    assert levels
-    frontend = re.findall(r'\["([^"\n]+)", "([^"\n]+)", (\d+)\]', levels[1])
-    assert [(code, label, int(xp)) for code, label, xp in frontend] == list(RANKS)
