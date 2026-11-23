@@ -79,7 +79,7 @@ describe("place air assessment", () => {
     expect(result.nearestStation?.distanceKm).toBeGreaterThan(PLACE_RADIUS_KM);
   });
 
-  it("weights nearby stations by inverse-square haversine distance", () => {
+  it("weights nearby stations by inverse haversine distance", () => {
     const second = { ...baseStation, id: "official-2", lon: 100.12, pm25: 40 };
     const result = assessPlaceAir(
       13.8,
@@ -89,9 +89,9 @@ describe("place air assessment", () => {
       new Date("2026-10-05T10:10:00Z"),
     );
     expect(result.method).toBe("idw");
-    expect(result.value).toBeCloseTo(22, 3);
-    expect(result.contributors[0].weight).toBeCloseTo(0.9, 4);
-    expect(result.contributors[1].weight).toBeCloseTo(0.1, 4);
+    expect(result.value).toBeCloseTo(25, 3);
+    expect(result.contributors[0].weight).toBeCloseTo(0.75, 4);
+    expect(result.contributors[1].weight).toBeCloseTo(0.25, 4);
   });
 
   it("uses the exact station value without division by zero", () => {
@@ -152,13 +152,13 @@ it("combines a station and fresh user report with identical distance-only weight
     [{ ...freshReport, lon: 100.12, pm25: 40 }],
     reference,
   );
-  expect(result.value).toBeCloseTo(22, 3);
+  expect(result.value).toBeCloseTo(25, 3);
   expect(result.contributors.map((point) => point.source)).toEqual([
     "station",
     "report",
   ]);
-  expect(result.contributors[0].weight).toBeCloseTo(0.9, 4);
-  expect(result.contributors[1].weight).toBeCloseTo(0.1, 4);
+  expect(result.contributors[0].weight).toBeCloseTo(0.75, 4);
+  expect(result.contributors[1].weight).toBeCloseTo(0.25, 4);
   expect(
     result.contributors.reduce((sum, point) => sum + point.weight, 0),
   ).toBeCloseTo(1);
@@ -171,7 +171,7 @@ it("uses fresh community reports without a station or a Trust/stability multipli
     [freshReport, { ...freshReport, id: "other", lon: 100.12, pm25: 25 }],
     reference,
   );
-  expect(result.value).toBeCloseTo(43, 3);
+  expect(result.value).toBeCloseTo(40, 3);
   expect(result.method).toBe("idw");
   expect(result.contributors.every((point) => point.source === "report")).toBe(
     true,
@@ -308,4 +308,25 @@ it("does not join different people sharing a display name", () => {
   );
   expect(result.value).toBe(30);
   expect(result.contributors).toHaveLength(2);
+});
+
+it("gives 25.6 for the 100 m, 500 m and 2 km example using haversine distance", () => {
+  const origin = { lat: 13.8, lon: 100.1 };
+  const points = [
+    { distanceKm: 0.1, pm25: 20 },
+    { distanceKm: 0.5, pm25: 40 },
+    { distanceKm: 1.999999, pm25: 80 },
+  ].map((point, index) => ({
+    ...baseStation,
+    id: `example-${index}`,
+    lat: origin.lat + ((point.distanceKm / 6371.0088) * 180) / Math.PI,
+    lon: origin.lon,
+    pm25: point.pm25,
+  }));
+  const result = assessPlaceAir(origin.lat, origin.lon, points, [], reference);
+  expect(result.value).toBeCloseTo(25.6, 5);
+  expect(result.contributors).toHaveLength(3);
+  result.contributors.forEach((point, index) =>
+    expect(point.weight).toBeCloseTo([0.8, 0.16, 0.04][index], 5),
+  );
 });

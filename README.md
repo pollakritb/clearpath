@@ -37,7 +37,7 @@
 - Air4Thai ถูก sync ตามงานอัตโนมัติ; frontend อ่านข้อมูลผ่าน `/api/*` จาก Supabase ไม่ดึง Air4Thai โดยตรง
 - ข้อมูลทางการอายุ ≤1 ชั่วโมง ภายใน 5 กม. เป็นข้อมูลหลัก รายงานชุมชนเป็น supplementary
 - CAMS ใช้ grid ที่จัดเก็บและเผยแพร่แบบ atomic; ข้อมูลขาดหรือเก่าต้องแสดงสถานะตามจริง ไม่สร้างค่าพยากรณ์เอง
-- Place IDW ใช้ระยะ 2 กม., Air4Thai สด ≤1 ชั่วโมง และรายงาน approved/fresh ≤3 ชั่วโมง ใช้ public coordinates และ inverse-square distance weights
+- Place IDW ใช้ระยะ 2 กม., Air4Thai สด ≤1 ชั่วโมง และรายงาน approved/fresh ≤3 ชั่วโมง ใช้ public coordinates และ inverse-distance weights (1/d)
 - Backend gap-fill แยกจาก Place IDW ต้องผ่าน freshness, Trust ≥60, GPS accuracy ≤200 ม., ไม่ติดแหล่งกำเนิด/ภาพซ้ำ และ corroboration จากอย่างน้อย 2 ผู้ใช้
 - OCR อ่านภาพหลักภาพเดียว อ่านเลข PM2.5 ได้ให้ approved ด้วยค่า OCR; อ่านไม่ได้ให้ rejected พร้อมถ่ายใหม่ ภาพ burst และ flags อื่นเป็น audit metadata
 - Exact duplicate และ GPS accuracy >200 ม. ถูกกันก่อน OCR; `pending` เป็นสถานะชั่วคราวระหว่างบันทึก ไม่รอ Admin ตัดสิน

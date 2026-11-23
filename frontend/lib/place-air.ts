@@ -138,9 +138,9 @@ export function assessPlaceAir(
   const exact = usable.find((item) => item.distanceKm < 1e-9);
   const selected = exact ? [exact] : usable;
   const nearestDistance = selected[0]?.distanceKm ?? 0;
-  // Same inverse-square formula; common scaling cancels during normalization.
+  // Same inverse-distance (1/d) formula; common scaling cancels during normalization.
   const weights = selected.map((item) =>
-    exact ? 1 : (nearestDistance / item.distanceKm) ** 2,
+    exact ? 1 : nearestDistance / item.distanceKm,
   );
   const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
   const contributors = selected.map((item, index) => ({
