@@ -14,7 +14,7 @@ flowchart LR
   Cron[Server cron / worker] --> Service
 ```
 
-`api/index.py` เป็น Vercel Python entrypoint และ `backend/main.py` ประกอบ routers ใต้ `/api` Frontend ไม่ถือ server keys และไม่เรียก database ด้วยสิทธิ์ server
+Production VPS ใช้ Caddy ส่ง `/api/*` ไปยัง `backend/main.py` ผ่าน Uvicorn และส่งหน้าเว็บไปยัง Next.js standalone ดู [VPS deployment](runbooks/vps-deployment.md) ส่วน `api/index.py` ยังเป็น Vercel Python entrypoint สำหรับ Present/rollback โดย `backend/main.py` ประกอบ routers ใต้ `/api` Frontend ไม่ถือ server keys และไม่เรียก database ด้วยสิทธิ์ server
 
 ## การไหลของข้อมูล
 

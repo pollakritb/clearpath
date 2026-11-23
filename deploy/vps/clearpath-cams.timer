@@ -1,0 +1,11 @@
+[Unit]
+Description=Collect ClearPath CAMS every six hours (UTC)
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:30:00 UTC
+AccuracySec=1min
+Persistent=true
+Unit=clearpath-cams.service
+
+[Install]
+WantedBy=timers.target

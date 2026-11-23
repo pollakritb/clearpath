@@ -1,0 +1,16 @@
+[Unit]
+Description=ClearPath CAMS collector
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+EnvironmentFile=/home/deploy/clearpath/shared/scheduler.env
+ExecStart=/usr/bin/python3 /home/deploy/clearpath/current/scripts/vps_cams_collect.py
+TimeoutStartSec=25min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only

@@ -37,6 +37,10 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // VPS images contain only the traced production runtime; Vercel keeps its default.
+  ...(process.env.CLEARPATH_STANDALONE === "true"
+    ? { output: "standalone" as const }
+    : {}),
   // Keep the development badge from covering mobile navigation during local QA.
   devIndicators: false,
   // Keep `next build`/Playwright output from invalidating a running dev server.

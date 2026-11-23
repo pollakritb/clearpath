@@ -27,7 +27,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
     "leaflet": "^1.9.4",
-    "next": "16.4.3",
+    "next": "16.4.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
@@ -46,7 +46,7 @@
     "@vitest/coverage-v8": "^5.0.3",
     "cross-env": "^10.1.0",
     "eslint": "^9",
-    "eslint-config-next": "16.4.3",
+    "eslint-config-next": "16.4.6",
     "jsdom": "^29.1.1",
     "prettier": "^3.9.5",
     "typescript": "^5",

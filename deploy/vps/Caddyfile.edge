@@ -1,0 +1,5 @@
+# Append to the existing edge Caddyfile after the gateway passes local smoke.
+clearpath.plotpop.tech {
+	encode gzip zstd
+	reverse_proxy clearpath-gateway:8080
+}

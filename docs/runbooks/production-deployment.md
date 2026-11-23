@@ -1,5 +1,8 @@
 # Application deployment
 
+VPS production uses [VPS deployment](vps-deployment.md). The Vercel procedure
+below remains available for the separate presentation deployment or a rollback.
+
 Deploy frontend และ FastAPI จาก Git commit เดียวบน Vercel โดย `api/index.py` เป็น backend entrypoint ตรวจ project/branch ที่ใช้งานจริงก่อน deploy ไม่ upload working tree ที่มีงานอื่นค้าง
 
 ## ก่อนส่งขึ้น

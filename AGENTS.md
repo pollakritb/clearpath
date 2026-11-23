@@ -13,7 +13,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 `docs/architecture.md` for the current design. ระบบนำทาง/เปรียบเทียบเส้นทางถูกถอดออกแล้ว.
 
-## Layout (clean FE/BE split, single Vercel deploy)
+## Layout (clean FE/BE split)
+
+- Production VPS: Next.js standalone + FastAPI behind Caddy; see `docs/runbooks/vps-deployment.md`. Vercel entry remains for presentation/rollback.
 
 - **FRONTEND** — `app/` (routing only, thin) + `frontend/` (UI: `components/ hooks/ lib/ types/`). FE knows only `/api/*`.
 - **BACKEND** — `api/index.py` (Vercel entry) → `backend/` FastAPI app: `routers/` (HTTP boundary), `services/` (one file = one external source), `algorithms/` (pure, no I/O, unit-tested), `models/` (pydantic), `core/` (config, aqi, errors).

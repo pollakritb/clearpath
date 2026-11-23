@@ -1,6 +1,6 @@
 # ClearPath
 
-ระบบเฝ้าระวัง PM2.5 และข้อมูลชุมชน ใช้ Next.js/React เป็น frontend, FastAPI เป็น backend และ Supabase เป็นแหล่งข้อมูลหลัก Deploy แอปเดียวบน Vercel ทุกหน้าจอใช้ mobile frame กว้างไม่เกิน 430px
+ระบบเฝ้าระวัง PM2.5 และข้อมูลชุมชน ใช้ Next.js/React เป็น frontend, FastAPI เป็น backend และ Supabase เป็นแหล่งข้อมูลหลัก Production รันบน VPS ผ่าน Docker Compose/Caddy ที่ `https://clearpath.plotpop.tech` ทุกหน้าจอใช้ mobile frame กว้างไม่เกิน 430px
 
 ## เริ่มอ่านโค้ด
 
@@ -98,7 +98,7 @@ Tests ที่เกี่ยวข้องกับฐานข้อมู�
 - `frontend/types/index.ts` mirror `backend/models/schemas.py`; UI-only types อยู่ใน `frontend/types/ui.ts`
 - ใช้รหัส entity เป็น string; ไม่แปลง BIGINT database IDs เป็น JavaScript number
 - `/api/health` ตรวจแอป และ `/api/ready` แยก release readiness ออกจากความสดของข้อมูลสถานี
-- Deploy ผ่าน Git source บน Vercel; การ deploy แอปไม่ใช่การ apply migrations
+- Production VPS: ดู [ขั้นตอน deploy](docs/runbooks/vps-deployment.md); Vercel ยังใช้แยกสำหรับ Present/rollback การ deploy แอปไม่ใช่การ apply migrations
 - Production ใช้ IDW และ stored provider grids; ชุดทดลอง offline ถูกย้ายออกจาก source tree
 
 ดู [คู่มือปฏิบัติการ](docs/runbooks/README.md), [ขอบเขต cleanup และ archive](docs/cleanup.md) และ [project conventions](AGENTS.md)
