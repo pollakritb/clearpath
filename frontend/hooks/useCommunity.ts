@@ -162,32 +162,34 @@ export function useAnnouncements() {
         setFeed(response);
       }
     } catch (cause) {
-      setError(apiErrorMessage(cause, "โหลดข่าวสารไม่สำเร็จ"));
+      if (version === requestVersion.current)
+        setError(apiErrorMessage(cause, "โหลดข่าวสารไม่สำเร็จ"));
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     let cancelled = false;
+    const version = requestVersion.current;
     void loadPublicData(
       PUBLIC_DATA_KEYS.announcements,
       ANNOUNCEMENT_CACHE_MS,
       () => api.announcements(),
     )
       .then((response) => {
-        if (!cancelled) {
+        if (!cancelled && version === requestVersion.current) {
           setAnnouncements(response.announcements);
           setFeed(response);
         }
       })
       .catch((cause) => {
-        if (!cancelled) {
+        if (!cancelled && version === requestVersion.current) {
           setError(apiErrorMessage(cause, "โหลดข่าวสารไม่สำเร็จ"));
         }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && version === requestVersion.current) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -214,7 +216,8 @@ export function useAnnouncements() {
       ]);
       setFeed(response);
     } catch (cause) {
-      setError(apiErrorMessage(cause, "โหลดข่าวเพิ่มเติมไม่สำเร็จ"));
+      if (version === requestVersion.current)
+        setError(apiErrorMessage(cause, "โหลดข่าวเพิ่มเติมไม่สำเร็จ"));
     } finally {
       moreInFlight.current = false;
       setLoadingMore(false);

@@ -114,7 +114,10 @@ it("cancels stale requests when the query is cleared", async () => {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(450);
   });
+  const signal = mocks.search.mock.calls.at(-1)![1] as AbortSignal;
+  expect(signal.aborted).toBe(false);
   fireEvent.click(screen.getByRole("button", { name: "ล้างคำค้นหา" }));
+  expect(signal.aborted).toBe(true);
   await act(async () => {
     resolve({ locations: [place], coverage: "limited" });
   });

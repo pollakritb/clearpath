@@ -67,4 +67,29 @@ describe("public data cache", () => {
     await old;
     expect(cachedPublicValue("reports")).toEqual({ count: 2 });
   });
+  it("does not repopulate cache when a read finishes after cache reset", async () => {
+    let resolve!: (value: number) => void;
+    const old = loadPublicData(
+      "old",
+      60_000,
+      () =>
+        new Promise<number>((done) => {
+          resolve = done;
+        }),
+    );
+    clearPublicDataCache();
+    resolve(1);
+    await old;
+    expect(cachedPublicValue("old")).toBeNull();
+  });
+
+  it("bounds retained responses during a long browsing session", async () => {
+    for (let index = 0; index < 100; index++)
+      await loadPublicData(`forecast:${index}`, 60_000, async () => index);
+    expect(cachedPublicValue("forecast:0")).toBeNull();
+    expect(cachedPublicValue("forecast:99")).toBe(99);
+    const fetcher = vi.fn(async () => 0);
+    await loadPublicData("forecast:0", 60_000, fetcher);
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
 });

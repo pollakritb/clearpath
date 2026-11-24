@@ -48,6 +48,7 @@ export default function MapSearchPanel({
   const [searchFailed, setSearchFailed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchSequence = useRef(0);
+  const activeSearch = useRef<AbortController | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const normalizedQuery = query.trim().toLocaleLowerCase("th");
   const canSearch = normalizedQuery.length >= MINIMUM_QUERY_LENGTH;
@@ -68,11 +69,14 @@ export default function MapSearchPanel({
 
   const runSearch = useCallback(async (submitted: string) => {
     const sequence = ++searchSequence.current;
+    activeSearch.current?.abort();
+    const controller = new AbortController();
+    activeSearch.current = controller;
     setSearchedQuery(submitted);
     setSearchFailed(false);
     setLoading(true);
     try {
-      const result = await api.searchLocations(submitted);
+      const result = await api.searchLocations(submitted, controller.signal);
       if (sequence !== searchSequence.current) return;
       setLocations(result.locations);
       setCoverage(result.coverage);
@@ -96,6 +100,7 @@ export default function MapSearchPanel({
       if (searchTimer.current) clearTimeout(searchTimer.current);
       searchTimer.current = null;
       searchSequence.current += 1;
+      activeSearch.current?.abort();
     };
   }, [query, runSearch]);
 
@@ -145,6 +150,7 @@ export default function MapSearchPanel({
 
   function updateQuery(value: string) {
     searchSequence.current += 1;
+    activeSearch.current?.abort();
     setQuery(value);
     setSearchedQuery("");
     setLocations([]);

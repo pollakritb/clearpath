@@ -1,7 +1,7 @@
 /** Short-lived, tab-local cache for public API responses across page navigation. */
 const entries = new Map<string, { value: unknown; expiresAt: number }>();
 const pending = new Map<string, Promise<unknown>>();
-const versions = new Map<string, number>();
+const MAX_ENTRIES = 80;
 
 export const PUBLIC_DATA_KEYS = {
   pm25: "pm25-current",
@@ -32,11 +32,17 @@ export function loadPublicData<T>(
   const existing = pending.get(key);
   if (existing) return existing as Promise<T>;
 
-  const version = versions.get(key) ?? 0;
   const request = fetcher()
     .then((value) => {
-      if ((versions.get(key) ?? 0) === version) {
-        entries.set(key, { value, expiresAt: Date.now() + ttlMs });
+      if (pending.get(key) === request) {
+        const now = Date.now();
+        for (const [id, entry] of entries) {
+          if (entry.expiresAt <= now) entries.delete(id);
+        }
+        entries.delete(key);
+        entries.set(key, { value, expiresAt: now + ttlMs });
+        while (entries.size > MAX_ENTRIES)
+          entries.delete(entries.keys().next().value!);
       }
       return value;
     })
@@ -51,7 +57,6 @@ export function invalidatePublicData(...keys: string[]) {
   for (const key of keys) {
     entries.delete(key);
     pending.delete(key);
-    versions.set(key, (versions.get(key) ?? 0) + 1);
   }
 }
 
@@ -59,5 +64,4 @@ export function invalidatePublicData(...keys: string[]) {
 export function clearPublicDataCache() {
   entries.clear();
   pending.clear();
-  versions.clear();
 }

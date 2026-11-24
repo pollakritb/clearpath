@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
 import {
@@ -13,6 +13,13 @@ export type FirmsLoadStatus = FirmsStatus | "idle" | "failed";
 export const FIRMS_REFRESH_MS = 30 * 60_000;
 
 export function useFirms() {
+  const sequence = useRef(0);
+  useEffect(
+    () => () => {
+      sequence.current++;
+    },
+    [],
+  );
   const [snapshot, setSnapshot] = useState<FirmsResponse | null>(() =>
     cachedPublicValue("firms:1"),
   );
@@ -21,6 +28,7 @@ export function useFirms() {
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async (days = 1, force = false) => {
+    const serial = ++sequence.current;
     const key = `firms:${days}`;
     const cached = force ? null : cachedPublicValue<FirmsResponse>(key);
     if (cached) {
@@ -33,20 +41,21 @@ export function useFirms() {
     setLoading(true);
     setError(null);
     try {
-      setSnapshot(
-        await loadPublicData(
-          key,
-          FIRMS_REFRESH_MS,
-          () => api.firms(days),
-          force,
-        ),
+      const response = await loadPublicData(
+        key,
+        FIRMS_REFRESH_MS,
+        () => api.firms(days),
+        force,
       );
+      if (serial !== sequence.current) return;
+      setSnapshot(response);
       setFailed(false);
     } catch (error) {
+      if (serial !== sequence.current) return;
       setFailed(true);
       setError(apiErrorMessage(error, "โหลดสัญญาณดาวเทียมไม่สำเร็จ"));
     } finally {
-      setLoading(false);
+      if (serial === sequence.current) setLoading(false);
     }
   }, []);
 

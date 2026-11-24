@@ -262,3 +262,34 @@ def test_http_history_includes_currently_expired_reports_at_their_valid_past_tim
         "/api/history/map", params={"at": (target + timedelta(hours=3)).isoformat()}
     ).json()
     assert expired["reports"] == []
+
+
+def test_station_and_reading_loads_overlap_without_changing_history(monkeypatch):
+    import asyncio
+    from threading import Event
+
+    from backend.services import map_history
+
+    started = Event()
+    target = datetime(2026, 9, 19, 10, tzinfo=UTC)
+
+    async def stations():
+        # A serial implementation cannot start readings until this read returns.
+        assert await asyncio.to_thread(started.wait, 1)
+        return [{"id": "a", "lat": 13.75, "lon": 100.5}], "supabase"
+
+    def readings(at, max_age):
+        assert at == target and max_age == 90
+        started.set()
+        return [
+            {"station_id": "a", "pm25": 18.5, "recorded_at": "2026-09-19T09:30:00Z"}
+        ]
+
+    monkeypatch.setattr(map_history, "get_current_stations", stations)
+    monkeypatch.setattr(
+        map_history.supabase_client, "get_map_history_readings", readings
+    )
+    result = asyncio.run(map_history.get_map_history(target))
+    assert len(result) == 1
+    assert result[0]["pm25"] == 18.5
+    assert result[0]["data_status"] == "fresh"

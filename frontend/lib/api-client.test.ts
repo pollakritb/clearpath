@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAccessToken } from "./supabase";
 import { accountDataGeneration } from "./account-data-cache";
@@ -25,6 +25,7 @@ function jsonResponse(body: unknown = { ok: true }, status = 200) {
 }
 
 describe("api client", () => {
+  afterEach(() => vi.useRealTimers());
   beforeEach(() => {
     vi.restoreAllMocks();
     clearPublicDataCache();
@@ -34,6 +35,88 @@ describe("api client", () => {
       vi.fn(async () => jsonResponse()),
     );
     mockedGetAccessToken.mockResolvedValue("access-token");
+  });
+
+  it("bounds a stalled read and permits a clean retry without replaying it", async () => {
+    vi.useFakeTimers();
+    let signal!: AbortSignal;
+    vi.mocked(fetch).mockImplementationOnce(async (_url, init) => {
+      signal = init!.signal!;
+      return new Promise<Response>(() => {});
+    });
+    const result = expect(api.pm25Current()).rejects.toMatchObject({
+      status: 408,
+    });
+    await vi.advanceTimersByTimeAsync(45_000);
+    await result;
+    expect(signal.aborted).toBe(true);
+    expect(fetch).toHaveBeenCalledOnce();
+    await expect(api.pm25Current()).resolves.toEqual({ ok: true });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("also times out a stalled response body after headers have arrived", async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => new Promise(() => {}),
+    } as Response);
+    const result = expect(api.pm25Current()).rejects.toMatchObject({
+      status: 408,
+    });
+    await vi.advanceTimersByTimeAsync(45_000);
+    await result;
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("preserves explicit search cancellation and clears the read timer", async () => {
+    vi.useFakeTimers();
+    let signal!: AbortSignal;
+    vi.mocked(fetch).mockImplementationOnce(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          signal = init!.signal!;
+          signal.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError")),
+          );
+        }),
+    );
+    const controller = new AbortController();
+    const result = expect(
+      api.searchLocations("สวน", controller.signal),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    controller.abort();
+    await result;
+    expect(signal.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("does not start an already-cancelled read", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      api.searchLocations("สวน", controller.signal),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("leaves a long-running write intact and never retries it", async () => {
+    vi.useFakeTimers();
+    let complete!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const work = api.createMeasurementRequest({} as never);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(vi.mocked(fetch).mock.calls[0][1]?.signal).toBeUndefined();
+    complete(jsonResponse());
+    await work;
+    expect(fetch).toHaveBeenCalledOnce();
   });
 
   it("invalidates private profile data after saving identity with a query string", async () => {
@@ -61,7 +144,7 @@ describe("api client", () => {
     const params = new URL(String(url), "http://localhost").searchParams;
     expect(params.get("station_id")).toBe("station / one");
     expect(params.get("end_at")).toBe("2026-11-11T12:00:00.000Z");
-    expect(init?.signal).toBe(controller.signal);
+    expect(init?.signal?.aborted).toBe(false);
   });
 
   it("rejects oversized combined uploads before contacting the API", async () => {

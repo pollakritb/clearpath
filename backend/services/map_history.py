@@ -1,5 +1,6 @@
 """Historical station snapshots for the public map."""
 
+import asyncio
 from datetime import UTC, datetime
 
 from starlette.concurrency import run_in_threadpool
@@ -22,11 +23,14 @@ async def get_map_history(
     if target.tzinfo is None:
         target = target.replace(tzinfo=UTC)
     target = target.astimezone(UTC)
-    stations, _source = await get_current_stations()
-    readings = await run_in_threadpool(
-        supabase_client.get_map_history_readings,
-        target,
-        max_age_minutes,
+    # Independent reads share the latency budget instead of waiting in series.
+    (stations, _source), readings = await asyncio.gather(
+        get_current_stations(),
+        run_in_threadpool(
+            supabase_client.get_map_history_readings,
+            target,
+            max_age_minutes,
+        ),
     )
     return select_map_history_stations(
         stations,

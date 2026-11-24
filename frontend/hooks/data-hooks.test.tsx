@@ -204,6 +204,65 @@ describe("data hooks", () => {
     expect(result.current.status).toBe("failed");
   });
 
+  it("keeps a newer hotspot selection when an older request fails late", async () => {
+    let rejectOld!: (error: Error) => void;
+    apiMocks.firms.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectOld = reject;
+        }),
+    );
+    const { result } = renderHook(() => useFirms());
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.load(2);
+    });
+    apiMocks.firms.mockResolvedValueOnce({
+      fires: [{ id: "new" }],
+      status: "available",
+    });
+    await act(async () => result.current.load(1));
+    await act(async () => {
+      rejectOld(new Error("old failure"));
+      await pending;
+    });
+    expect(result.current.fires).toEqual([{ id: "new" }]);
+    expect(result.current.error).toBeNull();
+    expect(result.current.status).toBe("available");
+  });
+
+  it("ignores an obsolete pagination failure after refreshing news", async () => {
+    apiMocks.announcements.mockResolvedValueOnce({
+      announcements: [{ id: "old" }],
+      next_offset: 10,
+      has_more: true,
+    });
+    const { result } = renderHook(() => useAnnouncements());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    let rejectOld!: (error: Error) => void;
+    apiMocks.announcements.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectOld = reject;
+        }),
+    );
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.loadMore();
+    });
+    apiMocks.announcements.mockResolvedValueOnce({
+      announcements: [{ id: "new" }],
+      has_more: false,
+    });
+    await act(async () => result.current.refresh());
+    await act(async () => {
+      rejectOld(new Error("old failure"));
+      await pending;
+    });
+    expect(result.current.announcements).toEqual([{ id: "new" }]);
+    expect(result.current.error).toBeNull();
+  });
+
   it("loads public reports and reports refresh failures", async () => {
     apiMocks.communityReports.mockResolvedValueOnce({
       reports: [{ id: "report-1" }],

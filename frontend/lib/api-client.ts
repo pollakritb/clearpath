@@ -96,7 +96,46 @@ interface HttpOptions extends RequestInit {
   auth?: boolean;
 }
 
+// Bound reads, including authentication and body parsing. Writes are never replayed
+// or timed out here: a report upload/OCR may legitimately take longer.
+const READ_TIMEOUT_MS = 45_000;
 async function http<T>(url: string, init?: HttpOptions): Promise<T> {
+  if ((init?.method ?? "GET").toUpperCase() !== "GET")
+    return performHttp<T>(url, init);
+  const callerSignal = init?.signal;
+  if (callerSignal?.aborted) throw callerSignal.reason;
+  const controller = new AbortController();
+  let rejectCancellation!: (reason: unknown) => void;
+  const cancellation = new Promise<never>((_, reject) => {
+    rejectCancellation = reject;
+  });
+  const cancel = () => {
+    const reason =
+      callerSignal?.reason ?? new DOMException("Aborted", "AbortError");
+    rejectCancellation(reason);
+    controller.abort(reason);
+  };
+  callerSignal?.addEventListener("abort", cancel, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new ApiError("โหลดข้อมูลนานเกินไป กรุณาลองอีกครั้ง", 408));
+      controller.abort();
+    }, READ_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([
+      performHttp<T>(url, { ...init, signal: controller.signal }),
+      deadline,
+      cancellation,
+    ]);
+  } finally {
+    clearTimeout(timer);
+    callerSignal?.removeEventListener("abort", cancel);
+  }
+}
+
+async function performHttp<T>(url: string, init?: HttpOptions): Promise<T> {
   const isForm = init?.body instanceof FormData;
   if (init?.body instanceof FormData) {
     const error = uploadSizeError(init.body);
@@ -549,9 +588,10 @@ export const api = {
       auth: true,
     }),
 
-  searchLocations: (query: string) =>
+  searchLocations: (query: string, signal?: AbortSignal) =>
     http<LocationSearchResponse>(
       `/api/locations/search?q=${encodeURIComponent(query)}`,
+      { signal },
     ),
 
   myReports: () =>
