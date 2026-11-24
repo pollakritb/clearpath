@@ -384,6 +384,28 @@ export default function PlaceAirCard({
           Trust หรือ XP
         </p>
         <p>
+          สูตร IDW: Ĉ = Σ(Cᵢ / dᵢ) / Σ(1 / dᵢ) โดยรวมทุกจุดที่ผ่านเกณฑ์ (i = 1
+          ถึง n) และใช้กำลังระยะทาง p = 1
+        </p>
+        <p>
+          Ĉ คือค่าฝุ่นประมาณการ (µg/m³), Cᵢ คือค่าฝุ่นของจุดที่ i, dᵢ
+          คือระยะห่างจากสถานที่ถึงจุดนั้น และ n คือจำนวนจุดที่ใช้
+          คำนวณระยะบนผิวโลกด้วย Haversine จุดใกล้จึงมีน้ำหนักมากกว่า
+          หากพิกัดตรงกับจุดข้อมูล ใช้ค่าจุดนั้นโดยตรงเพื่อเลี่ยงการหารด้วยศูนย์
+          หากไม่มีจุดที่ผ่านเกณฑ์จะไม่แสดงค่าประมาณ
+        </p>
+        <p>
+          อ้างอิงหลักการ:{" "}
+          <a
+            href="https://doc.esri.com/en/arcgis-pro/latest/help/analysis/geostatistical-analyst/how-inverse-distance-weighted-interpolation-works.html"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Esri ArcGIS Pro — Inverse Distance Weighted (IDW)
+          </a>
+          {" · "}ClearPath ใช้ p = 1 และรัศมี 2 กม. ตามการตั้งค่าของแอป
+        </p>
+        <p>
           ข้อมูลสถานที่:{" "}
           {place.source === "geoapify" ? (
             <a

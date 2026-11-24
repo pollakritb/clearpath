@@ -263,7 +263,7 @@ export default function MapStatusCard({
             stale={expired}
             caption={
               <>
-                วัด ·{" "}
+                เวลาตรวจวัด (ไทย) ·{" "}
                 <time dateTime={report?.captured_at}>
                   {formatReportDate(report?.captured_at ?? null)}
                 </time>
@@ -271,6 +271,17 @@ export default function MapStatusCard({
               </>
             }
           />
+          {report && (
+            <p className={panel.time}>
+              ละติจูด{" "}
+              {Number.isFinite(report.lat) ? report.lat.toFixed(5) : "—"}
+              {" · "}
+              ลองจิจูด{" "}
+              {Number.isFinite(report.lon) ? report.lon.toFixed(5) : "—"}
+              <br />
+              พิกัดสาธารณะ หมุดถูกเลื่อนเพื่อความเป็นส่วนตัว
+            </p>
+          )}
           {source === "individual" && report && !historicalAt && (
             <div ref={setActionsContainer} className={panel.reportActions} />
           )}
