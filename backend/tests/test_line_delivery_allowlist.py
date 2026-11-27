@@ -24,7 +24,7 @@ def event(kind="air_alert"):
         "attempts": 0,
         "payload": {
             "channel": "line",
-            "policy_version": "nearest-pin-daily-v2",
+            "policy_version": air_alerts.POLICY_VERSION,
             "alert_day": air_alerts.alert_day(datetime.now(UTC)),
             "alert_severity": 1,
             "location_version": "v1",
@@ -70,9 +70,9 @@ def env(monkeypatch):
         picked = nearest_source(
             point, [rows[0]["payload"]] if rows else [], preferences["radius_km"], now
         )
-        return preferences, point, picked
+        return preferences, point, [picked] if picked else []
 
-    monkeypatch.setattr(air_alerts, "selected", selected)
+    monkeypatch.setattr(air_alerts, "selected_sources", selected)
     updates = []
     sends = []
     monkeypatch.setattr(xp, "configured", lambda: False)

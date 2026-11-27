@@ -132,7 +132,9 @@ def status(user_id: str) -> dict:
     return {
         **config(),
         "linked": bool(row and row.get("active") and row.get("line_user_id")),
-        "linked_at": row.get("linked_at") if row else None,
+        "linked_at": row.get("linked_at")
+        if row and row.get("active") and row.get("line_user_id")
+        else None,
     }
 
 
@@ -143,13 +145,23 @@ def create_link_code(user_id: str) -> dict:
     code = f"CP-{suffix}"
     now = datetime.now(UTC)
     expires_at = now + timedelta(minutes=LINK_TTL_MINUTES)
-    supabase_client.upsert_line_notification_link(
-        user_id,
-        {
-            "link_code_hash": hash_link_code(code, settings.line_channel_secret),
-            "link_code_expires_at": expires_at.isoformat(),
-        },
-    )
+    values = {
+        "link_code_hash": hash_link_code(code, settings.line_channel_secret),
+        "link_code_expires_at": expires_at.isoformat(),
+    }
+    if settings.local_demo_mode:
+        supabase_client.upsert_line_notification_link(user_id, values)
+    else:
+        from .store_client import get_client
+
+        get_client().rpc(
+            "issue_line_link_code",
+            {
+                "p_user": user_id,
+                "p_hash": values["link_code_hash"],
+                "p_expires": values["link_code_expires_at"],
+            },
+        ).execute()
     return {
         "code": code,
         "expires_at": expires_at.isoformat(),
@@ -159,7 +171,19 @@ def create_link_code(user_id: str) -> dict:
 
 
 def disconnect(user_id: str) -> bool:
-    changed = supabase_client.deactivate_line_notification_link(user_id=user_id)
+    """Revoke pending codes and delete the private link before a fresh pairing."""
+    if not settings.local_demo_mode:
+        from .store_client import get_client
+
+        return bool(
+            get_client()
+            .rpc("reset_line_notification_link", {"p_user": user_id})
+            .execute()
+            .data
+        )
+    from . import local_store
+
+    changed = local_store.delete_line_notification_link(user_id)
     supabase_client.upsert_notification_preferences(user_id, {"line_enabled": False})
     return changed
 
@@ -175,6 +199,18 @@ def _reply(reply_token: str | None, text: str) -> None:
 
 def _link(code: str, line_user_id: str) -> bool:
     code_hash = hash_link_code(code, settings.line_channel_secret)
+    if not settings.local_demo_mode:
+        from .store_client import get_client
+
+        return bool(
+            get_client()
+            .rpc(
+                "complete_line_link",
+                {"p_code_hash": code_hash, "p_line_user": line_user_id},
+            )
+            .execute()
+            .data
+        )
     row = supabase_client.get_line_notification_link_by_code(code_hash)
     if not row or not row.get("link_code_expires_at"):
         return False

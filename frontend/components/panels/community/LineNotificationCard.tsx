@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import AppIcon from "@/frontend/components/ui/AppIcon";
 import { api, apiErrorMessage } from "@/frontend/lib/api-client";
@@ -14,6 +14,9 @@ import { ALERT_PREFERENCES_CHANGED } from "@/frontend/components/auth/AlertLocat
 const STATUS_POLL_MS = 3_000;
 
 export default function LineNotificationCard() {
+  const statusEpoch = useRef(0);
+  const mutation = useRef(false);
+  const activeRead = useRef<AbortController | null>(null);
   const [loading, setLoading] = useState(true);
   const [reload, setReload] = useState(0);
   const [status, setStatus] = useState<LineNotificationStatus | null>(null);
@@ -25,52 +28,73 @@ export default function LineNotificationCard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    void api
-      .lineNotificationStatus()
-      .then((next) => {
-        if (!cancelled) {
-          setStatus(next);
-          setError(null);
-        }
-      })
-      .catch((cause) => {
-        if (!cancelled) {
-          setError(apiErrorMessage(cause, "อ่านสถานะ LINE ไม่สำเร็จ"));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reload]);
-
-  useEffect(() => {
-    if (!linkCode || status?.linked) return;
-    const expiresAt = Date.parse(linkCode.expires_at);
-    const timer = window.setInterval(() => {
-      const current = Date.now();
-      setNow(current);
-      if (current >= expiresAt) {
-        window.clearInterval(timer);
+    let alive = true;
+    let pending = false;
+    let read = 0;
+    const refresh = async (force = false) => {
+      if (!alive || mutation.current || document.hidden || (pending && !force))
         return;
+      const current = ++read;
+      const epoch = statusEpoch.current;
+      activeRead.current?.abort();
+      const controller = new AbortController();
+      activeRead.current = controller;
+      pending = true;
+      try {
+        const next = await api.lineNotificationStatus(controller.signal);
+        if (!alive || current !== read || epoch !== statusEpoch.current) return;
+        setStatus(next);
+        setError(null);
+        if (next.linked && linkCode) {
+          setLinkCode(null);
+          setMessage("เชื่อม LINE สำเร็จแล้ว");
+          window.dispatchEvent(new Event(ALERT_PREFERENCES_CHANGED));
+        }
+      } catch (cause) {
+        if (
+          alive &&
+          current === read &&
+          epoch === statusEpoch.current &&
+          !controller.signal.aborted
+        )
+          setError(
+            apiErrorMessage(cause, "อ่านสถานะ LINE ไม่สำเร็จ กรุณาลองใหม่"),
+          );
+      } finally {
+        if (current === read) pending = false;
+        if (alive && current === read && epoch === statusEpoch.current)
+          setLoading(false);
       }
-      void api
-        .lineNotificationStatus()
-        .then((next) => {
-          setStatus(next);
-          if (next.linked) {
-            setLinkCode(null);
-            setMessage("เชื่อม LINE สำเร็จแล้ว");
-            window.dispatchEvent(new Event(ALERT_PREFERENCES_CHANGED));
-          }
-        })
-        .catch(() => undefined);
-    }, STATUS_POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [linkCode, status?.linked]);
+    };
+    void refresh();
+    const fast = Boolean(
+      linkCode && Date.now() < Date.parse(linkCode.expires_at),
+    );
+    const timer = window.setInterval(
+      () => {
+        setNow(Date.now());
+        if (fast && linkCode && Date.now() >= Date.parse(linkCode.expires_at)) {
+          setReload((value) => value + 1);
+          return;
+        }
+        void refresh();
+      },
+      fast ? STATUS_POLL_MS : 30_000,
+    );
+    const resume = () => {
+      if (!document.hidden) void refresh(true);
+    };
+    window.addEventListener("focus", resume);
+    document.addEventListener("visibilitychange", resume);
+    return () => {
+      alive = false;
+      read++;
+      activeRead.current?.abort();
+      window.clearInterval(timer);
+      window.removeEventListener("focus", resume);
+      document.removeEventListener("visibilitychange", resume);
+    };
+  }, [reload, linkCode]);
 
   const remainingSeconds = useMemo(() => {
     if (!linkCode) return 0;
@@ -81,6 +105,10 @@ export default function LineNotificationCard() {
   }, [linkCode, now]);
 
   async function createCode() {
+    if (mutation.current) return;
+    mutation.current = true;
+    statusEpoch.current++;
+    activeRead.current?.abort();
     setBusy(true);
     setError(null);
     setMessage(null);
@@ -92,7 +120,9 @@ export default function LineNotificationCard() {
     } catch (cause) {
       setError(apiErrorMessage(cause, "สร้างรหัส LINE ไม่สำเร็จ"));
     } finally {
+      mutation.current = false;
       setBusy(false);
+      setReload((value) => value + 1);
     }
   }
 
@@ -108,6 +138,8 @@ export default function LineNotificationCard() {
   }
 
   async function testLine() {
+    if (mutation.current) return;
+    mutation.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -116,11 +148,17 @@ export default function LineNotificationCard() {
     } catch (cause) {
       setError(apiErrorMessage(cause, "ส่งข้อความทดสอบไม่สำเร็จ"));
     } finally {
+      mutation.current = false;
       setBusy(false);
+      setReload((value) => value + 1);
     }
   }
 
   async function disconnect() {
+    if (mutation.current) return;
+    mutation.current = true;
+    statusEpoch.current++;
+    activeRead.current?.abort();
     setBusy(true);
     setError(null);
     try {
@@ -134,7 +172,9 @@ export default function LineNotificationCard() {
     } catch (cause) {
       setError(apiErrorMessage(cause, "ยกเลิก LINE ไม่สำเร็จ"));
     } finally {
+      mutation.current = false;
       setBusy(false);
+      setReload((value) => value + 1);
     }
   }
 
@@ -201,14 +241,6 @@ export default function LineNotificationCard() {
             >
               <AppIcon name="send" size={17} />
               ส่งข้อความทดสอบ
-            </button>
-            <button
-              type="button"
-              className="cp-focus cp-line-link__secondary"
-              disabled={busy}
-              onClick={() => void disconnect()}
-            >
-              ยกเลิกการเชื่อม
             </button>
           </div>
         </div>
@@ -281,6 +313,19 @@ export default function LineNotificationCard() {
             ส่งรหัสในแชต LINE แล้วหน้านี้จะเปลี่ยนเป็น “เชื่อมแล้ว” ให้อัตโนมัติ
           </p>
         </div>
+      )}
+
+      {status && (
+        <button
+          type="button"
+          className="cp-focus cp-line-link__secondary"
+          disabled={busy}
+          onClick={() => void disconnect()}
+        >
+          {linkCode && !status.linked
+            ? "ยกเลิกรหัสและล้างข้อมูล LINE"
+            : "ยกเลิกและลบการเชื่อมต่อ LINE"}
+        </button>
       )}
 
       {message && (

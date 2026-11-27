@@ -551,6 +551,19 @@ def upsert_line_notification_link(user_id: str, values: dict) -> dict:
         return dict(current)
 
 
+def delete_line_notification_link(user_id: str) -> bool:
+    with _LOCK:
+        changed = _LINE_NOTIFICATION_LINKS.pop(user_id, None) is not None
+        for event in _NOTIFICATION_OUTBOX.values():
+            if (
+                str(event.get("user_id")) == str(user_id)
+                and event.get("status") == "pending"
+                and event.get("payload", {}).get("channel") == "line"
+            ):
+                event.update(status="dead", last_error="line_disconnected")
+        return changed
+
+
 def get_line_notification_link(user_id: str) -> dict | None:
     with _LOCK:
         row = _LINE_NOTIFICATION_LINKS.get(user_id)
@@ -673,6 +686,15 @@ def create_user_notification(row: dict) -> dict:
             return dict(duplicate)
         _USER_NOTIFICATIONS[str(row["id"])] = dict(row)
         return dict(row)
+
+
+def has_user_notification(user_id: str, key: str) -> bool:
+    with _LOCK:
+        return any(
+            str(row.get("user_id")) == str(user_id)
+            and row.get("deduplication_key") == key
+            for row in _USER_NOTIFICATIONS.values()
+        )
 
 
 def list_user_notifications(user_id: str, limit: int) -> list[dict]:

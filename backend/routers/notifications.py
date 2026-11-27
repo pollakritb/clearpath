@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from starlette.concurrency import run_in_threadpool
 
 from ..algorithms.nearest_air_alert import valid_location
@@ -174,7 +174,10 @@ async def test_notification(
 
 
 @router.get("/notifications/line", response_model=LineNotificationStatus)
-async def line_status(user: AuthenticatedUser = Depends(require_user)):
+async def line_status(
+    response: Response, user: AuthenticatedUser = Depends(require_user)
+):
+    response.headers["Cache-Control"] = "private, no-store"
     result = await run_in_threadpool(line_messaging.status, user.id)
     return LineNotificationStatus(**result)
 
@@ -188,7 +191,9 @@ async def create_line_link_code(user: AuthenticatedUser = Depends(require_user))
 @router.delete("/notifications/line", response_model=OperationResponse)
 async def disconnect_line(user: AuthenticatedUser = Depends(require_user)):
     await run_in_threadpool(line_messaging.disconnect, user.id)
-    return OperationResponse(ok=True, message="ยกเลิกการเชื่อม LINE แล้ว")
+    return OperationResponse(
+        ok=True, message="ยกเลิกและลบข้อมูลเชื่อมต่อ LINE แล้ว สามารถสร้างรหัสเพื่อเชื่อมใหม่ได้"
+    )
 
 
 @router.post("/notifications/line/test", response_model=OperationResponse)

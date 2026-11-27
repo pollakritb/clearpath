@@ -49,6 +49,11 @@ it("shows the three LINE event categories and omits retired event controls", asy
   });
   render(<NotificationSettings />);
   fireEvent.click(await screen.findByRole("button", { name: "แก้ไขเงื่อนไข" }));
+  expect(
+    screen.getByText("ไม่จำกัดต่อวัน · ค่าตรวจวัดเดิมไม่แจ้งซ้ำ"),
+  ).toBeTruthy();
+  expect(screen.getByText("แจ้งทุกหมุดที่ถึงระดับในระยะ 2 กม.")).toBeTruthy();
+  expect(screen.queryByText(/วันละ 1 ครั้ง/)).toBeNull();
   expect(screen.queryAllByRole("slider")).toHaveLength(0);
   expect(document.querySelector('input[type="time"]')).toBeNull();
   expect(screen.queryByText("ช่วงไม่รบกวน")).toBeNull();

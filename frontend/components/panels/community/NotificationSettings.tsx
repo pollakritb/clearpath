@@ -41,7 +41,7 @@ const ALERT_OPTIONS = [
   [
     "air_alerts",
     "เปิดแจ้งเตือนค่าฝุ่น",
-    "ใช้หมุดใกล้ GPS ล่าสุดที่สุดภายใน 2 กม.",
+    "ใช้ค่าตรวจวัดใหม่จากทุกหมุดภายใน 2 กม.",
   ],
 ] as const;
 
@@ -207,7 +207,7 @@ function NotificationSettingsContent() {
           </span>
           <span>
             <small>ความถี่แจ้งเตือน</small>
-            <strong>แต่ละระดับวันละ 1 ครั้ง · นับวันตามเวลาไทย</strong>
+            <strong>ไม่จำกัดต่อวัน · ค่าตรวจวัดเดิมไม่แจ้งซ้ำ</strong>
           </span>
         </div>
         <div className="cp-notification-condition-summary">
@@ -216,7 +216,7 @@ function NotificationSettingsContent() {
           </span>
           <span>
             <small>ระยะค้นหาหมุด</small>
-            <strong>{"ค้นหาหมุดใกล้ที่สุดภายใน 2 กม."}</strong>
+            <strong>{"แจ้งทุกหมุดที่ถึงระดับในระยะ 2 กม."}</strong>
           </span>
         </div>
         <div className="cp-notification-condition-summary">
@@ -260,11 +260,12 @@ function NotificationSettingsContent() {
             <fieldset className="cp-notification-option-group">
               <legend>ระดับและพื้นที่</legend>
               <p>
-                ค้นหาหมุดใกล้ที่สุดภายใน 2 กม. ระยะและเกณฑ์ค่าฝุ่นกำหนดไว้คงที่
+                แจ้งทุกหมุดที่ถึงระดับในระยะ 2 กม.
+                ระยะและเกณฑ์ค่าฝุ่นกำหนดไว้คงที่
               </p>
               <p>
-                วันละ 1 ครั้งต่อระดับ
-                หากแจ้งระดับสูงแล้วจะไม่แจ้งระดับต่ำซ้ำในวันนั้น
+                แจ้งทุกค่าตรวจวัดใหม่ที่ถึงระดับที่เปิดไว้ ไม่จำกัดจำนวนต่อวัน
+                โดยไม่ส่งค่าตรวจวัดเดิมของหมุดเดิมซ้ำ
               </p>
               {(
                 [

@@ -1,45 +1,59 @@
-# Daily nearest-pin LINE alerts
+# Nearby-pin air alerts
 
-Policy `nearest-pin-daily-v2` fixes the search radius at 2 km and the two alert
-bands at 37.6–75.0 and above 75.0 µg/m³ (displayed as 75.1+). Source values keep
-their original precision. The closest fresh eligible pin is selected before
-checking its concentration; this is not a maximum over all nearby pins or IDW.
-Own community reports remain excluded.
+Policy `nearby-pin-observation-v3` evaluates every fresh eligible pin within
+2 km of the saved foreground GPS, then applies the enabled alert bands:
+37.6–75.0 and above 75.0 µg/m³ (displayed as 75.1+). A nearby low reading never
+masks a farther warning. This is direct observation alerting, independent of IDW.
+Stations must be at most 1 hour old; approved community reports at most 3 hours.
+Own community reports are excluded and public obfuscated coordinates are used.
 
-Both band switches default on. Existing channel opt-outs are preserved.
-Browser location permission supplies foreground GPS samples and activates the
-legacy notification consent record automatically; there is no second consent
-checkbox. Permission changes on entry are observed without prompting again. Users can toggle the channels/bands but cannot change
-the radius, thresholds or global quiet hours. Legacy radius/threshold/time
-fields are normalized by both the API and a database trigger.
+There is no per-day count, per-band quota, cooldown or one-pending-message slot.
+Every qualifying observation can create its own inbox item and LINE outbox job.
+A stable recipient-scoped key identifies source type, source ID, normalized
+observation time and measured value. Repeated cron evaluations, GPS refreshes,
+state resets and concurrent retries cannot create duplicates. A new reading or
+corrected value can notify again, including a lower enabled band after danger.
+Midnight alone never resends an unchanged reading.
 
-Each band can send once per Asia/Bangkok calendar day. Warning can escalate to
-danger that day; danger followed by warning does not send a downgrade. Missing
-data, recovery, pin changes and relinking do not replenish a used quota. The
-service-only `air_alert_daily_limits` ledger persists reservations across state
-resets. Acknowledged delivery consumes the quota. An unattempted superseded
-message releases its reservation; ambiguous provider attempts retain it.
-Old-policy and previous-day queued messages are suppressed at delivery.
+Both band switches default on; existing consent/channel/band opt-outs remain.
+Invalid GPS, observations older than their source TTL, unapproved/own reports and
+pins outside 2 km are ineligible. The delivery worker rechecks the specific
+observation against current GPS/preferences and source data; it does not require
+that observation to be the nearest pin. Replaced, stale or opted-out observations
+are suppressed before external delivery. Provider rate/monthly budgets, channel
+availability and delivery cutoffs are separate operational controls and remain.
 
-LINE messages include the value, health band, source/name/public pin identifier,
-approximate GPS distance, observation time in Thailand, GPS reference time,
-health advice, and a link to that pin. Community locations are public obfuscated
-coordinates; their distance is explicitly approximate.
+`commit_nearby_air_alerts` atomically validates GPS/preference versions, rechecks
+the current source candidates, and inserts the entire batch. Existing unique
+notification/outbox keys prevent duplicates across retries and workers; inbox
+retention exceeds the maximum eligible source age. No public grants or new RLS
+bypass are introduced. Notification counts report newly queued observations.
 
-Local verification:
+The historical daily ledger and legacy policy tests remain as audit evidence.
+The new delivery trigger ignores the retired daily ledger for v3 notices. Old
+writers cannot enqueue the retired policy, and old-policy pending jobs fail the
+new worker eligibility check. No old jobs are replayed or bulk sent by migration.
+
+LINE text and settings explain every qualifying nearby pin, unlimited daily
+frequency and observation deduplication. Each message includes the measured
+value, band, source/name/pin, approximate GPS distance, observation/GPS times in
+Thailand, advice and a deep link. GPS consent/retention behavior is unchanged.
+
+Local verification (no real LINE messages):
 
 ```sh
-node scripts/test-daily-air-alerts.mjs
-.venv/bin/python -m pytest backend/tests/test_nearest_air_alert.py backend/tests/test_line_delivery_allowlist.py
+node scripts/test-nearby-air-alerts.mjs
+.venv/bin/python -m pytest backend/tests/test_nearby_air_alert.py backend/tests/test_nearest_air_alert.py backend/tests/test_line_delivery_allowlist.py
 npx playwright test e2e/notification-alert-policy.spec.ts
 ```
 
-The SQL rehearsal uses an isolated PGlite database and checks quotas, midnight,
-escalation, relinking/state reset, stale revisions, delivery acknowledgment,
-legacy alert backfill and service-only access. Browser tests never send LINE
-messages. Apply only the fixed-daily-alert migration to the main project during
-rollout; leave unrelated pending migrations untouched. Verify schema defaults,
-ledger RLS/privileges, production health and deployed commit after rollout.
+Rollout requires migration `20261127105812_nearby_air_alerts.sql` followed by the
+matching backend/frontend release. Apply only this migration on the main project;
+preserve unrelated migrations, presentation settings, consent and worker flags.
+The migration retires old enqueueing, so deploy the matching code immediately
+after it. Verify RPC permissions, health and release SHA before enabling delivery.
+A rollback requires restoring the previous functions together with the previous
+application release; rolling back code alone leaves old enqueueing disabled.
 
 ## Foreground location and retention
 

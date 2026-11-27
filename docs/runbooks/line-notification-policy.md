@@ -2,11 +2,11 @@
 
 Automatic LINE messages are limited to three events:
 
-| Event                   | Recipient and eligibility                                                                                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `measurement_request`   | Eligible participating helper; open request/group, not declined, linked LINE, consent and channel enabled                                         |
-| `measurement_fulfilled` | Request owner only, really fulfilled, notification lifetime not expired, linked LINE, consent and channel enabled                                 |
-| `air_alert`             | Nearest eligible pin within 2 km; fixed daily warning/danger policy, current GPS and channel eligibility; see [daily alerts](daily-air-alerts.md) |
+| Event                   | Recipient and eligibility                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `measurement_request`   | Eligible participating helper; open request/group, not declined, linked LINE, consent and channel enabled                             |
+| `measurement_fulfilled` | Request owner only, really fulfilled, notification lifetime not expired, linked LINE, consent and channel enabled                     |
+| `air_alert`             | Every eligible observation within 2 km; no daily quota, current GPS and channel eligibility; see [nearby alerts](daily-air-alerts.md) |
 
 Report status, expired requests, hotspots, rank/reward/rating, leaderboard,
 announcement and unknown events never enter automatic LINE delivery. This is a
@@ -31,11 +31,10 @@ source context are cancelled rather than replayed blindly. History is not
 rewritten or deleted.
 
 Consent, LINE enablement, request/group state and PM2.5 preferences are checked
-again. Quiet hours defer without consuming a provider attempt. Old air readings
-are cancelled after a quiet window; closed/declined requests and expired
+again. The fixed air-alert policy has no user-configurable quiet window. Old air readings
+are cancelled when no longer eligible; closed/declined requests and expired
 fulfillment messages are cancelled. Missing coordinates do not mean nationwide
-alerts. Legacy thresholds below 37.6 cannot send lower-band readings. Higher
-personal thresholds are preserved. Place IDW eligibility remains unchanged.
+alerts. Legacy thresholds below 37.6 cannot send lower-band readings. Fixed air-alert thresholds are preserved. Place IDW eligibility remains unchanged.
 
 ## Delivery results and retries
 
@@ -67,3 +66,27 @@ test requires an explicitly selected, consenting recipient. Queue state alone
 is not proof of receipt.
 
 Reference: [LINE retry guidance](https://developers.line.biz/en/docs/messaging-api/retrying-api-request/).
+
+## LINE linking and reset
+
+Status responses are private/no-store. The settings card serializes polling,
+refreshes on focus/visibility return, ignores obsolete responses, and retains the
+last known status on transient read failures. Per-account remounting prevents
+status leaking between account sessions.
+
+Code issuance updates only pending-code fields; existing active links remain
+active. Linking, code rotation and reset share an atomic database lock. Expired,
+used, rotated or cancelled codes cannot re-link an account. Active LINE identities
+cannot be taken by another account; inactive historical identities can be freed
+when the same LINE user completes a new valid pairing.
+
+DELETE `/api/notifications/line` is owner-scoped and idempotent. It deletes the
+private LINE mapping and pending code, disables LINE delivery preferences and
+cancels pending LINE outbox rows. Sent notifications and audit history remain.
+The reset action is available even if the status says unlinked or the OA is
+currently disabled, so a user can start a new pairing cleanly.
+
+Roll out `20261127105812_nearby_air_alerts.sql` and
+`20261127112716_line_link_consistency.sql` with the matching application release.
+The migration and regression rehearsals use isolated PGlite, never real LINE
+messages: `node scripts/test-line-link-consistency.mjs`.

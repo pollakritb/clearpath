@@ -133,7 +133,7 @@ def test_delivery_rechecks_latest_location_and_source(monkeypatch):
         "updated_at": "p1",
         "pm25_threshold": 37.6,
     }
-    chosen = {**source(), "policy_version": "nearest-pin-daily-v2"}
+    chosen = {**source(), "policy_version": air_alerts.POLICY_VERSION}
     payload = {
         **chosen,
         "location_version": "v1",
@@ -141,7 +141,9 @@ def test_delivery_rechecks_latest_location_and_source(monkeypatch):
         "alert_day": air_alerts.alert_day(datetime.now(UTC)),
         "alert_severity": 2,
     }
-    monkeypatch.setattr(air_alerts, "selected", lambda _: (prefs, POINT, chosen))
+    monkeypatch.setattr(
+        air_alerts, "selected_sources", lambda _: (prefs, POINT, [chosen])
+    )
     assert air_alerts.delivery_allowed("user", payload)
     assert not air_alerts.delivery_allowed(
         "user", {**payload, "location_version": "older"}

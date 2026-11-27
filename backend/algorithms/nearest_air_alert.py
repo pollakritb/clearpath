@@ -48,13 +48,13 @@ def valid_location(location: dict | None, now: datetime) -> bool:
     )
 
 
-def nearest_source(
+def nearby_sources(
     location: dict | None, candidates: list[dict], radius_km: float, now: datetime
-) -> dict | None:
-    """Filter freshness before ranking; never prefilter candidates by PM2.5."""
+) -> list[dict]:
+    """All fresh eligible pins, ordered by distance without concentration filtering."""
     radius = finite(radius_km)
     if not valid_location(location, now) or radius is None or not 1 <= radius <= 50:
-        return None
+        return []
     ranked = []
     for source in candidates:
         kind = source.get("source_type")
@@ -81,10 +81,18 @@ def nearest_source(
             ranked.append(
                 (distance, -at.timestamp(), f"{kind}:{source['source_id']}", source)
             )
-    if not ranked:
-        return None
-    distance, _, _, source = min(ranked, key=lambda item: item[:3])
-    return {**source, "distance_km": distance, "policy_version": POLICY_VERSION}
+    return [
+        {**source, "distance_km": distance, "policy_version": POLICY_VERSION}
+        for distance, _, _, source in sorted(ranked, key=lambda item: item[:3])
+    ]
+
+
+def nearest_source(
+    location: dict | None, candidates: list[dict], radius_km: float, now: datetime
+) -> dict | None:
+    """Legacy nearest-pin selection retained for historical policy verification."""
+    sources = nearby_sources(location, candidates, radius_km, now)
+    return sources[0] if sources else None
 
 
 def alert_severity(pm25: object) -> int:

@@ -552,8 +552,12 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  lineNotificationStatus: () =>
-    http<LineNotificationStatus>("/api/notifications/line", { auth: true }),
+  lineNotificationStatus: (signal?: AbortSignal) =>
+    http<LineNotificationStatus>("/api/notifications/line", {
+      auth: true,
+      cache: "no-store",
+      signal,
+    }),
 
   createLineLinkCode: () =>
     http<LineLinkCodeResponse>("/api/notifications/line/link-code", {

@@ -113,6 +113,9 @@ RPC_PARAMETERS = {
     "enqueue_notification": {"p_user": "profiles"},
     "set_air_alert_location": {"p_user": "profiles"},
     "commit_air_alert": {"p_user": "profiles"},
+    "commit_nearby_air_alerts": {"p_user": "profiles"},
+    "issue_line_link_code": {"p_user": "profiles"},
+    "reset_line_notification_link": {"p_user": "profiles"},
     "community_trust_owner_reviews": {"p_user": "profiles"},
     "community_trust_viewer_state": {
         "p_user": "profiles",

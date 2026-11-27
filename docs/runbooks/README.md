@@ -9,7 +9,7 @@
 - [Community Trust v1: policy, operations and rollout](community-trust-v1.md)
 - [Contribution v3 release and operation](contribution-v3.md)
 - [Coordinate forecasts on Today](coordinate-forecast.md)
-- [Daily nearest-pin LINE alerts](daily-air-alerts.md)
+- [Nearby-pin air alerts](daily-air-alerts.md)
 - [Database readiness — local implementation and release gates](database-readiness.md)
 - [Scheduled external feeds](external-feeds.md)
 - [Forecast provider operations](forecast-providers.md)

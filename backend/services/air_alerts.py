@@ -1,4 +1,4 @@
-"""Nearest-pin evaluation, private last GPS and atomic episode persistence."""
+"""All nearby alerting observations, private last GPS and atomic batch persistence."""
 
 from __future__ import annotations
 
@@ -9,15 +9,14 @@ from functools import wraps
 from threading import RLock
 from uuid import uuid4
 
+from ..algorithms.nearby_air_alert import POLICY_VERSION, alert_sources, observation_key
 from ..algorithms.nearest_air_alert import (
     ALERT_RADIUS_KM,
-    POLICY_VERSION,
     alert_day,
     alert_severity,
     level_enabled,
     nearest_source,
     timestamp,
-    transition,
     valid_location,
 )
 from ..algorithms.notification_policy import BANGKOK_TZ, air_quality_level
@@ -195,6 +194,26 @@ def selected(
     )
 
 
+def selected_sources(
+    user_id: str, now: datetime | None = None
+) -> tuple[dict, dict | None, list[dict]]:
+    now = now or datetime.now(UTC)
+    preferences = supabase_client.get_notification_preferences(user_id) or {}
+    point = location(user_id)
+    if not valid_location(point, now):
+        return preferences, point, []
+    return (
+        preferences,
+        point,
+        alert_sources(
+            point,
+            candidates({**point, "user_id": user_id}, ALERT_RADIUS_KM),
+            preferences,
+            now,
+        ),
+    )
+
+
 def notice_for(source: dict, point: dict, preferences: dict, key: str) -> dict:
     kind = source["source_type"]
     origin = "สถานี Air4Thai" if kind == "station" else "รายงานชุมชน"
@@ -221,7 +240,7 @@ def notice_for(source: dict, point: dict, preferences: dict, key: str) -> dict:
         f"หมุดอ้างอิง: {pin_id}\n"
         f"ระยะห่าง: ประมาณ {distance_label} จาก GPS ล่าสุดของคุณ\n"
         f"วัดเมื่อ: {source_time} น. (เวลาไทย)\n"
-        "เลือกหมุดที่ใกล้ GPS ล่าสุดที่สุดภายใน 2 กม. ไม่ใช่ค่าฝุ่นทุกจุดในพื้นที่\n\n"
+        "แจ้งทุกหมุดที่ถึงระดับที่เปิดไว้ภายใน 2 กม. จาก GPS ล่าสุด ไม่ใช่ค่าฝุ่นทุกจุดในพื้นที่\n\n"
         f"คำแนะนำ: {level['advice']}"
     )
     if kind == "community":
@@ -233,7 +252,7 @@ def notice_for(source: dict, point: dict, preferences: dict, key: str) -> dict:
             + observed.astimezone(BANGKOK_TZ).strftime("%d/%m/%Y %H:%M")
             + " น. (เวลาไทย)"
         )
-    body += "\nแต่ละระดับแจ้งได้วันละ 1 ครั้งตามเวลาไทย; หากสูงขึ้นเป็นอีกระดับจะแจ้งเพิ่มได้"
+    body += "\nไม่จำกัดจำนวนต่อวัน · ค่าตรวจวัดเดิมของหมุดเดิมไม่แจ้งซ้ำ"
     return {
         "title": title,
         "body": body,
@@ -318,134 +337,96 @@ def daily_state(user_id: str, state: dict, now: datetime) -> dict:
 
 
 @storage_errors
-def evaluate(user_id: str) -> bool:
+def evaluate(user_id: str) -> int:
     now = datetime.now(UTC)
-    preferences, point, source = selected(user_id, now)
+    preferences, point, sources = selected_sources(user_id, now)
     if (
         not preferences.get("air_alerts", True)
         or not preferences.get("consent_granted")
         or not valid_location(point, now)
     ):
-        return False
+        return 0
     if settings.line_alert_shadow_mode or not in_canary(user_id):
-        logger.info(
-            "air_alert_shadow source_available=%s source_type=%s threshold_met=%s",
-            bool(source),
-            source.get("source_type") if source else None,
-            bool(source and level_enabled(preferences, alert_severity(source["pm25"]))),
-        )
+        logger.info("air_alert_shadow eligible_sources=%s", len(sources))
         if not settings.local_demo_mode:
             db.get_client().table("air_alert_states").update(
                 {"evaluated_at": now.isoformat(), "evaluation_lease_until": None}
             ).eq("user_id", user_id).execute()
-        return False
+        return 0
+    recipient = user_id
+    with suppress(ValueError):
+        recipient = str(number("profiles", user_id))
+    notices = [
+        notice_for(source, point, preferences, f"{observation_key(source)}:{recipient}")
+        for source in sources
+    ]
     if settings.local_demo_mode:
-        with _LOCK:
-            row = STATES.get(user_id, {"revision": 0, "state": {}})
-            updated = transition(
-                daily_state(
-                    user_id, episode_for_other_reports(user_id, row["state"]), now
-                ),
-                source,
-                float(preferences.get("pm25_threshold", 37.6)),
-                now,
-                warning_enabled=preferences.get("air_alert_warning", True),
-                danger_enabled=preferences.get("air_alert_danger", True),
-            )
-            if location(user_id)["version"] != point["version"]:
-                return False
-            if updated.pop("notify"):
-                from .notifications import enqueue_user_notification
+        from .notifications import enqueue_user_notification
 
-                notice = notice_for(
-                    source,
-                    point,
-                    preferences,
-                    f"nearest:{user_id}:{row['revision'] + 1}",
-                )
+        with _LOCK:
+            current = location(user_id)
+            if not current or current["version"] != point["version"]:
+                return 0
+            previous = STATES.get(user_id, {"revision": 0, "state": {}})
+            # Longer than the longest eligible source age; no daily quota/state reset.
+            seen = {
+                key: at
+                for key, at in previous["state"].get("observations", {}).items()
+                if timestamp(at) and (now - timestamp(at)).total_seconds() <= 10800
+            }
+            sent = 0
+            for notice in notices:
+                key = notice["deduplication_key"]
+                if key in seen or local_store.has_user_notification(user_id, key):
+                    continue
                 enqueue_user_notification(
                     user_id=user_id, event_type="air_alert", **notice
                 )
-                sent = True
-            else:
-                sent = False
-            STATES[user_id] = {"revision": row["revision"] + 1, "state": updated}
+                seen[key] = notice["payload"]["source_at"]
+                sent += 1
+            STATES[user_id] = {
+                "revision": previous["revision"] + 1,
+                "state": {"policy_version": POLICY_VERSION, "observations": seen},
+            }
             return sent
-    rows = (
-        db.get_client()
-        .table("air_alert_states")
-        .select("revision,state")
-        .eq("user_id", user_id)
-        .limit(1)
-        .execute()
-        .data
-    )
-    row = rows[0] if rows else {"revision": 0, "state": {}}
-    if row["state"].get("_pending_key"):
-        # At most one pending alert per user. Quiet-hours collapse into one fresh
-        # evaluation when the old delivery is resolved or superseded.
-        db.get_client().table("air_alert_states").update(
-            {"evaluated_at": now.isoformat(), "evaluation_lease_until": None}
-        ).eq("user_id", user_id).eq("revision", row["revision"]).execute()
-        return False
-    updated = transition(
-        daily_state(user_id, episode_for_other_reports(user_id, row["state"]), now),
-        source,
-        float(preferences.get("pm25_threshold", 37.6)),
-        now,
-        warning_enabled=preferences.get("air_alert_warning", True),
-        danger_enabled=preferences.get("air_alert_danger", True),
-    )
-    should_notify = updated.pop("notify")
-    notice = (
-        notice_for(
-            source, point, preferences, f"nearest:{user_id}:{row['revision'] + 1}"
-        )
-        if should_notify
-        else None
-    )
-    if notice:
-        updated["_pending_key"] = notice["deduplication_key"]
-        updated["_rollback"] = row["state"]
-    committed = (
+    result = (
         db.get_client()
         .rpc(
-            "commit_air_alert",
+            "commit_nearby_air_alerts",
             {
                 "p_user": user_id,
                 "p_location_version": point["version"],
                 "p_preferences_at": preferences["updated_at"],
-                "p_revision": row["revision"],
-                "p_state": updated,
-                "p_notice": notice,
+                "p_notices": notices,
             },
         )
         .execute()
         .data
     )
-    return bool(committed and should_notify)
+    return int(result or 0)
 
 
 def delivery_allowed(user_id: str, payload: dict) -> bool:
     if settings.line_alert_shadow_mode or not in_canary(user_id):
         return False
     if payload.get("policy_version") != POLICY_VERSION:
-        return False  # Legacy station-wide alerts must not bypass the new selection.
-    preferences, point, source = selected(user_id)
+        return False
+    preferences, point, sources = selected_sources(user_id)
     return bool(
-        source
-        and point
+        point
         and preferences.get("consent_granted")
         and preferences.get("air_alerts", True)
+        and level_enabled(preferences, alert_severity(payload.get("pm25")))
         and point["version"] == payload.get("location_version")
         and preferences.get("updated_at") == payload.get("preferences_at")
-        and source["source_type"] == payload.get("source_type")
-        and source["source_id"] == payload.get("source_id")
-        and timestamp(source["source_at"]) == timestamp(payload.get("source_at"))
-        and source["pm25"] == payload.get("pm25")
-        and level_enabled(preferences, alert_severity(source["pm25"]))
-        and payload.get("alert_day") == alert_day(datetime.now(UTC))
-        and payload.get("alert_severity") == alert_severity(source["pm25"])
+        and any(
+            source["source_type"] == payload.get("source_type")
+            and str(source["source_id"]) == str(payload.get("source_id"))
+            and timestamp(source["source_at"]) == timestamp(payload.get("source_at"))
+            and source["pm25"] == payload.get("pm25")
+            and payload.get("alert_severity") == alert_severity(source["pm25"])
+            for source in sources
+        )
     )
 
 
