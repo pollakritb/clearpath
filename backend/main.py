@@ -1,6 +1,6 @@
 """ClearPath FastAPI application — รวม routers ทั้งหมดไว้ใต้ prefix /api
 
-routing บน Vercel: /api/* → api/index.py → app นี้ (ดู vercel.json)
+Production Caddy forwards /api/* to this Uvicorn application.
 local dev: uvicorn backend.main:app --port 8000 (Next proxy /api/* มาที่นี่)
 """
 

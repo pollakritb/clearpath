@@ -1,11 +1,9 @@
-"""Own reports cannot mask another user's warning or consume its episode."""
+"""Own reports are excluded from current nearby alerts; v2 checks are historical."""
 
 from datetime import UTC, datetime, timedelta
-from types import SimpleNamespace
 
-import pytest
-
-from backend.algorithms.nearest_air_alert import nearest_source, transition
+from backend.algorithms.nearby_air_alert import alert_sources
+from backend.algorithms.nearest_air_alert import transition
 from backend.services import air_alerts
 
 
@@ -45,36 +43,11 @@ def test_self_report_38_is_removed_before_other_report_55_is_selected(monkeypatc
             },
         ],
     )
-    picked = nearest_source(point, air_alerts.candidates(point, 10), 10, now)
-    assert picked["source_id"] == "other" and picked["pm25"] == 55
-    assert transition({}, picked, 37.6, now)["notify"]
+    picked = alert_sources(point, air_alerts.candidates(point, 2), {}, now)
+    assert [(row["source_id"], row["pm25"]) for row in picked] == [("other", 55)]
 
 
-@pytest.mark.parametrize("was_own", [True, False])
-def test_episode_repair_is_evidence_bound_and_does_not_reset_valid_alerts(
-    monkeypatch, was_own
-):
-    now = datetime.now(UTC)
-    old = {"severity": 1, "last_notified_at": now.isoformat(), "audit_marker": "keep"}
-    calls = []
-
-    class Client:
-        def rpc(self, name, params):
-            calls.append((name, params))
-            return SimpleNamespace(execute=lambda: SimpleNamespace(data=was_own))
-
-    monkeypatch.setattr(air_alerts.settings, "local_demo_mode", False)
-    monkeypatch.setattr(air_alerts.db, "get_client", lambda: Client())
-    repaired = air_alerts.episode_for_other_reports("USR-000005", old)
-    notice = transition(repaired, {"pm25": 55}, 37.6, now)
-    assert notice["notify"] is was_own
-    assert repaired["audit_marker"] == "keep" and old["severity"] == 1
-    assert len(calls) == 1
-    air_alerts.episode_for_other_reports("USR-000005", repaired)
-    assert len(calls) == 1  # The policy upgrade does not add a read per worker poll.
-
-
-def test_many_other_reports_do_not_generate_a_message_per_report():
+def test_historical_v2_aggregates_many_reports_into_one_daily_band():
     now = datetime.now(UTC)
     state = {}
     emitted = 0

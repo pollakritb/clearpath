@@ -1,4 +1,8 @@
-"""Direct-pin alerts: independent of IDW, Trust and gap-fill policy."""
+"""Shared pin/GPS eligibility plus historical v2 policy for audit regressions.
+
+Current notification decisions live in nearby_air_alert (per observation, no
+daily quota). nearest_source and transition are historical verification only.
+"""
 
 from __future__ import annotations
 

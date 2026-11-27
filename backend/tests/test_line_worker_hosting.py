@@ -1,19 +1,11 @@
 """No-send hosting probe and daemon shutdown/readiness contracts."""
 
-from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
 
 from backend.core.config import settings
 from backend.workers import line
-
-
-def test_worker_image_dependencies_match_canonical_requirements():
-    root = Path(__file__).resolve().parents[2]
-    assert (root / "requirements.txt").read_text() == (
-        root / "backend/worker-requirements.txt"
-    ).read_text()
 
 
 def test_read_only_probe_never_claims_or_sends(monkeypatch):

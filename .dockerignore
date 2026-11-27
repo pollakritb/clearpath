@@ -14,7 +14,6 @@ backend/tests
 **/*.test.tsx
 data/private
 .tools
-.vercel
 supabase
 docs
 e2e

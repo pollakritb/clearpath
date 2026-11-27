@@ -1,5 +1,4 @@
-# ClearPath backend - production / deploy (Vercel)
-# Keep the deployment set small enough for the 250 MB function limit.
+# ClearPath backend - production VPS runtime
 fastapi>=0.115,<1.0
 httpx>=0.27
 numpy>=2.0

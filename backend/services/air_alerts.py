@@ -15,7 +15,6 @@ from ..algorithms.nearest_air_alert import (
     alert_day,
     alert_severity,
     level_enabled,
-    nearest_source,
     timestamp,
     valid_location,
 )
@@ -86,7 +85,7 @@ def save_location(user_id: str, values: dict) -> dict:
     if not preferences.get("air_alerts", True):
         raise ValueError("เปิดการแจ้งเตือนก่อนใช้ตำแหน่ง")
     # Browser permission supplies the valid foreground GPS sample. Keep the
-    # legacy record without asking the user for a second consent checkbox.
+    # consent record without asking the user for a second consent checkbox.
     if not preferences.get("consent_granted"):
         supabase_client.upsert_notification_preferences(
             user_id,
@@ -176,24 +175,6 @@ def candidates(point: dict, radius: float) -> list[dict]:
     return result
 
 
-def selected(
-    user_id: str, now: datetime | None = None
-) -> tuple[dict, dict | None, dict | None]:
-    now = now or datetime.now(UTC)
-    preferences = supabase_client.get_notification_preferences(user_id) or {}
-    point = location(user_id)
-    if not valid_location(point, now):
-        return preferences, point, None
-    radius = ALERT_RADIUS_KM
-    return (
-        preferences,
-        point,
-        nearest_source(
-            point, candidates({**point, "user_id": user_id}, radius), radius, now
-        ),
-    )
-
-
 def selected_sources(
     user_id: str, now: datetime | None = None
 ) -> tuple[dict, dict | None, list[dict]]:
@@ -267,73 +248,6 @@ def notice_for(source: dict, point: dict, preferences: dict, key: str) -> dict:
             "preferences_at": preferences.get("updated_at"),
         },
     }
-
-
-AUDIENCE_POLICY = "exclude-own-v1"
-
-
-def episode_for_other_reports(user_id: str, state: dict) -> dict:
-    """One-time, evidence-bound upgrade; existing valid episodes are preserved."""
-    if state.get("audience_policy") == AUDIENCE_POLICY:
-        return state
-    updated = dict(state)
-    last = timestamp(state.get("last_notified_at"))
-    if state.get("severity") and last and not settings.local_demo_mode:
-        was_own = (
-            db.get_client()
-            .rpc(
-                "air_alert_previous_was_own",
-                {
-                    "p_user": user_id,
-                    "p_last": last.isoformat(),
-                },
-            )
-            .execute()
-            .data
-        )
-        if was_own is True:
-            for field in ("severity", "last_notified_at", "low_since"):
-                updated.pop(field, None)
-    updated["audience_policy"] = AUDIENCE_POLICY
-    return updated
-
-
-def daily_severity(user_id: str, now: datetime) -> int:
-    day = alert_day(now)
-    if settings.local_demo_mode:
-        notices = local_store.list_user_notifications(user_id, 100000)
-        return max(
-            (
-                int(n.get("payload", {}).get("alert_severity", 0))
-                for n in notices
-                if n.get("event_type") == "air_alert"
-                and n.get("payload", {}).get("alert_day") == day
-            ),
-            default=0,
-        )
-    rows = (
-        db.get_client()
-        .table("air_alert_daily_limits")
-        .select("severity")
-        .eq("user_id", user_id)
-        .eq("alert_date", day)
-        .execute()
-        .data
-        or []
-    )
-    return max((int(r["severity"]) for r in rows), default=0)
-
-
-def daily_state(user_id: str, state: dict, now: datetime) -> dict:
-    daily = daily_severity(user_id, now)
-    if not daily:
-        return state
-    previous = (
-        int(state.get("severity") or 0)
-        if state.get("alert_day") == alert_day(now)
-        else 0
-    )
-    return {**state, "alert_day": alert_day(now), "severity": max(previous, daily)}
 
 
 @storage_errors

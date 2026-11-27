@@ -1,7 +1,7 @@
 """Short-lived, one-time sessions for in-app camera evidence.
 
 The signed token proves freshness and account binding.  A database record makes
-the token single-use across Vercel instances.  It still is not forensic proof
+the token single-use across backend processes.  It still is not forensic proof
 that the photographed scene itself is genuine.
 """
 

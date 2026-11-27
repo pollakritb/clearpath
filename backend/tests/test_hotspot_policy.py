@@ -1,10 +1,10 @@
 from datetime import UTC, datetime, timedelta
 
-from backend.algorithms.area import is_nakhon_pathom
 from backend.algorithms.hotspot_policy import (
     deduplicate_hotspots,
     public_hotspot_state,
 )
+from backend.tests.fixtures.province_area import is_nakhon_pathom
 
 
 def _point(lat: float, lon: float, acquired_at: datetime, **values):

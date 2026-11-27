@@ -18,10 +18,6 @@ from .record_keys import creation_key
 MAX_OUTBOX_ATTEMPTS = 8
 
 
-class NotificationDeferred(Exception):
-    """A delivery that must remain queued until its quiet window ends."""
-
-
 def _delivery_preferences(user_id: str) -> dict:
     return supabase_client.get_notification_preferences(user_id) or {}
 
@@ -50,19 +46,11 @@ def deliver_to_channel(
 
 
 def deliver_to_user(user_id: str, payload: dict, *, force: bool = False) -> int:
-    """Deliver through linked channels without one provider blocking another."""
-    delivered = 0
-    provider_failed = False
-    for channel in ("line",):
-        try:
-            delivered += deliver_to_channel(user_id, payload, channel, force=force)
-        except NotificationDeferred:
-            raise
-        except (ConfigurationError, UpstreamError):
-            provider_failed = True
-    if provider_failed and delivered == 0:
-        raise UpstreamError("ผู้ให้บริการแจ้งเตือนไม่พร้อมใช้งาน")
-    return delivered
+    """Deliver through LINE; in-app history is persisted separately."""
+    try:
+        return deliver_to_channel(user_id, payload, "line", force=force)
+    except (ConfigurationError, UpstreamError) as exc:
+        raise UpstreamError("ผู้ให้บริการแจ้งเตือนไม่พร้อมใช้งาน") from exc
 
 
 def inbox(user_id: str, limit: int = 50) -> list[dict]:
@@ -246,7 +234,7 @@ def process_outbox(limit: int = 100, budget_seconds: float | None = 20) -> dict:
                 "dead": 0,
                 "paused": True,
             }
-    processed = delivered = failed = deferred = dead = 0
+    processed = delivered = failed = dead = 0
     deadline = (
         monotonic() + budget_seconds if budget_seconds is not None else float("inf")
     )
@@ -371,18 +359,6 @@ def process_outbox(limit: int = 100, budget_seconds: float | None = 20) -> dict:
             )
             if count <= 0:
                 dead += 1
-        except NotificationDeferred:
-            deferred += 1
-            supabase_client.update_outbox_event(
-                str(event["id"]),
-                {
-                    "status": "pending",
-                    "next_attempt_at": (
-                        datetime.now(UTC) + timedelta(minutes=30)
-                    ).isoformat(),
-                    "last_error": None,
-                },
-            )
         except Exception:
             failed += 1
             delay_minutes = min(60, 2 ** min(attempts, 5))
@@ -413,7 +389,7 @@ def process_outbox(limit: int = 100, budget_seconds: float | None = 20) -> dict:
         "processed": processed,
         "delivered": delivered,
         "failed": failed,
-        "deferred": deferred,
+        "deferred": 0,
         "dead": dead,
     }
 

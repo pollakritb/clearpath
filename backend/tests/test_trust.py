@@ -1,12 +1,12 @@
 from datetime import UTC, datetime, timedelta
 
-from backend.algorithms.area import is_nakhon_pathom
 from backend.algorithms.trust import (
     calculate_trust_score,
     is_report_fresh,
     is_thailand_area,
     nearest_official_station,
 )
+from backend.tests.fixtures.province_area import is_nakhon_pathom
 
 
 def test_high_quality_report_scores_high():

@@ -57,7 +57,7 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
 ```
 
-ใช้ `.env.example` เป็นรายการค่าตั้ง เก็บ credentials จริงในไฟล์ local ที่ Git ignore เท่านั้น ห้ามนำ service-role/OpenAI/admin keys ไปไว้ในตัวแปร `NEXT_PUBLIC_*`
+ใช้ `.env.example` เป็น template สำหรับติดตั้งใหม่ ค่า feature flags ที่เป็น `false` ไม่ใช่สถานะ production; เปิดเมื่อ schema, credentials และ worker ของฟีเจอร์นั้นพร้อมแล้ว เก็บ credentials จริงในไฟล์ local ที่ Git ignore เท่านั้น ห้ามนำ service-role/OpenAI/admin keys ไปไว้ในตัวแปร `NEXT_PUBLIC_*`
 
 ตัวอย่าง backend demo ที่ไม่ต้องมี Supabase credentials:
 
@@ -84,8 +84,8 @@ npm run build
 ```
 
 ```sh
-.venv/bin/python -m ruff format --check backend api scripts
-.venv/bin/python -m ruff check backend api scripts
+.venv/bin/python -m ruff format --check backend scripts
+.venv/bin/python -m ruff check backend scripts
 .venv/bin/python -m pytest --cov=backend --cov-fail-under=80
 ```
 
@@ -98,9 +98,9 @@ Tests ที่เกี่ยวข้องกับฐานข้อมู�
 - `frontend/types/index.ts` mirror `backend/models/schemas.py`; UI-only types อยู่ใน `frontend/types/ui.ts`
 - ใช้รหัส entity เป็น string; ไม่แปลง BIGINT database IDs เป็น JavaScript number
 - `/api/health` ตรวจแอป และ `/api/ready` แยก release readiness ออกจากความสดของข้อมูลสถานี
-- Production VPS: ดู [ขั้นตอน deploy](docs/runbooks/vps-deployment.md); Vercel ยังใช้แยกสำหรับ Present/rollback การ deploy แอปไม่ใช่การ apply migrations
+- Production VPS: ดู [ขั้นตอน deploy](docs/runbooks/vps-deployment.md); การ deploy แอปไม่ใช่การ apply migrations
 - Production ใช้ IDW และ stored provider grids; ชุดทดลอง offline ถูกย้ายออกจาก source tree
 
 ดู [คู่มือปฏิบัติการ](docs/runbooks/README.md), [ขอบเขต cleanup และ archive](docs/cleanup.md) และ [project conventions](AGENTS.md)
 
-รายการหน้าที่และผลตรวจไฟล์ทั้งโครงการ: [Codebase review](docs/codebase-review.md)
+สำหรับตรวจงาน เริ่มจาก [คู่มือนำเสนอ](docs/presentation.md), [สถาปัตยกรรม](docs/architecture.md) และคำสั่งตรวจงานด้านบน เอกสาร audit และแผนงานเก่าแยกเก็บนอก repository ตาม [บันทึก cleanup](docs/cleanup.md)

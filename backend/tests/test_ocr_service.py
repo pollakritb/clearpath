@@ -96,11 +96,13 @@ def test_ocr_sends_private_image_and_parses_literal_display(monkeypatch):
     assert captured["json"]["store"] is False
 
 
-def test_ocr_sends_only_primary_image(
-    monkeypatch,
-):
+@pytest.mark.parametrize(
+    ("model", "detail"),
+    [("gpt-5.4-mini", "original"), ("gpt-5.6-sol", "high")],
+)
+def test_ocr_sends_only_primary_image(monkeypatch, model, detail):
     monkeypatch.setattr(settings, "openai_api_key", "server-key")
-    monkeypatch.setattr(settings, "openai_ocr_model", "gpt-5.4-mini")
+    monkeypatch.setattr(settings, "openai_ocr_model", model)
     captured: dict = {}
     response = _Response(_payload({"pm25_text": "23.4"}))
     monkeypatch.setattr(
@@ -122,7 +124,12 @@ def test_ocr_sends_only_primary_image(
         "input_text",
         "input_image",
     ]
-    assert content[1]["detail"] == "original"
+    assert content[1]["detail"] == detail
+    assert captured["json"]["model"] == model
+    if model == "gpt-5.6-sol":
+        assert captured["json"]["reasoning"] == {"effort": "none"}
+    else:
+        assert "reasoning" not in captured["json"]
     assert content[1]["image_url"] == "data:image/jpeg;base64,cHJpbWFyeQ=="
     assert content[0]["text"] == ocr.OCR_PROMPT
     assert "ภาพที่แนบมาเป็นภาพเครื่องวัดเพียงภาพเดียว" in content[0]["text"]

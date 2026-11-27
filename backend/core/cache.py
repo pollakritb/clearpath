@@ -1,6 +1,6 @@
 """In-memory TTL cache เล็กๆ — ลดการยิงซ้ำไปบริการภายนอก
 
-หมายเหตุ: บน serverless (Vercel Fluid Compute) cache อยู่ใน instance ที่ warm เท่านั้น
+Cache lives in one backend process and is discarded on restart.
 ช่วยลด rate-limit/latency ภายใน instance เดียวกัน (ไม่ใช่ shared cache ข้าม instance)
 """
 

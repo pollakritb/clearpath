@@ -650,7 +650,7 @@ def test_line_account_link_webhook_and_delivery(feature_client, monkeypatch):
         if url == line_messaging.LINE_PUSH_URL
     )
     assert (
-        "https://clearpath-gray.vercel.app/community"
+        "https://clearpath.plotpop.tech/community"
         in line_payload["messages"][0]["text"]
     )
     assert client.delete("/api/notifications/line").status_code == 200

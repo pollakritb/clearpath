@@ -240,14 +240,6 @@ def process_outbox(limit: int = 10) -> dict:
                             "payload": {"tag": payload.get("tag"), "channel": "line"},
                         }
                         accepted += 1
-        except notifications.NotificationDeferred:
-            values = {
-                "status": "pending",
-                "next_attempt_at": (
-                    datetime.now(UTC) + timedelta(minutes=5)
-                ).isoformat(),
-                "last_error": "quiet_hours",
-            }
         except line_messaging.LineProviderError as exc:
             failed += 1
             attempts = row["attempts"] + int(exc.attempted)

@@ -1,4 +1,4 @@
-from backend.algorithms.area import is_nakhon_pathom
+from backend.tests.fixtures.province_area import is_nakhon_pathom
 
 
 def test_nakhon_pathom_polygon_accepts_centre_and_rejects_neighbouring_area():

@@ -15,10 +15,10 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 
 ## Layout (clean FE/BE split)
 
-- Production VPS: Next.js standalone + FastAPI behind Caddy; see `docs/runbooks/vps-deployment.md`. Vercel entry remains for presentation/rollback.
+- Production VPS: Next.js standalone + FastAPI behind Caddy; see `docs/runbooks/vps-deployment.md`.
 
 - **FRONTEND** — `app/` (routing only, thin) + `frontend/` (UI: `components/ hooks/ lib/ types/`). FE knows only `/api/*`.
-- **BACKEND** — `api/index.py` (Vercel entry) → `backend/` FastAPI app: `routers/` (HTTP boundary), `services/` (one file = one external source), `algorithms/` (pure, no I/O, unit-tested), `models/` (pydantic), `core/` (config, aqi, errors).
+- **BACKEND** — `backend/main.py` (Uvicorn entry) → FastAPI app: `routers/` (HTTP boundary), `services/` (one file = one external source), `algorithms/` (pure, no I/O, unit-tested), `models/` (pydantic), `core/` (config, aqi, errors).
 - TS contract `frontend/types/index.ts` MUST mirror `backend/models/schemas.py`.
 - Community workflow lives in `backend/services/community/`: submission, public presentation/privacy, and review/moderation stay separate.
 - UI-only types import directly from `frontend/types/ui.ts`; do not export them from the API contract barrel.
@@ -49,4 +49,4 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 
 - Dev: `uvicorn backend.main:app --reload --port 8000` + `npm run dev` (Next proxies `/api/*` → :8000).
 - `npm run format:check` · `npm run lint` · `npm run typecheck` · `npm run build`
-- `.venv/bin/python -m ruff format --check backend api scripts` · `.venv/bin/python -m ruff check backend api scripts` · `.venv/bin/python -m pytest`
+- `.venv/bin/python -m ruff format --check backend scripts` · `.venv/bin/python -m ruff check backend scripts` · `.venv/bin/python -m pytest`

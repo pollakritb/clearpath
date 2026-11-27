@@ -30,7 +30,7 @@ table retirement, clones/branches and paid services remain outside this release.
 - This is application logical-data recovery, not a managed Supabase service
   startup: OAuth/Auth/Storage daemons, cron, pg_net and Vault were not activated
   locally. Platform config/Vault recovery material is encrypted separately within
-  the backup. Vercel write-only Secrets cannot be exported and remain unchanged.
+  the backup. Historical hosting secrets were not exported or changed by that backup.
 
 ### Applied migrations
 

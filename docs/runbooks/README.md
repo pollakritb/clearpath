@@ -12,12 +12,10 @@
 - [Nearby-pin air alerts](daily-air-alerts.md)
 - [Database readiness — local implementation and release gates](database-readiness.md)
 - [Scheduled external feeds](external-feeds.md)
-- [Forecast provider operations](forecast-providers.md)
 - [Current forecast and retired pipeline](forecast-reset.md)
 - [Health communication source register](health-communication-source-register.md)
 - [Mobile helper areas and first-request introduction](helper-area-onboarding.md)
 - [Incident response](incident-response.md)
-- [LINE nearest-pin alerts](line-nearest-pin.md)
 - [LINE automatic-notification policy](line-notification-policy.md)
 - [Measurement requests](measurement-requests.md)
 - [Application deployment](production-deployment.md)
@@ -26,6 +24,6 @@
 - [Satellite hotspot operations](satellite-hotspot-operations.md)
 - [Security, privacy and legal public-launch gate](security-privacy-legal.md)
 - [Vendor and data-provider inventory](vendor-dpa-inventory.md)
-- [Vercel LINE daemon trial](vercel-line-daemon.md)
+- [VPS deployment and LINE worker](vps-deployment.md)
 
-งาน database-completion ที่ยังไม่ commit อยู่นอกขอบเขต cleanup
+ประวัติการ apply migrations และ recovery ที่ยังจำเป็นอยู่ใน [database execution record](database-completion-progress-2026-11-15.md)

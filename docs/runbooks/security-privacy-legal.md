@@ -38,7 +38,7 @@ change; copying these fields into an analytics product is prohibited.
 - Verify the implemented 30/180-day evidence retention policy matches the
   approved policy and contractual obligations.
 - Document processors/subprocessors and cross-border transfer position for
-  Vercel, Supabase, OpenAI, weather/fire providers and email/push services.
+  Hostinger VPS, Supabase, OpenAI, weather/fire providers and email/push services.
 - Use `vendor-dpa-inventory.md` as the source-derived register; its `Pending`
   entries must be resolved by the named privacy/legal owner before setting the
   external evidence gate to approved.

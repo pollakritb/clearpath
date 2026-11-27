@@ -1,4 +1,4 @@
-// Keep multipart requests below Vercel's 4.5 MB Function payload ceiling.
+// Bound multipart uploads consistently with the backend evidence limit.
 // Originals retain their EXIF; no lossy client-side recompression.
 export const MAX_IMAGE_BYTES = 4_000_000;
 export function uploadSizeError(body: FormData): string | null {

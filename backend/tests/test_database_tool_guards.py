@@ -8,7 +8,7 @@ from scripts.production_preflight import optional_tables, required_tables
 @pytest.mark.parametrize(
     "url",
     [
-        "https://clearpath-gray.vercel.app",
+        "https://clearpath.plotpop.tech",
         "http://127.0.0.1.evil.example",
         "http://localhost:8000/api",
         "http://user:secret@localhost",

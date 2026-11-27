@@ -85,7 +85,7 @@ def _output_text(payload: dict) -> str:
 
 def _image_input(image: bytes, content_type: str) -> dict:
     data_url = f"data:{content_type};base64,{base64.b64encode(image).decode('ascii')}"
-    # Preserve fine display details on the deployed 5.4 family. Other configured
+    # Preserve fine display details on the 5.4 family. Other configured
     # models retain the broadly supported high-detail input.
     detail = "original" if settings.openai_ocr_model.startswith("gpt-5.4") else "high"
     return {"type": "input_image", "image_url": data_url, "detail": detail}
@@ -149,6 +149,9 @@ async def read_pm25(
         },
         "max_output_tokens": 300,
     }
+    if settings.openai_ocr_model.startswith("gpt-5.6"):
+        # Literal OCR needs no reasoning budget; preserve room for the JSON output.
+        body["reasoning"] = {"effort": "none"}
     try:
         async with httpx.AsyncClient(timeout=45.0) as client:
             response = await client.post(

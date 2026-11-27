@@ -1,8 +1,8 @@
 # Stored CAMS forecast map grid
 
-The map layer is independent from the existing station forecast, observation
-history, nearest-reading surface, reports and measurement requests. Keep
-`FORECAST_SYSTEM_PAUSED=true`: the old forecast/model pipeline is not used.
+The stored grid is the shared CAMS source for map, station and area forecast
+reads. It is independent from observation history, Place IDW, community reports
+and measurement requests. The former local forecast/model pipeline is retired.
 
 ## Data and rendering
 

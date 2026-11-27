@@ -1,3 +1,5 @@
+"""Historical v2 policy checks and shared GPS/current service regressions."""
+
 from datetime import UTC, datetime, timedelta
 from itertools import permutations
 
@@ -361,7 +363,7 @@ def test_independent_band_opt_outs_do_not_consume_the_other_band():
     ]
 
 
-def test_selected_uses_fixed_two_kilometres_even_for_legacy_custom_preferences(
+def test_selected_sources_uses_fixed_two_kilometres_even_for_legacy_custom_preferences(
     monkeypatch,
 ):
     now = datetime.now(UTC)
@@ -379,7 +381,7 @@ def test_selected_uses_fixed_two_kilometres_even_for_legacy_custom_preferences(
         return [source(lat=14.03, source_at=now.isoformat())]
 
     monkeypatch.setattr(air_alerts, "candidates", candidates)
-    assert air_alerts.selected("user", now)[2] is None
+    assert air_alerts.selected_sources("user", now)[2] == []
     assert seen == [2.0]
 
 

@@ -1,68 +1,81 @@
-# Cleanup record — 16 November 2026
+# Cleanup สำหรับส่งตรวจ source — 27 พฤศจิกายน 2026
 
-รายงานฉบับนี้บันทึกรอบก่อนหน้า ดู [recheck รายไฟล์ 17 พฤศจิกายน](codebase-review.md) สำหรับการถอดโค้ดภายในไฟล์เพิ่มเติมและสถานะ migration ล่าสุด
+เริ่ม cleanup เฉพาะในเครื่อง ต่อมาเจ้าของสั่ง verify/recheck/commit/push/deploy เมื่อ 28 พฤศจิกายน 2026; การปล่อยแอปไม่แก้ฐานข้อมูลหรือ replay migrations
 
-สถานะหลัง audit 17 พฤศจิกายน: เจ้าของอนุญาต release แล้ว ดู [execution record](runbooks/database-completion-progress-2026-11-15.md) สำหรับ migrations/recovery และติดตาม application SHA จาก Git/health endpoint เนื้อหาด้านล่างเป็นประวัติรอบ local cleanup เดิม
+## ขอบเขตที่เก็บไว้
 
-## ขอบเขต
+- `app/`, `frontend/` และ `backend/`: โค้ดระบบปัจจุบัน
+- Unit/integration/browser tests และ fixtures ของระบบที่ยังใช้งาน
+- `supabase/`: schema, migrations และข้อมูล bootstrap ที่จำเป็นต่อการสร้างระบบ
+- `deploy/`, `.github/` และ `scripts/`: deployment, CI, schedulers และเครื่องมือกู้คืน/ดูแลระบบที่ยังใช้
+- Lockfiles, `.env.example`, ข้อมูล geometry, demo fixtures และ vendor licenses
+- README, สถาปัตยกรรม, คู่มือนำเสนอ และ runbooks ปัจจุบัน รวมถึง execution record ของ migrations/recovery
 
-งาน OCR/CAMS และ browser-fixture fixes ถูกแยก release ก่อน cleanup (`e3a2426`, Quality CI และ Production smoke ผ่าน) ส่วน cleanup นี้เป็น local working-tree changes เท่านั้น ไม่ commit/push/deploy และไม่ apply database migrations
+โค้ด settlement/ledger เดิม, migration history และ audit retention ยังจำเป็นต่อข้อมูลที่มีอยู่ จึงไม่ตัดออกเพียงเพราะชื่อมีคำว่า legacy หรือไม่มีปุ่มใน UI
 
-รักษา feature ปัจจุบัน, API/schema contracts, cron/worker, privacy, legacy score settlement, migration history และ tests ของ feature ที่ยังใช้งาน
+## ไฟล์ที่ย้ายออก
 
-## การจัดการ
+- รายงาน audit รายไฟล์/ตารางฐานข้อมูลและแผนงานย้อนหลังที่ไม่ใช่คู่มือปัจจุบัน
+- เอกสาร nearest-pin รุ่นเก่าและการทดลอง retired hosted LINE daemon ที่นโยบายปัจจุบันแทนที่แล้ว
+- Workflow/script หยุดการทดลอง LINE เดือนพฤศจิกายน ซึ่งไม่ใช่ VPS worker ปัจจุบัน
+- Tool-specific interface configuration และ `CLAUDE.md` ที่มีเพียงการอ้างกลับ `AGENTS.md`
+- ภาพ/ผล browser QA, snapshots, แคช Python/TypeScript และ build directory เก่า `.next-dev`
+- ไฟล์ credentials สำหรับ operations `.env.deploy.local` และ `.env.target.local`; เก็บสำเนานอกโปรเจกต์ ไม่รวมในการส่งงาน
 
-- ย้ายเอกสาร/ภาพเก่า ชุดวิจัย offline และเครื่องมือทดลองที่ไม่มี runtime/CI caller ออกไป archive ภายนอก
-- ย้าย UI/hook ที่มีเฉพาะ tests เรียกออก พร้อม tests เฉพาะของส่วนที่ถอด ไม่ลบ retained-feature tests เพื่อลดจำนวน
-- ถอด URL demo ออกจาก application; report generators และรูปจำลองอยู่ใน browser fixtures เท่านั้น
-- ลบ API-client wrappers, helpers และ CSS selector branches ที่ยืนยันว่าไม่มีผู้เรียก โดยคง HTTP endpoints และ contracts
-- แยกคู่มือนำเสนอและสถาปัตยกรรมปัจจุบันออกจากเอกสารย้อนหลัง
+ปรับลิงก์เอกสารและ ignore rules ให้สอดคล้องกับโครงสร้างที่เหลือ ส่วน dependencies (`node_modules`, `.venv`), `.git`, `.env.local` และ `.next` ที่ local server ใช้อยู่คงไว้และไม่อยู่ในรายการส่ง GitHub
 
-## Archive และการคืนงาน
+## Archive และการคืนไฟล์
 
-Archive อยู่ภายนอก ClearPath ภายใต้ `../ClearPath-archive/` โดยโฟลเดอร์รอบนี้ระบุใน local inventory และรายงานส่งมอบ ประกอบด้วย:
+Archive ของรอบนี้อยู่ภายนอก repository:
 
-- `baseline-*.tar.gz`: tracked source ก่อน cleanup สำหรับคืน dependency ของชุดวิจัยให้ครบ
-- `removed/`: ไฟล์ที่นำออก เก็บ relative path เดิม
-- `prepared-removals.json` และ inventory: SHA-256, ขนาด และเหตุผลของแต่ละไฟล์
-- `pending-before-release/`: สำเนางานค้างจากก่อน release; ไม่ใช่สิ่งทดแทน recoverable production database backup
-- `visual-before/` และผลตรวจหลัง cleanup
+```text
+../ClearPath-archive/submission-cleanup-20261127-233621/
+  source-before.tar.gz
+  removed/
+  manifest.json
+```
 
-คืนไฟล์จาก `removed/` ตาม relative path เดิมและตรวจ SHA-256 กับ manifest อย่า overlay baseline ทั้งก้อนทับงานใหม่โดยไม่ review diff
+ย้าย 35 กลุ่ม รวม 721 ไฟล์/symlinks ประมาณ 114.6 MiB พร้อมตรวจ SHA-256 หลังย้าย โดย archive มีสิทธิ์เข้าถึงเฉพาะเจ้าของ เพราะมี private operations config รวมอยู่ด้วย ห้ามนำ archive นี้ขึ้น GitHub
 
-ลิงก์ประวัติจากเอกสารปัจจุบันชี้มาที่หน้านี้เพื่อไม่ให้ repository อ้างถึงไฟล์ที่นำออกไปแล้ว ชื่อ/พาธเดิมค้นได้ใน external inventory หรือ Git history
+`source-before.tar.gz` เก็บ tracked source ที่ commit `c3a1aee` ก่อน cleanup ส่วน `removed/` เก็บ relative path เดิมและ `manifest.json` เก็บขนาด/hash คืนเฉพาะไฟล์ที่ต้องการตาม path เดิมแล้วตรวจ hash ไม่ overlay source เก่าทั้งชุดทับโค้ดปัจจุบัน
 
-## งานที่คงไว้โดยตั้งใจ
+รอบ cleanup ก่อนหน้านี้เก็บใน `../ClearPath-archive/` เช่นกัน รายงานเก่าและผลตรวจของรอบนั้นเป็นหลักฐานย้อนหลัง ไม่ใช่ผลตรวจของ source ปัจจุบัน
 
-- Migrations และข้อมูล audit/ledger เดิมไม่ใช่ dead code
-- Backend demo และ test fixtures ที่ CI ต้องใช้ยังอยู่
-- Geometry ที่ generate, metadata icons, vendor source/licenses และ worker dependencies ยังมี consumer จริง
-- API ที่ไม่ได้มีปุ่มบน UI อาจเป็น contract หรือ operational boundary จึงไม่ลบจากการนับ frontend calls เพียงอย่างเดียว
-- ไฟล์งานฐานข้อมูลที่ยังค้างและไม่ commit อยู่นอกขอบเขต cleanup และคงเนื้อหาเดิม
+## การส่งงาน
 
-## ผลตรวจ
+ส่งเฉพาะไฟล์ที่ Git track และ local changes ที่ review แล้ว ไม่แนบ archive, credentials, dependencies, caches หรือผลทดสอบที่ generate ใหม่ ใช้คำสั่งตรวจงานใน [README](../README.md#ตรวจงาน) และดู [คู่มือนำเสนอ](presentation.md) สำหรับลำดับอธิบายระบบ
 
-ตรวจจาก isolated cleanup workspace ก่อนนำกลับเข้ามา โดยไม่ลด coverage thresholds หรือเพิ่ม test skips เพื่อให้ผ่าน
+ผล checks ในเครื่องไม่ทดแทนผล GitHub Actions; workflow `Quality` ของ commit `c3a1aee` มีรายงาน backend ไม่ผ่านและต้องตรวจสาเหตุแยกจากงาน cleanup นี้
 
-- ตรวจ inventory ของ tracked files ทุกไฟล์: คงไว้ 801, แก้ 52, นำออก 162 และเพิ่มไฟล์ปัจจุบัน/fixtures 6 ไฟล์
-- Production source files 431 → 419; production LOC 71,061 → 68,412 (app/frontend/backend/api ไม่รวม tests)
-- ลบ CSS selector branches ที่ไม่มี consumer 171 branches และ keyframe ที่ไม่มีผู้ใช้ 1 ชุด โดยรักษาลำดับ cascade
-- Backend: 3,799 tests ผ่าน; coverage 81.38% (gate 80%)
-- Frontend: 598 tests ผ่าน; lines 94.94%, statements 93.68%, functions 91.86%, branches 88.41% (gates เดิม 90/90/90/85)
-- OpenAPI 97 paths และ components เท่ากับ baseline ทุก field
-- ภาพก่อน–หลัง 16 ภาพที่ 320/360/430/1280px เหมือนกันทุก pixel
-- Production build แบบปิด demo/proxy: ผ่านจาก source snapshot แยก
-- Local SQL regression 15 ชุดผ่านครบ ไม่ apply hosted migrations
-- Browser suite หลัก: 551 passed, 32 intentional skips และ 3 assertion failures ในกลุ่ม report-stack; แก้การรอ avatar/layout และการวัด scroll เทียบ panel แล้วตรวจกลุ่มที่กระทบซ้ำผ่านทุก viewport (ไม่ได้ rerun ทั้ง suite อีกรอบหลังแก้ assertions)
-- ครอบคลุม 554 active browser cases หลังตรวจแก้; local stress 1,000 request paths ผ่านครบ 40 batches ใน 4 viewport
-- Final sync กลับเข้า workspace ใช้ exact source manifest และตรวจ hash งานค้าง โดยคง cleanup เป็น unstaged local changes
+## ผลตรวจรอบนี้
 
-Test count ที่ลดลงมาจาก tests เฉพาะ UI/เครื่องมือ offline ที่ย้ายออก โดย tests เหล่านั้นและ baseline source อยู่ใน archive ไม่มีการถอด tests ของ feature ที่เก็บไว้
+- Prettier format check, ESLint และ TypeScript typecheck ผ่าน
+- Ruff format/check และ backend pytest ทั้งชุดผ่าน
+- ตรวจลิงก์ Markdown ใน README/docs 33 ไฟล์ ไม่พบปลายทางไฟล์ที่หาย
+- ตรวจ tracked source ที่เหลือ 878 ไฟล์ ไม่พบค่าลับ production ที่ตั้งใช้อยู่หรือ private-key headers
+- คง CA certificate ที่ Air4Thai ใช้ตรวจ TLS ไว้; ไฟล์ `.pem` นี้ไม่ใช่ private key
+- ไม่ได้รัน production build, browser suite หรือแก้สาเหตุ GitHub Actions ในงาน cleanup รอบนี้
 
-Data fixture `backend/data/demo-stations.csv` และ `e2e/fixtures/report-evidence.png` เป็นข้อมูลเดิมที่มี caller ใน demo/tests จึงย้ายจากเอกสารเก่ามาไว้ข้าง consumer; ตรวจเนื้อหาตรงกับต้นฉบับ
+## Current-code review — 28 พฤศจิกายน 2026
 
-## ส่งมอบในเครื่อง
+- ใช้ `https://clearpath.plotpop.tech` เป็น default public origin ใน config/template; Google News ใช้ origin ที่ตั้งไว้
+- ถอด service helpers สำหรับ nearest-only selection, episode repair และ daily-limit state ที่ไม่มี runtime caller
+- ถอด quiet-window exception/handlers ที่ไม่มี producer; ทดสอบว่าค่าชั่วโมงพักส่งเดิมไม่บล็อกการส่งปัจจุบัน
+- ย้าย polygon พื้นที่ทดลองนครปฐมไป `backend/tests/fixtures/province_area.py` โดยเก็บ attribution และ regression tests ไว้
+- นำ workflow เก็บ CAMS บน hosting เดิม ที่ถูกแทนด้วย VPS scheduler ออก เก็บใน archive `../ClearPath-archive/code-refresh-20261127-235554/`
+- ปรับคำอธิบาย CAMS single-grid, worker, feature flags และ audit-only v2 policy ให้ตรงกับผู้เรียกปัจจุบัน
+- คง API compatibility responses, retained audit/migrations และ XP settlements ที่ยังจำเป็น
+- OCR default ใช้ `gpt-5.6-sol`; `.env.example` มีเฉพาะ ASCII `KEY=value`
 
-นำ reviewed cleanup กลับเข้า ClearPath แล้ว โดย Git HEAD คง `e3a2426` และ index ว่าง งาน cleanup ไม่ถูก commit/push/deploy งานฐานข้อมูลค้าง 9 ไฟล์มี SHA-256 เดิมครบ
+ผลตรวจหลังแก้: backend coverage 82.02% (เกณฑ์ 80%), frontend unit tests 614 ผ่านและ coverage ผ่านเกณฑ์เดิม, format/lint/typecheck/Ruff ผ่าน ลิงก์เอกสารไม่หาย ผลตรวจนี้เป็นของรอบ local; ดู recheck ก่อน release ด้านล่าง
 
-ย้าย local artifacts 27 กลุ่ม รวม 7,584 ไฟล์/symlinks ประมาณ 519 MiB ไป archive ภายนอก พร้อม manifest และตรวจ hash หลังย้าย คง credentials, `.git`, `node_modules`, `.venv` และ live build directories ที่อาจมีเซิร์ฟเวอร์ใช้อยู่ เฉพาะ QA servers ของรอบนี้ถูกปิด
+## Recheck ก่อน release — 28 พฤศจิกายน 2026
+
+- ถอด hosting config/entrypoint, worker image ซ้ำ, release metadata และคำแนะนำของ platform เดิมออก ใช้ VPS/Uvicorn entrypoint เดียว
+- ย้าย LINE worker เข้า Compose ของ VPS โดยตรง เปิดด้วย `COMPOSE_PROFILES=line`
+- แก้ LINE security tests สองตัวให้กำหนด demo mode เอง ไม่พึ่ง `.env.local` ที่ไม่มีบน CI
+- ทดสอบ backend โดยตั้ง `LOCAL_DEMO_MODE=false`: ผ่านทั้งชุดและ coverage 81.97%
+- Frontend unit tests 614 ผ่าน, browser notification tests 9 ผ่าน, SQL rehearsals 18 คำสั่งผ่าน
+- Format/lint/typecheck/Ruff, dependency checks และ audits ผ่าน
+- Model access check ด้วย production key: `gpt-5.6-sol` ตอบ 200; ใช้ชื่อนี้แทน alias ที่ key ไม่รู้จัก
+- Credentials และ archive คงอยู่นอก Git; ไม่มี database migration ใหม่ใน release นี้

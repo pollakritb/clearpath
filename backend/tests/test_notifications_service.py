@@ -165,7 +165,7 @@ def test_line_delivery_still_works(monkeypatch):
     assert notifications.deliver_to_user("user-1", {}) == 1
 
 
-def test_outbox_defers_without_consuming_attempt(monkeypatch):
+def test_outbox_delivers_despite_retired_quiet_hours(monkeypatch):
     updates: list[tuple[str, dict]] = []
     monkeypatch.setattr(
         notifications.supabase_client,
@@ -185,20 +185,30 @@ def test_outbox_defers_without_consuming_attempt(monkeypatch):
         lambda event_id, values: updates.append((event_id, values)),
     )
     monkeypatch.setattr(
-        notifications,
-        "deliver_to_user",
-        lambda *_args: (_ for _ in ()).throw(notifications.NotificationDeferred()),
+        notifications.supabase_client,
+        "get_notification_preferences",
+        lambda _: {
+            "consent_granted": True,
+            "line_enabled": True,
+            "quiet_hours_start": "00:00",
+            "quiet_hours_end": "23:59",
+        },
+    )
+    monkeypatch.setattr(
+        notifications.line_messaging,
+        "send_to_user",
+        lambda *_: 1,
     )
     result = notifications.process_outbox()
     assert result == {
         "processed": 1,
-        "delivered": 0,
+        "delivered": 1,
         "failed": 0,
-        "deferred": 1,
+        "deferred": 0,
         "dead": 0,
     }
-    assert updates[0][1]["status"] == "pending"
-    assert "attempts" not in updates[0][1]
+    assert updates[0][1]["status"] == "sent"
+    assert updates[0][1]["attempts"] == 4
 
 
 def test_publish_alert_deduplicates_event_and_recipient_list(monkeypatch):

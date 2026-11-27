@@ -317,9 +317,6 @@ def get_map_history_readings(target_at: datetime, max_age_minutes: int) -> list[
         ]
 
 
-# Forecast evaluation and retention
-
-
 # User profiles, private evidence, and report drafts
 
 
@@ -785,10 +782,7 @@ def notification_outbox_summary() -> dict:
     }
 
 
-# Forecast feature inputs
-
-
-# Community reports, moderation, and reputation
+# Community reports, automatic review, and reputation
 
 
 def image_token(path: str) -> str:

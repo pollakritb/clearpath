@@ -6,7 +6,7 @@ import type { NextConfig } from "next";
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 
 // ในโหมด dev: Next (port 3000) จะ proxy /api/* ไปที่ FastAPI (uvicorn, port 8000)
-// ในโหมด prod: Vercel route /api/* ไปที่ Python function เอง (ดู vercel.json)
+// Production Caddy routes /api/* to FastAPI and other requests to Next.js.
 const isDev = process.env.NODE_ENV === "development";
 const enableLocalApiProxy =
   isDev || process.env.ENABLE_LOCAL_API_PROXY === "true";
@@ -37,7 +37,7 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  // VPS images contain only the traced production runtime; Vercel keeps its default.
+  // VPS images contain only the traced production runtime.
   ...(process.env.CLEARPATH_STANDALONE === "true"
     ? { output: "standalone" as const }
     : {}),

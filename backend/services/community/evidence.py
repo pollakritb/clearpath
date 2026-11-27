@@ -13,7 +13,7 @@ IMAGE_EXTENSIONS = {
 }
 PERCEPTUAL_DUPLICATE_DISTANCE = 4
 MAX_IMAGE_BYTES = 4_000_000
-MAX_MULTIPART_BYTES = 4_200_000  # room for multipart headers, below Vercel 4.5 MB
+MAX_MULTIPART_BYTES = 4_200_000  # bounded multipart body including headers
 MIME_ALIASES = {
     "image/heif": "image/heic",
     "image/heic-sequence": "image/heic",

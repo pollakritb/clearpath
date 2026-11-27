@@ -65,7 +65,7 @@ an empty but successful live check is not evidence for that gate.
 
 1. Read `/api/firms?days=1` and record `status`, `checked_at`,
    `latest_acquired_at`, `count`, and the deployed release SHA.
-2. If `unconfigured`, verify only the server-side `FIRMS_MAP_KEY` in Vercel.
+2. If `unconfigured`, verify only the server-side `FIRMS_MAP_KEY` in the VPS backend environment.
 3. If `unavailable`, inspect runtime logs and retry after the upstream window;
    do not replace the state with a false-clear response.
 4. If `stale`, keep the layer empty and display its age. Do not extend the

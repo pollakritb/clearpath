@@ -1,6 +1,6 @@
 # Database readiness — local implementation and release gates
 
-## Current authorization
+## Database rollout record — 17 November 2026
 
 The latest owner instruction on 17 November 2026 authorizes test/commit/push/
 deploy and application of the two reviewed migrations. Recovery/capacity gates
@@ -12,7 +12,7 @@ The global station cutover, table retirement, backfill, feature flags and new pa
 services remain unchanged. Never replay the migration chain or run blanket db push.
 GPS retention and AQI migrations were already installed and were not reapplied.
 
-## Evidence and current state
+## Historical baseline evidence
 
 Baseline captured on November 14, 2026 Bangkok time (November 13 UTC):
 
@@ -90,7 +90,8 @@ starts at 500 only after the old writer is stopped. Other retention policy is un
 The GitHub workflow supports `CLEARPATH_CAMS_GRID_READS_ENABLED=true` to skip
 station collection, and omits the station delay when the station job was skipped.
 These are local file changes only; no repository variables were changed. Preserve
-all existing authorized worker trial deadlines and provider send cutoffs.
+the active worker configuration and provider budget. The expired November LINE
+trial cutoff was removed during the VPS activation; see [VPS operations](vps-deployment.md).
 
 ### Pagination
 
@@ -111,18 +112,18 @@ scan is not automatically a missing-index defect.
 
 ## Data lifecycle and access matrix
 
-| Data                                | Required behavior                                                         | Retention / forbidden shortcuts                                             |
-| ----------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Auth/profile/closure jobs           | Owner-confirmed closure; block stale writes; durable Auth/Storage retries | Preserve erasure evidence; never recreate erased identities through restore |
-| Public reports/social               | Existing automatic OCR publication and privacy rules                      | No blanket 72h report/comment deletion                                      |
-| Exact evidence/GPS/media            | Admin-only exact data; private images and short signed URLs               | Existing audit holds/expiry; verify deletion before purge marker            |
-| Trust private ledger                | Existing community-trust-v1 transactions and replay                       | 365d policy; preserve pending review and scoring/idempotency invariants     |
-| XP/contribution-v3                  | Keep historic settlement and new contribution semantics                   | Never prune ledger solely because UI changed or rows look old               |
-| Measurement/notification queues     | Claim/lease/fencing/retry/idempotency                                     | Keep unfinished jobs and dedup through supported retry window               |
-| LINE inbox/locations/budgets        | Existing ordering, consent, quiet hours, quotas and trial cutoff          | Locations 24h; terminal inbox 30d; preserve active retries/budgets          |
-| Official readings/sync/rate windows | Existing primary/backup ingestion and bounded cleanup                     | Existing 72h policy; no CAMS changes to Air4Thai                            |
-| External news/FIRMS                 | Keep source-specific freshness and attribution                            | Existing feed policy; public satellite hotspot layer stays independent      |
-| Audit/legacy evidence               | Keep references and historical explanation                                | No new destructive TTL without an existing approved policy                  |
+| Data                                | Required behavior                                                            | Retention / forbidden shortcuts                                             |
+| ----------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Auth/profile/closure jobs           | Owner-confirmed closure; block stale writes; durable Auth/Storage retries    | Preserve erasure evidence; never recreate erased identities through restore |
+| Public reports/social               | Existing automatic OCR publication and privacy rules                         | No blanket 72h report/comment deletion                                      |
+| Exact evidence/GPS/media            | Admin-only exact data; private images and short signed URLs                  | Existing audit holds/expiry; verify deletion before purge marker            |
+| Trust private ledger                | Existing community-trust-v1 transactions and replay                          | 365d policy; preserve pending review and scoring/idempotency invariants     |
+| XP/contribution-v3                  | Keep historic settlement and new contribution semantics                      | Never prune ledger solely because UI changed or rows look old               |
+| Measurement/notification queues     | Claim/lease/fencing/retry/idempotency                                        | Keep unfinished jobs and dedup through supported retry window               |
+| LINE inbox/locations/budgets        | Ordering, consent, per-observation deduplication and monthly provider budget | Locations 24h; terminal inbox 30d; preserve active retries/budgets          |
+| Official readings/sync/rate windows | Existing primary/backup ingestion and bounded cleanup                        | Existing 72h policy; no CAMS changes to Air4Thai                            |
+| External news/FIRMS                 | Keep source-specific freshness and attribution                               | Existing feed policy; public satellite hotspot layer stays independent      |
+| Audit/legacy evidence               | Keep references and historical explanation                                   | No new destructive TTL without an existing approved policy                  |
 
 Authorization boundaries:
 
@@ -230,8 +231,8 @@ and <=4h measured recovery; neither target is certified by this local change.
 ## Verification commands
 
 ```sh
-.venv/bin/python -m ruff format --check backend api scripts
-.venv/bin/python -m ruff check backend api scripts
+.venv/bin/python -m ruff format --check backend scripts
+.venv/bin/python -m ruff check backend scripts
 .venv/bin/python -m pytest
 node scripts/test-unified-cams.mjs
 node scripts/test-account-erasure.mjs

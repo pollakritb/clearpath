@@ -57,6 +57,7 @@ def test_line_user_id_accepts_only_direct_user_targets():
 
 
 def test_line_link_code_expiry_and_account_mismatch_fail_closed(monkeypatch):
+    monkeypatch.setattr(settings, "local_demo_mode", True)
     monkeypatch.setattr(settings, "line_channel_secret", "channel-secret")
     monkeypatch.setattr(
         line_messaging.supabase_client,
@@ -95,6 +96,7 @@ def test_line_link_code_expiry_and_account_mismatch_fail_closed(monkeypatch):
 
 
 def test_line_relink_same_account_rotates_one_time_code(monkeypatch):
+    monkeypatch.setattr(settings, "local_demo_mode", True)
     monkeypatch.setattr(settings, "line_channel_secret", "channel-secret")
     monkeypatch.setattr(
         line_messaging.supabase_client,

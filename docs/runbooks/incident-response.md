@@ -17,16 +17,16 @@ Page the on-call owner when any condition occurs:
 
 1. Record start time, reporter, release SHA and request IDs. Do not paste tokens,
    report images or exact coordinates into the incident channel.
-2. Check Vercel runtime logs using request ID and Supabase service status.
+2. Check VPS `docker compose logs` using request ID and Supabase service status.
 3. Run `scripts.verify_deployment` and inspect Admin sync/outbox status.
 4. Contain with the narrowest feature flag:
    - หาก OCR ขัดข้อง ระบบจะปฏิเสธรายงานใหม่แบบ fail closed และให้ผู้ใช้ลองใหม่;
-   - `PUSH_ENABLED=false` — stop delivery while keeping preferences;
+   - `LINE_MESSAGING_ENABLED=false` — stop LINE sends while keeping preferences;
    - `EXTERNAL_FORECAST_ENABLED=false` — return unavailable for station/area forecasts;
    - disable the affected CAMS collector flag if collection is failing;
    - pause the affected Supabase/GitHub scheduler if it is damaging data.
-5. Redeploy after a Vercel environment change; old deployments do not receive
-   new values.
+5. Recreate the affected API/worker containers after changing `shared/backend.env`;
+   restarting an existing container does not reload environment values.
 
 ## Privacy/security incident
 
@@ -40,9 +40,9 @@ Page the on-call owner when any condition occurs:
 
 ## Rollback
 
-Use Vercel Instant Rollback or redeploy the last known good SHA for application
-code. After an Instant Rollback, verify cron configuration separately because
-active cron jobs do not automatically follow the rolled-back deployment.
+Use the previous VPS release and its image tags as described in
+[VPS rollback](vps-deployment.md#rollback-and-maintenance). Verify scheduler
+configuration separately; active cron jobs do not follow source changes.
 
 Database changes are forward-only: create a corrective migration. Do not edit an
 already-applied migration and do not use a remote reset. Restore from backup only

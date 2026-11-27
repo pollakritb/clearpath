@@ -59,6 +59,28 @@ services:
       start_period: 30s
       retries: 3
 
+  line-worker:
+    <<: *runtime
+    profiles: [line]
+    image: clearpath-api:${RELEASE_TAG:?Set RELEASE_TAG}
+    env_file:
+      - path: .env.backend
+        format: raw
+    command: ["python", "-m", "backend.workers.line", "--health-port", "8080"]
+    mem_limit: 512m
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
   gateway:
     <<: *runtime
     image: caddy:2-alpine

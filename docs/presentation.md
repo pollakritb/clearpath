@@ -29,6 +29,8 @@
 
 ## หลักฐานตรวจ
 
-เปิดผลตรวจใน [บันทึก cleanup](cleanup.md) และอธิบาย unit/integration/browser tests โดยแยก synthetic fixtures ออกจากการใช้งาน production และผลวิจัยภายนอก
+เปิดผลตรวจที่รันจาก source ปัจจุบันและอธิบาย unit/integration/browser tests โดยแยก synthetic fixtures ออกจากการใช้งาน production และผลวิจัยภายนอก
+
+ดูขอบเขตไฟล์ที่เก็บไว้และ archive ใน [บันทึก cleanup](cleanup.md)
 
 Local backend demo และ browser fixtures มีไว้ทดสอบโดยไม่ใช้บัญชี/ข้อมูลจริง การทดสอบ OCR transport ไม่ยืนยันผลอ่านภาพทุกเครื่อง และการผ่าน local SQL tests ไม่ใช่หลักฐานว่า migrations ถูก apply บน production แล้ว

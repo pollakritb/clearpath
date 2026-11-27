@@ -10,7 +10,7 @@ dynamic = ["dependencies"]
 dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.packages.find]
-include = ["backend*", "api*"]
+include = ["backend*"]
 exclude = ["backend.tests*"]
 
 [tool.ruff]

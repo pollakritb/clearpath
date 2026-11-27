@@ -31,7 +31,7 @@ jobs:
           test -n "$STAGING_API_BASE_URL"
           test -n "$STAGING_CRON_SECRET"
           case "$STAGING_API_BASE_URL" in
-            https://clearpath-gray.vercel.app*|https://clearpath-gray-git-main-*)
+            https://clearpath.plotpop.tech*)
               echo "Production URL is forbidden for staging evidence" >&2
               exit 1 ;;
             https://*) ;;

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     measurement_requests_enabled: bool = False
     measurement_registered_locations_enabled: bool = False
     community_xp_enabled: bool = False
-    # Additive v2 schema and evaluated release policy are required before enabling.
+    # Contribution-v3 rewards use their own database release gates.
     contribution_v3_enabled: bool = False
     contribution_v3_demo_start: str = "2026-12-01T00:00:00+07:00"
     community_v2_enabled: bool = False
@@ -62,7 +62,7 @@ class Settings(BaseSettings):
 
     # OCR ภาพหน้าจอเครื่องวัด (OpenAI Responses API, server only)
     openai_api_key: str = ""
-    openai_ocr_model: str = "gpt-5.4-mini"
+    openai_ocr_model: str = "gpt-5.6-sol"
     # Enable only after the external-feed migration and cron are installed.
     external_feed_storage_enabled: bool = False
     google_news_enabled: bool = True
@@ -77,7 +77,6 @@ class Settings(BaseSettings):
     # Runtime / operations
     app_environment: str = "development"
     release_sha: str = "local"
-    vercel_git_commit_sha: str = ""
     log_level: str = "INFO"
     cors_allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
@@ -98,20 +97,20 @@ class Settings(BaseSettings):
     line_durable_delivery_enabled: bool = False
     line_requests_per_second: int = 5
     line_monthly_message_cap: int = 0
-    # Optional exclusive UTC cutoff for a time-bounded hosting trial.
+    # Optional exclusive send deadline; omitted for continuous operation.
     line_delivery_until: datetime | None = None
     line_messaging_enabled: bool = False
     line_channel_secret: str = ""
     line_channel_access_token: str = ""
     line_official_account_url: str = ""
-    app_public_url: str = "https://clearpath-gray.vercel.app"
+    app_public_url: str = "https://clearpath.plotpop.tech"
 
-    # Air-quality and hotspot notification jobs (legacy flag name).
+    # Scheduled air-alert and in-app satellite-hotspot evaluation.
     push_enabled: bool = False
 
     @property
     def effective_capture_secret(self) -> str:
-        """Use a server-only secret already present in MVP environments as fallback."""
+        """Prefer the capture secret, then existing server-only signing fallbacks."""
         return (
             self.capture_session_secret
             or self.cron_secret
@@ -145,8 +144,8 @@ class Settings(BaseSettings):
 
     @property
     def current_release(self) -> str:
-        """Prefer the immutable Vercel deployment SHA over a stale manual value."""
-        return self.vercel_git_commit_sha or self.release_sha
+        """Read the immutable release SHA supplied by the VPS deployment."""
+        return self.release_sha
 
 
 settings = Settings()

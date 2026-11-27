@@ -2,10 +2,9 @@
 
 ## Current behavior
 
-Public station/area forecasts serve stored raw CAMS / Open-Meteo values, up to
-120 available future hours. The station collector runs in six-hour batches;
-the independent grid collector checkpoints bounded batches and publishes a
-complete ready generation atomically. Public requests never fetch a provider
+Public station/area/map forecasts use the same stored raw CAMS / Open-Meteo
+grid, up to 120 available future hours. The VPS collector checks six-hour slots,
+checkpoints bounded batches and publishes a complete generation atomically. Public requests never fetch a provider
 or run a local model. Missing/stale stored data returns unavailable, without
 invented values. See [CAMS grid](cams-forecast-grid.md).
 
@@ -13,8 +12,9 @@ Air4Thai ingestion, satellite hotspots, community reports,
 Trust, XP, measurement requests and notifications remain independent.
 
 `EXTERNAL_FORECAST_ENABLED` controls stored station/area forecast reads.
-`CAMS_SNAPSHOT_COLLECTION_ENABLED` and `CAMS_GRID_COLLECTION_ENABLED` control
-the separate collectors, with the existing exact project-ref guard.
+`CAMS_GRID_COLLECTION_ENABLED` controls grid collection, with the exact
+project-ref guard. The station-snapshot collector is a compatibility path and
+returns `retired` when `CAMS_GRID_FORECAST_ENABLED=true`.
 Collector configuration is documented in `.env.example` and the grid runbook.
 
 ## Retired compatibility boundaries
@@ -42,8 +42,8 @@ Do not run historical training/promotion instructions against the current schema
 
 Keep observations, stored CAMS, report evidence, account/workflow/notification
 records, identifier aliases and migration history. Read-only Admin access to
-historical issue/audit logs remains available. CAMS/OCR/IDW field-evaluation
-tools are retained; they are separate from the removed model-release pipeline.
+historical issue/audit logs remains available. CAMS/OCR/IDW offline field-evaluation
+tools live in the external archive, separate from the deployed codebase.
 
 The 2026-10-30 storage retirement record remains available in
 legacy table retirement ([ประวัติ](../cleanup.md#archive-และการคืนงาน)).

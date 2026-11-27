@@ -1,9 +1,6 @@
 # Application deployment
 
-VPS production uses [VPS deployment](vps-deployment.md). The Vercel procedure
-below remains available for the separate presentation deployment or a rollback.
-
-Deploy frontend และ FastAPI จาก Git commit เดียวบน Vercel โดย `api/index.py` เป็น backend entrypoint ตรวจ project/branch ที่ใช้งานจริงก่อน deploy ไม่ upload working tree ที่มีงานอื่นค้าง
+Deploy Next.js standalone และ FastAPI/Uvicorn จาก Git commit เดียวผ่าน Docker Compose/Caddy บน VPS ดู [ขั้นตอน deploy และ rollback](vps-deployment.md) ตรวจ release SHA และสถานะ LINE worker หลังสลับ release
 
 ## ก่อนส่งขึ้น
 
@@ -27,6 +24,6 @@ Deploy frontend และ FastAPI จาก Git commit เดียวบน Ver
 
 การ deploy แอปไม่ใช่การ apply SQL migrations งาน schema ต้องมี change review, backup/restore และ rollout แยกตาม [backup/restore](backup-restore.md) ห้าม rewrite migration ที่ apply ไปแล้ว
 
-LINE ใช้ server queue/worker และ provider budgets; frontend ไม่ถือ channel/server keys ปัจจุบันไม่มี Web Push delivery runtime และไม่มีการตั้ง quiet hours ผ่าน UI ดู [LINE policy](line-notification-policy.md) และ [worker](vercel-line-daemon.md)
+LINE ใช้ server queue/worker และ provider budgets; frontend ไม่ถือ channel/server keys ปัจจุบันไม่มี Web Push delivery runtime และไม่มีการตั้ง quiet hours ผ่าน UI ดู [LINE policy](line-notification-policy.md) และ [VPS worker](vps-deployment.md)
 
 เครื่องมือ seed/preview และบันทึกทดลองย้อนหลังอยู่ใน [archive ภายนอก](../cleanup.md#archive-และการคืนงาน) ไม่เป็นส่วนของการ deploy ปกติ

@@ -33,7 +33,7 @@ These simplified, historical boundaries are a coarse place-name fallback only.
 They do not change service coverage, GPS, public-coordinate obfuscation,
 validation, IDW, notification areas or official administrative determinations.
 A point outside these polygons retains a coordinate label. The browser does not
-bundle this dataset; Vercel includes it through the existing `backend/**` rule.
+bundle this dataset; the API Docker image includes the backend data directory.
 
 ## Local station fixture
 

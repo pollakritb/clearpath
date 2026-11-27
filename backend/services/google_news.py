@@ -140,7 +140,7 @@ async def fetch_latest() -> list[dict]:
             timeout=10,
             follow_redirects=True,
             headers={
-                "User-Agent": "ClearPath/1.0 (+https://clearpath-gray.vercel.app)"
+                "User-Agent": f"ClearPath/1.0 (+{settings.app_public_url.rstrip('/')})"
             },
         ) as client:
             response = await client.get(_feed_url())
@@ -160,7 +160,7 @@ async def fetch_for_sync(validators: dict | None = None) -> dict:
     """Fetch once; failures propagate so the scheduler retains the last snapshot."""
     url = _feed_url()
     validators = validators or {}
-    headers = {"User-Agent": "ClearPath/1.0 (+https://clearpath-gray.vercel.app)"}
+    headers = {"User-Agent": f"ClearPath/1.0 (+{settings.app_public_url.rstrip('/')})"}
     if validators.get("url") == url:
         if validators.get("etag"):
             headers["If-None-Match"] = validators["etag"]
