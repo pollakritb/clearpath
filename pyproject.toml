@@ -2,7 +2,6 @@
 name = "clearpath-backend"
 version = "0.1.0"
 description = "ClearPath PM2.5 forecast and trusted community monitoring API"
-readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dynamic = ["dependencies"]
 

@@ -10,12 +10,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # ClearPath — project conventions
 
-PM2.5 forecast + trusted community monitoring platform. See `README.md` and
-`docs/architecture.md` for the current design. ระบบนำทาง/เปรียบเทียบเส้นทางถูกถอดออกแล้ว.
+PM2.5 forecast + trusted community monitoring platform. ระบบนำทาง/เปรียบเทียบเส้นทางถูกถอดออกแล้ว.
 
 ## Layout (clean FE/BE split)
 
-- Production VPS: Next.js standalone + FastAPI behind Caddy; see `docs/runbooks/vps-deployment.md`.
+- Production VPS: Next.js standalone + FastAPI behind Caddy; deployment configuration is in `deploy/vps/`.
 
 - **FRONTEND** — `app/` (routing only, thin) + `frontend/` (UI: `components/ hooks/ lib/ types/`). FE knows only `/api/*`.
 - **BACKEND** — `backend/main.py` (Uvicorn entry) → FastAPI app: `routers/` (HTTP boundary), `services/` (one file = one external source), `algorithms/` (pure, no I/O, unit-tested), `models/` (pydantic), `core/` (config, aqi, errors).
@@ -39,7 +38,7 @@ PM2.5 forecast + trusted community monitoring platform. See `README.md` and
 - Backend community gap-fill เข้า IDW ได้เฉพาะ approved/fresh/Trust ≥60 และ corroborated จากผู้ใช้คนละคนอย่างน้อย 2 ราย; ไม่มีทางลัดด้วยสถานะสอบเทียบเครื่อง.
 - Place IDW แยกจาก backend gap-fill: วง 2 กม., Air4Thai สด ≤1 ชม. และรายงาน approved/fresh ≤3 ชม.; ใช้ public coordinates และ distance-only inverse-distance weights (1/d) โดยไม่มี Trust/XP/stability multiplier.
 - Gap-fill ต้องมี GPS accuracy ≤200 ม., ไม่วัดติดแหล่งกำเนิดโดยตรง และไม่เป็นภาพซ้ำ.
-- UI ใช้ Like/Dislike/Comment; community-trust-v1 เป็น Trust ชุมชนรุ่นปัจจุบัน เสียงใหม่ที่ผ่านเกณฑ์มีผลเฉพาะ Trust ชุมชน (ledger/เพดานรายวัน/รายคู่) ไม่มีผลต่อ XP/IDW/gap-fill; ดู docs/runbooks/community-trust-v1.md. ระบบผลตรวจอิสระผู้รายงานและ API ดาว/gratitude รุ่นเก่าถูกถอดจาก runtime แล้ว; เก็บข้อมูล audit และ migration เดิมไว้ตาม retention. XP ใหม่ใช้ contribution-v3; ส่วน settlement/การอ่าน ledger รุ่นเก่าที่จำเป็นต่อคะแนนเดิมยังต้องรักษาไว้.
+- UI ใช้ Like/Dislike/Comment; community-trust-v1 เป็น Trust ชุมชนรุ่นปัจจุบัน เสียงใหม่ที่ผ่านเกณฑ์มีผลเฉพาะ Trust ชุมชน (ledger/เพดานรายวัน/รายคู่) ไม่มีผลต่อ XP/IDW/gap-fill. ระบบผลตรวจอิสระผู้รายงานและ API ดาว/gratitude รุ่นเก่าถูกถอดจาก runtime แล้ว; เก็บข้อมูล audit และ migration เดิมไว้ตาม retention. XP ใหม่ใช้ contribution-v3; ส่วน settlement/การอ่าน ledger รุ่นเก่าที่จำเป็นต่อคะแนนเดิมยังต้องรักษาไว้.
 - Admin/Moderator dashboard เป็น read-only: ดูสถิติ รายงาน ภาพ OCR ประกาศ สถานะระบบ และ audit ได้เท่านั้น ห้ามเพิ่ม API/UI สำหรับแก้ไข ลบ เผยแพร่ เปลี่ยนบทบาท หรือยกเลิก XP. Cron และงานอัตโนมัติใช้สิทธิ์ server แยกจาก Admin.
 - พิกัดจริงเปิดเฉพาะ Admin; public coordinates ต้องผ่าน stable obfuscation 120–250 ม.
 - Fire alert ใช้ hotspot ภายในขอบเขตประเทศไทย (รวมเกาะตาม Thailand multipolygon) ที่อายุไม่เกิน 12 ชั่วโมง และต้องเรียกว่า satellite hotspot ไม่ใช่เหตุไฟไหม้ที่ยืนยันแล้ว.

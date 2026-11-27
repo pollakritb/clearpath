@@ -228,7 +228,7 @@ def main():
     parser.add_argument("catalog", type=Path)
     parser.add_argument("--verified-production", action="store_true")
     parser.add_argument("--verified-project-ref")
-    parser.add_argument("--output", type=Path, default=Path("docs/database"))
+    parser.add_argument("--output", type=Path, default=Path("output/database"))
     args = parser.parse_args()
     generate(
         json.loads(args.catalog.read_text()),
